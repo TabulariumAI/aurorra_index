@@ -98,7 +98,8 @@ describe("metadata visual surface", () => {
     if (segmentRoot) {
       expect(segmentRoot).toHaveStyle({
         backgroundColor: "rgb(255, 255, 255)",
-        border: "1px solid #d9e1ea",
+        borderTop: "1px solid #06afc1",
+        borderRadius: "0",
         boxSizing: "border-box",
         boxShadow: "none",
         margin: "0px",
@@ -146,5 +147,93 @@ describe("metadata visual surface", () => {
     expect(screen.queryByRole("button", { name: /refresh/i })).not.toBeInTheDocument();
     expect(onReprocessSegment).not.toHaveBeenCalled();
     expect(onEditPage).not.toHaveBeenCalled();
+  });
+
+  it("removes quote line from page rows and uses compressed first-row spacing", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "mortgage", title: "Mortgage Deed" },
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", class: "text" }] },
+      secrets: [],
+    } as MetadataPayload;
+
+    render(
+      <MetadataPanel
+        callbacks={{}}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+        legalOpen={false}
+        metadata={metadata}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openSegment="page"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-page"
+        setLegalOpen={vi.fn()}
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("1 : Title page")).toBeInTheDocument());
+    const pageRow = screen.getByText("1 : Title page").closest("article");
+    expect(pageRow).toBeTruthy();
+    expect(pageRow).toHaveStyle({
+      gap: "0.25rem",
+      padding: "0.45rem 0.72rem",
+    });
+    expect(pageRow).not.toHaveTextContent("Quote:");
+  });
+
+  it("uses row-level action controls for legal actions", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      legals: {
+        groups: [{
+          code: "legal-2",
+          elements: [{ aspect: "subdivision", value: "LOT" }],
+          page: "3",
+          type: "lot_block",
+        }],
+      },
+    } as MetadataPayload;
+    const panelData = getPanelData(metadata);
+
+    render(
+      <MetadataPanel
+        callbacks={{ onPageClick: vi.fn() }}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "LegalEnrichment" }]}
+        legalOpen={false}
+        metadata={metadata}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openSegment="legal"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-2"
+        setLegalOpen={vi.fn()}
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={panelData}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("Lot Block")).toBeInTheDocument());
+    const legalActionButtons = screen.getAllByRole("button", { name: /Open legal /i });
+    expect(legalActionButtons).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open legal page" })).toBeInTheDocument();
+    legalActionButtons.forEach((button) => {
+      expect(button).toHaveStyle({ width: "1.9rem", height: "1.9rem", padding: "0" });
+    });
+    expect(screen.getByText("Lot Block").parentElement).toHaveStyle({ display: "flex" });
   });
 });

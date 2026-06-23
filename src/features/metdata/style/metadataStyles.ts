@@ -4,12 +4,12 @@ const surfaceCanvas = "transparent";
 const surfacePanel = "#ffffff";
 const surfaceRaised = "#f8fafc";
 const surfaceAccent = "rgba(6, 175, 193, 0.10)";
-const borderSubtle = "#d9e1ea";
-const borderAccent = "#06afc1";
+const borderSubtle = "#06afc1";
+const borderAccent = "#008ba3";
 const textStrong = "#20252d";
 const textMuted = "#687386";
-const teal = "#06afc1";
-const accentText = "#06afc1";
+const teal = "#008ba3";
+const accentText = "#008ba3";
 
 export const metadataStyles = {
   actionGroup: {
@@ -225,10 +225,10 @@ export const rowStyles = {
       color: textStrong,
       display: "flex",
       flexDirection: "column",
-      gap: "0.28rem",
+      gap: "0.25rem",
       position: "relative",
       margin: 0,
-      padding: "0.52rem 0.72rem",
+      padding: "0.45rem 0.72rem",
       textAlign: "left",
     };
   },
@@ -312,8 +312,8 @@ export const segmentStyles = {
   root(open: boolean): CSSProperties {
     return {
       backgroundColor: surfacePanel,
-      border: `1px solid ${borderSubtle}`,
-      borderRadius: "0.45rem",
+      borderTop: `1px solid ${borderSubtle}`,
+      borderRadius: "0",
       boxSizing: "border-box",
       boxShadow: "none",
       margin: 0,

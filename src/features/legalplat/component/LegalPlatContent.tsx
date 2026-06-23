@@ -140,7 +140,7 @@ export function LegalPlatContent({ legal }: { legal: LegalPayload | null | undef
 
   return (
     <div style={legalPlatStyles.shell}>
-      <div style={legalPlatStyles.grid}>
+      <div data-legal-plat-grid="true" style={legalPlatStyles.grid}>
         <div style={legalPlatStyles.gridContent}>
           {view.subdivisions.map((subdivision, index) => (
             <div key={`${subdivision.subdivision}-${index}`} style={legalPlatStyles.subdivisionWrapper}>

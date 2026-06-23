@@ -1,6 +1,6 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { useState, type JSX, type ReactNode } from "react";
-import { legalSummaryStyle, metadataStyles, segmentStyles } from "../style/metadataStyles";
+import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
 import { useStore } from "../../../store/hook/useStore";
 import type {
   IndexActionPayload,
@@ -13,7 +13,7 @@ import type {
   MetadataPayload,
   MetadataPanelData,
 } from "../type/metadata.types";
-import { EmptyRow, MetadataRow, cleanText, formatLabel } from "./MetadataRows";
+import { ActionButton, EmptyRow, Icon, MetadataRow, cleanText, formatLabel } from "./MetadataRows";
 import { MetadataSegment } from "./MetadataSegment";
 import { LegalPlatDialog } from "../../legalplat/component/LegalPlatDialog";
 
@@ -334,23 +334,38 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             {legalGroups.length ? legalGroups.map((group, index) => {
               const code = String(group.code || "");
               const page = Number(group.page || 0);
+              const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
               const payload: IndexActionPayload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") };
               return (
-                <article key={`${code}-${index}`} style={metadataStyles.article}>
-                  <div style={metadataStyles.legalHeader}>
-                    <strong>{formatLabel(group.type || "")}</strong>
-                    <div style={metadataStyles.actionGroup}>
+                <article
+                  data-active={isLegalRowSelected ? "true" : "false"}
+                  data-index-code={code || undefined}
+                  data-index-segment={segments.LEGAL}
+                  style={rowStyles.row(isLegalRowSelected, "forestgreen")}
+                  key={`${code}-${index}`}
+                >
+                  <div style={rowStyles.header}>
+                    <div style={rowStyles.value}>{formatLabel(group.type || "")}</div>
+                    <div style={rowStyles.actionGroup}>
                       {String(group.type || "").trim() === "lot_block" ? (
-                        <SectionAction
+                        <ActionButton
+                          label="Open legal view"
                           onClick={() => {
                             callbacks.onLegalView?.(payload);
                             setLegalOpen(true);
                           }}
                         >
-                          Legal View
-                        </SectionAction>
+                          <Icon name="edit" />
+                        </ActionButton>
                       ) : null}
-                      {callbacks.onPageClick && code ? <SectionAction onClick={() => callbacks.onPageClick?.(payload)}>Page</SectionAction> : null}
+                      {callbacks.onPageClick && code ? (
+                        <ActionButton
+                          label="Open legal page"
+                          onClick={() => callbacks.onPageClick?.(payload)}
+                        >
+                          <Icon name="page" />
+                        </ActionButton>
+                      ) : null}
                     </div>
                   </div>
                   {(group.elements || []).map((element, elementIndex) => (

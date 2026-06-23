@@ -15,7 +15,7 @@ export function cleanText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function ActionButton({
+export function ActionButton({
   children,
   disabled = false,
   label,
@@ -71,7 +71,7 @@ function ActionButton({
   );
 }
 
-function Icon({ name }: { name: "check" | "edit" | "page" | "remove" | "address" }) {
+export function Icon({ name }: { name: "check" | "edit" | "page" | "remove" | "address" }) {
   const paths = {
     address: <><path d="M4 10.5C6 6.5 9 4.5 12 4.5s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6Z" /><circle cx="12" cy="10.5" r="2.2" /><path d="M8.5 18.5h7" /></>,
     check: <path d="m5 12 4 4 10-10" />,
@@ -220,7 +220,7 @@ export function MetadataRow({
       </div>
       <AspectLine aspect={aspect} label={label} />
       <SourceLine label="Explanation" value={item.explanation} />
-      <SourceLine label="Quote" value={`P:${page || ""}. ${item.source || ""}`} />
+      {type !== "page" ? <SourceLine label="Quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
     </article>
   );
 }

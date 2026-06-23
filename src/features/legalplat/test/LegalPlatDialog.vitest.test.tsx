@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { LegalPlatDialog } from "../component/LegalPlatDialog";
 
 describe("LegalPlatDialog", () => {
-  it("owns the legal plat dialog shell, sizing, and body mode without a close button", () => {
+  it("owns the legal plat dialog shell with visible header, constrained body, and bottom close button", () => {
+    let open = true;
     render(
       <LegalPlatDialog
         legal={{
@@ -18,16 +19,28 @@ describe("LegalPlatDialog", () => {
             },
           ],
         }}
-        onOpenChange={() => undefined}
-        open
+        onOpenChange={(nextOpen) => {
+          open = nextOpen;
+        }}
+        open={open}
       />,
     );
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAttribute("data-height-mode", "wide");
-    expect(dialog.querySelector("[data-dialog-header]")).not.toBeInTheDocument();
+    const header = dialog.querySelector("[data-dialog-header]");
+    expect(header).toBeInTheDocument();
+    expect(within(dialog).getByText("Legal Plat").parentElement).toHaveStyle({ background: "#ffffff" });
+    expect(within(dialog).getByText("Legal Plat")).toBeInTheDocument();
+    expect(dialog.querySelector("[data-legal-drag-handle='true']")).toHaveStyle({
+      background: "#ffffff",
+      border: "1px solid #d9e1ea",
+      height: "0.72rem",
+      width: "2.25rem",
+    });
     expect(dialog.querySelector("[data-dialog-body]")).toHaveAttribute("data-body-mode", "center");
     expect(within(dialog).getByText("DIALOG LEGAL")).toBeInTheDocument();
-    expect(within(dialog).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    within(dialog).getByRole("button", { name: "Close" }).click();
+    expect(open).toBe(false);
   });
 });
