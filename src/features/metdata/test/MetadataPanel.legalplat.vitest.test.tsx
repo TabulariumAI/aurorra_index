@@ -112,7 +112,7 @@ describe("MetadataPanel legal plat trigger", () => {
     });
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Legal Plat")).toBeInTheDocument();
+    expect(within(dialog).getByText("Plat")).toBeInTheDocument();
     expect(within(dialog).getByText("STORE LEGAL")).toBeInTheDocument();
     expect(within(dialog).queryByText("METADATA LEGAL")).not.toBeInTheDocument();
 

@@ -125,10 +125,9 @@ describe("metadata visual surface", () => {
     expect(screen.queryByText("▾")).not.toBeInTheDocument();
     expect(screen.queryByText("▸")).not.toBeInTheDocument();
     expect(screen.getByText("Alice")).toHaveStyle({ fontWeight: "700", textTransform: "none" });
-    expect(screen.getByRole("button", { name: "Reprocess" })).toHaveStyle({ boxShadow: "none" });
+    expect(screen.getByRole("button", { name: "Reprocess" })).toHaveAttribute("data-variant", "secondary");
     expect(screen.getByText("|")).toHaveTextContent("|");
-    expect(screen.getByRole("button", { name: "Refine or Chat" })).toHaveStyle({ boxShadow: "none" });
-    expect(screen.getByRole("button", { name: "Reprocess" }).parentElement?.parentElement).toHaveStyle({ justifyContent: "flex-end" });
+    expect(screen.getByRole("button", { name: "Refine or Chat" })).toHaveAttribute("data-variant", "secondary");
     const shell = segmentButton.parentElement?.children[1] as HTMLElement | undefined;
     expect(shell).toBeTruthy();
     if (shell) {

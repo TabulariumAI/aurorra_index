@@ -1,5 +1,6 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { useState, type JSX, type ReactNode } from "react";
+import { ConfButton } from "aurorra-ui";
+import { type JSX, type ReactNode } from "react";
 import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
 import { useStore } from "../../../store/hook/useStore";
 import type {
@@ -119,27 +120,20 @@ function SectionAction({
   children: ReactNode;
   onClick: () => void;
 }) {
-  const [isInteracting, setInteracting] = useState(false);
-  const buttonStyle = isInteracting
-    ? { ...metadataStyles.actionButton, color: "#06afc1", background: "rgba(6, 175, 193, 0.08)" }
-    : metadataStyles.actionButton;
-
   return (
-    <button
+    <span
       onClick={(event) => {
-        event.preventDefault();
         event.stopPropagation();
-        onClick();
       }}
-      onFocus={() => setInteracting(true)}
-      onBlur={() => setInteracting(false)}
-      onMouseEnter={() => setInteracting(true)}
-      onMouseLeave={() => setInteracting(false)}
-      style={buttonStyle}
-      type="button"
     >
-      {children}
-    </button>
+      <ConfButton
+        label={children}
+        variant="secondary"
+        size="sm"
+        requireConfirmation={false}
+        onConfirm={onClick}
+      />
+    </span>
   );
 }
 

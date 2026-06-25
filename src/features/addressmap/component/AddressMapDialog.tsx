@@ -13,6 +13,7 @@ export type AddressMapDialogProps = {
 export function AddressMapDialog({ onOpenChange, open, source, zoom }: AddressMapDialogProps): JSX.Element {
   return (
     <Dialog
+      anchorElementId="main-container"
       bodyMode="center"
       closeOnOverlay
       draggable

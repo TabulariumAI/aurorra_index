@@ -13,23 +13,19 @@ export type LegalPlatDialogProps = {
 export function LegalPlatDialog({ legal, onOpenChange, open }: LegalPlatDialogProps): JSX.Element {
   return (
     <Dialog
+      anchorElementId="main-container"
       bodyMode="center"
       closeOnOverlay
       draggable
       header={
         <div style={legalPlatDialogStyles.header}>
-          <span style={legalPlatDialogStyles.headerTitle}>Legal Plat</span>
-          <div
-            aria-hidden="true"
-            data-legal-drag-handle="true"
-            style={legalPlatDialogStyles.dragHeader}
-          />
+          <span style={legalPlatDialogStyles.headerTitle}>Plat</span>
         </div>
       }
-      heightMode="wide"
+      heightMode="medium"
       onOpenChange={onOpenChange}
       open={open}
-      showCloseButton={false}
+      showCloseButton
       showHeader
       theme="default"
       zIndex={9999}

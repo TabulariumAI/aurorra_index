@@ -27,20 +27,16 @@ describe("LegalPlatDialog", () => {
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveAttribute("data-height-mode", "wide");
+    expect(dialog).toHaveAttribute("data-height-mode", "medium");
     const header = dialog.querySelector("[data-dialog-header]");
     expect(header).toBeInTheDocument();
-    expect(within(dialog).getByText("Legal Plat").parentElement).toHaveStyle({ background: "#ffffff" });
-    expect(within(dialog).getByText("Legal Plat")).toBeInTheDocument();
-    expect(dialog.querySelector("[data-legal-drag-handle='true']")).toHaveStyle({
-      background: "#ffffff",
-      border: "1px solid #d9e1ea",
-      height: "0.72rem",
-      width: "2.25rem",
-    });
+    expect(within(dialog).getByText("Plat").parentElement).toHaveStyle({ background: "#ffffff" });
+    expect(within(dialog).getByText("Plat")).toBeInTheDocument();
     expect(dialog.querySelector("[data-dialog-body]")).toHaveAttribute("data-body-mode", "center");
     expect(within(dialog).getByText("DIALOG LEGAL")).toBeInTheDocument();
-    within(dialog).getByRole("button", { name: "Close" }).click();
+    const closeButtons = within(dialog).getAllByRole("button", { name: "Close" });
+    expect(closeButtons).toHaveLength(2);
+    closeButtons[0].click();
     expect(open).toBe(false);
   });
 });
