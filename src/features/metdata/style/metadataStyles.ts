@@ -40,10 +40,6 @@ export const metadataStyles = {
     margin: 0,
     padding: "0.48rem 0.66rem",
   },
-  error: {
-    color: "#991b1b",
-    fontWeight: 700,
-  },
   header: {
     alignItems: "center",
     background: surfacePanel,
@@ -60,6 +56,12 @@ export const metadataStyles = {
   legalElement: {
     borderTop: `1px solid ${borderSubtle}`,
     padding: "0.38rem 0",
+  },
+  legalGroupList: {
+    display: "grid",
+    gap: "0.35rem",
+    margin: 0,
+    padding: 0,
   },
   legalHeader: {
     alignItems: "center",

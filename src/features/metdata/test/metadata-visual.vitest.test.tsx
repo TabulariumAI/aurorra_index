@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData } from "../data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
@@ -42,10 +43,15 @@ describe("metadata visual surface", () => {
     const { container } = render(
       <MetadataPanel
         callbacks={{ onEditPage, onReprocessSegment }}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
         legalOpen={false}
         metadata={metadata}
+        closeAddressMap={vi.fn()}
+        openAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
         openSegment="party"
@@ -161,12 +167,17 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{}}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
         legalOpen={false}
         metadata={metadata}
+        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        openAddressMap={vi.fn()}
         openSegment="page"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -208,12 +219,17 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{ onPageClick: vi.fn() }}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
         legalOpen={false}
         metadata={metadata}
+        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        openAddressMap={vi.fn()}
         openSegment="legal"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -235,5 +251,62 @@ describe("metadata visual surface", () => {
       expect(button).toHaveStyle({ width: "1.9rem", height: "1.9rem", padding: "0" });
     });
     expect(screen.getByText("Lot Block").parentElement).toHaveStyle({ display: "flex" });
+  });
+
+  it("spaces legal cards apart", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      legals: {
+        groups: [
+          {
+            code: "legal-1",
+            elements: [{ aspect: "subdivision", value: "CHURCHILL'S SUBURBAN VILLA 1 ACRE TRACTS" }],
+            page: "3",
+            type: "lot_block",
+          },
+          {
+            code: "legal-2",
+            elements: [{ aspect: "easement", value: "Ingress and egress" }],
+            page: "4",
+            type: "metes_bounds",
+          },
+        ],
+      },
+    } as MetadataPayload;
+
+    const { container } = render(
+      <MetadataPanel
+        callbacks={{}}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "LegalEnrichment" }]}
+        legalOpen={false}
+        metadata={metadata}
+        closeAddressMap={vi.fn()}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openAddressMap={vi.fn()}
+        openSegment="legal"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-legal-gap"
+        setLegalOpen={vi.fn()}
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("Lot Block")).toBeInTheDocument());
+    expect(screen.getByText("Metes Bounds")).toBeInTheDocument();
+    const legalCards = container.querySelectorAll('article[data-index-segment="legal"]');
+    expect(legalCards).toHaveLength(2);
+    const legalList = legalCards[0].parentElement;
+    expect(legalList).toHaveStyle({ display: "grid", gap: "0.35rem" });
   });
 });

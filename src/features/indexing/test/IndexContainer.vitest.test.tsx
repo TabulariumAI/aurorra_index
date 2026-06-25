@@ -130,14 +130,15 @@ describe("IndexContainer", () => {
     await waitFor(() => expect(screen.queryByText("Alice")).not.toBeInTheDocument());
   });
 
-  it("renders worker errors", async () => {
+  it("renders worker errors through callbacks only", async () => {
+    const onMetadataError = vi.fn();
     const onViewError = vi.fn();
 
     render(
       <IndexContainer
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
-        callbacks={{ onViewError }}
+        callbacks={{ onMetadataError, onViewError }}
         choices={choices}
         deferredState={createDeferredState()}
         segments={segments}
@@ -146,8 +147,14 @@ describe("IndexContainer", () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("broken"));
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
     expect(onViewError).toHaveBeenCalledWith({
+      code: undefined,
+      details: undefined,
+      error: "broken",
+      status: undefined,
+    });
+    expect(onMetadataError).toHaveBeenCalledWith({
       code: undefined,
       details: undefined,
       error: "broken",

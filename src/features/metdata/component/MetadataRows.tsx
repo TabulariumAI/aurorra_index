@@ -138,6 +138,7 @@ export function MetadataRow({
   callbacks,
   confirmed,
   item,
+  onAddressMapOpen,
   onConfirm,
   onDrop,
   pageClass,
@@ -152,6 +153,7 @@ export function MetadataRow({
   item: MetadataIndex;
   onConfirm: (payload: IndexActionPayload) => void;
   onDrop: (payload: IndexActionPayload) => void;
+  onAddressMapOpen: (address: string, zoom?: number) => void;
   pageClass?: string;
   pageSegments?: string[];
   selected: boolean;
@@ -211,8 +213,8 @@ export function MetadataRow({
               <Icon name="edit" />
             </ActionButton>
           ) : null}
-          {callbacks.onAddressClick && isAddressValue(item) ? (
-            <ActionButton label={`Open address ${value}`} onClick={() => callbacks.onAddressClick?.(value)}>
+          {isAddressValue(item) ? (
+            <ActionButton label={`Open address ${value}`} onClick={() => onAddressMapOpen(value)}>
               <Icon name="address" />
             </ActionButton>
           ) : null}

@@ -16,6 +16,7 @@ import type {
 import { ActionButton, EmptyRow, Icon, MetadataRow, cleanText, formatLabel } from "./MetadataRows";
 import { MetadataSegment } from "./MetadataSegment";
 import { LegalPlatDialog } from "../../legalplat/component/LegalPlatDialog";
+import { AddressMapDialog } from "../../addressmap/component/AddressMapDialog";
 
 const choiceSections = {
   acknowledgment: "AcknowledgmentIndexing",
@@ -47,9 +48,14 @@ export type MetadataPanelProps = {
   callbacks: IndexMetadataCallbacks;
   choices: IndexChoice[] | string | null;
   children?: ReactNode;
+  addressMapOpen: boolean;
+  addressMapSource: string;
+  addressMapZoom: number;
   confirmedCodes: Set<string>;
   legalOpen: boolean;
   metadata: MetadataPayload | null;
+  closeAddressMap: () => void;
+  openAddressMap: (address: string, zoom?: number) => void;
   onConfirm: (payload: IndexActionPayload) => void;
   onDrop: (payload: IndexActionPayload) => void;
   openSegment: string | null;
@@ -140,6 +146,9 @@ function SectionAction({
 export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const {
     callbacks,
+    addressMapOpen,
+    addressMapSource,
+    addressMapZoom,
     children,
     choices,
     confirmedCodes,
@@ -154,6 +163,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     session,
     setLegalOpen,
     setSectionOpen,
+    closeAddressMap,
+    openAddressMap,
     store,
     panelData,
   } = props;
@@ -166,18 +177,19 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     return visibleItems.map((item, index) => {
       const code = String(item.code || "");
       return (
-        <MetadataRow
-          callbacks={callbacks}
-          confirmed={confirmedCodes.has(code)}
-          item={item}
-          key={`${code}-${index}`}
-          onConfirm={onConfirm}
-          onDrop={onDrop}
-          selected={Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segment))}
-          segment={segment}
-          session={session}
-          type={type}
-        />
+          <MetadataRow
+            callbacks={callbacks}
+            confirmed={confirmedCodes.has(code)}
+            item={item}
+            key={`${code}-${index}`}
+            onConfirm={onConfirm}
+            onDrop={onDrop}
+            onAddressMapOpen={openAddressMap}
+            selected={Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segment))}
+            segment={segment}
+            session={session}
+            type={type}
+          />
       );
     });
   };
@@ -236,11 +248,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   }
 
   if (store.status === "error") {
-    return (
-      <section aria-label="Metadata" style={metadataStyles.sectionShell}>
-        <div role="alert" style={metadataStyles.error}>{store.error?.error}</div>
-      </section>
-    );
+    return null;
   }
 
   if (!metadata || !panelData) {
@@ -297,6 +305,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 key={`${code}-${index}`}
                 onConfirm={onConfirm}
                 onDrop={onDrop}
+                onAddressMapOpen={openAddressMap}
                 pageClass={pageClass}
                 pageSegments={validSegments}
                 selected={Boolean(code && selectedIndex?.code === code)}
@@ -331,52 +340,56 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           legalGroups.length,
           <div>
             {metadata.legals?.summary ? <p style={legalSummaryStyle()}>{metadata.legals.summary}</p> : null}
-            {legalGroups.length ? legalGroups.map((group, index) => {
-              const code = String(group.code || "");
-              const page = Number(group.page || 0);
-              const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
-              const payload: IndexActionPayload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") };
-              return (
-                <article
-                  data-active={isLegalRowSelected ? "true" : "false"}
-                  data-index-code={code || undefined}
-                  data-index-segment={segments.LEGAL}
-                  style={rowStyles.row(isLegalRowSelected, "forestgreen")}
-                  key={`${code}-${index}`}
-                >
-                  <div style={rowStyles.header}>
-                    <div style={rowStyles.value}>{formatLabel(group.type || "")}</div>
-                    <div style={rowStyles.actionGroup}>
-                      {String(group.type || "").trim() === "lot_block" ? (
-                        <ActionButton
-                          label="Open legal view"
-                          onClick={() => {
-                            callbacks.onLegalView?.(payload);
-                            setLegalOpen(true);
-                          }}
-                        >
-                          <Icon name="edit" />
-                        </ActionButton>
-                      ) : null}
-                      {callbacks.onPageClick && code ? (
-                        <ActionButton
-                          label="Open legal page"
-                          onClick={() => callbacks.onPageClick?.(payload)}
-                        >
-                          <Icon name="page" />
-                        </ActionButton>
-                      ) : null}
-                    </div>
-                  </div>
-                  {(group.elements || []).map((element, elementIndex) => (
-                    <div key={`${element.aspect}-${elementIndex}`} style={metadataStyles.legalElement}>
-                      <strong>{formatLabel(element.aspect || "")}:</strong> {cleanText(element.value)}
-                      {element.explanation ? <div style={metadataStyles.muted}>{element.explanation}</div> : null}
-                    </div>
-                  ))}
-                </article>
-              );
-            }) : <EmptyRow message="No legal descriptions found." />}
+            {legalGroups.length ? (
+              <div style={metadataStyles.legalGroupList}>
+                {legalGroups.map((group, index) => {
+                  const code = String(group.code || "");
+                  const page = Number(group.page || 0);
+                  const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
+                  const payload: IndexActionPayload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") };
+                  return (
+                    <article
+                      data-active={isLegalRowSelected ? "true" : "false"}
+                      data-index-code={code || undefined}
+                      data-index-segment={segments.LEGAL}
+                      style={rowStyles.row(isLegalRowSelected, "forestgreen")}
+                      key={`${code}-${index}`}
+                    >
+                      <div style={rowStyles.header}>
+                        <div style={rowStyles.value}>{formatLabel(group.type || "")}</div>
+                        <div style={rowStyles.actionGroup}>
+                          {String(group.type || "").trim() === "lot_block" ? (
+                            <ActionButton
+                              label="Open legal view"
+                              onClick={() => {
+                                callbacks.onLegalView?.(payload);
+                                setLegalOpen(true);
+                              }}
+                            >
+                              <Icon name="edit" />
+                            </ActionButton>
+                          ) : null}
+                          {callbacks.onPageClick && code ? (
+                            <ActionButton
+                              label="Open legal page"
+                              onClick={() => callbacks.onPageClick?.(payload)}
+                            >
+                              <Icon name="page" />
+                            </ActionButton>
+                          ) : null}
+                        </div>
+                      </div>
+                      {(group.elements || []).map((element, elementIndex) => (
+                        <div key={`${element.aspect}-${elementIndex}`} style={metadataStyles.legalElement}>
+                          <strong>{formatLabel(element.aspect || "")}:</strong> {cleanText(element.value)}
+                          {element.explanation ? <div style={metadataStyles.muted}>{element.explanation}</div> : null}
+                        </div>
+                      ))}
+                    </article>
+                  );
+                })}
+              </div>
+            ) : <EmptyRow message="No legal descriptions found." />}
           </div>,
         ) : null}
         {segmentVisible(choices, "monetary") ? renderSegment(segments.MONETARY, "Monetary Terms", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
@@ -388,6 +401,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {fiscal.funds.length ? renderSegment(segments.FUND, "Funds", fiscal.funds.length, fiscal.funds.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
         {Array.isArray(metadata.chain) && metadata.chain.length ? renderSegment(segments.CHAIN, "Chain", metadata.chain.length, metadata.chain.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
         {metadata.history ? renderSegment(segments.HISTORY, "History", Object.keys(metadata.history).length, <pre style={metadataStyles.pre}>{JSON.stringify(metadata.history, null, 2)}</pre>, null) : null}
+        <AddressMapDialog onOpenChange={closeAddressMap} open={addressMapOpen} source={addressMapSource} zoom={addressMapZoom} />
         <LegalPlatDialog legal={legalPayload} onOpenChange={setLegalOpen} open={legalOpen} />
         {children}
       </section>

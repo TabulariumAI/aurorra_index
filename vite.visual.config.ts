@@ -1,11 +1,12 @@
-import react from "@vitejs/plugin-react";
 import path from "node:path";
+import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
+  root: "tests/visual",
   plugins: [react()],
   resolve: {
     alias: {
@@ -17,12 +18,5 @@ export default defineConfig({
     },
     dedupe: ["react", "react-dom", "@radix-ui/react-dialog", "@radix-ui/react-progress"],
     preserveSymlinks: true,
-  },
-  test: {
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    exclude: ["tests/**/*.visual.spec.ts", "**/*.visual.spec.ts"],
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test/setup.ts"],
   },
 });

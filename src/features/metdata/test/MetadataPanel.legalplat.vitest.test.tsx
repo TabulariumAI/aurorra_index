@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
 import { storeApi } from "../../../store/state/store";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData, splitMetadataJSON } from "../data/metadataData";
@@ -54,18 +55,23 @@ function PanelHarness(): JSX.Element {
   const [legalOpen, setLegalOpen] = useState(false);
 
   return (
-    <MetadataPanel
-      callbacks={{}}
-      confirmedCodes={new Set()}
-      choices={[{ level: 1, service: "LegalEnrichment" }]}
-      legalOpen={legalOpen}
-      metadata={metadata}
-      onConfirm={vi.fn()}
-      onDrop={vi.fn()}
-      openSegment="legal"
-      panelData={getPanelData(metadata)}
-      removedCodes={new Set()}
-      selectedIndex={null}
+      <MetadataPanel
+        callbacks={{}}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "LegalEnrichment" }]}
+        legalOpen={legalOpen}
+        metadata={metadata}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openSegment="legal"
+        closeAddressMap={vi.fn()}
+        openAddressMap={vi.fn()}
+        panelData={getPanelData(metadata)}
+        removedCodes={new Set()}
+        selectedIndex={null}
       segments={segments}
       session="session-legal"
       setLegalOpen={setLegalOpen}

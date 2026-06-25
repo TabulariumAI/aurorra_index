@@ -24,6 +24,9 @@ export {
 } from "./features/legalplat/data/legalData";
 export { createDeferredState } from "./features/indexing/data/deferredState";
 export { indexStoreApi, useIndexStore } from "./features/metdata/store/indexStore";
+export { AddressMapContent, AddressMapDialog, useAddressMap } from "./features/addressmap";
+export type { UseAddressMapResult } from "./features/addressmap/type/addressMap.types";
+export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
 export { createIndexWorkerClient } from "./features/metdata/worker/indexWorkerClient";
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";

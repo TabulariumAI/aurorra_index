@@ -3,6 +3,7 @@ import { composeMetadataJSON, getPanelData, splitMetadataJSON } from "../data/me
 import { indexStoreApi, useIndexStore } from "../store/indexStore";
 import { storeApi, useStore } from "../../../store/state/store";
 import type { IndexActionPayload, IndexMetadataProps } from "../type/metadata.types";
+import { useAddressMap } from "../../addressmap/hook/useAddressMap";
 import { createIndexWorkerClient } from "../worker/indexWorkerClient";
 
 export function useMetadata({
@@ -25,6 +26,13 @@ export function useMetadata({
   const [confirmedCodes, setConfirmedCodes] = useState<Set<string>>(() => new Set());
   const [legalOpen, setLegalOpen] = useState(false);
   const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
+  const {
+    addressMapOpen,
+    addressMapSource,
+    addressMapZoom,
+    closeAddressMap,
+    openAddressMap,
+  } = useAddressMap();
 
   useEffect(() => {
     callbacksRef.current = callbacks;
@@ -105,11 +113,16 @@ export function useMetadata({
 
   return {
     confirmedCodes,
+    addressMapOpen,
+    addressMapSource,
+    addressMapZoom,
     legalOpen,
     loadMetadata,
+    closeAddressMap,
     metadata,
     onConfirm,
     onDrop,
+    openAddressMap,
     openSegment,
     removedCodes,
     selectedIndex,
