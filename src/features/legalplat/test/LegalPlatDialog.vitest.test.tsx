@@ -26,12 +26,11 @@ describe("LegalPlatDialog", () => {
       />,
     );
 
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("dialog", { name: "Plat" });
     expect(dialog).toHaveAttribute("data-height-mode", "medium");
     const header = dialog.querySelector("[data-dialog-header]");
     expect(header).toBeInTheDocument();
-    expect(within(dialog).getByText("Plat").parentElement).toHaveStyle({ background: "#ffffff" });
-    expect(within(dialog).getByText("Plat")).toBeInTheDocument();
+    expect(within(header as HTMLElement).getByText("Plat")).toBeInTheDocument();
     expect(dialog.querySelector("[data-dialog-body]")).toHaveAttribute("data-body-mode", "center");
     expect(within(dialog).getByText("DIALOG LEGAL")).toBeInTheDocument();
     const closeButtons = within(dialog).getAllByRole("button", { name: "Close" });

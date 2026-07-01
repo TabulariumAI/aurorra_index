@@ -17,6 +17,7 @@ export function LegalPlatDialog({ legal, onOpenChange, open }: LegalPlatDialogPr
       bodyMode="center"
       closeOnOverlay
       draggable
+      aria-label="Plat"
       header={
         <div style={legalPlatDialogStyles.header}>
           <span style={legalPlatDialogStyles.headerTitle}>Plat</span>

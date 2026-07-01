@@ -33,9 +33,9 @@ describe("IqGates", () => {
     expect(screen.getByText("PASS")).toBeInTheDocument();
     expect(screen.getByText("Notary Name must be present - none were found in the available values.")).toBeInTheDocument();
 
-    const passRow = screen.getByText("Pass gate").closest("[data-gate-code='pass']");
-    const failRow = screen.getByText("Notary Name must be present - none were found in the available values.").closest("[data-gate-code='fail']");
-    const warningRow = screen.getByText("Warning gate").closest("[data-gate-code='warning']");
+    const passRow = screen.getByText("Pass gate").closest("[data-gate-code='pass']") as HTMLElement | null;
+    const failRow = screen.getByText("Notary Name must be present - none were found in the available values.").closest("[data-gate-code='fail']") as HTMLElement | null;
+    const warningRow = screen.getByText("Warning gate").closest("[data-gate-code='warning']") as HTMLElement | null;
 
     expect(passRow && within(passRow).queryByRole("button", { name: "Clear gate" })).toBeNull();
     expect(failRow && within(failRow).getByRole("button", { name: "Clear gate" })).toBeInTheDocument();

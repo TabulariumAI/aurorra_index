@@ -143,6 +143,77 @@ export function legalSummaryStyle(): CSSProperties {
   };
 }
 
+export function disclosureButtonStyle(open: boolean): CSSProperties {
+  return {
+    appearance: "none",
+    background: "transparent",
+    border: 0,
+    boxShadow: "none",
+    color: open ? accentText : teal,
+    cursor: "pointer",
+    display: "inline-flex",
+    fontFamily: "inherit",
+    fontSize: "0.92rem",
+    fontWeight: 700,
+    justifyContent: "center",
+    lineHeight: 1.28,
+    outline: "none",
+    padding: 0,
+    position: "absolute",
+    right: 0,
+    textDecoration: "underline",
+    textUnderlineOffset: "0.12em",
+    top: 0,
+    transition: "color 120ms ease",
+    whiteSpace: "nowrap",
+  };
+}
+
+export const detailLabelStyle: CSSProperties = {
+  color: textStrong,
+  fontWeight: 700,
+};
+
+export const detailLineStyle: CSSProperties = {
+  display: "block",
+  minWidth: 0,
+  position: "relative",
+  width: "100%",
+};
+
+export const detailMeasureTextStyle: CSSProperties = {
+  color: textMuted,
+  display: "block",
+  fontSize: "0.92rem",
+  lineHeight: 1.28,
+  minWidth: 0,
+  overflow: "hidden",
+  overflowWrap: "anywhere",
+  pointerEvents: "none",
+  position: "absolute",
+  visibility: "hidden",
+  whiteSpace: "nowrap",
+  width: "100%",
+  wordBreak: "break-word",
+};
+
+export function detailTextStyle(open: boolean, hasDisclosure: boolean): CSSProperties {
+  return {
+    color: textMuted,
+    display: "block",
+    boxSizing: "border-box",
+    fontSize: "0.92rem",
+    lineHeight: 1.28,
+    minWidth: 0,
+    overflow: open || !hasDisclosure ? "visible" : "hidden",
+    overflowWrap: "anywhere",
+    paddingRight: hasDisclosure ? "1.55rem" : 0,
+    textOverflow: open || !hasDisclosure ? "clip" : "ellipsis",
+    whiteSpace: open || !hasDisclosure ? "normal" : "nowrap",
+    wordBreak: "break-word",
+  };
+}
+
 export const rowStyles = {
   actionButton(disabled: boolean): CSSProperties {
     return {
@@ -209,7 +280,7 @@ export const rowStyles = {
       backgroundColor: selected ? surfaceAccent : surfacePanel,
       border: `1px solid ${borderSubtle}`,
       borderLeft: `0.12rem solid ${borderColor}`,
-      boxShadow: selected ? `inset 0 0 0 1px ${accentText}` : "none",
+      boxShadow: "none",
       color: textStrong,
       display: "flex",
       flexDirection: "column",
@@ -219,11 +290,6 @@ export const rowStyles = {
       padding: "0.45rem 0.72rem",
       textAlign: "left",
     };
-  },
-  sourceLine: {
-    color: textMuted,
-    fontSize: "0.92rem",
-    lineHeight: 1.28,
   },
   tooltip: {
     background: "#0f172a",
@@ -266,9 +332,23 @@ export const segmentStyles = {
     padding: "0 0.16rem",
     userSelect: "none",
   },
+  actionLink: {
+    background: "transparent",
+    border: 0,
+    boxShadow: "none",
+    color: textStrong,
+    cursor: "pointer",
+    display: "inline",
+    font: "inherit",
+    fontWeight: 700,
+    outline: "none",
+    padding: 0,
+    textDecoration: "underline",
+  },
   content: {
     display: "grid",
     gap: "0.3rem",
+    gridTemplateColumns: "minmax(0, 1fr)",
     margin: 0,
     padding: "0.72rem 0 0.82rem 0.24rem",
   },

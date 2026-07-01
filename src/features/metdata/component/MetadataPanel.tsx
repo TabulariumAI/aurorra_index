@@ -1,5 +1,4 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ConfButton } from "aurorra-ui";
 import { type JSX, type ReactNode } from "react";
 import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
 import { useStore } from "../../../store/hook/useStore";
@@ -118,22 +117,20 @@ function SectionAction({
   onClick,
 }: {
   children: ReactNode;
-  onClick: () => void;
+  onClick: () => Promise<void> | void;
 }) {
   return (
-    <span
+    <a
+      href="#"
       onClick={(event) => {
+        event.preventDefault();
         event.stopPropagation();
+        void onClick();
       }}
+      style={segmentStyles.actionLink}
     >
-      <ConfButton
-        label={children}
-        variant="secondary"
-        size="sm"
-        requireConfirmation={false}
-        onConfirm={onClick}
-      />
-    </span>
+      {children}
+    </a>
   );
 }
 

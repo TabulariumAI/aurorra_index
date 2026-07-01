@@ -17,6 +17,7 @@ export function AddressMapDialog({ onOpenChange, open, source, zoom }: AddressMa
       bodyMode="center"
       closeOnOverlay
       draggable
+      aria-label="Address Map"
       header={
         <div style={addressMapDialogStyles.header}>
           <span style={addressMapDialogStyles.headerTitle}>Address Map</span>

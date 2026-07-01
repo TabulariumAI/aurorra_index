@@ -1,7 +1,15 @@
+import * as Collapsible from "@radix-ui/react-collapsible";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { useState, type JSX, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { isAmbiguous } from "../data/metadataData";
-import { rowStyles } from "../style/metadataStyles";
+import {
+  disclosureButtonStyle,
+  detailLabelStyle,
+  detailMeasureTextStyle,
+  detailLineStyle,
+  detailTextStyle,
+  rowStyles,
+} from "../style/metadataStyles";
 import type { IndexActionPayload, IndexMetadataCallbacks, MetadataIndex } from "../type/metadata.types";
 
 export function formatLabel(value: unknown): string {
@@ -13,6 +21,65 @@ export function formatLabel(value: unknown): string {
 
 export function cleanText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function useDetailDisclosure(label: string, text: string, open: boolean) {
+  const measureRef = useRef<HTMLSpanElement | null>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useLayoutEffect(() => {
+    if (open) {
+      return undefined;
+    }
+
+    const measure = measureRef.current;
+    if (!measure) {
+      return undefined;
+    }
+
+    const readOverflow = () => {
+      const next = measure.scrollWidth > measure.clientWidth || measure.scrollHeight > measure.clientHeight;
+      setIsOverflowing((current) => current || next);
+    };
+
+    readOverflow();
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(readOverflow);
+    });
+
+    if (typeof ResizeObserver === "undefined") {
+      const handleResize = () => {
+        readOverflow();
+      };
+      window.addEventListener("resize", handleResize);
+      return () => {
+        window.cancelAnimationFrame(firstFrame);
+        if (secondFrame) {
+          window.cancelAnimationFrame(secondFrame);
+        }
+        window.removeEventListener("resize", handleResize);
+      };
+    }
+
+    const observer = new ResizeObserver(() => {
+      readOverflow();
+    });
+    observer.observe(measure);
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+      observer.disconnect();
+    };
+  }, [label, open, text]);
+
+  return {
+    measureRef,
+    hasDisclosure: open || isOverflowing,
+  };
 }
 
 export function ActionButton({
@@ -92,13 +159,49 @@ function isAddressValue(item: MetadataIndex): boolean {
   return /location|address|mailback/.test(aspect) && /\d{1,6}\s+[A-Za-z0-9.,'&\- ]{5,}/i.test(value);
 }
 
-function SourceLine({ label, value }: { label: string; value: unknown }) {
+function DetailLine({ label, name, value }: { label: string; name: string; value: unknown }) {
   const text = cleanText(value);
+  const [open, setOpen] = useState(false);
+  const { measureRef, hasDisclosure } = useDetailDisclosure(label, text, open);
+
   if (!text) return null;
-  return (
-    <div style={rowStyles.sourceLine}>
-      <b>{label}:</b> {text}
+
+  const content = (
+    <div style={detailLineStyle}>
+      <span
+        aria-hidden="true"
+        ref={measureRef}
+        style={detailMeasureTextStyle}
+      >
+        <strong style={detailLabelStyle}>{label}:</strong> {text}
+      </span>
+      <span
+        style={detailTextStyle(open, hasDisclosure)}
+      >
+        <strong style={detailLabelStyle}>{label}:</strong> {text}
+      </span>
+      {hasDisclosure ? (
+        <Collapsible.Trigger asChild>
+          <button
+            aria-label={open ? `Collapse ${name}` : `Expand ${name}`}
+            style={disclosureButtonStyle(open)}
+            type="button"
+          >
+            {open ? "[-]" : "[+]"}
+          </button>
+        </Collapsible.Trigger>
+      ) : null}
     </div>
+  );
+
+  if (!hasDisclosure) {
+    return content;
+  }
+
+  return (
+    <Collapsible.Root open={open} onOpenChange={setOpen}>
+      {content}
+    </Collapsible.Root>
   );
 }
 
@@ -221,8 +324,8 @@ export function MetadataRow({
         </div>
       </div>
       <AspectLine aspect={aspect} label={label} />
-      <SourceLine label="Explanation" value={item.explanation} />
-      {type !== "page" ? <SourceLine label="Quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
+      <DetailLine label="Explanation" name="explanation" value={item.explanation} />
+      {type !== "page" ? <DetailLine label="Quote" name="quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
     </article>
   );
 }

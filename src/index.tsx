@@ -29,6 +29,15 @@ export type { UseAddressMapResult } from "./features/addressmap/type/addressMap.
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
 export { createIndexWorkerClient } from "./features/metdata/worker/indexWorkerClient";
 export {
+  AuditPanel,
+  auditStoreApi,
+  createAuditWorkerClient,
+  normalizeAuditReport,
+  prepareAuditReport,
+  useAuditReport,
+  useAuditStore,
+} from "./features/audit";
+export {
   IqPanel,
   useIqReport,
   createIqWorkerClient,
@@ -103,3 +112,20 @@ export type {
   IqWorkerError,
   IqWorkerResult,
 } from "./features/iq";
+export type {
+  AuditCallbacks,
+  AuditFilters,
+  AuditGap,
+  AuditGapView,
+  AuditPanelProps,
+  AuditReport,
+  AuditReportView,
+  AuditStoreState,
+  AuditStatus,
+  AuditUsage,
+  AuditWorkerClient,
+  AuditWorkerCommand,
+  AuditWorkerConfig,
+  AuditWorkerError,
+  AuditWorkerResult,
+} from "./features/audit";

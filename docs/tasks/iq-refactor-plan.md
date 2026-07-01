@@ -571,6 +571,15 @@ Create exactly these package tests:
 - Acking code disables clear action.
 - Empty gates render `None`.
 
+## Live Code Delta Notes
+The repo state after implementation is not identical to the original contract. Keep these deltas in view when revising or validating the work:
+- `document_web\src\features\iq\component\IqHost.tsx` still owns tablet and kiosk presentation with `aurorra-ui/Dialog`, a custom header, and `resetParam("layout_type")`.
+- `document_web\src\app\shell\component\AppShell.tsx` still renders `<dialog id="dialog-container" ... />` without the `open={...}` expression described later in this contract.
+- `document_web\src\domains\workflow\svc\orchestrator.js` no longer contains `await IQController.showReport(layoutMode);`; current IQ routing only sets `layout_type` to `IQREPORT`.
+- `document_web\src\features\iq\legacy\iqRuntime.ts` still uses `EventBus`, `EVENTS`, `ENV`, and `AlertHelper` for the adapter error path.
+- `aurorra_index\tests\visual\iq.visual.tsx` and `aurorra_index\tests\visual\iq.visual.spec.ts` already include stronger visual assertions than the minimum contract, including gate-removal flow and zero-dialog checks.
+- `aurorra_index\src\features\iq\component\IqGates.tsx` currently uses `ConfButton` and tooltip affordances for clear actions.
+
 ## Visual Test Details
 Create:
 - `aurorra_index\tests\visual\iq.visual.tsx`

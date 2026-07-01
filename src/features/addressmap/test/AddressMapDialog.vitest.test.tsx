@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "react-dom/test-utils";
 import { DEFAULT_ADDRESS_MAP_ZOOM, buildAddressMapEmbedUrl } from "../data/addressMap";
@@ -23,14 +23,14 @@ describe("AddressMapDialog", () => {
       />,
     );
 
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("dialog", { name: "Address Map" });
     const body = document.querySelector("[data-dialog-body='true']");
     const overlay = document.querySelector("[data-dialog-overlay='true']");
 
     expect(dialog).toHaveAttribute("data-height-mode", "medium");
     expect(body).toHaveAttribute("data-body-mode", "center");
     expect(document.querySelector("[data-dialog-header='true']")).toBeInTheDocument();
-    expect(screen.getByText("Address Map")).toBeInTheDocument();
+    expect(within(dialog.querySelector("[data-dialog-header='true']") as HTMLElement).getByText("Address Map")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
     expect(document.querySelector("[data-dialog-footer='true']")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close" }).parentElement).toBe(

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData } from "../data/metadataData";
@@ -25,6 +25,58 @@ const segments: IndexSegmentValues = {
   TRANSACTION: "transaction",
   VITAL: "vital",
 };
+
+const longExplanation =
+  "This explanation is intentionally long so the metadata row stays collapsed to a single line by default and only reveals the full text after the user expands it with the inline disclosure control. ".repeat(3);
+const longQuote =
+  "P:1. This quote is intentionally long so the metadata row keeps the source collapsed to a single line by default and only reveals the full quoted source after the user expands it with the inline disclosure control. ".repeat(3);
+
+const originalScrollWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollWidth");
+const originalClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollHeight");
+const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+
+Object.defineProperties(HTMLElement.prototype, {
+  scrollWidth: {
+    configurable: true,
+    get(this: HTMLElement) {
+      return (this.textContent?.length ?? 0) > 120 ? 240 : 80;
+    },
+  },
+  clientWidth: {
+    configurable: true,
+    get() {
+      return 100;
+    },
+  },
+  scrollHeight: {
+    configurable: true,
+    get(this: HTMLElement) {
+      return (this.textContent?.length ?? 0) > 120 ? 24 : 16;
+    },
+  },
+  clientHeight: {
+    configurable: true,
+    get() {
+      return 16;
+    },
+  },
+});
+
+afterAll(() => {
+  if (originalScrollWidth) {
+    Object.defineProperty(HTMLElement.prototype, "scrollWidth", originalScrollWidth);
+  }
+  if (originalClientWidth) {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", originalClientWidth);
+  }
+  if (originalScrollHeight) {
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", originalScrollHeight);
+  }
+  if (originalClientHeight) {
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", originalClientHeight);
+  }
+});
 
 describe("metadata visual surface", () => {
   it("renders the package metadata surface with stable section controls", async () => {
@@ -125,9 +177,19 @@ describe("metadata visual surface", () => {
     expect(screen.queryByText("▾")).not.toBeInTheDocument();
     expect(screen.queryByText("▸")).not.toBeInTheDocument();
     expect(screen.getByText("Alice")).toHaveStyle({ fontWeight: "700", textTransform: "none" });
-    expect(screen.getByRole("button", { name: "Reprocess" })).toHaveAttribute("data-variant", "secondary");
+    const reprocessLink = screen.getByRole("link", { name: "Reprocess" });
+    const refineLink = screen.getByRole("link", { name: "Refine or Chat" });
+    expect(reprocessLink).toHaveStyle({
+      backgroundColor: "rgba(0, 0, 0, 0)",
+      boxShadow: "none",
+      textDecoration: "underline",
+    });
     expect(screen.getByText("|")).toHaveTextContent("|");
-    expect(screen.getByRole("button", { name: "Refine or Chat" })).toHaveAttribute("data-variant", "secondary");
+    expect(refineLink).toHaveStyle({
+      backgroundColor: "rgba(0, 0, 0, 0)",
+      boxShadow: "none",
+      textDecoration: "underline",
+    });
     const shell = segmentButton.parentElement?.children[1] as HTMLElement | undefined;
     expect(shell).toBeTruthy();
     if (shell) {
@@ -152,6 +214,183 @@ describe("metadata visual surface", () => {
     expect(screen.queryByRole("button", { name: /refresh/i })).not.toBeInTheDocument();
     expect(onReprocessSegment).not.toHaveBeenCalled();
     expect(onEditPage).not.toHaveBeenCalled();
+
+    fireEvent.click(reprocessLink);
+    await waitFor(() => expect(onReprocessSegment).toHaveBeenCalledWith("party"));
+    fireEvent.click(refineLink);
+    expect(onEditPage).toHaveBeenCalledWith({
+      code: "",
+      page: 0,
+      segment: "party",
+      session: "session-1",
+      type: "segment",
+    });
+  });
+
+  it("collapses explanation rows to one line and expands inline", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      indexes: [{
+        code: "idx-1",
+        explanation: longExplanation,
+        label: "grantor",
+        page: "1",
+        page_number: "1",
+        segment: "party",
+        source: longQuote,
+        value: "Alice",
+      }],
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
+      secrets: [],
+    };
+
+    render(
+      <MetadataPanel
+        callbacks={{}}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+        legalOpen={false}
+        metadata={metadata}
+        closeAddressMap={vi.fn()}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openAddressMap={vi.fn()}
+        openSegment="party"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-party-explanation"
+        setLegalOpen={vi.fn()}
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    const explanation = screen.getAllByText(/This explanation is intentionally long/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
+    const explanationLabel = screen.getAllByText("Explanation:").find((node) => node.closest("[aria-hidden='true']") === null) as HTMLElement;
+    const expandButton = screen.getByRole("button", { name: "Expand explanation" });
+    const quote = screen.getAllByText(/full quoted source/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
+    const quoteLabel = screen.getAllByText("Quote:").find((node) => node.closest("[aria-hidden='true']") === null) as HTMLElement;
+    const quoteButton = screen.getByRole("button", { name: "Expand quote" });
+    const row = screen.getByText("Alice").closest("article");
+
+    expect(explanationLabel.parentElement).toBe(explanation);
+    expect(quoteLabel.parentElement).toBe(quote);
+    expect(row).toHaveStyle({ boxShadow: "none" });
+    expect(expandButton).toHaveAttribute("aria-expanded", "false");
+    expect(expandButton).toHaveTextContent("[+]");
+    expect(expandButton).toHaveStyle({ boxShadow: "none", outline: "none" });
+    expect(explanation).toHaveStyle({
+      display: "block",
+      overflow: "hidden",
+      paddingRight: "1.55rem",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    });
+    expect(quoteButton).toHaveAttribute("aria-expanded", "false");
+    expect(quoteButton).toHaveTextContent("[+]");
+    expect(quoteButton).toHaveStyle({ boxShadow: "none", outline: "none" });
+    expect(quote).toHaveStyle({
+      display: "block",
+      overflow: "hidden",
+      paddingRight: "1.55rem",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    });
+
+    fireEvent.click(expandButton);
+
+    expect(await screen.findByRole("button", { name: "Collapse explanation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse explanation" })).toHaveTextContent("[-]");
+    expect(explanation).toHaveStyle({
+      overflow: "visible",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+    });
+
+    fireEvent.click(quoteButton);
+
+    expect(await screen.findByRole("button", { name: "Collapse quote" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse quote" })).toHaveTextContent("[-]");
+    expect(quote).toHaveStyle({
+      overflow: "visible",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse explanation" }));
+    expect(screen.getByRole("button", { name: "Expand explanation" })).toBeInTheDocument();
+  });
+
+  it("hides disclosure buttons when explanation and quote fit on one line", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      indexes: [{
+        code: "idx-1",
+        explanation: "Short explanation",
+        label: "grantor",
+        page: "1",
+        page_number: "1",
+        segment: "party",
+        source: "Short quote",
+        value: "Alice",
+      }],
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
+      secrets: [],
+    };
+
+    render(
+      <MetadataPanel
+        callbacks={{}}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+        legalOpen={false}
+        metadata={metadata}
+        closeAddressMap={vi.fn()}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openAddressMap={vi.fn()}
+        openSegment="party"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-party-short"
+        setLegalOpen={vi.fn()}
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    const explanation = screen.getAllByText(/Short explanation/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
+    const quote = screen.getAllByText(/Short quote/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
+    expect(screen.queryByRole("button", { name: "Expand explanation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand quote" })).not.toBeInTheDocument();
+    expect(explanation).toHaveStyle({
+      overflow: "visible",
+      paddingRight: "0px",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+    });
+    expect(quote).toHaveStyle({
+      overflow: "visible",
+      paddingRight: "0px",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+    });
   });
 
   it("removes quote line from page rows and uses compressed first-row spacing", async () => {
