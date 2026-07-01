@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { LegalPlatDialog } from "../component/LegalPlatDialog";
 
 describe("LegalPlatDialog", () => {
-  it("owns the legal plat dialog shell with visible header, constrained body, and bottom close button", () => {
+  it("uses the dialog shell close button as the only close control", () => {
     let open = true;
     render(
       <LegalPlatDialog
@@ -34,7 +34,7 @@ describe("LegalPlatDialog", () => {
     expect(dialog.querySelector("[data-dialog-body]")).toHaveAttribute("data-body-mode", "center");
     expect(within(dialog).getByText("DIALOG LEGAL")).toBeInTheDocument();
     const closeButtons = within(dialog).getAllByRole("button", { name: "Close" });
-    expect(closeButtons).toHaveLength(2);
+    expect(closeButtons).toHaveLength(1);
     closeButtons[0].click();
     expect(open).toBe(false);
   });

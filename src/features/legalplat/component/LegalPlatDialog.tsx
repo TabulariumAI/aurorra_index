@@ -35,15 +35,6 @@ export function LegalPlatDialog({ legal, onOpenChange, open }: LegalPlatDialogPr
         <div style={legalPlatDialogStyles.plat}>
           <LegalPlatContent legal={legal} />
         </div>
-        <div style={legalPlatDialogStyles.footer}>
-          <button
-            onClick={() => onOpenChange(false)}
-            style={legalPlatDialogStyles.closeButton}
-            type="button"
-          >
-            Close
-          </button>
-        </div>
       </div>
     </Dialog>
   );
