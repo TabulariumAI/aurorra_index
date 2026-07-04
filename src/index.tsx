@@ -1,3 +1,10 @@
+import { lazy } from "react";
+
+export const ImageViewerPanel = lazy(async () => {
+  const module = await import("./features/imageviewer/component/ImageViewerPanel");
+  return { default: module.ImageViewerPanel };
+});
+
 export { IndexContainer, IndexContainer as IndexMetadata } from "./features/indexing/component/IndexContainer";
 export {
   asIndexArray,
@@ -54,6 +61,10 @@ export {
   UI_PASS,
   UI_WARNING,
 } from "./features/iq";
+export {
+  imageViewerStoreApi,
+  useImageViewerStore,
+} from "./features/imageviewer/store/imageViewerStore";
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";

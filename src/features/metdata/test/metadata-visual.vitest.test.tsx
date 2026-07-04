@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
+import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData } from "../data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
@@ -76,6 +77,11 @@ afterAll(() => {
   if (originalClientHeight) {
     Object.defineProperty(HTMLElement.prototype, "clientHeight", originalClientHeight);
   }
+});
+
+afterEach(() => {
+  imageViewerStoreApi.getState().resetViewer();
+  vi.clearAllMocks();
 });
 
 describe("metadata visual surface", () => {
@@ -453,10 +459,11 @@ describe("metadata visual surface", () => {
       },
     } as MetadataPayload;
     const panelData = getPanelData(metadata);
+    const onPageClick = vi.fn();
 
     render(
       <MetadataPanel
-        callbacks={{ onPageClick: vi.fn() }}
+        callbacks={{ onPageClick }}
         addressMapOpen={false}
         addressMapSource=""
         addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
@@ -489,6 +496,21 @@ describe("metadata visual surface", () => {
       expect(button).toHaveStyle({ width: "1.9rem", height: "1.9rem", padding: "0" });
     });
     expect(screen.getByText("Lot Block").parentElement).toHaveStyle({ display: "flex" });
+    fireEvent.click(screen.getByRole("button", { name: "Open legal page" }));
+    expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
+      code: "legal-2",
+      page: 3,
+      segment: "legal",
+      session: "session-2",
+    }));
+    expect(imageViewerStoreApi.getState().request).toMatchObject({
+      code: "legal-2",
+      index: "lot_block",
+      page: 3,
+      segment: "legal",
+      session: "session-2",
+      value: "Lot Block",
+    });
   });
 
   it("spaces legal cards apart", async () => {

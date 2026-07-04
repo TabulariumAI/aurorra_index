@@ -2,6 +2,7 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { type JSX, type ReactNode } from "react";
 import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
 import { useStore } from "../../../store/hook/useStore";
+import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import type {
   IndexActionPayload,
   IndexChoice,
@@ -363,7 +364,19 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                           {callbacks.onPageClick && code ? (
                             <ActionButton
                               label="Open legal page"
-                              onClick={() => callbacks.onPageClick?.(payload)}
+                              onClick={() => {
+                                imageViewerStoreApi.getState().setRequest({
+                                  code,
+                                  highlightOptions: { scroll: false },
+                                  index: payload.type,
+                                  page,
+                                  quote: "",
+                                  segment: segments.LEGAL,
+                                  session,
+                                  value: payload.value || "",
+                                });
+                                callbacks.onPageClick?.(payload);
+                              }}
                             >
                               <Icon name="page" />
                             </ActionButton>

@@ -2,6 +2,7 @@ import * as Collapsible from "@radix-ui/react-collapsible";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { isAmbiguous } from "../data/metadataData";
+import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import {
   disclosureButtonStyle,
   detailLabelStyle,
@@ -137,7 +138,6 @@ export function ActionButton({
     </Tooltip.Root>
   );
 }
-
 export function Icon({ name }: { name: "check" | "edit" | "page" | "remove" | "address" }) {
   const paths = {
     address: <><path d="M4 10.5C6 6.5 9 4.5 12 4.5s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6Z" /><circle cx="12" cy="10.5" r="2.2" /><path d="M8.5 18.5h7" /></>,
@@ -152,7 +152,6 @@ export function Icon({ name }: { name: "check" | "edit" | "page" | "remove" | "a
     </svg>
   );
 }
-
 function isAddressValue(item: MetadataIndex): boolean {
   const aspect = String(item.aspect || "").toLowerCase();
   const value = String(item.value || "");
@@ -267,6 +266,7 @@ export function MetadataRow({
   const code = String(item.code || "");
   const page = Number(item.page || item.page_number || 0);
   const value = cleanText(item.value);
+  const quote = cleanText(item.source);
   const label = formatLabel(item.label || item.name || "");
   const aspect = formatLabel(item.aspect || "");
   const ambiguous = isAmbiguous(item.ambiguous);
@@ -275,6 +275,7 @@ export function MetadataRow({
     page,
     pageClass,
     pageSegments,
+    quote,
     segment,
     session,
     type,
@@ -302,7 +303,22 @@ export function MetadataRow({
             </ActionButton>
           ) : null}
           {callbacks.onPageClick && page && code ? (
-            <ActionButton label={`Open page image ${page}`} onClick={() => callbacks.onPageClick?.(payload)}>
+            <ActionButton
+              label={`Open page image ${page}`}
+              onClick={() => {
+                imageViewerStoreApi.getState().setRequest({
+                  code,
+                  highlightOptions: { scroll: false },
+                  index: type,
+                  page,
+                  quote,
+                  segment,
+                  session,
+                  value,
+                });
+                callbacks.onPageClick?.(payload);
+              }}
+            >
               <Icon name="page" />
             </ActionButton>
           ) : null}

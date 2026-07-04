@@ -166,9 +166,11 @@ export type IndexDeferredState = {
 
 export type IndexActionPayload = {
   code: string;
+  highlightOptions?: { scroll: boolean };
   page: number;
   pageClass?: string;
   pageSegments?: string[];
+  quote?: string;
   segment: string | null;
   session: string;
   type: string;

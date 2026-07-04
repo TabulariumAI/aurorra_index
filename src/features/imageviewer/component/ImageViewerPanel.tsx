@@ -1,0 +1,143 @@
+import { ProgressBar } from "aurorra-ui";
+import { useEffect, useLayoutEffect } from "react";
+import type { JSX } from "react";
+import { parsePackageUrls, toViewerError } from "../data/imageViewerData";
+import { useImageViewer } from "../hook/useImageViewer";
+import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
+import { imageViewerStyles } from "../style/imageViewerStyles";
+import type { PanelProps } from "../type/imageViewer.types";
+import { createWorkerClient } from "../worker/imageWorkerClient";
+import { ImageViewerFooterToolbar, ImageViewerTopToolbar } from "./ImageViewerToolbar";
+
+function progressLabel(status: string): string {
+  return status === "downloading" ? "Loading image package" : "Backend is generating the image package";
+}
+
+function lensProgressLabel(status: string): string {
+  if (status === "loadingPage") return "Decoding document page...";
+  if (status === "copyingSelection") return "Copying selection...";
+  return "Loading...";
+}
+
+export function ImageViewerPanel({ hostInput }: PanelProps): JSX.Element {
+  useLayoutEffect(() => {
+    if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
+  }, [hostInput]);
+
+  const apiGatewayUrl = useImageViewerStore((state) => state.apiGatewayUrl);
+  const authToken = useImageViewerStore((state) => state.authToken);
+  const searchText = useImageViewerStore((state) => state.searchText);
+  const session = useImageViewerStore((state) => state.session);
+  const status = useImageViewerStore((state) => state.status);
+  const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
+  const workerClient = useImageViewerStore((state) => state.workerClient);
+  const viewer = useImageViewer();
+
+  useEffect(() => {
+    if (!apiGatewayUrl || !authToken || !session) return;
+    const currentStatus = imageViewerStoreApi.getState().status;
+    if (currentStatus === "ready" || currentStatus === "packaging" || currentStatus === "polling" || currentStatus === "downloading") return;
+    let canceled = false;
+    const token = authToken;
+    const activeSession = session;
+    const client = workerClient || createWorkerClient({ apiBaseUrl: apiGatewayUrl });
+
+    async function runPackageFlow() {
+      try {
+        imageViewerStoreApi.getState().setStatus("packaging");
+        await client.packageImage(token, activeSession);
+        let current = await client.imageStatus(token, activeSession);
+        while (!canceled && (current.status === "pending" || current.status === "processing")) {
+          imageViewerStoreApi.getState().setStatus("polling");
+          imageViewerStoreApi.getState().setPackageStatus(current.status);
+          await new Promise((resolve) => setTimeout(resolve, imageViewerStoreApi.getState().packagePollIntervalMs));
+          current = await client.imageStatus(token, activeSession);
+        }
+        if (canceled) return;
+        imageViewerStoreApi.getState().setPackageStatus(current.status === "completed" ? "completed" : "error");
+        if (current.status !== "completed") {
+          imageViewerStoreApi.getState().setError({ code: "image_package_error", details: current, error: current.data });
+          return;
+        }
+        imageViewerStoreApi.getState().setStatus("downloading");
+        const data = await client.imageData(token, activeSession);
+        const urls = parsePackageUrls(data.data);
+        const localPackage = await client.downloadPackage(token, urls);
+        if (!canceled) imageViewerStoreApi.getState().setLocalPackage(localPackage);
+      } catch (packageError) {
+        if (!canceled) imageViewerStoreApi.getState().setError(toViewerError(packageError, "image package request failed."));
+      }
+    }
+
+    void runPackageFlow();
+    return () => {
+      canceled = true;
+    };
+  }, [apiGatewayUrl, authToken, session, workerClient]);
+
+  const loading = status === "packaging" || status === "polling" || status === "downloading";
+  const lensLoading = viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage";
+  const progress = loading || lensLoading;
+
+  return (
+    <section aria-label="Image viewer" style={imageViewerStyles.root}>
+      {viewer.isThumbs ? null : (
+        <ImageViewerTopToolbar
+          canActualSize={viewer.canActualSize}
+          canClearSearch={viewer.canClearSearch}
+          canFitHeight={viewer.canFitHeight}
+          canFitPage={viewer.canFitPage}
+          canFitWidth={viewer.canFitWidth}
+          canSearch={viewer.canSearch}
+          canZoomIn={viewer.canZoomIn}
+          canZoomOut={viewer.canZoomOut}
+          onAction={(action) => {
+            if (action === "actualSize") viewer.actualSize();
+            if (action === "clearSearch") viewer.clearSearch();
+            if (action === "fitHeight") viewer.fitHeight();
+            if (action === "fitPage") viewer.fitPage();
+            if (action === "fitWidth") viewer.fitWidth();
+            if (action === "search") viewer.search();
+            if (action === "zoomIn") viewer.zoomIn();
+            if (action === "zoomOut") viewer.zoomOut();
+          }}
+          onSearchText={(value) => imageViewerStoreApi.getState().setSearchText(value)}
+          searchText={searchText}
+        />
+      )}
+      <div style={imageViewerStyles.body}>
+        <div data-document-lens-host="true" ref={viewer.lensHostRef} style={imageViewerStyles.lensHost} />
+        {progress ? (
+          <div style={imageViewerStyles.overlay}>
+            <ProgressBar
+              ariaLabel="image viewer progress"
+              continuous
+              label={loading ? progressLabel(status) : lensProgressLabel(viewerStatus)}
+              running
+              showText
+              visible
+            />
+          </div>
+        ) : null}
+      </div>
+      {viewer.isThumbs ? null : (
+        <ImageViewerFooterToolbar
+          canGoFirst={viewer.canGoFirst}
+          canGoLast={viewer.canGoLast}
+          canGoNext={viewer.canGoNext}
+          canGoPrevious={viewer.canGoPrevious}
+          canShowThumbnails={viewer.canShowThumbnails}
+          onAction={(action) => {
+            if (action === "first") viewer.firstPage();
+            if (action === "last") viewer.lastPage();
+            if (action === "next") viewer.nextPage();
+            if (action === "previous") viewer.previousPage();
+            if (action === "thumbs") viewer.showThumbnails();
+          }}
+          page={viewer.page}
+          pageCount={viewer.pageCount}
+        />
+      )}
+    </section>
+  );
+}
