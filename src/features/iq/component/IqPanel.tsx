@@ -32,10 +32,16 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
       ) : null}
       <div style={iqStyles.content}>
         {view === null ? (
-          <div style={iqStyles.empty}>No IQ report found.</div>
+          <>
+            <div style={iqStyles.panelHeader}>{props.previewAction}</div>
+            <div style={iqStyles.empty}>No IQ report found.</div>
+          </>
         ) : (
           <>
-            <IqSummary iq={view.iq} />
+            <div style={iqStyles.panelHeader}>
+              <IqSummary iq={view.iq} />
+              {props.previewAction}
+            </div>
             <div style={iqStyles.divider} />
             <div style={iqStyles.sectionTitle}>Indexing Segments ({view.segments.length})</div>
             <IqSegments segments={view.segments} />

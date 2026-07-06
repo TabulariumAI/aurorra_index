@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 let viewerPageCount = 2;
+let viewerRestoring = false;
 
 vi.mock("../hook/useImageViewer", () => ({
   useImageViewer: () => ({
@@ -39,6 +40,7 @@ vi.mock("../hook/useImageViewer", () => ({
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
     isLoading: false,
+    isRestoring: viewerRestoring,
   }),
 }));
 
@@ -46,11 +48,13 @@ import { ImageViewerPanel } from "../component/ImageViewerPanel";
 
 const directPackageRaw = readFileSync(path.join(process.cwd(), "src", "test", "package", "image-package.json"), "utf8");
 const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: string };
+const previewAction = <button type="button">Close preview</button>;
 
 describe("ImageViewerPanel", () => {
   afterEach(() => {
     imageViewerStoreApi.getState().resetViewer();
     viewerPageCount = 2;
+    viewerRestoring = false;
     vi.restoreAllMocks();
   });
 
@@ -72,14 +76,16 @@ describe("ImageViewerPanel", () => {
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
+      request: null,
       selectedIndex: null,
       session: "session-1",
       workerClient,
     });
 
-    render(<ImageViewerPanel />);
+    render(<ImageViewerPanel previewAction={previewAction} />);
 
     expect(screen.getByRole("progressbar", { name: "image viewer progress" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
     expect(workerClient.packageImage).toHaveBeenCalledBefore(workerClient.imageStatus);
     expect(workerClient.imageData).toHaveBeenCalled();
@@ -108,22 +114,52 @@ describe("ImageViewerPanel", () => {
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
+      request: null,
       selectedIndex: null,
       session: "session-1",
       workerClient,
     });
 
-    const view = render(<ImageViewerPanel />);
+    const view = render(<ImageViewerPanel previewAction={previewAction} />);
 
     await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
     view.unmount();
-    render(<ImageViewerPanel />);
+    render(<ImageViewerPanel previewAction={previewAction} />);
 
     await waitFor(() => expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument());
     expect(workerClient.packageImage).toHaveBeenCalledTimes(1);
     expect(workerClient.imageData).toHaveBeenCalledTimes(1);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not start package flow while lens restore is pending", () => {
+    viewerRestoring = true;
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageCount: 2,
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    render(<ImageViewerPanel previewAction={previewAction} />);
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
   });
 
   it("bubbles package errors without rendering a package alert", async () => {
@@ -144,12 +180,13 @@ describe("ImageViewerPanel", () => {
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
+      request: null,
       selectedIndex: null,
       session: "session-1",
       workerClient,
     });
 
-    render(<ImageViewerPanel />);
+    render(<ImageViewerPanel previewAction={previewAction} />);
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({
       code: "invalid_image_package",
@@ -163,7 +200,7 @@ describe("ImageViewerPanel", () => {
     viewerPageCount = 0;
     imageViewerStoreApi.setState({ viewerStatus: "loadingPage" });
 
-    render(<ImageViewerPanel />);
+    render(<ImageViewerPanel previewAction={previewAction} />);
 
     expect(screen.getByRole("progressbar", { name: "image viewer progress" })).toBeInTheDocument();
     expect(screen.getByText("Decoding document page...")).toBeInTheDocument();
@@ -172,7 +209,7 @@ describe("ImageViewerPanel", () => {
   it("shows lens progress during page navigation", () => {
     imageViewerStoreApi.setState({ viewerStatus: "loadingPage" });
 
-    render(<ImageViewerPanel />);
+    render(<ImageViewerPanel previewAction={previewAction} />);
 
     expect(screen.getByRole("progressbar", { name: "image viewer progress" })).toBeInTheDocument();
   });

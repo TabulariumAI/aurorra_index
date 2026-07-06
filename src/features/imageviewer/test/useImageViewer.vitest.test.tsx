@@ -10,6 +10,7 @@ const packageMetadata = JSON.parse(readFileSync(path.join(packageRoot, "image.js
 const tiffBytes = readFileSync(path.join(packageRoot, "image.tiff"));
 
 const configurePdfWorker = vi.hoisted(() => vi.fn());
+const indexedDbViewerSessionStore = vi.hoisted(() => vi.fn());
 const lensInstances = vi.hoisted(() => [] as LensApi[]);
 const restoreSessionResult = vi.hoisted(() => ({ value: false }));
 const auroraLensCtor = vi.hoisted(() =>
@@ -61,7 +62,7 @@ const auroraLensCtor = vi.hoisted(() =>
 
 vi.mock("@tabulariumai/aurora-lens", () => ({
   AuroraLens: auroraLensCtor,
-  IndexedDbViewerSessionStore: vi.fn(),
+  IndexedDbViewerSessionStore: indexedDbViewerSessionStore,
   configurePdfWorker,
 }));
 
@@ -111,6 +112,7 @@ function setHost() {
     onError: vi.fn(),
     pageCount: 2,
     pageMap: new Map(),
+    request: null,
     selectedIndex: null,
     session: "session-1",
   });
@@ -136,6 +138,7 @@ describe("useImageViewer", () => {
     lensInstances.length = 0;
     restoreSessionResult.value = false;
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
     vi.restoreAllMocks();
   });
 
@@ -149,6 +152,7 @@ describe("useImageViewer", () => {
     await waitFor(() => expect(lensInstances[0].decodeDoc).toHaveBeenCalled());
     const file = vi.mocked(lensInstances[0].decodeDoc).mock.calls[0][0];
     expect(configurePdfWorker).toHaveBeenCalledWith("pdf-worker-url");
+    expect(indexedDbViewerSessionStore).toHaveBeenCalledTimes(1);
     expect(auroraLensCtor).toHaveBeenCalledWith(expect.any(HTMLElement), expect.objectContaining({
       allowEdit: false,
       selectionTheme: {
@@ -164,8 +168,22 @@ describe("useImageViewer", () => {
     expect(lensInstances[0].loadMetadata).toHaveBeenCalledWith({ pages: [] });
     expect(lensInstances[0].decodeDoc).toHaveBeenCalledWith(file, { page: 1, viewMode: "page" });
     expect(lensInstances[0].goToPage).not.toHaveBeenCalled();
-    expect(lensInstances[0].restoreSession).not.toHaveBeenCalled();
+    expect(lensInstances[0].restoreSession).toHaveBeenCalledTimes(1);
     expect(lensInstances[0].search).toHaveBeenCalledWith("Alice", { additive: false, context: "quote" });
+  });
+
+  it("creates lens and restores stored session without package inputs", async () => {
+    setHost();
+    restoreSessionResult.value = true;
+    await act(async () => {
+      render(<Harness />);
+    });
+
+    await waitFor(() => expect(lensInstances[0].restoreSession).toHaveBeenCalledTimes(1));
+    expect(indexedDbViewerSessionStore).toHaveBeenCalledTimes(1);
+    expect(lensInstances[0].decodeDoc).not.toHaveBeenCalled();
+    expect(lensInstances[0].loadMetadata).not.toHaveBeenCalled();
+    expect(imageViewerStoreApi.getState().status).toBe("ready");
   });
 
   it("decodes the real package TIFF bytes with parsed package metadata", async () => {
@@ -201,7 +219,6 @@ describe("useImageViewer", () => {
     expect(imageViewerStoreApi.getState()).toMatchObject({
       packageMetadata: { pages: [] },
       packageStatus: "completed",
-      lensSession: "session-1",
       session: "session-1",
       status: "ready",
       tiffType: "image/tiff",
@@ -231,7 +248,7 @@ describe("useImageViewer", () => {
     await waitFor(() => expect(lensInstances[1].restoreSession).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(lensInstances[1].goToPage).toHaveBeenCalledWith(1));
     expect(lensInstances[1].decodeDoc).not.toHaveBeenCalled();
-    expect(lensInstances[1].loadMetadata).toHaveBeenCalledWith({ pages: [] });
+    expect(lensInstances[1].loadMetadata).not.toHaveBeenCalled();
     expect(lensInstances[1].search).toHaveBeenCalledWith("Alice", { additive: false, context: "quote" });
   });
 

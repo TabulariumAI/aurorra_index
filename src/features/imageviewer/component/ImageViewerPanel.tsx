@@ -19,7 +19,7 @@ function lensProgressLabel(status: string): string {
   return "Loading...";
 }
 
-export function ImageViewerPanel({ hostInput }: PanelProps): JSX.Element {
+export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.Element {
   useLayoutEffect(() => {
     if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
   }, [hostInput]);
@@ -34,7 +34,7 @@ export function ImageViewerPanel({ hostInput }: PanelProps): JSX.Element {
   const viewer = useImageViewer();
 
   useEffect(() => {
-    if (!apiGatewayUrl || !authToken || !session) return;
+    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring) return;
     const currentStatus = imageViewerStoreApi.getState().status;
     if (currentStatus === "ready" || currentStatus === "packaging" || currentStatus === "polling" || currentStatus === "downloading") return;
     let canceled = false;
@@ -73,10 +73,10 @@ export function ImageViewerPanel({ hostInput }: PanelProps): JSX.Element {
     return () => {
       canceled = true;
     };
-  }, [apiGatewayUrl, authToken, session, workerClient]);
+  }, [apiGatewayUrl, authToken, session, viewer.isRestoring, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
-  const lensLoading = viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage";
+  const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage";
   const progress = loading || lensLoading;
 
   return (
@@ -102,6 +102,7 @@ export function ImageViewerPanel({ hostInput }: PanelProps): JSX.Element {
             if (action === "zoomOut") viewer.zoomOut();
           }}
           onSearchText={(value) => imageViewerStoreApi.getState().setSearchText(value)}
+          previewAction={previewAction}
           searchText={searchText}
         />
       )}

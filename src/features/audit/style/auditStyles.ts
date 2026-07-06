@@ -99,6 +99,13 @@ export const auditStyles = {
     marginBottom: "0.6rem",
     width: "100%",
   } as CSSProperties,
+  headerActions: {
+    alignItems: "flex-start",
+    display: "flex",
+    flex: "0 0 auto",
+    gap: "0.75rem",
+    justifyContent: "flex-end",
+  } as CSSProperties,
   filters: {
     display: "flex",
     flex: "1 1 24rem",

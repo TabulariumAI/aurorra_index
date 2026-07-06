@@ -1,4 +1,5 @@
 import type { AuroraLens, DecodeDocOptions, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
+import type { ReactNode } from "react";
 import type { IndexSelected } from "../../metdata/type/metadata.types";
 
 export type PageRequest = {
@@ -35,6 +36,7 @@ export type HostInput = {
   pageCount: number;
   pageMap: ReadonlyMap<string, string>;
   packagePollIntervalMs?: number;
+  request: PageRequest | null;
   session: string;
   selectedIndex: IndexSelected | null;
   workerClient?: WorkerClient;
@@ -42,6 +44,7 @@ export type HostInput = {
 
 export type PanelProps = {
   hostInput?: HostInput;
+  previewAction: ReactNode;
 };
 
 export type Status = "idle" | "packaging" | "polling" | "downloading" | "ready" | "error";
@@ -94,7 +97,6 @@ export type StoreState = {
   apiGatewayUrl: string;
   authToken: string | null;
   error: ViewerError | null;
-  lensSession: string | null;
   onError: ((error: ViewerError) => void) | null;
   pageCount: number;
   pageMap: ReadonlyMap<string, string>;
@@ -117,7 +119,6 @@ export type StoreState = {
   resetViewer(): void;
   setError(error: ViewerError): void;
   setHostInput(input: HostInput): void;
-  setLensSession(session: string): void;
   setLocalPackage(value: LocalPackage): void;
   setPackageStatus(status: PackageStatus | null): void;
   setReady(): void;

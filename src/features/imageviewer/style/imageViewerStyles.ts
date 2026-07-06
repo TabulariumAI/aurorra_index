@@ -13,7 +13,7 @@ export const imageViewerStyles = {
   },
   topToolbar: {
     display: "grid",
-    gridTemplateColumns: "auto minmax(12rem, 26rem)",
+    gridTemplateColumns: "auto minmax(12rem, 26rem) auto",
     alignItems: "center",
     justifyContent: "space-between",
     columnGap: "0.6rem",
@@ -30,6 +30,11 @@ export const imageViewerStyles = {
     justifyContent: "flex-start",
     gap: "0.3rem",
     minWidth: 0,
+  },
+  previewAction: {
+    alignItems: "center",
+    display: "flex",
+    justifyContent: "flex-end",
   },
   footerToolbar: {
     display: "flex",
@@ -83,7 +88,7 @@ export const imageViewerStyles = {
     width: "100%",
     height: "100%",
     minHeight: "12rem",
-    background: "#fbfaf7",
+    background: "#f8fafc",
   },
   overlay: {
     position: "absolute",

@@ -42,6 +42,13 @@ export const iqStyles = {
     textAlign: "left",
     width: "100%",
   },
+  panelHeader: {
+    alignItems: "flex-start",
+    display: "flex",
+    gap: "0.75rem",
+    justifyContent: "space-between",
+    width: "100%",
+  },
   progressOverlay: {
     alignItems: "flex-start",
     background: "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(248,250,252,0.28))",

@@ -3,7 +3,6 @@ import type { ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { toPositivePage, toViewerError } from "../data/imageViewerData";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
-import { ImageViewerSessionStore } from "../store/imageViewerSessionStore";
 import type { LensApi, PageRequest } from "../type/imageViewer.types";
 
 function toLensPage(page: number): number {
@@ -31,10 +30,11 @@ export function useImageViewer() {
   const lensHostRef = useRef<HTMLDivElement | null>(null);
   const lensRef = useRef<LensApi | null>(null);
   const decodedSessionRef = useRef<string | null>(null);
+  const decodedPackageVersionRef = useRef(0);
   const lastRequestKeyRef = useRef("");
   const [loaded, setLoaded] = useState(false);
   const [lensReady, setLensReady] = useState(false);
-  const lensSession = useImageViewerStore((state) => state.lensSession);
+  const [restoreComplete, setRestoreComplete] = useState(false);
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
   const request = useImageViewerStore((state) => state.request);
   const session = useImageViewerStore((state) => state.session);
@@ -46,13 +46,13 @@ export function useImageViewer() {
 
   useLayoutEffect(() => {
     const lensHost = lensHostRef.current;
-    if (!lensHost || !session || packageVersion === 0) return undefined;
+    if (!lensHost || !session) return undefined;
     const activeLensHost = lensHost;
     let canceled = false;
     let createdLens: LensApi | null = null;
 
     async function createLens() {
-      const { AuroraLens, configurePdfWorker } = await import("@tabulariumai/aurora-lens");
+      const { AuroraLens, IndexedDbViewerSessionStore, configurePdfWorker } = await import("@tabulariumai/aurora-lens");
       if (canceled) return;
       configurePdfWorker(pdfWorkerUrl);
       createdLens = new AuroraLens(activeLensHost, {
@@ -63,7 +63,7 @@ export function useImageViewer() {
             stroke: "#008080",
           },
         },
-        sessionStore: new ImageViewerSessionStore(`${session}:${packageVersion}`),
+        sessionStore: new IndexedDbViewerSessionStore(),
         onError: (error) => {
           imageViewerStoreApi.getState().setError(toViewerError(error, "Image viewer failed."));
         },
@@ -86,18 +86,45 @@ export function useImageViewer() {
       lensRef.current = null;
       setLoaded(false);
       setLensReady(false);
+      setRestoreComplete(false);
       decodedSessionRef.current = null;
+      decodedPackageVersionRef.current = 0;
     };
-  }, [packageVersion, session]);
+  }, [session]);
 
   useEffect(() => {
     const lens = lensRef.current;
-    if (!lensReady || !lens || !request || !packageMetadata || !tiffBytes || tiffType === null) return;
-    if (decodedSessionRef.current === request.session) return;
+    if (!lensReady || !lens || !session) return;
+    const activeLens = lens;
+    const activeSession = session;
+    let canceled = false;
+
+    async function restorePackage() {
+      const restored = await activeLens.restoreSession();
+      if (canceled) return;
+      if (restored) {
+        decodedSessionRef.current = activeSession;
+        decodedPackageVersionRef.current = 0;
+        setLoaded(true);
+        imageViewerStoreApi.getState().setReady();
+      }
+      setRestoreComplete(true);
+    }
+
+    void restorePackage();
+    return () => {
+      canceled = true;
+    };
+  }, [lensReady, session]);
+
+  useEffect(() => {
+    const lens = lensRef.current;
+    if (!restoreComplete || loaded || !lensReady || !lens || !request || !packageMetadata || !tiffBytes || tiffType === null) return;
+    if (decodedSessionRef.current === request.session && decodedPackageVersionRef.current === packageVersion) return;
     const activeLens = lens;
     const activeRequest = request;
-    const activeLensSession = lensSession;
     const activePackageMetadata = packageMetadata;
+    const activePackageVersion = packageVersion;
     const activeTiffBytes = tiffBytes;
     const activeTiffType = tiffType;
     let canceled = false;
@@ -105,22 +132,6 @@ export function useImageViewer() {
     async function decodePackage() {
       try {
         setLoaded(false);
-        if (activeLensSession === activeRequest.session) {
-          const restored = await activeLens.restoreSession();
-          if (canceled) return;
-          if (restored) {
-            activeLens.loadMetadata(activePackageMetadata);
-            await syncLensRequest(activeLens, activeRequest);
-            if (canceled) return;
-            decodedSessionRef.current = activeRequest.session;
-            lastRequestKeyRef.current = requestKey(activeRequest);
-            setLoaded(true);
-            imageViewerStoreApi.getState().setLensSession(activeRequest.session);
-            imageViewerStoreApi.getState().setReady();
-            return;
-          }
-        }
-
         activeLens.clear();
         activeLens.loadMetadata(activePackageMetadata);
         const file = new File([activeTiffBytes], "document-image-package.tiff", { type: activeTiffType });
@@ -129,9 +140,9 @@ export function useImageViewer() {
         if (canceled) return;
         applySearch(activeLens, activeRequest);
         decodedSessionRef.current = activeRequest.session;
+        decodedPackageVersionRef.current = activePackageVersion;
         lastRequestKeyRef.current = requestKey(activeRequest);
         setLoaded(true);
-        imageViewerStoreApi.getState().setLensSession(activeRequest.session);
         imageViewerStoreApi.getState().setReady();
       } catch (error) {
         if (!canceled) imageViewerStoreApi.getState().setError(toViewerError(error, "Image package failed to load."));
@@ -142,7 +153,7 @@ export function useImageViewer() {
     return () => {
       canceled = true;
     };
-  }, [lensReady, lensSession, packageMetadata, request, tiffBytes, tiffType]);
+  }, [loaded, lensReady, packageMetadata, packageVersion, request, restoreComplete, tiffBytes, tiffType]);
 
   useEffect(() => {
     const lens = lensRef.current;
@@ -253,6 +264,7 @@ export function useImageViewer() {
     fitPage,
     fitWidth,
     isLoading: Boolean(!loaded && request && packageMetadata && tiffBytes && tiffType !== null),
+    isRestoring: Boolean(session && !restoreComplete),
     isThumbs: viewerState?.viewMode === "thumbnails",
     lastPage,
     lensHostRef,

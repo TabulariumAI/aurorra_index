@@ -15,6 +15,16 @@ describe("imageViewerStore", () => {
       onError,
       pageCount: 2,
       pageMap: new Map([["1", "page-1"]]),
+      request: {
+        code: "page-1",
+        highlightOptions: { scroll: false },
+        index: "page",
+        page: 1,
+        quote: "",
+        segment: "page",
+        session: "session-1",
+        value: "",
+      },
       selectedIndex: { code: "idx-1", segment: "party" },
       session: "session-1",
     });
@@ -25,6 +35,16 @@ describe("imageViewerStore", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       pageCount: 2,
+      request: {
+        code: "page-1",
+        highlightOptions: { scroll: false },
+        index: "page",
+        page: 1,
+        quote: "",
+        segment: "page",
+        session: "session-1",
+        value: "",
+      },
       selectedIndex: { code: "idx-1", segment: "party" },
       session: "session-1",
       status: "ready",
@@ -42,23 +62,23 @@ describe("imageViewerStore", () => {
       onError: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
+      request: null,
       selectedIndex: null,
       session: "session-1",
     });
     imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(1), tiffType: "image/tiff" });
-    imageViewerStoreApi.getState().setLensSession("session-1");
     imageViewerStoreApi.getState().setHostInput({
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
+      request: null,
       selectedIndex: null,
       session: "session-2",
     });
 
     expect(imageViewerStoreApi.getState()).toMatchObject({
-      lensSession: null,
       packageMetadata: null,
       status: "idle",
       tiffBytes: null,
@@ -73,11 +93,11 @@ describe("imageViewerStore", () => {
       onError: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
+      request: null,
       selectedIndex: null,
       session: "session-1",
     });
     imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(3), tiffType: "image/tiff" });
-    imageViewerStoreApi.getState().setLensSession("session-1");
     imageViewerStoreApi.getState().setSearchText("value");
     imageViewerStoreApi.getState().setThumbsOpen(true);
     imageViewerStoreApi.getState().setViewerStatus("loadingPage");
@@ -87,7 +107,6 @@ describe("imageViewerStore", () => {
     expect(imageViewerStoreApi.getState()).toMatchObject({
       packageMetadata: { pages: [] },
       packageStatus: "completed",
-      lensSession: "session-1",
       searchText: "",
       session: "session-1",
       status: "ready",
@@ -106,6 +125,7 @@ describe("imageViewerStore", () => {
       onError: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
+      request: null,
       selectedIndex: null,
       session: "session-1",
     });

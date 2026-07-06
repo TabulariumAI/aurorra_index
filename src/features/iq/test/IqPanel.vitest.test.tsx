@@ -28,21 +28,25 @@ function client(loadReport = vi.fn(async () => report)): IqWorkerClient {
   };
 }
 
+const previewAction = <button type="button">Close preview</button>;
+
 describe("IqPanel", () => {
   beforeEach(() => {
     iqStoreApi.getState().resetIq();
   });
 
   it("renders loading progress and empty state", () => {
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} session="session-1" workerClient={client(vi.fn(() => new Promise(() => undefined)))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} previewAction={previewAction} session="session-1" workerClient={client(vi.fn(() => new Promise(() => undefined)))} />);
     expect(screen.getByLabelText("IQ progress")).toBeInTheDocument();
     expect(screen.getByText("No IQ report found.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
   });
 
   it("renders report summary, segment table, explanations, notes, and no dialog role", async () => {
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} session="session-1" workerClient={client()} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} previewAction={previewAction} session="session-1" workerClient={client()} />);
 
     await waitFor(() => expect(screen.getByText("Indexing Quality (IQ)")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByText("90%")).toBeInTheDocument();
     expect(screen.getByText("Indexing Segments (1)")).toBeInTheDocument();
     expect(screen.getByText("Segment")).toBeInTheDocument();
@@ -57,7 +61,7 @@ describe("IqPanel", () => {
 
   it("renders notes only when present", async () => {
     const noNotes = { ...report, explanation: [] };
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} previewAction={previewAction} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
 
     await waitFor(() => expect(screen.getByText("Indexing Quality (IQ)")).toBeInTheDocument());
     expect(screen.queryByText("Notes")).not.toBeInTheDocument();

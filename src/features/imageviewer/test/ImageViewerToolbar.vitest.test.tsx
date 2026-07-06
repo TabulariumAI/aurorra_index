@@ -17,12 +17,14 @@ describe("ImageViewerToolbar", () => {
         canZoomOut
         onAction={onAction}
         onSearchText={vi.fn()}
+        previewAction={<button type="button">Close preview</button>}
         searchText=""
       />,
     );
 
     expect(screen.getByLabelText("Image viewer top toolbar")).toBeInTheDocument();
     expect(screen.getByLabelText("Image view controls")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search image text" })).toHaveAttribute("placeholder", "Search image text");
     expect(
       screen.getByLabelText("Image view controls").compareDocumentPosition(screen.getByLabelText("Image text search")),

@@ -42,6 +42,8 @@ function client(loadReport = vi.fn(async () => report)): AuditWorkerClient {
   };
 }
 
+const previewAction = <button type="button">Close preview</button>;
+
 describe("AuditPanel", () => {
   beforeEach(() => {
     auditStoreApi.getState().resetAudit();
@@ -53,6 +55,7 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
+        previewAction={previewAction}
         session="session-1"
         workerClient={client(vi.fn(() => new Promise(() => undefined)))}
       />,
@@ -60,6 +63,7 @@ describe("AuditPanel", () => {
 
     expect(screen.getByLabelText("Audit progress")).toBeInTheDocument();
     expect(screen.getByText("No gaps found.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
   });
 
   it("renders restored header layout, hidden costs, filters, gaps, and no dialog role", async () => {
@@ -68,12 +72,14 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
+        previewAction={previewAction}
         session="session-1"
         workerClient={client()}
       />,
     );
 
     await screen.findByText("Newest addition message");
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.queryByText("Audit report")).not.toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Out of 3")).toBeInTheDocument();
@@ -93,6 +99,7 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
+        previewAction={previewAction}
         session="session-1"
         workerClient={client()}
       />,

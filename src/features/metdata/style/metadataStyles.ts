@@ -4,6 +4,7 @@ const surfaceCanvas = "transparent";
 const surfacePanel = "#ffffff";
 const surfaceRaised = "#f8fafc";
 const surfaceAccent = "rgba(6, 175, 193, 0.10)";
+const segmentSurface = surfaceRaised;
 const borderSubtle = "#06afc1";
 const borderAccent = "#008ba3";
 const textStrong = "#20252d";
@@ -314,7 +315,7 @@ export const rowStyles = {
 export const segmentStyles = {
   actionLine(open: boolean): CSSProperties {
     return {
-      background: open ? surfaceAccent : surfacePanel,
+      background: open ? segmentSurface : surfacePanel,
       color: textMuted,
       display: "flex",
       fontSize: "0.92rem",
@@ -362,7 +363,7 @@ export const segmentStyles = {
   count(open: boolean): CSSProperties {
     return {
       alignItems: "center",
-      background: open ? surfaceAccent : surfacePanel,
+      background: surfacePanel,
       borderRadius: "999px",
       //border: `1px solid ${open ? borderAccent : borderSubtle}`,
       boxSizing: "border-box",
@@ -392,7 +393,7 @@ export const segmentStyles = {
   trigger(open: boolean): CSSProperties {
     return {
       alignItems: "center",
-      background: open ? surfaceAccent : "transparent",
+      background: open ? segmentSurface : "transparent",
       border: "none",
       boxSizing: "border-box",
       color: textStrong,

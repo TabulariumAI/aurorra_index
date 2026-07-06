@@ -31,7 +31,10 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
             />
           </div>
         ) : null}
-        {error ? null : <div style={auditStyles.empty}>No gaps found.</div>}
+        <div style={auditStyles.content}>
+          <div style={auditStyles.panelHeader}>{props.previewAction}</div>
+          {error ? null : <div style={auditStyles.empty}>No gaps found.</div>}
+        </div>
       </section>
     );
   }
@@ -63,11 +66,14 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
             onFiltersChange={updateFilter}
             report={view}
           />
-          <AuditSummary
-            filtered={view.filtered}
-            total={view.total}
-            costs={view.usageCosts}
-          />
+          <div style={auditStyles.headerActions}>
+            <AuditSummary
+              filtered={view.filtered}
+              total={view.total}
+              costs={view.usageCosts}
+            />
+            {props.previewAction}
+          </div>
         </div>
         <div style={auditStyles.sectionTitle}>Audit gaps</div>
         {view.gaps.length > 0 ? (

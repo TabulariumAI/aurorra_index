@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
 export type IqUiStatus = "success" | "fail" | "warning" | "info";
 export type IqDecision = "Pass" | "Review" | "Reject";
@@ -114,6 +116,7 @@ export type IqPanelProps = {
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: IqCallbacks;
+  previewAction: ReactNode;
   session: string;
   workerClient?: IqWorkerClient;
 };

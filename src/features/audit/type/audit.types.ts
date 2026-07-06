@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
 
 export type AuditGap = {
@@ -88,6 +90,7 @@ export type AuditPanelProps = {
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: AuditCallbacks;
+  previewAction: ReactNode;
   session: string;
   workerClient?: AuditWorkerClient;
 };

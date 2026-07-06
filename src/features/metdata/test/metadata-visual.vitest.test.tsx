@@ -114,7 +114,7 @@ describe("metadata visual surface", () => {
         onDrop={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
-        selectedIndex={null}
+        selectedIndex={{ code: "idx-1", segment: "party" }}
         segments={segments}
         session="session-1"
         setLegalOpen={vi.fn()}
@@ -171,15 +171,23 @@ describe("metadata visual surface", () => {
         width: "100%",
       });
     }
-    expect(segmentButton).toHaveStyle({ backgroundColor: "rgba(6, 175, 193, 0.1)" });
+    expect(segmentButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
+    const segmentCount = segmentButton.lastElementChild as HTMLElement | null;
+    expect(segmentCount).toBeTruthy();
+    if (segmentCount) {
+      expect(segmentCount).toHaveStyle({ backgroundColor: "rgb(255, 255, 255)" });
+    }
+    const selectedRow = container.querySelector("[data-index-code='idx-1']");
+    expect(selectedRow).toHaveAttribute("data-active", "true");
+    expect(selectedRow).toHaveStyle({ backgroundColor: "rgba(6, 175, 193, 0.1)" });
     fireEvent.mouseEnter(collapsedButton);
     expect(collapsedButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
     fireEvent.mouseLeave(collapsedButton);
     expect(collapsedButton).toHaveStyle({ backgroundColor: "rgba(0, 0, 0, 0)" });
     fireEvent.mouseEnter(segmentButton);
-    expect(segmentButton).toHaveStyle({ backgroundColor: "rgba(6, 175, 193, 0.1)" });
+    expect(segmentButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
     fireEvent.mouseLeave(segmentButton);
-    expect(segmentButton).toHaveStyle({ backgroundColor: "rgba(6, 175, 193, 0.1)" });
+    expect(segmentButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
     expect(screen.queryByText("▾")).not.toBeInTheDocument();
     expect(screen.queryByText("▸")).not.toBeInTheDocument();
     expect(screen.getByText("Alice")).toHaveStyle({ fontWeight: "700", textTransform: "none" });
@@ -205,7 +213,7 @@ describe("metadata visual surface", () => {
       expect(actionLine).toBeTruthy();
       expect(content).toBeTruthy();
       if (actionLine) {
-        expect(actionLine).toHaveStyle({ backgroundColor: "rgba(6, 175, 193, 0.1)", justifyContent: "flex-end" });
+        expect(actionLine).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)", justifyContent: "flex-end" });
       }
       if (content) {
         expect(content).toHaveStyle({ padding: "0.72rem 0 0.82rem 0.24rem" });

@@ -1,5 +1,5 @@
 import { ConfButton } from "aurorra-ui";
-import type { FormEvent, JSX } from "react";
+import type { FormEvent, JSX, ReactNode } from "react";
 import { imageViewerStyles } from "../style/imageViewerStyles";
 
 type TopAction = "actualSize" | "clearSearch" | "fitHeight" | "fitPage" | "fitWidth" | "search" | "zoomIn" | "zoomOut";
@@ -16,6 +16,7 @@ type TopProps = {
   canZoomOut: boolean;
   onAction(action: TopAction): void;
   onSearchText(value: string): void;
+  previewAction: ReactNode;
   searchText: string;
 };
 
@@ -87,6 +88,7 @@ export function ImageViewerTopToolbar({
   canZoomOut,
   onAction,
   onSearchText,
+  previewAction,
   searchText,
 }: TopProps): JSX.Element {
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
@@ -117,6 +119,7 @@ export function ImageViewerTopToolbar({
         <ViewerButton disabled={!canSearch} label="Search" name="search" onClick={() => onAction("search")} />
         <ViewerButton disabled={!canClearSearch} label="Clear search" name="clearSearch" onClick={() => onAction("clearSearch")} />
       </form>
+      <div style={imageViewerStyles.previewAction}>{previewAction}</div>
     </div>
   );
 }

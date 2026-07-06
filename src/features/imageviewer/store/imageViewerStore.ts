@@ -7,7 +7,6 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
   apiGatewayUrl: "",
   authToken: null,
   error: null,
-  lensSession: null,
   onError: null,
   pageCount: 1,
   pageMap: new Map(),
@@ -44,7 +43,6 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       apiGatewayUrl: "",
       authToken: null,
       error: null,
-      lensSession: null,
       onError: null,
       pageCount: 1,
       pageMap: new Map(),
@@ -76,7 +74,6 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       apiGatewayUrl: input.apiGatewayUrl,
       authToken: input.authToken,
       error: null,
-      lensSession: sameSession ? current.lensSession : null,
       onError: input.onError,
       pageCount: input.pageCount,
       pageMap: new Map(input.pageMap),
@@ -84,7 +81,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       packagePollIntervalMs: input.packagePollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
       packageStatus: sameSession ? current.packageStatus : null,
       packageVersion: sameSession ? current.packageVersion : 0,
-      request: current.request?.session === input.session ? current.request : null,
+      request: input.request,
       selectedIndex: input.selectedIndex,
       session: input.session,
       status: sameSession ? current.status : "idle",
@@ -93,13 +90,9 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       workerClient: input.workerClient ?? null,
     });
   },
-  setLensSession(session) {
-    set({ lensSession: session });
-  },
   setLocalPackage(value) {
     set({
       error: null,
-      lensSession: null,
       packageMetadata: value.packageMetadata,
       packageStatus: "completed",
       packageVersion: get().packageVersion + 1,

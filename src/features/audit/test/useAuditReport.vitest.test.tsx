@@ -23,6 +23,8 @@ function createClient(): AuditWorkerClient {
   };
 }
 
+const previewAction = <button type="button">Close preview</button>;
+
 describe("useAuditReport", () => {
   beforeEach(() => {
     auditStoreApi.getState().resetAudit();
@@ -37,6 +39,7 @@ describe("useAuditReport", () => {
         apiGatewayUrl: "https://api",
         authToken: "token",
         callbacks,
+        previewAction,
         session: "session-1",
         workerClient: client,
       }),
@@ -59,6 +62,7 @@ describe("useAuditReport", () => {
         apiGatewayUrl: "https://api",
         authToken: "token",
         callbacks,
+        previewAction,
         session: "session-1",
         workerClient: client,
       }),
@@ -77,6 +81,7 @@ describe("useAuditReport", () => {
         apiGatewayUrl: "https://api",
         authToken: "token",
         callbacks,
+        previewAction,
         session: "session-1",
         workerClient: client,
       }),

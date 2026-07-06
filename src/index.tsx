@@ -65,6 +65,10 @@ export {
   imageViewerStoreApi,
   useImageViewerStore,
 } from "./features/imageviewer/store/imageViewerStore";
+export type {
+  HostInput,
+  PageRequest,
+} from "./features/imageviewer/type/imageViewer.types";
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";

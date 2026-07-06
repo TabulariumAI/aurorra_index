@@ -11,7 +11,7 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toBeVisible();
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
-  await expect(page.locator("[data-document-lens-host='true']")).toHaveCSS("background-color", "rgb(251, 250, 247)");
+  await expect(page.locator("[data-document-lens-host='true']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
   await expect(page.locator("[aria-label='Image view controls']")).toBeVisible();
   await expect(page.locator("[aria-label='Image text search']")).toBeVisible();
   expect(await page.locator("[aria-label='Image view controls']").evaluate((controls) => {
