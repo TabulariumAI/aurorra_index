@@ -1,3 +1,4 @@
+import type { MetadataIndex as LensMetadataIndex } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
 
 export type IndexSegmentValues = {
@@ -167,6 +168,7 @@ export type IndexDeferredState = {
 export type IndexActionPayload = {
   code: string;
   highlightOptions?: { scroll: boolean };
+  metadataIndex?: LensMetadataIndex | null;
   page: number;
   pageClass?: string;
   pageSegments?: string[];

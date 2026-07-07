@@ -17,6 +17,7 @@ describe("imageViewerData", () => {
       code: "old",
       highlightOptions: { scroll: false },
       index: "page",
+      metadataIndex: null,
       page: 1,
       quote: "",
       segment: "page",

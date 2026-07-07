@@ -365,10 +365,18 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                             <ActionButton
                               label="Open legal page"
                               onClick={() => {
+                                console.info("imageviewer request from metadata row", {
+                                  code,
+                                  page,
+                                  segment: segments.LEGAL,
+                                  session,
+                                  type: payload.type,
+                                });
                                 imageViewerStoreApi.getState().setRequest({
                                   code,
                                   highlightOptions: { scroll: false },
                                   index: payload.type,
+                                  metadataIndex: null,
                                   page,
                                   quote: "",
                                   segment: segments.LEGAL,

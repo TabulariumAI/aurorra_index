@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 let viewerPageCount = 2;
@@ -51,6 +51,10 @@ const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: stri
 const previewAction = <button type="button">Close preview</button>;
 
 describe("ImageViewerPanel", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+  });
+
   afterEach(() => {
     imageViewerStoreApi.getState().resetViewer();
     viewerPageCount = 2;
@@ -92,6 +96,16 @@ describe("ImageViewerPanel", () => {
     expect(workerClient.downloadPackage).toHaveBeenCalledWith("token", {
       jsonUrl: directPackage.data,
       tiffUrl: directPackage.tiff,
+    });
+    expect(console.info).toHaveBeenCalledWith("imageviewer package start", { session: "session-1" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer package requested", { session: "session-1" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer package status", { session: "session-1", status: "completed" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer package download", { session: "session-1" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer package downloaded", {
+      metadataPages: 0,
+      session: "session-1",
+      tiffBytes: 4,
+      tiffType: "image/tiff",
     });
     expect(onError).not.toHaveBeenCalled();
     expect(screen.queryByText(/add|remove|reorder|export|draw/i)).not.toBeInTheDocument();
@@ -160,6 +174,37 @@ describe("ImageViewerPanel", () => {
     expect(workerClient.imageStatus).not.toHaveBeenCalled();
     expect(workerClient.imageData).not.toHaveBeenCalled();
     expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("starts package flow when ready status has no local package", async () => {
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: directPackage,
+      })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageCount: 2,
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+    imageViewerStoreApi.getState().setStatus("ready");
+
+    render(<ImageViewerPanel previewAction={previewAction} />);
+
+    await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
+    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
+    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
   });
 
   it("bubbles package errors without rendering a package alert", async () => {

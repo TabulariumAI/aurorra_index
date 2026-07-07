@@ -1,8 +1,16 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImageViewerFooterToolbar, ImageViewerTopToolbar } from "../component/ImageViewerToolbar";
 
 describe("ImageViewerToolbar", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("renders top search and view controls", () => {
     const onAction = vi.fn();
     render(
@@ -18,7 +26,7 @@ describe("ImageViewerToolbar", () => {
         onAction={onAction}
         onSearchText={vi.fn()}
         previewAction={<button type="button">Close preview</button>}
-        searchText=""
+        searchText="Cedar"
       />,
     );
 
@@ -47,8 +55,101 @@ describe("ImageViewerToolbar", () => {
     expect(onAction).toHaveBeenCalledWith("fitHeight");
     expect(onAction).toHaveBeenCalledWith("fitPage");
     expect(onAction).toHaveBeenCalledWith("actualSize");
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "search", source: "click" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "clearSearch" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "zoomIn" });
     expect(screen.queryByRole("button", { name: "Find selected index" })).not.toBeInTheDocument();
     expect(screen.queryByText(/add|remove|reorder|export|draw/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps search input enabled when search action is disabled by lens state", () => {
+    const onAction = vi.fn();
+    const onSearchText = vi.fn();
+    render(
+      <ImageViewerTopToolbar
+        canActualSize
+        canClearSearch
+        canFitHeight
+        canFitPage
+        canFitWidth
+        canSearch={false}
+        canZoomIn
+        canZoomOut
+        onAction={onAction}
+        onSearchText={onSearchText}
+        previewAction={null}
+        searchText="Cedar"
+      />,
+    );
+
+    const searchBox = screen.getByRole("searchbox", { name: "Search image text" });
+    const searchButton = screen.getByRole("button", { name: "Search" });
+    expect(searchBox).toBeEnabled();
+    expect(searchButton).toBeDisabled();
+
+    fireEvent.change(searchBox, { target: { value: "Cedar Street" } });
+
+    expect(onSearchText).toHaveBeenCalledWith("Cedar Street");
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar search text", { length: 12 });
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("blocks click and enter search when search text is empty", () => {
+    const onAction = vi.fn();
+    render(
+      <ImageViewerTopToolbar
+        canActualSize
+        canClearSearch
+        canFitHeight
+        canFitPage
+        canFitWidth
+        canSearch
+        canZoomIn
+        canZoomOut
+        onAction={onAction}
+        onSearchText={vi.fn()}
+        previewAction={null}
+        searchText="  "
+      />,
+    );
+
+    const searchForm = screen.getByLabelText("Image text search");
+    const searchButton = screen.getByRole("button", { name: "Search" });
+    expect(searchButton).toBeDisabled();
+
+    fireEvent.click(searchButton);
+    fireEvent.submit(searchForm);
+
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("runs search by click and enter when lens can search and text is present", () => {
+    const onAction = vi.fn();
+    render(
+      <ImageViewerTopToolbar
+        canActualSize
+        canClearSearch
+        canFitHeight
+        canFitPage
+        canFitWidth
+        canSearch
+        canZoomIn
+        canZoomOut
+        onAction={onAction}
+        onSearchText={vi.fn()}
+        previewAction={null}
+        searchText="Cedar"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+    fireEvent.submit(screen.getByLabelText("Image text search"));
+
+    expect(onAction).toHaveBeenCalledTimes(2);
+    expect(onAction).toHaveBeenNthCalledWith(1, "search");
+    expect(onAction).toHaveBeenNthCalledWith(2, "search");
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "search", source: "click" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "search", source: "submit" });
   });
 
   it("renders footer page controls", () => {
@@ -80,6 +181,8 @@ describe("ImageViewerToolbar", () => {
     expect(onAction).toHaveBeenCalledWith("previous");
     expect(onAction).toHaveBeenCalledWith("next");
     expect(onAction).toHaveBeenCalledWith("last");
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "thumbs", page: 2, pageCount: 4 });
+    expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "next", page: 2, pageCount: 4 });
     expect(screen.queryByText(/add|remove|reorder|export|draw/i)).not.toBeInTheDocument();
   });
 });

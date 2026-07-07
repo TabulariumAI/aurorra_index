@@ -1,4 +1,4 @@
-import type { AuroraLens, DecodeDocOptions, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
+import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
 import type { IndexSelected } from "../../metdata/type/metadata.types";
 
@@ -6,6 +6,7 @@ export type PageRequest = {
   code: string;
   highlightOptions: { scroll: boolean };
   index: string;
+  metadataIndex: LensMetadataIndex | null;
   page: number;
   quote: string;
   segment: string | null;
@@ -91,6 +92,15 @@ export type WorkerClient = {
   imageStatus(token: string, session: string): Promise<PackageResponse>;
   imageData(token: string, session: string): Promise<DataResponse>;
   downloadPackage(token: string, urls: PackageUrls): Promise<LocalPackage>;
+};
+
+export type LoadPackageInput = {
+  apiGatewayUrl: string;
+  authToken: string;
+  onError: (error: ViewerError) => void;
+  packagePollIntervalMs?: number;
+  session: string;
+  workerClient?: WorkerClient;
 };
 
 export type StoreState = {

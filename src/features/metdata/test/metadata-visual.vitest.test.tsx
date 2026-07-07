@@ -343,6 +343,72 @@ describe("metadata visual surface", () => {
     expect(screen.getByRole("button", { name: "Expand explanation" })).toBeInTheDocument();
   });
 
+  it("stores metadata index fields when opening a metadata row image", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      indexes: [{
+        ambiguous: "YES",
+        code: "idx-1",
+        label: "grantor",
+        page: "1",
+        page_number: "1",
+        segment: "party",
+        source: "Grantor source quote",
+        value: "Alice",
+      }],
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
+      secrets: [],
+    };
+    const onPageClick = vi.fn();
+
+    render(
+      <MetadataPanel
+        callbacks={{ onPageClick }}
+        addressMapOpen={false}
+        addressMapSource=""
+        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+        legalOpen={false}
+        metadata={metadata}
+        closeAddressMap={vi.fn()}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openAddressMap={vi.fn()}
+        openSegment="party"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-party"
+        setLegalOpen={vi.fn()}
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Open page image 1" }));
+
+    expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
+      metadataIndex: {
+        ambiguous: "YES",
+        label: "grantor",
+        source: "Grantor source quote",
+        value: "Alice",
+      },
+    }));
+    expect(imageViewerStoreApi.getState().request).toMatchObject({
+      metadataIndex: {
+        ambiguous: "YES",
+        label: "grantor",
+        source: "Grantor source quote",
+        value: "Alice",
+      },
+    });
+  });
+
   it("hides disclosure buttons when explanation and quote fit on one line", async () => {
     const metadata: MetadataPayload = {
       fees: [],
@@ -453,6 +519,7 @@ describe("metadata visual surface", () => {
   });
 
   it("uses row-level action controls for legal actions", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -514,10 +581,18 @@ describe("metadata visual surface", () => {
     expect(imageViewerStoreApi.getState().request).toMatchObject({
       code: "legal-2",
       index: "lot_block",
+      metadataIndex: null,
       page: 3,
       segment: "legal",
       session: "session-2",
       value: "Lot Block",
+    });
+    expect(info).toHaveBeenCalledWith("imageviewer request from metadata row", {
+      code: "legal-2",
+      page: 3,
+      segment: "legal",
+      session: "session-2",
+      type: "lot_block",
     });
   });
 

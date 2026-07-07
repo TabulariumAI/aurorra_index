@@ -35,8 +35,9 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
 
   useEffect(() => {
     if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring) return;
-    const currentStatus = imageViewerStoreApi.getState().status;
-    if (currentStatus === "ready" || currentStatus === "packaging" || currentStatus === "polling" || currentStatus === "downloading") return;
+    const state = imageViewerStoreApi.getState();
+    const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
+    if ((state.status === "ready" && hasPackage) || state.status === "packaging" || state.status === "polling" || state.status === "downloading") return;
     let canceled = false;
     const token = authToken;
     const activeSession = session;
@@ -44,27 +45,40 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
 
     async function runPackageFlow() {
       try {
+        console.info("imageviewer package start", { session: activeSession });
         imageViewerStoreApi.getState().setStatus("packaging");
         await client.packageImage(token, activeSession);
+        console.info("imageviewer package requested", { session: activeSession });
         let current = await client.imageStatus(token, activeSession);
+        console.info("imageviewer package status", { session: activeSession, status: current.status });
         while (!canceled && (current.status === "pending" || current.status === "processing")) {
           imageViewerStoreApi.getState().setStatus("polling");
           imageViewerStoreApi.getState().setPackageStatus(current.status);
           await new Promise((resolve) => setTimeout(resolve, imageViewerStoreApi.getState().packagePollIntervalMs));
           current = await client.imageStatus(token, activeSession);
+          console.info("imageviewer package status", { session: activeSession, status: current.status });
         }
         if (canceled) return;
         imageViewerStoreApi.getState().setPackageStatus(current.status === "completed" ? "completed" : "error");
         if (current.status !== "completed") {
+          console.info("imageviewer package error", { session: activeSession, status: current.status });
           imageViewerStoreApi.getState().setError({ code: "image_package_error", details: current, error: current.data });
           return;
         }
         imageViewerStoreApi.getState().setStatus("downloading");
         const data = await client.imageData(token, activeSession);
         const urls = parsePackageUrls(data.data);
+        console.info("imageviewer package download", { session: activeSession });
         const localPackage = await client.downloadPackage(token, urls);
+        console.info("imageviewer package downloaded", {
+          metadataPages: localPackage.packageMetadata.pages.length,
+          session: activeSession,
+          tiffBytes: localPackage.tiffBytes.byteLength,
+          tiffType: localPackage.tiffType,
+        });
         if (!canceled) imageViewerStoreApi.getState().setLocalPackage(localPackage);
       } catch (packageError) {
+        console.info("imageviewer package error", { session: activeSession });
         if (!canceled) imageViewerStoreApi.getState().setError(toViewerError(packageError, "image package request failed."));
       }
     }

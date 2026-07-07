@@ -65,8 +65,10 @@ export {
   imageViewerStoreApi,
   useImageViewerStore,
 } from "./features/imageviewer/store/imageViewerStore";
+export { loadImagePackage } from "./features/imageviewer/data/loadImagePackage";
 export type {
   HostInput,
+  LoadPackageInput,
   PageRequest,
 } from "./features/imageviewer/type/imageViewer.types";
 export { useStore } from "./store/hook/useStore";

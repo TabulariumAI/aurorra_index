@@ -1,4 +1,5 @@
 export { ImageViewerPanel } from "./component/ImageViewerPanel";
+export { loadImagePackage } from "./data/loadImagePackage";
 export { imageViewerStoreApi, useImageViewerStore } from "./store/imageViewerStore";
 export { createWorkerClient } from "./worker/imageWorkerClient";
 export {
@@ -23,6 +24,7 @@ export type {
   PageRequest,
   ViewerError,
   HostInput,
+  LoadPackageInput,
   PanelProps,
   StoreState,
 } from "./type/imageViewer.types";

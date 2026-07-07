@@ -16,6 +16,7 @@ export type ViewerState = {
   canZoomOut?: boolean;
   pageCount?: number;
   pageIndex?: number;
+  status?: ViewerStatus;
   viewMode?: "page" | "thumbnails";
 };
 
@@ -45,6 +46,7 @@ const viewerState = {
   canZoomOut: true,
   pageCount: 4,
   pageIndex: 1,
+  status: "ready" as const,
   viewMode: "page" as const,
 };
 

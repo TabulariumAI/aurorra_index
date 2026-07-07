@@ -91,33 +91,62 @@ export function ImageViewerTopToolbar({
   previewAction,
   searchText,
 }: TopProps): JSX.Element {
+  const canRunSearch = canSearch && Boolean(searchText.trim());
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canRunSearch) return;
+    console.info("imageviewer toolbar action", { action: "search", source: "submit" });
     onAction("search");
   };
 
   return (
     <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbar}>
       <div aria-label="Image view controls" style={imageViewerStyles.viewGroup}>
-        <ViewerButton disabled={!canZoomOut} label="Zoom out" name="zoomOut" onClick={() => onAction("zoomOut")} />
-        <ViewerButton disabled={!canZoomIn} label="Zoom in" name="zoomIn" onClick={() => onAction("zoomIn")} />
-        <ViewerButton disabled={!canFitWidth} label="Fit width" name="fitWidth" onClick={() => onAction("fitWidth")} />
-        <ViewerButton disabled={!canFitHeight} label="Fit height" name="fitHeight" onClick={() => onAction("fitHeight")} />
-        <ViewerButton disabled={!canFitPage} label="Fit page" name="fitPage" onClick={() => onAction("fitPage")} />
-        <ViewerButton disabled={!canActualSize} label="Actual size" name="actualSize" onClick={() => onAction("actualSize")} />
+        <ViewerButton disabled={!canZoomOut} label="Zoom out" name="zoomOut" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "zoomOut" });
+          onAction("zoomOut");
+        }} />
+        <ViewerButton disabled={!canZoomIn} label="Zoom in" name="zoomIn" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "zoomIn" });
+          onAction("zoomIn");
+        }} />
+        <ViewerButton disabled={!canFitWidth} label="Fit width" name="fitWidth" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "fitWidth" });
+          onAction("fitWidth");
+        }} />
+        <ViewerButton disabled={!canFitHeight} label="Fit height" name="fitHeight" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "fitHeight" });
+          onAction("fitHeight");
+        }} />
+        <ViewerButton disabled={!canFitPage} label="Fit page" name="fitPage" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "fitPage" });
+          onAction("fitPage");
+        }} />
+        <ViewerButton disabled={!canActualSize} label="Actual size" name="actualSize" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "actualSize" });
+          onAction("actualSize");
+        }} />
       </div>
       <form aria-label="Image text search" onSubmit={submitSearch} style={imageViewerStyles.searchForm}>
         <input
           aria-label="Search image text"
-          disabled={!canSearch}
-          onChange={(event) => onSearchText(event.target.value)}
+          onChange={(event) => {
+            console.info("imageviewer toolbar search text", { length: event.target.value.length });
+            onSearchText(event.target.value);
+          }}
           placeholder="Search image text"
           style={imageViewerStyles.searchInput}
           type="search"
           value={searchText}
         />
-        <ViewerButton disabled={!canSearch} label="Search" name="search" onClick={() => onAction("search")} />
-        <ViewerButton disabled={!canClearSearch} label="Clear search" name="clearSearch" onClick={() => onAction("clearSearch")} />
+        <ViewerButton disabled={!canRunSearch} label="Search" name="search" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "search", source: "click" });
+          onAction("search");
+        }} />
+        <ViewerButton disabled={!canClearSearch} label="Clear search" name="clearSearch" onClick={() => {
+          console.info("imageviewer toolbar action", { action: "clearSearch" });
+          onAction("clearSearch");
+        }} />
       </form>
       <div style={imageViewerStyles.previewAction}>{previewAction}</div>
     </div>
@@ -136,12 +165,27 @@ export function ImageViewerFooterToolbar({
 }: FooterProps): JSX.Element {
   return (
     <div aria-label="Image viewer footer toolbar" style={imageViewerStyles.footerToolbar}>
-      <ViewerButton disabled={!canShowThumbnails} label="Thumbnails" name="thumbs" onClick={() => onAction("thumbs")} />
-      <ViewerButton disabled={!canGoFirst} label="First page" name="first" onClick={() => onAction("first")} />
-      <ViewerButton disabled={!canGoPrevious} label="Previous page" name="previous" onClick={() => onAction("previous")} />
+      <ViewerButton disabled={!canShowThumbnails} label="Thumbnails" name="thumbs" onClick={() => {
+        console.info("imageviewer toolbar action", { action: "thumbs", page, pageCount });
+        onAction("thumbs");
+      }} />
+      <ViewerButton disabled={!canGoFirst} label="First page" name="first" onClick={() => {
+        console.info("imageviewer toolbar action", { action: "first", page, pageCount });
+        onAction("first");
+      }} />
+      <ViewerButton disabled={!canGoPrevious} label="Previous page" name="previous" onClick={() => {
+        console.info("imageviewer toolbar action", { action: "previous", page, pageCount });
+        onAction("previous");
+      }} />
       <span style={imageViewerStyles.pageText}>Page {page} of {pageCount}</span>
-      <ViewerButton disabled={!canGoNext} label="Next page" name="next" onClick={() => onAction("next")} />
-      <ViewerButton disabled={!canGoLast} label="Last page" name="last" onClick={() => onAction("last")} />
+      <ViewerButton disabled={!canGoNext} label="Next page" name="next" onClick={() => {
+        console.info("imageviewer toolbar action", { action: "next", page, pageCount });
+        onAction("next");
+      }} />
+      <ViewerButton disabled={!canGoLast} label="Last page" name="last" onClick={() => {
+        console.info("imageviewer toolbar action", { action: "last", page, pageCount });
+        onAction("last");
+      }} />
     </div>
   );
 }

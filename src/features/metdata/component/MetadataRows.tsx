@@ -268,10 +268,17 @@ export function MetadataRow({
   const value = cleanText(item.value);
   const quote = cleanText(item.source);
   const label = formatLabel(item.label || item.name || "");
+  const metadataIndex = {
+    ambiguous: cleanText(item.ambiguous),
+    label: cleanText(item.label || item.name),
+    source: quote,
+    value,
+  };
   const aspect = formatLabel(item.aspect || "");
   const ambiguous = isAmbiguous(item.ambiguous);
   const payload: IndexActionPayload = {
     code,
+    metadataIndex,
     page,
     pageClass,
     pageSegments,
@@ -306,10 +313,18 @@ export function MetadataRow({
             <ActionButton
               label={`Open page image ${page}`}
               onClick={() => {
+                console.info("imageviewer request from metadata row", {
+                  code,
+                  page,
+                  segment,
+                  session,
+                  type,
+                });
                 imageViewerStoreApi.getState().setRequest({
                   code,
                   highlightOptions: { scroll: false },
                   index: type,
+                  metadataIndex,
                   page,
                   quote,
                   segment,
