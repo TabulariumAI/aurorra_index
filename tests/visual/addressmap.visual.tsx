@@ -1,7 +1,7 @@
 import { useMemo, useState, type JSX } from "react";
 import { createRoot } from "react-dom/client";
 import { MetadataPanel } from "../../src/features/metdata/component/MetadataPanel";
-import { buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "../../src/features/addressmap/data/addressMap";
+import { buildAddressMapEmbedUrl } from "../../src/features/addressmap/data/addressMap";
 import { getPanelData } from "../../src/features/metdata/data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../../src/features/metdata/type/metadata.types";
 
@@ -32,9 +32,7 @@ const segments: IndexSegmentValues = {
 };
 
 function AddressMapVisualHarness(): JSX.Element {
-  const [addressMapOpen, setAddressMapOpen] = useState(false);
-  const [addressMapSource, setAddressMapSource] = useState("");
-  const [addressMapZoom, setAddressMapZoom] = useState(DEFAULT_ADDRESS_MAP_ZOOM);
+  const [addressClicked, setAddressClicked] = useState("");
 
   const metadata: MetadataPayload = useMemo(
     () => ({
@@ -58,50 +56,34 @@ function AddressMapVisualHarness(): JSX.Element {
     [],
   );
   const panelData = useMemo(() => getPanelData(metadata), [metadata]);
-  const noOp = (..._args: unknown[]) => undefined;
 
   const address = "123 Main Street, Austin, TX 78701";
-  const expectedSource = buildAddressMapEmbedUrl(address);
 
   return (
-    <div>
+    <>
       <MetadataPanel
-        callbacks={{}}
-        store={{ error: null, status: "success" }}
-        addressMapOpen={addressMapOpen}
-        addressMapSource={addressMapSource}
-        addressMapZoom={addressMapZoom}
+        callbacks={{
+          onAddressClick: (value) => setAddressClicked(buildAddressMapEmbedUrl(value)),
+        }}
+        confirmedCodes={new Set()}
         choices={[{ level: 1, service: "ExhibitIndexing" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={() => {
-          setAddressMapOpen(false);
-          setAddressMapSource("");
-          setAddressMapZoom(DEFAULT_ADDRESS_MAP_ZOOM);
-        }}
-        openAddressMap={(nextAddress, zoom = DEFAULT_ADDRESS_MAP_ZOOM) => {
-          setAddressMapOpen(true);
-          setAddressMapSource(buildAddressMapEmbedUrl(nextAddress));
-          setAddressMapZoom(zoom);
-        }}
-        onConfirm={noOp}
-        onDrop={noOp}
+        onConfirm={() => undefined}
+        onDrop={() => undefined}
         openSegment={segments.PROPERTY}
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="visual-session-addressmap"
-        setLegalOpen={noOp}
-        setSectionOpen={noOp}
-        confirmedCodes={new Set()}
+        setSectionOpen={() => undefined}
+        store={{ error: null, status: "success" }}
         panelData={panelData}
       />
-      <div data-testid="address-map-source">{addressMapSource || "empty"}</div>
-      <div data-testid="address-map-open">{addressMapOpen ? "open" : "closed"}</div>
-      <div data-testid="address-map-zoom">{addressMapZoom}</div>
-      <div data-testid="address-map-expected-source">{expectedSource}</div>
-      <div style={{ display: "none" }} data-testid="address-map-literal">{address}</div>
-    </div>
+      <div data-testid="address-map-callback-source">
+        {addressClicked || "empty"}
+      </div>
+      <div data-testid="address-map-input">{address}</div>
+    </>
   );
 }
 

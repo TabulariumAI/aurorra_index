@@ -2,8 +2,8 @@ const scenario = new URLSearchParams(window.location.search).get("scenario");
 
 if (scenario === "legal-gap") {
   await import("./legalgap.visual.tsx");
-} else if (scenario === "legal-plat") {
-  await import("./legalplat.visual.tsx");
+} else if (scenario === "legal-map") {
+  await import("./legalmap.visual.tsx");
 } else if (scenario === "audit") {
   await import("./audit.visual.tsx");
 } else if (scenario === "iq") {

@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { LegalPlatDialog } from "../../src/features/legalplat/component/LegalPlatDialog";
+import { LegalMapContent } from "../../src/features/legalmap/component/LegalMapContent";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
@@ -12,7 +12,7 @@ main.style.minHeight = "100vh";
 stage.appendChild(main);
 
 createRoot(main).render(
-  <LegalPlatDialog
+  <LegalMapContent
     legal={{
       groups: [
         {
@@ -34,7 +34,5 @@ createRoot(main).render(
       ],
       plat: { county: "Bexar" },
     }}
-    onOpenChange={() => undefined}
-    open
   />,
 );

@@ -90,26 +90,19 @@ stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 
 createRoot(stage).render(
-  <MetadataPanel
-    callbacks={{ onEditPage: noOp, onReprocessSegment: () => true }}
-    addressMapOpen={false}
-    addressMapSource=""
-    addressMapZoom={14}
-    choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-    closeAddressMap={noOp}
-    confirmedCodes={new Set()}
-    legalOpen={false}
-    metadata={activeMetadata}
-    onConfirm={noOp}
-    onDrop={noOp}
-    openAddressMap={noOp}
-    openSegment={segments.PARTY}
-    panelData={activePanelData}
-    removedCodes={new Set()}
+    <MetadataPanel
+      callbacks={{ onEditPage: noOp, onReprocessSegment: () => true }}
+      choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+      confirmedCodes={new Set()}
+      metadata={activeMetadata}
+      onConfirm={noOp}
+      onDrop={noOp}
+      openSegment={segments.PARTY}
+      panelData={activePanelData}
+      removedCodes={new Set()}
     selectedIndex={null}
     segments={segments}
     session="visual-session-metadata"
-    setLegalOpen={noOp}
     setSectionOpen={noOp}
     store={{ error: null, status: "success" }}
   />,

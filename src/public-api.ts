@@ -28,11 +28,11 @@ export {
   isBlank,
   normalizeLegalData,
   toPlatJSON,
-} from "./features/legalplat/data/legalData";
+} from "./features/legalmap/data/legalData";
+export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
 export { createDeferredState } from "./features/indexing/data/deferredState";
 export { indexStoreApi, useIndexStore } from "./features/metdata/store/indexStore";
-export { AddressMapContent, AddressMapDialog, useAddressMap } from "./features/addressmap";
-export type { UseAddressMapResult } from "./features/addressmap/type/addressMap.types";
+export { AddressMapContent } from "./features/addressmap";
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
 export { createIndexWorkerClient } from "./features/metdata/worker/indexWorkerClient";
 export {

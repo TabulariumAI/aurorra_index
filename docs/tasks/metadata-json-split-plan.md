@@ -12,7 +12,7 @@ This task is limited to metadata JSON storage and retrieval. It must not change 
 - `aurorra_index/src/features/metdata/hook/useMetadata.ts` currently retrieves metadata with `store.dataBySession[session]`.
 - `aurorra_index/src/features/metdata/data/metadataData.ts` currently derives panel data from a full `MetadataPayload`.
 - `aurorra_index/src/features/metdata/type/metadata.types.ts` currently types the store as `Record<string, MetadataPayload>`.
-- `aurorra_index/src/index.tsx` exports metadata data helpers, the metadata store API, and metadata types.
+- `aurorra_index/src/public-api.ts` exports metadata data helpers, the metadata store API, and metadata types.
 
 ## Required JSON Parts
 
@@ -36,7 +36,7 @@ Production changes are limited to these files:
 - `aurorra_index/src/features/metdata/data/metadataData.ts`
 - `aurorra_index/src/features/metdata/store/indexStore.ts`
 - `aurorra_index/src/features/metdata/hook/useMetadata.ts`
-- `aurorra_index/src/index.tsx`
+- `aurorra_index/src/public-api.ts`
 
 Test changes are limited to these files:
 
@@ -126,7 +126,7 @@ The UI must continue to receive the same metadata shape it receives today.
 
 ### 5. Preserve Package Exports
 
-Update `src/index.tsx` to export the new split helpers and split metadata types:
+Update `src/public-api.ts` to export the new split helpers and split metadata types:
 
 - `splitMetadataJSON`
 - `composeMetadataJSON`

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeLegalData } from "../data/legalData";
 
 describe("legal data normalization", () => {
-  it("normalizes donor lot block groups into the legal plat view model", () => {
+  it("normalizes donor lot block groups into the legal map view model", () => {
     const view = normalizeLegalData({
       groups: [
         {

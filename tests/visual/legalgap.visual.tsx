@@ -1,6 +1,5 @@
 import { useMemo, type JSX } from "react";
 import { createRoot } from "react-dom/client";
-import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../src/features/addressmap/data/addressMap";
 import { MetadataPanel } from "../../src/features/metdata/component/MetadataPanel";
 import { getPanelData } from "../../src/features/metdata/data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../../src/features/metdata/type/metadata.types";
@@ -62,24 +61,17 @@ function LegalGapHarness(): JSX.Element {
   return (
     <MetadataPanel
       callbacks={{}}
-      addressMapOpen={false}
-      addressMapSource=""
-      addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
       choices={[{ level: 1, service: "LegalEnrichment" }]}
-      closeAddressMap={noOp}
       confirmedCodes={new Set()}
-      legalOpen={false}
       metadata={metadata}
       onConfirm={noOp}
       onDrop={noOp}
-      openAddressMap={noOp}
       openSegment={segments.LEGAL}
       panelData={panelData}
       removedCodes={new Set()}
       selectedIndex={null}
       segments={segments}
       session="visual-session-legal-gap"
-      setLegalOpen={noOp}
       setSectionOpen={noOp}
       store={{ error: null, status: "success" }}
     />

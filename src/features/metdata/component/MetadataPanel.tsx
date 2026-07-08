@@ -1,7 +1,6 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { type JSX, type ReactNode } from "react";
 import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
-import { useStore } from "../../../store/hook/useStore";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import type {
   IndexActionPayload,
@@ -16,8 +15,6 @@ import type {
 } from "../type/metadata.types";
 import { ActionButton, EmptyRow, Icon, MetadataRow, cleanText, formatLabel } from "./MetadataRows";
 import { MetadataSegment } from "./MetadataSegment";
-import { LegalPlatDialog } from "../../legalplat/component/LegalPlatDialog";
-import { AddressMapDialog } from "../../addressmap/component/AddressMapDialog";
 
 const choiceSections = {
   acknowledgment: "AcknowledgmentIndexing",
@@ -49,22 +46,15 @@ export type MetadataPanelProps = {
   callbacks: IndexMetadataCallbacks;
   choices: IndexChoice[] | string | null;
   children?: ReactNode;
-  addressMapOpen: boolean;
-  addressMapSource: string;
-  addressMapZoom: number;
-  confirmedCodes: Set<string>;
-  legalOpen: boolean;
   metadata: MetadataPayload | null;
-  closeAddressMap: () => void;
-  openAddressMap: (address: string, zoom?: number) => void;
   onConfirm: (payload: IndexActionPayload) => void;
   onDrop: (payload: IndexActionPayload) => void;
+  confirmedCodes: Set<string>;
   openSegment: string | null;
   removedCodes: Set<string>;
   selectedIndex: IndexSelected | null;
   segments: IndexSegmentValues;
   session: string;
-  setLegalOpen: (open: boolean) => void;
   setSectionOpen: (segment: string, open: boolean) => void;
   store: Pick<IndexStoreState, "error" | "status">;
   panelData: MetadataPanelData | null;
@@ -138,13 +128,9 @@ function SectionAction({
 export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const {
     callbacks,
-    addressMapOpen,
-    addressMapSource,
-    addressMapZoom,
     children,
     choices,
     confirmedCodes,
-    legalOpen,
     metadata,
     onConfirm,
     onDrop,
@@ -153,15 +139,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     segments,
     selectedIndex,
     session,
-    setLegalOpen,
     setSectionOpen,
-    closeAddressMap,
-    openAddressMap,
     store,
     panelData,
   } = props;
-  const legalJSON = useStore((state) => state.getJSON(session)?.legalJSON ?? null);
-  const legalPayload = legalJSON?.legals ?? null;
 
   const rows = (items: MetadataIndex[], segment: string, emptyMessage: string, type = "index") => {
     const visibleItems = items.filter((item) => !removedCodes.has(String(item.code || "")));
@@ -169,19 +150,19 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     return visibleItems.map((item, index) => {
       const code = String(item.code || "");
       return (
-          <MetadataRow
-            callbacks={callbacks}
-            confirmed={confirmedCodes.has(code)}
-            item={item}
-            key={`${code}-${index}`}
-            onConfirm={onConfirm}
-            onDrop={onDrop}
-            onAddressMapOpen={openAddressMap}
-            selected={Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segment))}
-            segment={segment}
-            session={session}
-            type={type}
-          />
+        <MetadataRow
+          callbacks={callbacks}
+          confirmed={confirmedCodes.has(code)}
+          item={item}
+          key={`${code}-${index}`}
+          onConfirm={onConfirm}
+          onDrop={onDrop}
+          onAddressClick={callbacks.onAddressClick}
+          selected={Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segment))}
+          segment={segment}
+          session={session}
+          type={type}
+        />
       );
     });
   };
@@ -290,20 +271,20 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
               value: `${pageNum} : ${pageNum === "1" ? "Title" : formatLabel(pageClass)} page`,
             };
             return (
-              <MetadataRow
-                callbacks={callbacks}
-                confirmed={false}
-                item={item}
-                key={`${code}-${index}`}
-                onConfirm={onConfirm}
-                onDrop={onDrop}
-                onAddressMapOpen={openAddressMap}
-                pageClass={pageClass}
-                pageSegments={validSegments}
-                selected={Boolean(code && selectedIndex?.code === code)}
-                segment={segments.PAGE}
-                session={session}
-                type="page"
+            <MetadataRow
+              callbacks={callbacks}
+              confirmed={false}
+              item={item}
+              key={`${code}-${index}`}
+              onConfirm={onConfirm}
+              onDrop={onDrop}
+              onAddressClick={callbacks.onAddressClick}
+              pageClass={pageClass}
+              pageSegments={validSegments}
+              selected={Boolean(code && selectedIndex?.code === code)}
+              segment={segments.PAGE}
+              session={session}
+              type="page"
               />
             );
           }) : <EmptyRow message="No recordables pages found." />,
@@ -355,7 +336,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                               label="Open legal view"
                               onClick={() => {
                                 callbacks.onLegalView?.(payload);
-                                setLegalOpen(true);
                               }}
                             >
                               <Icon name="edit" />
@@ -413,8 +393,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {fiscal.funds.length ? renderSegment(segments.FUND, "Funds", fiscal.funds.length, fiscal.funds.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
         {Array.isArray(metadata.chain) && metadata.chain.length ? renderSegment(segments.CHAIN, "Chain", metadata.chain.length, metadata.chain.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
         {metadata.history ? renderSegment(segments.HISTORY, "History", Object.keys(metadata.history).length, <pre style={metadataStyles.pre}>{JSON.stringify(metadata.history, null, 2)}</pre>, null) : null}
-        <AddressMapDialog onOpenChange={closeAddressMap} open={addressMapOpen} source={addressMapSource} zoom={addressMapZoom} />
-        <LegalPlatDialog legal={legalPayload} onOpenChange={setLegalOpen} open={legalOpen} />
         {children}
       </section>
     </Tooltip.Provider>

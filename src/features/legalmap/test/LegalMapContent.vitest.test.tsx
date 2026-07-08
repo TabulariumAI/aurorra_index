@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { LegalPlatContent } from "../component/LegalPlatContent";
+import { LegalMapContent } from "../component/LegalMapContent";
 
-describe("LegalPlatContent", () => {
-  it("renders the pure legal plat hierarchy without shell dialog controls", () => {
+describe("LegalMapContent", () => {
+  it("renders the pure legal map hierarchy without shell dialog controls", () => {
     render(
-      <LegalPlatContent
+      <LegalMapContent
         legal={{
           groups: [
             {
@@ -36,7 +36,7 @@ describe("LegalPlatContent", () => {
   });
 
   it("renders the donor empty-state text for empty legal data", () => {
-    render(<LegalPlatContent legal={null} />);
+    render(<LegalMapContent legal={null} />);
 
     expect(screen.getByText("No valid property hierarchy data found.")).toBeInTheDocument();
   });

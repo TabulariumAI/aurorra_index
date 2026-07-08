@@ -1,8 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
-import { buildAddressMapEmbedUrl } from "../../addressmap/data/addressMap";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData } from "../data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
@@ -29,9 +27,7 @@ const segments: IndexSegmentValues = {
 };
 
 function PanelHarness(): JSX.Element {
-  const [addressOpen, setAddressOpen] = useState(false);
-  const [addressSource, setAddressSource] = useState("");
-  const [addressZoom, setAddressZoom] = useState(DEFAULT_ADDRESS_MAP_ZOOM);
+  const [address, setAddress] = useState("");
 
   const metadata: MetadataPayload = {
     fees: [],
@@ -52,50 +48,38 @@ function PanelHarness(): JSX.Element {
   };
 
   return (
-    <MetadataPanel
-      addressMapOpen={addressOpen}
-      addressMapSource={addressSource}
-      addressMapZoom={addressZoom}
-      callbacks={{}}
-      choices={[{ level: 1, service: "ExhibitIndexing" }]}
-      confirmedCodes={new Set()}
-      legalOpen={false}
-      metadata={metadata}
-      closeAddressMap={() => {
-        setAddressOpen(false);
-        setAddressSource("");
-      }}
-      openAddressMap={(address, zoom = DEFAULT_ADDRESS_MAP_ZOOM) => {
-        setAddressOpen(true);
-        setAddressSource(buildAddressMapEmbedUrl(address));
-        setAddressZoom(zoom);
-      }}
-      onConfirm={vi.fn()}
-      onDrop={vi.fn()}
-      openSegment="property"
-      removedCodes={new Set()}
-      selectedIndex={null}
-      segments={segments}
-      session="session-address-map"
-      setLegalOpen={vi.fn()}
-      setSectionOpen={vi.fn()}
-      store={{ error: null, status: "success" }}
-      panelData={getPanelData(metadata)}
-    />
+    <>
+      <MetadataPanel
+        callbacks={{
+          onAddressClick: (value) => setAddress(value),
+        }}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "ExhibitIndexing" }]}
+        metadata={metadata}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openSegment="property"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-address-map"
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />
+      <div data-testid="address-clicked">{address}</div>
+    </>
   );
 }
 
 describe("MetadataPanel address map integration", () => {
-  it("opens AddressMapDialog through package-owned address action handler", async () => {
+  it("forwards address row click to callbacks.onAddressClick", async () => {
     render(<PanelHarness />);
 
     const openButton = await screen.findByRole("button", { name: "Open address 123 Main Street, Austin, TX 78701" });
     fireEvent.click(openButton);
 
-    await waitFor(() => expect(screen.getByRole("dialog")).toBeInTheDocument());
-    expect(screen.getByText("123 Main Street, Austin, TX 78701")).toBeInTheDocument();
-    const iframe = screen.getByTestId("address-map-iframe");
-    await waitFor(() => expect(iframe).toHaveAttribute("src", `${buildAddressMapEmbedUrl("123 Main Street, Austin, TX 78701")}&z=${DEFAULT_ADDRESS_MAP_ZOOM}`));
-    expect(screen.getByRole("button", { name: /Close/i })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("address-clicked").textContent).toBe("123 Main Street, Austin, TX 78701"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

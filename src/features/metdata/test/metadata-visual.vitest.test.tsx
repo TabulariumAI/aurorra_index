@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData } from "../data/metadataData";
@@ -63,7 +62,6 @@ Object.defineProperties(HTMLElement.prototype, {
     },
   },
 });
-
 afterAll(() => {
   if (originalScrollWidth) {
     Object.defineProperty(HTMLElement.prototype, "scrollWidth", originalScrollWidth);
@@ -78,7 +76,6 @@ afterAll(() => {
     Object.defineProperty(HTMLElement.prototype, "clientHeight", originalClientHeight);
   }
 });
-
 afterEach(() => {
   imageViewerStoreApi.getState().resetViewer();
   vi.clearAllMocks();
@@ -101,15 +98,9 @@ describe("metadata visual surface", () => {
     const { container } = render(
       <MetadataPanel
         callbacks={{ onEditPage, onReprocessSegment }}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
-        openAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
         openSegment="party"
@@ -117,7 +108,6 @@ describe("metadata visual surface", () => {
         selectedIndex={{ code: "idx-1", segment: "party" }}
         segments={segments}
         session="session-1"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={panelData}
@@ -263,23 +253,16 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{}}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
-        openAddressMap={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="session-party-explanation"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
@@ -366,23 +349,16 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{ onPageClick }}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
-        openAddressMap={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="session-party"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
@@ -431,23 +407,16 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{}}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
-        openAddressMap={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="session-party-short"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
@@ -485,23 +454,16 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{}}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
-        openAddressMap={vi.fn()}
         openSegment="page"
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="session-page"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
@@ -539,23 +501,16 @@ describe("metadata visual surface", () => {
     render(
       <MetadataPanel
         callbacks={{ onPageClick }}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
-        openAddressMap={vi.fn()}
         openSegment="legal"
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="session-2"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={panelData}
@@ -622,23 +577,16 @@ describe("metadata visual surface", () => {
     const { container } = render(
       <MetadataPanel
         callbacks={{}}
-        addressMapOpen={false}
-        addressMapSource=""
-        addressMapZoom={DEFAULT_ADDRESS_MAP_ZOOM}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
-        legalOpen={false}
         metadata={metadata}
-        closeAddressMap={vi.fn()}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
-        openAddressMap={vi.fn()}
         openSegment="legal"
         removedCodes={new Set()}
         selectedIndex={null}
         segments={segments}
         session="session-legal-gap"
-        setLegalOpen={vi.fn()}
         setSectionOpen={vi.fn()}
         store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}

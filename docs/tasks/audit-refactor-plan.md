@@ -38,7 +38,7 @@ Spark must not make implementation decisions. If an implementation detail is not
 - `aurorra_index\src\features\metdata\hook\useMetadata.ts`
 - `aurorra_index\src\features\metdata\store\indexStore.ts`
 - `aurorra_index\src\features\addressmap\component\AddressMapContent.tsx`
-- `aurorra_index\src\features\legalplat\component\LegalPlatContent.tsx`
+- `aurorra_index\src\features\legalmap\component\LegalMapContent.tsx`
 - `aurorra_index\src\features\iq\component\IqPanel.tsx`
 - `aurorra_index\src\features\iq\data\iqData.ts`
 - `aurorra_index\src\features\iq\hook\useIqReport.ts`
@@ -105,7 +105,7 @@ Create exactly these production files:
 - `aurorra_index\src\features\audit\index.ts`
 
 Update exactly these existing package files:
-- `aurorra_index\src\index.tsx`
+- `aurorra_index\src\public-api.ts`
 - `aurorra_index\tests\visual\addressmap.visual-entry.js`
 
 Do not create `aurorra_index\tests\visual\audit.visual-entry.js`. Use the existing `addressmap.visual-entry.js` scenario router.

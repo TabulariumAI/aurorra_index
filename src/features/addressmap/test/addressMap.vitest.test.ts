@@ -1,9 +1,30 @@
+import path from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   appendAddressMapZoom,
   buildAddressMapEmbedUrl,
   DEFAULT_ADDRESS_MAP_ZOOM,
 } from "../data/addressMap";
+
+describe("addressmap package boundaries", () => {
+  it("keeps modal shell symbols out of the package", () => {
+    const packageDir = path.dirname(fileURLToPath(import.meta.url));
+    const entries = readdirSync(path.join(packageDir, ".."), { recursive: true }) as string[];
+    const shellTokens = [`Dia${"log"}`, `AddressMap${"Dia"}log`];
+    for (const entry of entries) {
+      if (entry.endsWith(".test.ts") || entry.endsWith(".test.tsx")) {
+        continue;
+      }
+      if (!entry.endsWith(".ts") && !entry.endsWith(".tsx")) continue;
+      const source = readFileSync(path.join(packageDir, "..", entry), "utf8");
+      for (const token of shellTokens) {
+        expect(source).not.toContain(token);
+      }
+    }
+  });
+});
 
 describe("address map data helpers", () => {
   const address = "123 Main St, Austin, TX 78701";

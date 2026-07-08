@@ -4,14 +4,14 @@ import { isBlank, normalizeLegalData, type PlatBlock, type PlatLot, type PlatPha
 import {
   blockLabelStyle,
   blockStyle,
-  legalPlatColors,
-  legalPlatConstants,
-  legalPlatStyles,
+  legalMapColors,
+  legalMapConstants,
+  legalMapStyles,
   legendBoxStyle,
   lotStyle,
   phaseLabelStyle,
   phaseStyle,
-} from "../style/legalPlatStyles";
+} from "../style/legalMapStyles";
 
 function stripCommonPrefixes(value: string): string {
   return value.replace(/^\s*(lot|block|phase|tract|unit|no\.?|#)\s*/i, "").trim();
@@ -48,7 +48,7 @@ function LotView({ index, lot, spanCount = 1, rangeText = null, scale }: { index
 
 function BlockView({ block }: { block: PlatBlock }): JSX.Element {
   const empty = isBlank(block.name);
-  const scale = legalPlatConstants.amp * sizeScale(empty ? 1 : countNumbers(block.name) || 1);
+  const scale = legalMapConstants.amp * sizeScale(empty ? 1 : countNumbers(block.name) || 1);
   const donorLots = Array.isArray(block.lots) ? block.lots.slice(0, 99) : [];
   const lots = donorLots.length >= 9 ? donorLots : [...donorLots, ...Array.from<null>({ length: 9 - donorLots.length }).fill(null)];
 
@@ -56,7 +56,7 @@ function BlockView({ block }: { block: PlatBlock }): JSX.Element {
     <div style={blockStyle(empty, scale)}>
       <div style={blockLabelStyle(scale)}>{empty ? "" : digitsPreferred(block.name)}</div>
       {[0, 1, 2].map((row) => (
-        <div key={row} style={{ ...legalPlatStyles.blockRows, marginBottom: row !== 2 ? "3px" : "0" }}>
+        <div key={row} style={{ ...legalMapStyles.blockRows, marginBottom: row !== 2 ? "3px" : "0" }}>
           {(() => {
             const rowLots: JSX.Element[] = [];
             for (let col = 0; col < 3;) {
@@ -66,8 +66,8 @@ function BlockView({ block }: { block: PlatBlock }): JSX.Element {
               const spanCount = showRange ? 2 : 1;
               const perLotScale =
                 lot && !isBlank(lot.name)
-                  ? legalPlatConstants.amp * sizeScale(countNumbers(lot.name) || 1)
-                  : legalPlatConstants.amp;
+                  ? legalMapConstants.amp * sizeScale(countNumbers(lot.name) || 1)
+                  : legalMapConstants.amp;
               rowLots.push(
                 <LotView
                   index={index}
@@ -90,7 +90,7 @@ function BlockView({ block }: { block: PlatBlock }): JSX.Element {
 
 function PhaseView({ phase }: { phase: PlatPhase }): JSX.Element {
   const empty = isBlank(phase.name);
-  const scale = legalPlatConstants.amp * sizeScale(empty ? 1 : countNumbers(phase.name) || 1);
+  const scale = legalMapConstants.amp * sizeScale(empty ? 1 : countNumbers(phase.name) || 1);
 
   return (
     <div style={phaseStyle(empty, scale)}>
@@ -102,24 +102,24 @@ function PhaseView({ phase }: { phase: PlatPhase }): JSX.Element {
 
 function Legend({ matchPlatSubdivision, presentLayers }: { matchPlatSubdivision: boolean; presentLayers: Set<string> }): JSX.Element | null {
   const items = [
-    { key: "subdivision", name: "Subdivision", color: "transparent", borderColor: matchPlatSubdivision ? legalPlatColors.subdivisionColor : legalPlatColors.subdivisionBorder },
-    { key: "tract", name: "Tract", color: legalPlatColors.tractBg },
-    { key: "phase", name: "Phase", color: legalPlatColors.phaseBg },
-    { key: "block", name: "Block", color: legalPlatColors.blockBg },
-    { key: "lot", name: "Lot", color: legalPlatColors.lotBg },
-    { key: "lot_empty", name: "Lot (empty)", color: legalPlatColors.emptyBg },
-    { key: "condo_unit", name: "Condominium Unit", color: legalPlatColors.condoBg },
+    { key: "subdivision", name: "Subdivision", color: "transparent", borderColor: matchPlatSubdivision ? legalMapColors.subdivisionColor : legalMapColors.subdivisionBorder },
+    { key: "tract", name: "Tract", color: legalMapColors.tractBg },
+    { key: "phase", name: "Phase", color: legalMapColors.phaseBg },
+    { key: "block", name: "Block", color: legalMapColors.blockBg },
+    { key: "lot", name: "Lot", color: legalMapColors.lotBg },
+    { key: "lot_empty", name: "Lot (empty)", color: legalMapColors.emptyBg },
+    { key: "condo_unit", name: "Condominium Unit", color: legalMapColors.condoBg },
   ].filter((item) => presentLayers.has(item.key));
 
   if (items.length === 0) return null;
 
   return (
-    <div style={legalPlatStyles.legendRow}>
-      <div style={legalPlatStyles.legendItems}>
+    <div style={legalMapStyles.legendRow}>
+      <div style={legalMapStyles.legendItems}>
         {items.map((item) => (
-          <span key={item.key} style={legalPlatStyles.legendItem}>
+          <span key={item.key} style={legalMapStyles.legendItem}>
             <span style={legendBoxStyle(item.color, item.borderColor)} />
-            <span style={legalPlatStyles.legendLabel}>{item.name}</span>
+            <span style={legalMapStyles.legendLabel}>{item.name}</span>
           </span>
         ))}
       </div>
@@ -127,25 +127,25 @@ function Legend({ matchPlatSubdivision, presentLayers }: { matchPlatSubdivision:
   );
 }
 
-export function LegalPlatContent({ legal }: { legal: LegalPayload | null | undefined }): JSX.Element {
+export function LegalMapContent({ legal }: { legal: LegalPayload | null | undefined }): JSX.Element {
   const view = normalizeLegalData(legal);
 
   if (view.isEmptyStructure) {
     return (
-      <div style={legalPlatStyles.shell}>
-        <div style={legalPlatStyles.emptyMessage}>No valid property hierarchy data found.</div>
+      <div style={legalMapStyles.shell}>
+        <div style={legalMapStyles.emptyMessage}>No valid property hierarchy data found.</div>
       </div>
     );
   }
 
   return (
-    <div style={legalPlatStyles.shell}>
-      <div data-legal-plat-grid="true" style={legalPlatStyles.grid}>
-        <div style={legalPlatStyles.gridContent}>
+    <div style={legalMapStyles.shell}>
+      <div data-legal-map-grid="true" style={legalMapStyles.grid}>
+        <div style={legalMapStyles.gridContent}>
           {view.subdivisions.map((subdivision, index) => (
-            <div key={`${subdivision.subdivision}-${index}`} style={legalPlatStyles.subdivisionWrapper}>
-              <div style={legalPlatStyles.subdivisionContent}>
-                {!isBlank(subdivision.subdivision) ? <div style={legalPlatStyles.subdivisionLabel}>{subdivision.subdivision}</div> : null}
+            <div key={`${subdivision.subdivision}-${index}`} style={legalMapStyles.subdivisionWrapper}>
+              <div style={legalMapStyles.subdivisionContent}>
+                {!isBlank(subdivision.subdivision) ? <div style={legalMapStyles.subdivisionLabel}>{subdivision.subdivision}</div> : null}
                 {subdivision.tracks.map((track, trackIndex) =>
                   track.phases.map((phase, phaseIndex) => (!isBlank(phase.name) || phase.blocks.length > 0 ? <PhaseView key={`${track.name}-${trackIndex}-${phase.name}-${phaseIndex}`} phase={phase} /> : null)),
                 )}
@@ -155,7 +155,7 @@ export function LegalPlatContent({ legal }: { legal: LegalPayload | null | undef
         </div>
         <Legend matchPlatSubdivision={view.matchPlatSubdivision} presentLayers={view.presentLayers} />
         {view.locationLabel ? (
-          <div id="plat-location-bottom" style={legalPlatStyles.location}>
+          <div id="plat-location-bottom" style={legalMapStyles.location}>
             {view.locationLabel}
           </div>
         ) : null}

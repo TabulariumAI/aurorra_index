@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-export const legalPlatColors = {
+export const legalMapColors = {
   blockBg: "#e2e8ef",
   blockBorder: "#4c5b6b",
   blockText: "#223355",
@@ -22,7 +22,7 @@ export const legalPlatColors = {
   tractBg: "#a2a393ff",
 } as const;
 
-export const legalPlatConstants = {
+export const legalMapConstants = {
   amp: 1.15,
   blockBaseFontSize: 16,
   blockBaseHeight: 110,
@@ -32,11 +32,11 @@ export const legalPlatConstants = {
   lotSize: 48,
 } as const;
 
-export const legalPlatStyles = {
+export const legalMapStyles = {
   shell: {
     alignItems: "stretch",
     boxSizing: "border-box",
-    color: legalPlatColors.text,
+    color: legalMapColors.text,
     display: "flex",
     flexDirection: "column",
     fontFamily: "Segoe UI, Arial, sans-serif",
@@ -51,7 +51,7 @@ export const legalPlatStyles = {
     width: "100%",
   },
   emptyMessage: {
-    color: legalPlatColors.text,
+    color: legalMapColors.text,
     fontSize: "1.25em",
     fontWeight: 700,
     margin: "2.25rem 0",
@@ -64,10 +64,10 @@ export const legalPlatStyles = {
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
     backgroundSize: "100% 100%",
-    border: `0.25rem double ${legalPlatColors.subdivisionColor}`,
+    border: `0.25rem double ${legalMapColors.subdivisionColor}`,
     borderRadius: "0.5rem",
     boxSizing: "border-box",
-    color: legalPlatColors.text,
+    color: legalMapColors.text,
     display: "flex",
     flex: "0 1 auto",
     flexDirection: "column",
@@ -76,7 +76,7 @@ export const legalPlatStyles = {
     justifyContent: "center",
     margin: "0",
     maxHeight: "min(54vh, 44rem)",
-    minHeight: "min(32rem, 54vh)",
+    minHeight: "0",
     overflow: "visible",
     padding: "1.25rem 1.25rem 0.5rem",
     width: "100%",
@@ -84,7 +84,7 @@ export const legalPlatStyles = {
   gridContent: {
     alignItems: "center",
     display: "grid",
-    gap: `${legalPlatConstants.gridSize * 2}px`,
+    gap: `${legalMapConstants.gridSize * 2}px`,
     gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), max-content))",
     justifyItems: "center",
     minHeight: 0,
@@ -115,7 +115,7 @@ export const legalPlatStyles = {
     zIndex: 990,
   },
   subdivisionLabel: {
-    color: legalPlatColors.subdivisionColor,
+    color: legalMapColors.subdivisionColor,
     fontSize: "1.17em",
     fontWeight: 700,
     textAlign: "center",
@@ -150,7 +150,7 @@ export const legalPlatStyles = {
     gap: "7px",
   },
   legendLabel: {
-    color: legalPlatColors.legendText,
+    color: legalMapColors.legendText,
     fontSize: "13px",
     fontWeight: 600,
   },
@@ -164,7 +164,7 @@ export const legalPlatStyles = {
   },
   location: {
     alignItems: "center",
-    color: legalPlatColors.text,
+    color: legalMapColors.text,
     display: "flex",
     flex: "0 0 auto",
     fontSize: "0.95rem",
@@ -179,10 +179,10 @@ export const legalPlatStyles = {
 export function phaseStyle(empty: boolean, scale: number): CSSProperties {
   return {
     alignItems: "center",
-    background: empty ? "transparent" : legalPlatColors.phaseBg,
-    border: empty ? "2px solid transparent" : `2px solid ${legalPlatColors.phaseBorder}`,
+    background: empty ? "transparent" : legalMapColors.phaseBg,
+    border: empty ? "2px solid transparent" : `2px solid ${legalMapColors.phaseBorder}`,
     borderRadius: "0.5rem",
-    color: empty ? "transparent" : legalPlatColors.phaseText,
+    color: empty ? "transparent" : legalMapColors.phaseText,
     display: "flex",
     flexDirection: "row",
     flexWrap: "wrap",
@@ -197,8 +197,8 @@ export function phaseStyle(empty: boolean, scale: number): CSSProperties {
 export function phaseLabelStyle(scale: number): CSSProperties {
   return {
     alignSelf: "center",
-    color: legalPlatColors.phaseText,
-    fontSize: `${legalPlatConstants.lotBaseFontSize * scale}px`,
+    color: legalMapColors.phaseText,
+    fontSize: `${legalMapConstants.lotBaseFontSize * scale}px`,
     fontWeight: 600,
     marginRight: `${12 * scale}px`,
     textAlign: "center",
@@ -208,19 +208,19 @@ export function phaseLabelStyle(scale: number): CSSProperties {
 export function blockStyle(empty: boolean, scale: number): CSSProperties {
   return {
     alignItems: "center",
-    background: legalPlatColors.blockBg,
-    border: empty ? "2px solid transparent" : `2px solid ${legalPlatColors.blockBorder}`,
+    background: legalMapColors.blockBg,
+    border: empty ? "2px solid transparent" : `2px solid ${legalMapColors.blockBorder}`,
     borderRadius: "11px",
     boxShadow: "0 1px 3px 0 rgba(76,91,107,0.06)",
-    color: legalPlatColors.blockText,
+    color: legalMapColors.blockText,
     display: "flex",
     flexDirection: "column",
-    fontSize: `${legalPlatConstants.blockBaseFontSize * scale}px`,
+    fontSize: `${legalMapConstants.blockBaseFontSize * scale}px`,
     fontWeight: 700,
     justifyContent: "center",
     marginTop: "0.75rem",
-    minHeight: `${legalPlatConstants.blockBaseHeight * scale}px`,
-    minWidth: `${legalPlatConstants.blockBaseWidth * scale}px`,
+    minHeight: `${legalMapConstants.blockBaseHeight * scale}px`,
+    minWidth: `${legalMapConstants.blockBaseWidth * scale}px`,
     padding: `${14 * scale}px ${10 * scale}px`,
     textAlign: "center",
   };
@@ -237,17 +237,17 @@ export function blockLabelStyle(scale: number): CSSProperties {
 export function lotStyle(empty: boolean, showCondo: boolean, scale: number, spanCount: number): CSSProperties {
   return {
     alignItems: "center",
-    background: showCondo ? legalPlatColors.condoBg : empty ? legalPlatColors.emptyBg : legalPlatColors.lotBg,
-    border: `1px solid ${empty ? legalPlatColors.emptyBorder : legalPlatColors.lotBorder}`,
+    background: showCondo ? legalMapColors.condoBg : empty ? legalMapColors.emptyBg : legalMapColors.lotBg,
+    border: `1px solid ${empty ? legalMapColors.emptyBorder : legalMapColors.lotBorder}`,
     borderRadius: "3px",
     boxShadow: empty ? "none" : "0 1px 3px 0 rgba(34,54,89,0.10)",
     boxSizing: "border-box",
-    color: showCondo ? legalPlatColors.condoText : empty ? legalPlatColors.emptyText : legalPlatColors.lotText,
+    color: showCondo ? legalMapColors.condoText : empty ? legalMapColors.emptyText : legalMapColors.lotText,
     display: "inline-flex",
-    flex: `0 0 ${spanCount * legalPlatConstants.lotSize * scale + (spanCount - 1) * 6}px`,
-    fontSize: `${legalPlatConstants.lotBaseFontSize * scale}px`,
+    flex: `0 0 ${spanCount * legalMapConstants.lotSize * scale + (spanCount - 1) * 6}px`,
+    fontSize: `${legalMapConstants.lotBaseFontSize * scale}px`,
     fontWeight: 600,
-    height: `${legalPlatConstants.lotSize * scale}px`,
+    height: `${legalMapConstants.lotSize * scale}px`,
     justifyContent: "center",
     lineHeight: "1.1",
     margin: "0 3px",
@@ -255,13 +255,13 @@ export function lotStyle(empty: boolean, showCondo: boolean, scale: number, span
     padding: "0 3px",
     textAlign: "center",
     userSelect: "none",
-    width: `${legalPlatConstants.lotSize * scale * spanCount + (spanCount - 1) * 6}px`,
+    width: `${legalMapConstants.lotSize * scale * spanCount + (spanCount - 1) * 6}px`,
   };
 }
 
 export function legendBoxStyle(color: string, borderColor?: string): CSSProperties {
   return {
-    ...legalPlatStyles.legendBox,
+    ...legalMapStyles.legendBox,
     background: color,
     border: `1px solid ${borderColor || "#bbb"}`,
   };
