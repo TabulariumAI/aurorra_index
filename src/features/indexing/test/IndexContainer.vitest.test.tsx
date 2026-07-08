@@ -107,6 +107,7 @@ describe("IndexContainer", () => {
       expect(shell).toHaveStyle({ width: "100%" });
       expect(shell).toHaveStyle({ minWidth: "0px" });
       expect(shell).toHaveStyle({ boxShadow: "none" });
+      expect(shell).toHaveStyle({ paddingTop: "0px" });
       expect(shell).not.toHaveStyle({ overflow: "auto" });
     }
 
@@ -118,6 +119,11 @@ describe("IndexContainer", () => {
     expect(onView).toHaveBeenCalledWith(metadata);
     expect(onMetadataLoaded).toHaveBeenCalledWith(metadata);
     expect(screen.getByText("Deed")).toBeInTheDocument();
+    const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
+    expect(header).toBeTruthy();
+    if (header) {
+      expect(header).toHaveStyle({ position: "sticky", top: "0px", zIndex: "2" });
+    }
 
     fireEvent.click(screen.getByLabelText("Confirm index and remove ambiguity"));
     await waitFor(() => expect(onConfirmIndex).toHaveBeenCalled());

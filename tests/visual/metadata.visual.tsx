@@ -85,7 +85,7 @@ const activeMetadata = scenario === "metadata-short" ? shortMetadata : metadata;
 const activePanelData = scenario === "metadata-short" ? shortPanelData : panelData;
 
 stage.style.overflow = "auto";
-stage.style.padding = "1rem";
+stage.style.padding = "0 1rem 1rem";
 stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 

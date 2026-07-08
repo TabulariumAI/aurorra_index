@@ -120,7 +120,7 @@ describe("metadata visual surface", () => {
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
-      expect(header).toHaveStyle({ boxShadow: "none", textAlign: "center", width: "100%" });
+      expect(header).toHaveStyle({ boxShadow: "none", position: "sticky", textAlign: "center", top: "0px", width: "100%", zIndex: "2" });
       expect(header).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
     }
 

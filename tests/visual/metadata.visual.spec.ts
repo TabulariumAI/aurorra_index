@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("metadata explanation row collapses and expands inline", async ({ page }) => {
   await page.goto("/?scenario=metadata");
 
+  const stage = page.locator("#visual-stage");
+  const header = page.locator("header").first();
   const row = page.locator("article").first();
   const explanation = row.locator('span:not([aria-hidden="true"])').filter({ hasText: "This explanation is intentionally long" });
   const expandButton = page.getByRole("button", { name: "Expand explanation" });
@@ -11,6 +13,8 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   const reprocessLink = page.getByRole("link", { name: "Reprocess" });
   const refineLink = page.getByRole("link", { name: "Refine or Chat" });
 
+  await expect(header).toHaveCSS("position", "sticky");
+  await expect(header).toHaveCSS("top", "0px");
   await expect(row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Explanation:" })).toBeVisible();
   await expect(row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Quote:" })).toBeVisible();
   await expect(page.getByText("Alice")).toBeVisible();
@@ -95,6 +99,19 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await collapseButton.click();
 
   await expect(page.getByRole("button", { name: "Expand explanation" })).toBeVisible();
+
+  const stageBox = await stage.boundingBox();
+  const before = await header.boundingBox();
+  expect(stageBox).not.toBeNull();
+  expect(before).not.toBeNull();
+  expect(Math.abs(before!.y - stageBox!.y)).toBeLessThanOrEqual(1);
+  await stage.evaluate((element) => {
+    element.scrollTop = 500;
+  });
+  const after = await header.boundingBox();
+  expect(after).not.toBeNull();
+  expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(after!.y - stageBox!.y)).toBeLessThanOrEqual(1);
 });
 
 test("metadata short rows hide disclosure controls when text fits", async ({ page }) => {
