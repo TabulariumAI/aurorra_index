@@ -34,10 +34,17 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
   const viewer = useImageViewer();
 
   useEffect(() => {
-    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring) return;
+    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring || viewer.isRestoredSession) return;
     const state = imageViewerStoreApi.getState();
     const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
-    if ((state.status === "ready" && hasPackage) || state.status === "packaging" || state.status === "polling" || state.status === "downloading") return;
+    const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
+    if (
+      (state.status === "ready" && hasPackage) ||
+      restoredLensReady ||
+      state.status === "packaging" ||
+      state.status === "polling" ||
+      state.status === "downloading"
+    ) return;
     let canceled = false;
     const token = authToken;
     const activeSession = session;
@@ -87,7 +94,7 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
     return () => {
       canceled = true;
     };
-  }, [apiGatewayUrl, authToken, session, viewer.isRestoring, workerClient]);
+  }, [apiGatewayUrl, authToken, session, viewer.isRestoredSession, viewer.isRestoring, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
   const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage";

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ViewerState } from "@tabulariumai/aurora-lens";
 import { loadImagePackage } from "../data/loadImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
@@ -84,6 +85,59 @@ describe("loadImagePackage", () => {
     expect(workerClient.packageImage).toHaveBeenCalledTimes(1);
     expect(workerClient.imageData).toHaveBeenCalledTimes(1);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not restart package flow after same-session lens restore", async () => {
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageCount: 2,
+      pageMap: new Map(),
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+    imageViewerStoreApi.getState().setViewerState({
+      canActualSize: true,
+      canClearSelection: true,
+      canFitHeight: true,
+      canFitPage: true,
+      canFitWidth: true,
+      canGoFirst: true,
+      canGoLast: true,
+      canGoNext: true,
+      canGoPrevious: true,
+      canSearch: true,
+      canShowThumbnails: true,
+      canZoomIn: true,
+      canZoomOut: true,
+      pageCount: 2,
+      pageIndex: 0,
+      status: "ready",
+      viewMode: "page",
+    } as unknown as ViewerState);
+    imageViewerStoreApi.getState().setReady();
+
+    await loadImagePackage({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      session: "session-1",
+      workerClient,
+    });
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
   });
 
   it("stores package errors through the viewer store error path", async () => {

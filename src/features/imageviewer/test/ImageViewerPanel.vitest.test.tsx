@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
+import type { ViewerState } from "@tabulariumai/aurora-lens";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 let viewerPageCount = 2;
 let viewerRestoring = false;
+let viewerRestoredSession = false;
 
 vi.mock("../hook/useImageViewer", () => ({
   useImageViewer: () => ({
@@ -40,6 +42,7 @@ vi.mock("../hook/useImageViewer", () => ({
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
     isLoading: false,
+    isRestoredSession: viewerRestoredSession,
     isRestoring: viewerRestoring,
   }),
 }));
@@ -59,6 +62,7 @@ describe("ImageViewerPanel", () => {
     imageViewerStoreApi.getState().resetViewer();
     viewerPageCount = 2;
     viewerRestoring = false;
+    viewerRestoredSession = false;
     vi.restoreAllMocks();
   });
 
@@ -167,6 +171,68 @@ describe("ImageViewerPanel", () => {
       session: "session-1",
       workerClient,
     });
+
+    render(<ImageViewerPanel previewAction={previewAction} />);
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("does not start package flow after lens restore succeeds", () => {
+    viewerRestoredSession = true;
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageCount: 2,
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    render(<ImageViewerPanel previewAction={previewAction} />);
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("does not start package flow while restored lens state reaches the hook", () => {
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageCount: 2,
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+    imageViewerStoreApi.getState().setViewerState({
+      pageIndex: 1,
+      status: "ready",
+    } as unknown as ViewerState);
+    imageViewerStoreApi.getState().setReady();
 
     render(<ImageViewerPanel previewAction={previewAction} />);
 

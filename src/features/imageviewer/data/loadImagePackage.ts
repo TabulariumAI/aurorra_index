@@ -20,8 +20,10 @@ export async function loadImagePackage(input: LoadPackageInput): Promise<void> {
   state.setHostInput(hostInput);
   const current = imageViewerStoreApi.getState();
   const loaded = Boolean(current.packageMetadata && current.tiffBytes && current.tiffType !== null);
+  const restoredLensReady = current.status === "ready" && current.viewerState?.status === "ready" && !loaded;
   if (
     (current.status === "ready" && loaded) ||
+    restoredLensReady ||
     current.status === "packaging" ||
     current.status === "polling" ||
     current.status === "downloading"

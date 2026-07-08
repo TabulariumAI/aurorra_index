@@ -67,6 +67,7 @@ export function useImageViewer() {
   const [loaded, setLoaded] = useState(false);
   const [lensReady, setLensReady] = useState(false);
   const [restoreDone, setRestoreDone] = useState(false);
+  const [restoredSession, setRestoredSession] = useState(false);
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
   const request = useImageViewerStore((state) => state.request);
   const session = useImageViewerStore((state) => state.session);
@@ -126,6 +127,7 @@ export function useImageViewer() {
       setLoaded(false);
       setLensReady(false);
       setRestoreDone(false);
+      setRestoredSession(false);
       decodingPackageKeyRef.current = null;
       decodedSessionRef.current = null;
       decodedPackageVersionRef.current = 0;
@@ -145,6 +147,13 @@ export function useImageViewer() {
         const restored = await activeLens.restoreSession();
         console.info("imageviewer lens restore done", { restored, session: activeSession });
         if (canceled || lensRef.current !== activeLens) return;
+        const state = imageViewerStoreApi.getState();
+        const hasLocalPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
+        if (restored && !hasLocalPackage) {
+          setLoaded(true);
+          setRestoredSession(true);
+          state.setReady();
+        }
       } finally {
         if (!canceled && lensRef.current === activeLens) setRestoreDone(true);
       }
@@ -346,6 +355,7 @@ export function useImageViewer() {
     fitPage,
     fitWidth,
     isLoading: Boolean(!pageReady && request && packageMetadata && tiffBytes && tiffType !== null),
+    isRestoredSession: restoredSession,
     isRestoring: Boolean(session && (!lensReady || !restoreDone)),
     isThumbs: viewerState?.viewMode === "thumbnails",
     lastPage,

@@ -109,6 +109,7 @@ function Harness() {
       <button disabled={!viewer.canSearch} onClick={viewer.search} type="button">search</button>
       <button disabled={!viewer.canZoomIn} onClick={viewer.zoomIn} type="button">zoom in</button>
       <button disabled={!viewer.canZoomOut} onClick={viewer.zoomOut} type="button">zoom out</button>
+      <span data-testid="restored-session">{viewer.isRestoredSession ? "restored" : "not-restored"}</span>
       <span data-testid="restore-state">{viewer.isRestoring ? "restoring" : "ready"}</span>
     </>
   );
@@ -242,8 +243,9 @@ describe("useImageViewer", () => {
     expect(indexedDbViewerSessionStore).toHaveBeenCalledTimes(1);
     expect(lensInstances[0].decodeDoc).not.toHaveBeenCalled();
     expect(lensInstances[0].loadMetadata).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "search" })).toBeDisabled();
-    expect(imageViewerStoreApi.getState().status).toBe("idle");
+    await waitFor(() => expect(screen.getByRole("button", { name: "search" })).toBeEnabled());
+    expect(screen.getByTestId("restored-session")).toHaveTextContent("restored");
+    expect(imageViewerStoreApi.getState().status).toBe("ready");
   });
 
   it("keeps restore pending until stored session restore completes", async () => {
