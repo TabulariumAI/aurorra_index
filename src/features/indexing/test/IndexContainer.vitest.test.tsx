@@ -128,8 +128,9 @@ describe("IndexContainer", () => {
     fireEvent.click(screen.getByLabelText("Confirm index and remove ambiguity"));
     await waitFor(() => expect(onConfirmIndex).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByLabelText("Open page image 1"));
+    fireEvent.click(screen.getByRole("link", { name: "Alice" }));
     expect(onPageClick).toHaveBeenCalled();
+    expect(screen.queryByLabelText("Open page image 1")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("Pop the index"));
     await waitFor(() => expect(onDropIndex).toHaveBeenCalled());

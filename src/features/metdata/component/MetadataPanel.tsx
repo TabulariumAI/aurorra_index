@@ -1,7 +1,6 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { type JSX, type ReactNode } from "react";
 import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
-import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import type {
   IndexActionPayload,
   IndexChoice,
@@ -13,7 +12,17 @@ import type {
   MetadataPayload,
   MetadataPanelData,
 } from "../type/metadata.types";
-import { ActionButton, EmptyRow, Icon, MetadataRow, cleanText, formatLabel } from "./MetadataRows";
+import {
+  ActionButton,
+  EmptyRow,
+  Icon,
+  IndexValue,
+  MetadataRow,
+  cleanText,
+  copyIndexValue,
+  formatLabel,
+  openMetadataImage,
+} from "./MetadataRows";
 import { MetadataSegment } from "./MetadataSegment";
 
 const choiceSections = {
@@ -319,7 +328,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                   const code = String(group.code || "");
                   const page = Number(group.page || 0);
                   const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
-                  const payload: IndexActionPayload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") };
+                  const payload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") } satisfies IndexActionPayload;
+                  const onPageClick = page && code ? callbacks.onPageClick : undefined;
                   return (
                     <article
                       data-active={isLegalRowSelected ? "true" : "false"}
@@ -329,8 +339,13 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                       key={`${code}-${index}`}
                     >
                       <div style={rowStyles.header}>
-                        <div style={rowStyles.value}>{formatLabel(group.type || "")}</div>
+                        <IndexValue value={payload.value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
                         <div style={rowStyles.actionGroup}>
+                          {payload.value ? (
+                            <ActionButton label={`Copy value ${payload.value}`} onClick={() => copyIndexValue(payload.value)}>
+                              <Icon name="copy" />
+                            </ActionButton>
+                          ) : null}
                           {String(group.type || "").trim() === "lot_block" ? (
                             <ActionButton
                               label="Open legal view"
@@ -338,35 +353,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                                 callbacks.onLegalView?.(payload);
                               }}
                             >
-                              <Icon name="edit" />
-                            </ActionButton>
-                          ) : null}
-                          {callbacks.onPageClick && code ? (
-                            <ActionButton
-                              label="Open legal page"
-                              onClick={() => {
-                                console.info("imageviewer request from metadata row", {
-                                  code,
-                                  page,
-                                  segment: segments.LEGAL,
-                                  session,
-                                  type: payload.type,
-                                });
-                                imageViewerStoreApi.getState().setRequest({
-                                  code,
-                                  highlightOptions: { scroll: false },
-                                  index: payload.type,
-                                  metadataIndex: null,
-                                  page,
-                                  quote: "",
-                                  segment: segments.LEGAL,
-                                  session,
-                                  value: payload.value || "",
-                                });
-                                callbacks.onPageClick?.(payload);
-                              }}
-                            >
-                              <Icon name="page" />
+                              <Icon name="address" />
                             </ActionButton>
                           ) : null}
                         </div>

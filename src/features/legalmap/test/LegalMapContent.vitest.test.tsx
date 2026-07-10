@@ -31,6 +31,15 @@ describe("LegalMapContent", () => {
     expect(screen.getByText("Subdivision")).toBeInTheDocument();
     expect(screen.getByText("Condominium Unit")).toBeInTheDocument();
     expect(screen.getByText("Austin | Travis County | Texas")).toBeInTheDocument();
+    const grid = document.querySelector("[data-legal-map-grid='true']");
+    expect(grid).toHaveStyle({
+      flex: "1 1 auto",
+      justifyContent: "flex-start",
+      maxHeight: "100%",
+      overflow: "auto",
+    });
+    expect(grid?.parentElement).toHaveStyle({ height: "100%", overflow: "hidden" });
+    expect(grid?.firstElementChild).toHaveStyle({ flex: "0 0 auto" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });

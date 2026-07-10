@@ -15,3 +15,24 @@ test("address map row forwards address through callback", async ({ page }) => {
   await expect(callbackSource).toHaveText(expectedSource);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
+
+test("metadata row links the value and copies it from the row action", async ({ page }) => {
+  await page.goto("/?scenario=addressmap");
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText(value: string) {
+          (window as typeof window & { copiedIndexValue?: string }).copiedIndexValue = value;
+          return Promise.resolve();
+        },
+      },
+    });
+  });
+
+  await expect(page.getByRole("link", { name: expectedAddress })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open page image 1" })).toHaveCount(0);
+  await page.getByRole("button", { name: `Copy value ${expectedAddress}` }).click();
+
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { copiedIndexValue?: string }).copiedIndexValue)).toBe(expectedAddress);
+});

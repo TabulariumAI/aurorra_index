@@ -313,6 +313,14 @@ export const rowStyles = {
     overflowWrap: "anywhere",
     textTransform: "none",
   },
+  valueLink: {
+    color: textStrong,
+    cursor: "pointer",
+    font: "inherit",
+    overflowWrap: "anywhere",
+    textDecoration: "underline",
+    textUnderlineOffset: "0.12em",
+  },
 } satisfies Record<string, CSSProperties | ((...args: never[]) => CSSProperties)>;
 
 export const segmentStyles = {

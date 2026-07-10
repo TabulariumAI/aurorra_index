@@ -64,6 +64,7 @@ function AddressMapVisualHarness(): JSX.Element {
       <MetadataPanel
         callbacks={{
           onAddressClick: (value) => setAddressClicked(buildAddressMapEmbedUrl(value)),
+          onPageClick: () => undefined,
         }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "ExhibitIndexing" }]}

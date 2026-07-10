@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { MetadataPanel } from "../component/MetadataPanel";
+import { copyIndexValue } from "../component/MetadataRows";
 import { getPanelData } from "../data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
 
@@ -35,6 +36,7 @@ const originalScrollWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototyp
 const originalClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
 const originalScrollHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollHeight");
 const originalClientHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
 
 Object.defineProperties(HTMLElement.prototype, {
   scrollWidth: {
@@ -78,6 +80,11 @@ afterAll(() => {
 });
 afterEach(() => {
   imageViewerStoreApi.getState().resetViewer();
+  if (originalClipboard) {
+    Object.defineProperty(navigator, "clipboard", originalClipboard);
+  } else {
+    Reflect.deleteProperty(navigator, "clipboard");
+  }
   vi.clearAllMocks();
 });
 
@@ -365,7 +372,9 @@ describe("metadata visual surface", () => {
       />,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "Open page image 1" }));
+    fireEvent.click(await screen.findByRole("link", { name: "Alice" }));
+
+    expect(screen.queryByRole("button", { name: "Open page image 1" })).not.toBeInTheDocument();
 
     expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
       metadataIndex: {
@@ -519,14 +528,15 @@ describe("metadata visual surface", () => {
 
     await waitFor(() => expect(screen.getByText("Lot Block")).toBeInTheDocument());
     const legalActionButtons = screen.getAllByRole("button", { name: /Open legal /i });
-    expect(legalActionButtons).toHaveLength(2);
+    expect(legalActionButtons).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open legal page" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open legal page" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy value Lot Block" })).toBeInTheDocument();
     legalActionButtons.forEach((button) => {
       expect(button).toHaveStyle({ width: "1.9rem", height: "1.9rem", padding: "0" });
     });
-    expect(screen.getByText("Lot Block").parentElement).toHaveStyle({ display: "flex" });
-    fireEvent.click(screen.getByRole("button", { name: "Open legal page" }));
+    expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "underline" });
+    fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));
     expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
       code: "legal-2",
       page: 3,
@@ -549,6 +559,55 @@ describe("metadata visual surface", () => {
       session: "session-2",
       type: "lot_block",
     });
+  });
+
+  it("copies the displayed index value from the row action", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      indexes: [{ code: "idx-1", label: "grantor", page: "1", segment: "party", value: "Alice" }],
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
+      secrets: [],
+    };
+
+    render(
+      <MetadataPanel
+        callbacks={{}}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+        metadata={metadata}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        openSegment="party"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-copy"
+        setSectionOpen={vi.fn()}
+        store={{ error: null, status: "success" }}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Copy value Alice" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("Alice"));
+  });
+
+  it("propagates clipboard write failures", async () => {
+    const error = new Error("Clipboard access denied.");
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn(() => Promise.reject(error)) },
+    });
+
+    await expect(copyIndexValue("Alice")).rejects.toBe(error);
   });
 
   it("spaces legal cards apart", async () => {

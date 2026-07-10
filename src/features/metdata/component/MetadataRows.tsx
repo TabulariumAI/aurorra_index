@@ -138,18 +138,67 @@ export function ActionButton({
     </Tooltip.Root>
   );
 }
-export function Icon({ name }: { name: "check" | "edit" | "page" | "remove" | "address" }) {
+export function Icon({ name }: { name: "address" | "check" | "copy" | "edit" | "remove" }) {
   const paths = {
     address: <><path d="M4 10.5C6 6.5 9 4.5 12 4.5s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6Z" /><circle cx="12" cy="10.5" r="2.2" /><path d="M8.5 18.5h7" /></>,
     check: <path d="m5 12 4 4 10-10" />,
+    copy: <><rect height="11" rx="1.5" width="11" x="8" y="8" /><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" /></>,
     edit: <><path d="M4 17.5V20h2.5L18 8.5 15.5 6 4 17.5Z" /><path d="m14.5 7 2.5 2.5" /></>,
-    page: <><path d="M4 10.5C6 6.5 9 4.5 12 4.5s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6Z" /><circle cx="12" cy="10.5" r="2.2" /></>,
     remove: <><path d="M5 7h14" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M8 7l1 13h6l1-13" /><path d="M9 7V5h6v2" /></>,
   };
   return (
     <svg aria-hidden="true" fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="18">
       {paths[name]}
     </svg>
+  );
+}
+
+export function copyIndexValue(value: string): Promise<void> {
+  return navigator.clipboard.writeText(value);
+}
+
+export function openMetadataImage(
+  onPageClick: NonNullable<IndexMetadataCallbacks["onPageClick"]>,
+  payload: IndexActionPayload,
+): void {
+  console.info("imageviewer request from metadata row", {
+    code: payload.code,
+    page: payload.page,
+    segment: payload.segment,
+    session: payload.session,
+    type: payload.type,
+  });
+  imageViewerStoreApi.getState().setRequest({
+    code: payload.code,
+    highlightOptions: { scroll: false },
+    index: payload.type,
+    metadataIndex: payload.metadataIndex ?? null,
+    page: payload.page,
+    quote: payload.quote ?? "",
+    segment: payload.segment,
+    session: payload.session,
+    value: payload.value ?? "",
+  });
+  onPageClick(payload);
+}
+
+export function IndexValue({ onClick, value }: { onClick?: () => void; value: string }) {
+  return (
+    <div style={rowStyles.value}>
+      {onClick ? (
+        <a
+          href="#"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onClick();
+          }}
+          style={rowStyles.valueLink}
+        >
+          {value}
+        </a>
+      ) : value}
+    </div>
   );
 }
 function isAddressValue(item: MetadataIndex): boolean {
@@ -290,6 +339,7 @@ export function MetadataRow({
   };
   const status = confirmed ? "success" : ambiguous ? "warning" : "success";
   const borderColor = status === "warning" ? "#f59e0b" : "forestgreen";
+  const onPageClick = page && code ? callbacks.onPageClick : undefined;
 
   return (
     <article
@@ -300,41 +350,16 @@ export function MetadataRow({
       style={rowStyles.row(selected, borderColor)}
     >
       <div style={rowStyles.header}>
-        <div style={rowStyles.value}>
-          {value}
-        </div>
+        <IndexValue value={value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
         <div style={rowStyles.actionGroup}>
           {callbacks.onConfirmIndex && ambiguous ? (
             <ActionButton label="Confirm index and remove ambiguity" onClick={() => onConfirm(payload)}>
               <Icon name="check" />
             </ActionButton>
           ) : null}
-          {callbacks.onPageClick && page && code ? (
-            <ActionButton
-              label={`Open page image ${page}`}
-              onClick={() => {
-                console.info("imageviewer request from metadata row", {
-                  code,
-                  page,
-                  segment,
-                  session,
-                  type,
-                });
-                imageViewerStoreApi.getState().setRequest({
-                  code,
-                  highlightOptions: { scroll: false },
-                  index: type,
-                  metadataIndex,
-                  page,
-                  quote,
-                  segment,
-                  session,
-                  value,
-                });
-                callbacks.onPageClick?.(payload);
-              }}
-            >
-              <Icon name="page" />
+          {value ? (
+            <ActionButton label={`Copy value ${value}`} onClick={() => copyIndexValue(value)}>
+              <Icon name="copy" />
             </ActionButton>
           ) : null}
           {callbacks.onDropIndex && code ? (
