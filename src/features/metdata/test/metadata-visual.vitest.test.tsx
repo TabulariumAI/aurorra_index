@@ -100,16 +100,17 @@ describe("metadata visual surface", () => {
     };
     const panelData = getPanelData(metadata);
     const onEditPage = vi.fn();
-    const onReprocessSegment = vi.fn(async () => true);
+    const onReprocess = vi.fn(async () => undefined);
 
     const { container } = render(
       <MetadataPanel
-        callbacks={{ onEditPage, onReprocessSegment }}
+        callbacks={{ onEditPage }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={onReprocess}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={{ code: "idx-1", segment: "party" }}
@@ -122,6 +123,7 @@ describe("metadata visual surface", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Pop the index" })).toHaveAttribute("data-flat", "true");
     expect(container.querySelector("[aria-label='Metadata']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Deed" })).toBeInTheDocument();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
@@ -223,11 +225,11 @@ describe("metadata visual surface", () => {
       expect(segmentTitleBox).toHaveStyle({ flex: "1 1 auto", minWidth: "0px" });
     }
     expect(screen.queryByRole("button", { name: /refresh/i })).not.toBeInTheDocument();
-    expect(onReprocessSegment).not.toHaveBeenCalled();
+    expect(onReprocess).not.toHaveBeenCalled();
     expect(onEditPage).not.toHaveBeenCalled();
 
     fireEvent.click(reprocessLink);
-    await waitFor(() => expect(onReprocessSegment).toHaveBeenCalledWith("party"));
+    await waitFor(() => expect(onReprocess).toHaveBeenCalledWith("party"));
     fireEvent.click(refineLink);
     expect(onEditPage).toHaveBeenCalledWith({
       code: "",
@@ -265,6 +267,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -361,6 +364,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -421,6 +425,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -468,6 +473,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="page"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -487,6 +493,46 @@ describe("metadata visual surface", () => {
       padding: "0.45rem 0.72rem",
     });
     expect(pageRow).not.toHaveTextContent("Quote:");
+    expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
+  });
+
+  it("renders the edit action only for page rows", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "mortgage", title: "Mortgage Deed" },
+      indexes: [{ code: "idx-party-1", label: "grantor", page: "1", page_number: "1", segment: "party", value: "Alice" }],
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", class: "text" }] },
+      secrets: [],
+    } as MetadataPayload;
+    const onEditPage = vi.fn();
+    const props = {
+      callbacks: { onEditPage },
+      confirmedCodes: new Set<string>(),
+      choices: [{ level: 1, service: "PartyClauseIndexing" }],
+      metadata,
+      onConfirm: vi.fn(),
+      onDrop: vi.fn(),
+      onReprocess: vi.fn(),
+      removedCodes: new Set<string>(),
+      selectedIndex: null,
+      segments,
+      session: "session-edit-action",
+      setSectionOpen: vi.fn(),
+      store: { error: null, status: "success" as const },
+      panelData: getPanelData(metadata),
+    };
+
+    const { rerender } = render(<MetadataPanel {...props} openSegment="page" />);
+
+    await screen.findByText("1 : Title page");
+    fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
+    expect(onEditPage).toHaveBeenCalledTimes(1);
+
+    rerender(<MetadataPanel {...props} openSegment="party" />);
+
+    await screen.findByText("Alice");
+    expect(screen.queryByRole("button", { name: "Edit index" })).not.toBeInTheDocument();
   });
 
   it("uses row-level action controls for legal actions", async () => {
@@ -515,6 +561,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="legal"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -584,6 +631,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -641,6 +689,7 @@ describe("metadata visual surface", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="legal"
         removedCodes={new Set()}
         selectedIndex={null}

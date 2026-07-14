@@ -1,4 +1,10 @@
-import type { IndexWorkerClient, IndexWorkerConfig, MetadataPayload } from "../type/metadata.types";
+import type {
+  IndexApplyResult,
+  IndexReprocessResult,
+  IndexWorkerClient,
+  IndexWorkerConfig,
+  MetadataPayload,
+} from "../type/metadata.types";
 
 type WorkerError = Error & {
   code?: string;
@@ -52,8 +58,17 @@ async function runWorker<T>(command: unknown): Promise<T> {
 export function createIndexWorkerClient(config: IndexWorkerConfig): IndexWorkerClient {
   const { apiBaseUrl } = config;
   return {
+    confirmIndex(token, session, code) {
+      return runWorker<IndexApplyResult>({ apiBaseUrl, code, session, token, type: "confirmIndex" });
+    },
+    dropIndex(token, session, code) {
+      return runWorker<IndexApplyResult>({ apiBaseUrl, code, session, token, type: "dropIndex" });
+    },
     indexData(token, session) {
       return runWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData" });
+    },
+    reprocessSegment(token, session, segment) {
+      return runWorker<IndexReprocessResult>({ apiBaseUrl, segment, session, token, type: "reprocessSegment" });
     },
   };
 }

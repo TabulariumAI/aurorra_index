@@ -24,6 +24,7 @@ function client(loadReport = vi.fn(async () => report)): IqWorkerClient {
   return {
     ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
     loadReport,
+    pollReport: vi.fn(async () => ({ status: "completed" as const, data: report, isComplete: true as const })),
     startReport: vi.fn(async () => ({ status: "completed", data: {}, isComplete: true })),
   };
 }

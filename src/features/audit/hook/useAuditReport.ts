@@ -43,12 +43,16 @@ export function useAuditReport({
 
   const loadReport = useCallback(async () => {
     auditStoreApi.getState().setLoading(session);
+    const jobId = crypto.randomUUID();
+    callbacksRef.current.onJobEvent?.({ job: "audit.load", jobId, message: "Loading audit report", phase: "started", session });
     try {
       const report = await client.loadReport(authToken ?? "", session);
+      callbacksRef.current.onJobEvent?.({ job: "audit.load", jobId, message: "Audit report loaded", phase: "completed", session });
       auditStoreApi.getState().setLoaded(session, report);
       callbacksRef.current.onAuditLoaded?.(report);
     } catch (error) {
       const workerError = normalizeError(error);
+      callbacksRef.current.onJobEvent?.({ error: workerError.error, job: "audit.load", jobId, message: "Audit report load failed", phase: "failed", session });
       auditStoreApi.getState().setError(workerError);
       callbacksRef.current.onAuditError?.(workerError);
     }

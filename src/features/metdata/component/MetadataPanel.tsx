@@ -56,8 +56,9 @@ export type MetadataPanelProps = {
   choices: IndexChoice[] | string | null;
   children?: ReactNode;
   metadata: MetadataPayload | null;
-  onConfirm: (payload: IndexActionPayload) => void;
-  onDrop: (payload: IndexActionPayload) => void;
+  onConfirm: (payload: IndexActionPayload) => Promise<void> | void;
+  onDrop: (payload: IndexActionPayload) => Promise<void> | void;
+  onReprocess: (segment: string) => Promise<void> | void;
   confirmedCodes: Set<string>;
   openSegment: string | null;
   removedCodes: Set<string>;
@@ -143,6 +144,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     metadata,
     onConfirm,
     onDrop,
+    onReprocess,
     openSegment,
     removedCodes,
     segments,
@@ -187,17 +189,16 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
       action={
         actionSegment ? (
           <div style={metadataStyles.actionGroup}>
-            {callbacks.onReprocessSegment ? (
+            {actionSegment ? (
               <SectionAction
                 onClick={async () => {
-                  const complete = await callbacks.onReprocessSegment?.(actionSegment);
-                  if (complete) callbacks.onReprocessComplete?.(actionSegment);
+                  await onReprocess(actionSegment);
                 }}
               >
                 Reprocess
               </SectionAction>
             ) : null}
-            {callbacks.onReprocessSegment && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
+            {actionSegment && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
             {callbacks.onEditPage ? (
               <SectionAction
                 onClick={() =>
@@ -339,13 +340,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                       key={`${code}-${index}`}
                     >
                       <div style={rowStyles.header}>
-                        <IndexValue value={payload.value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
-                        <div style={rowStyles.actionGroup}>
-                          {payload.value ? (
-                            <ActionButton label={`Copy value ${payload.value}`} onClick={() => copyIndexValue(payload.value)}>
-                              <Icon name="copy" />
-                            </ActionButton>
-                          ) : null}
+                        <div style={rowStyles.valueWithViewer}>
                           {String(group.type || "").trim() === "lot_block" ? (
                             <ActionButton
                               label="Open legal view"
@@ -354,6 +349,14 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                               }}
                             >
                               <Icon name="address" />
+                            </ActionButton>
+                          ) : null}
+                          <IndexValue value={payload.value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
+                        </div>
+                        <div style={rowStyles.actionGroup}>
+                          {payload.value ? (
+                            <ActionButton label={`Copy value ${payload.value}`} onClick={() => copyIndexValue(payload.value)}>
+                              <Icon name="copy" />
                             </ActionButton>
                           ) : null}
                         </div>

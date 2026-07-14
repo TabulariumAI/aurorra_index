@@ -32,7 +32,7 @@ describe("useAuditReport", () => {
 
   it("loads report on mount and calls onAuditLoaded", async () => {
     const client = createClient();
-    const callbacks = { onAuditLoaded: vi.fn() };
+    const callbacks = { onAuditLoaded: vi.fn(), onJobEvent: vi.fn() };
 
     renderHook(() =>
       useAuditReport({
@@ -49,13 +49,14 @@ describe("useAuditReport", () => {
     expect(auditStoreApi.getState().report).toEqual(report);
     expect(callbacks.onAuditLoaded).toHaveBeenCalledWith(report);
     expect(auditStoreApi.getState().status).toBe("success");
+    expect(callbacks.onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
   });
 
   it("reports errors and sets store state", async () => {
     const client = createClient();
     const error: AuditWorkerError = { code: "load_error", status: 500, error: "load failed" };
     vi.mocked(client.loadReport).mockRejectedValueOnce(error);
-    const callbacks = { onAuditError: vi.fn() };
+    const callbacks = { onAuditError: vi.fn(), onJobEvent: vi.fn() };
 
     renderHook(() =>
       useAuditReport({
@@ -71,6 +72,7 @@ describe("useAuditReport", () => {
     await waitFor(() => expect(callbacks.onAuditError).toHaveBeenCalledWith(error));
     expect(auditStoreApi.getState().error).toEqual(error);
     expect(auditStoreApi.getState().status).toBe("error");
+    expect(callbacks.onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ job: "audit.load", phase: "failed" }));
   });
 
   it("calls onAuditCanceled on unmount", async () => {

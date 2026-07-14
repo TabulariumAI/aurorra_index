@@ -62,6 +62,9 @@ imageViewerStoreApi.getState().setHostInput({
   onError(error) {
     throw new Error(error.error);
   },
+  onJobEvent(event) {
+    stage.dataset.jobEvent = `${event.job}:${event.phase}`;
+  },
   pageCount: 4,
   pageMap: new Map([["1", "page-cover"], ["2", "page-legal"], ["3", "page-reference"], ["4", "page-ack"]]),
   packagePollIntervalMs: 50,

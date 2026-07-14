@@ -1,5 +1,6 @@
 import * as Collapsible from "@radix-ui/react-collapsible";
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { ConfButton } from "aurorra-ui";
 import { useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { isAmbiguous } from "../data/metadataData";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
@@ -302,8 +303,8 @@ export function MetadataRow({
   callbacks: IndexMetadataCallbacks;
   confirmed: boolean;
   item: MetadataIndex;
-  onConfirm: (payload: IndexActionPayload) => void;
-  onDrop: (payload: IndexActionPayload) => void;
+  onConfirm: (payload: IndexActionPayload) => Promise<void> | void;
+  onDrop: (payload: IndexActionPayload) => Promise<void> | void;
   onAddressClick?: (address: string) => void;
   pageClass?: string;
   pageSegments?: string[];
@@ -350,9 +351,16 @@ export function MetadataRow({
       style={rowStyles.row(selected, borderColor)}
     >
       <div style={rowStyles.header}>
-        <IndexValue value={value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
+        <div style={rowStyles.valueWithViewer}>
+          {isAddressValue(item) && onAddressClick ? (
+            <ActionButton label={`Open address ${value}`} onClick={() => onAddressClick(value)}>
+              <Icon name="address" />
+            </ActionButton>
+          ) : null}
+          <IndexValue value={value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
+        </div>
         <div style={rowStyles.actionGroup}>
-          {callbacks.onConfirmIndex && ambiguous ? (
+          {ambiguous ? (
             <ActionButton label="Confirm index and remove ambiguity" onClick={() => onConfirm(payload)}>
               <Icon name="check" />
             </ActionButton>
@@ -362,19 +370,21 @@ export function MetadataRow({
               <Icon name="copy" />
             </ActionButton>
           ) : null}
-          {callbacks.onDropIndex && code ? (
-            <ActionButton label="Pop the index" onClick={() => onDrop(payload)}>
-              <Icon name="remove" />
-            </ActionButton>
+          {type !== "page" && code ? (
+            <ConfButton
+              aria-label="Pop the index"
+              className="metadata-row-action"
+              flat
+              label={<Icon name="remove" />}
+              onConfirm={() => onDrop(payload)}
+              showPrompt={false}
+              size="icon"
+              variant="secondary"
+            />
           ) : null}
-          {callbacks.onEditPage && code ? (
+          {type === "page" && callbacks.onEditPage && code ? (
             <ActionButton label="Edit index" onClick={() => callbacks.onEditPage?.(payload)}>
               <Icon name="edit" />
-            </ActionButton>
-          ) : null}
-          {isAddressValue(item) && onAddressClick ? (
-            <ActionButton label={`Open address ${value}`} onClick={() => onAddressClick(value)}>
-              <Icon name="address" />
             </ActionButton>
           ) : null}
         </div>

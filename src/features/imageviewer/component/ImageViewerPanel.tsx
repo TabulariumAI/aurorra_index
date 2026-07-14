@@ -1,12 +1,11 @@
 import { ProgressBar } from "aurorra-ui";
 import { useEffect, useLayoutEffect } from "react";
 import type { JSX } from "react";
-import { parsePackageUrls, toViewerError } from "../data/imageViewerData";
+import { loadImagePackage } from "../data/loadImagePackage";
 import { useImageViewer } from "../hook/useImageViewer";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import { imageViewerStyles } from "../style/imageViewerStyles";
 import type { PanelProps } from "../type/imageViewer.types";
-import { createWorkerClient } from "../worker/imageWorkerClient";
 import { ImageViewerFooterToolbar, ImageViewerTopToolbar } from "./ImageViewerToolbar";
 
 function progressLabel(status: string): string {
@@ -26,6 +25,7 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
 
   const apiGatewayUrl = useImageViewerStore((state) => state.apiGatewayUrl);
   const authToken = useImageViewerStore((state) => state.authToken);
+  const onJobEvent = useImageViewerStore((state) => state.onJobEvent);
   const searchText = useImageViewerStore((state) => state.searchText);
   const session = useImageViewerStore((state) => state.session);
   const status = useImageViewerStore((state) => state.status);
@@ -45,56 +45,17 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
       state.status === "polling" ||
       state.status === "downloading"
     ) return;
-    let canceled = false;
-    const token = authToken;
-    const activeSession = session;
-    const client = workerClient || createWorkerClient({ apiBaseUrl: apiGatewayUrl });
-
-    async function runPackageFlow() {
-      try {
-        console.info("imageviewer package start", { session: activeSession });
-        imageViewerStoreApi.getState().setStatus("packaging");
-        await client.packageImage(token, activeSession);
-        console.info("imageviewer package requested", { session: activeSession });
-        let current = await client.imageStatus(token, activeSession);
-        console.info("imageviewer package status", { session: activeSession, status: current.status });
-        while (!canceled && (current.status === "pending" || current.status === "processing")) {
-          imageViewerStoreApi.getState().setStatus("polling");
-          imageViewerStoreApi.getState().setPackageStatus(current.status);
-          await new Promise((resolve) => setTimeout(resolve, imageViewerStoreApi.getState().packagePollIntervalMs));
-          current = await client.imageStatus(token, activeSession);
-          console.info("imageviewer package status", { session: activeSession, status: current.status });
-        }
-        if (canceled) return;
-        imageViewerStoreApi.getState().setPackageStatus(current.status === "completed" ? "completed" : "error");
-        if (current.status !== "completed") {
-          console.info("imageviewer package error", { session: activeSession, status: current.status });
-          imageViewerStoreApi.getState().setError({ code: "image_package_error", details: current, error: current.data });
-          return;
-        }
-        imageViewerStoreApi.getState().setStatus("downloading");
-        const data = await client.imageData(token, activeSession);
-        const urls = parsePackageUrls(data.data);
-        console.info("imageviewer package download", { session: activeSession });
-        const localPackage = await client.downloadPackage(token, urls);
-        console.info("imageviewer package downloaded", {
-          metadataPages: localPackage.packageMetadata.pages.length,
-          session: activeSession,
-          tiffBytes: localPackage.tiffBytes.byteLength,
-          tiffType: localPackage.tiffType,
-        });
-        if (!canceled) imageViewerStoreApi.getState().setLocalPackage(localPackage);
-      } catch (packageError) {
-        console.info("imageviewer package error", { session: activeSession });
-        if (!canceled) imageViewerStoreApi.getState().setError(toViewerError(packageError, "image package request failed."));
-      }
-    }
-
-    void runPackageFlow();
-    return () => {
-      canceled = true;
-    };
-  }, [apiGatewayUrl, authToken, session, viewer.isRestoredSession, viewer.isRestoring, workerClient]);
+    if (!state.onError || !onJobEvent) return;
+    void loadImagePackage({
+      apiGatewayUrl,
+      authToken,
+      onError: state.onError,
+      onJobEvent,
+      packagePollIntervalMs: state.packagePollIntervalMs,
+      session,
+      workerClient: workerClient ?? undefined,
+    });
+  }, [apiGatewayUrl, authToken, onJobEvent, session, viewer.isRestoredSession, viewer.isRestoring, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
   const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage";

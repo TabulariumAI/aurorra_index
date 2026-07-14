@@ -74,22 +74,23 @@ describe("IndexContainer", () => {
   it("fetches metadata, renders visible sections, and emits callbacks", async () => {
     const onMetadataLoaded = vi.fn();
     const onPageClick = vi.fn();
-    const onConfirmIndex = vi.fn(async () => true);
-    const onDropIndex = vi.fn(async () => true);
+    const onActionComplete = vi.fn();
+    const onEditPage = vi.fn();
     const onView = vi.fn();
     const onViewStarted = vi.fn();
-    let resolveMetadata!: (value: MetadataPayload) => void;
+    const onJobEvent = vi.fn();
     const workerClient = {
-      indexData: vi.fn(() => new Promise<MetadataPayload>((resolve) => {
-        resolveMetadata = resolve;
-      })),
+      confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+      dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+      indexData: vi.fn(async () => metadata),
+      reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
 
     const view = render(
       <IndexContainer
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
-        callbacks={{ onConfirmIndex, onDropIndex, onMetadataLoaded, onPageClick, onView, onViewStarted }}
+        callbacks={{ onActionComplete, onEditPage, onJobEvent, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
         segments={segments}
@@ -112,7 +113,6 @@ describe("IndexContainer", () => {
     }
 
     expect(screen.getByRole("progressbar", { name: "Metadata progress" })).toBeInTheDocument();
-    resolveMetadata(metadata);
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     await waitFor(() => expect(screen.queryByRole("progressbar", { name: "Metadata progress" })).not.toBeInTheDocument());
     expect(onViewStarted).toHaveBeenCalledTimes(1);
@@ -126,14 +126,54 @@ describe("IndexContainer", () => {
     }
 
     fireEvent.click(screen.getByLabelText("Confirm index and remove ambiguity"));
-    await waitFor(() => expect(onConfirmIndex).toHaveBeenCalled());
+    await waitFor(() => expect(workerClient.confirmIndex).toHaveBeenCalledWith("token", "session-1", "idx-1"));
+    expect(onActionComplete).toHaveBeenCalledWith({ action: "confirm", code: "idx-1", session: "session-1" });
 
     fireEvent.click(screen.getByRole("link", { name: "Alice" }));
     expect(onPageClick).toHaveBeenCalled();
     expect(screen.queryByLabelText("Open page image 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit index" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByLabelText("Pop the index"));
-    await waitFor(() => expect(onDropIndex).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: /Pages/i }));
+    const editButton = await screen.findByRole("button", { name: "Edit index" });
+    expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
+    fireEvent.click(editButton);
+    expect(onEditPage).toHaveBeenCalledTimes(1);
+    expect(onEditPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: "page-1",
+        segment: "page",
+        session: "session-1",
+        type: "page",
+      }),
+    );
+
+    expect(workerClient.confirmIndex).toHaveBeenCalledTimes(1);
+    expect(workerClient.dropIndex).toHaveBeenCalledTimes(0);
+    expect(workerClient.reprocessSegment).toHaveBeenCalledTimes(0);
+
+    fireEvent.click(screen.getByRole("button", { name: /Parties\(Party Clause\)/i }));
+    fireEvent.click(await screen.findByRole("link", { name: "Reprocess" }));
+    await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
+    expect(onJobEvent).toHaveBeenCalledWith({
+      job: "metadata.reprocess",
+      jobId: expect.any(String),
+      message: "Reprocessing segment",
+      phase: "started",
+      session: "session-1",
+    });
+    expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
+
+    const dropButton = screen.getByLabelText("Pop the index");
+    expect(dropButton).not.toHaveAttribute("title");
+    fireEvent.click(dropButton);
+    expect(dropButton).toHaveAttribute("data-armed", "true");
+    expect(screen.queryByText("Click again to confirm")).not.toBeInTheDocument();
+    expect(workerClient.dropIndex).not.toHaveBeenCalled();
+
+    fireEvent.click(dropButton);
+    await waitFor(() => expect(workerClient.dropIndex).toHaveBeenCalledWith("token", "session-1", "idx-1"));
+    expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" });
     await waitFor(() => expect(screen.queryByText("Alice")).not.toBeInTheDocument());
   });
 
@@ -150,7 +190,12 @@ describe("IndexContainer", () => {
         deferredState={createDeferredState()}
         segments={segments}
         session="session-1"
-        workerClient={{ indexData: vi.fn(async () => { throw new Error("broken"); }) }}
+        workerClient={{
+          confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+          dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+          indexData: vi.fn(async () => { throw new Error("broken"); }),
+          reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+        }}
       />,
     );
 
@@ -171,7 +216,12 @@ describe("IndexContainer", () => {
 
   it("emits view canceled on unmount", () => {
     const onViewCanceled = vi.fn();
-    const workerClient = { indexData: vi.fn(async () => metadata) };
+    const workerClient = {
+      confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+      dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+      indexData: vi.fn(async () => metadata),
+      reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+    };
     const view = render(
       <IndexContainer
         authToken="token"

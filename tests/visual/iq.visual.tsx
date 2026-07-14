@@ -33,6 +33,9 @@ const workerClient: IqWorkerClient = {
   async loadReport() {
     return report;
   },
+  async pollReport() {
+    return { status: "completed", data: report, isComplete: true };
+  },
   async startReport() {
     return { status: "completed", data: {}, isComplete: true };
   },

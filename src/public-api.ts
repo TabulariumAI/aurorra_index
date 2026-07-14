@@ -36,6 +36,12 @@ export { AddressMapContent } from "./features/addressmap";
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
 export { createIndexWorkerClient } from "./features/metdata/worker/indexWorkerClient";
 export {
+  PageSegmentsPanel,
+  createPageSegmentsWorkerClient,
+  pageSegmentsStoreApi,
+  usePageSegmentsStore,
+} from "./features/pagesegments";
+export {
   AuditPanel,
   auditStoreApi,
   createAuditWorkerClient,
@@ -46,6 +52,7 @@ export {
 } from "./features/audit";
 export {
   IqPanel,
+  loadIqReport,
   useIqReport,
   createIqWorkerClient,
   iqStoreApi,
@@ -74,6 +81,7 @@ export type {
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";
+export type { JobEvent, JobEventCallback, JobName } from "./features/job/type/job.types";
 export type {
   IndexMetadataProps,
   IndexActionPayload,
@@ -82,12 +90,14 @@ export type {
   IndexMetadataCallbacks,
   IndexSegmentValues,
   IndexSelected,
+  IndexApplyResult,
   IndexStoreState,
   IndexWorkerClient,
   IndexWorkerCommand,
   IndexWorkerConfig,
   IndexWorkerError,
   IndexWorkerResult,
+  IndexReprocessResult,
   LegalElement,
   LegalGroup,
   LegalPayload,
@@ -105,7 +115,19 @@ export type {
   MetadataJSONParts,
   MetadataStatus,
   MetadataPanelData,
+  MetadataAction,
+  MetadataActionFailure,
 } from "./features/metdata/type/metadata.types";
+export type {
+  PageSegmentsComplete,
+  PageSegmentsFailure,
+  PageSegmentsPanelProps,
+  PageSegmentsWorkerClient,
+  PageSegmentsWorkerCommand,
+  PageSegmentsWorkerConfig,
+  PageSegmentsWorkerError,
+  PageSegmentsWorkerResult,
+} from "./features/pagesegments";
 export type {
   IqAckResult,
   IqBucket,
@@ -115,6 +137,7 @@ export type {
   IqGateStatus,
   IqGateView,
   IqPanelProps,
+  IqPollResult,
   IqReport,
   IqReportView,
   IqSegment,
@@ -128,6 +151,7 @@ export type {
   IqWorkerConfig,
   IqWorkerError,
   IqWorkerResult,
+  LoadIqInput,
 } from "./features/iq";
 export type {
   AuditCallbacks,

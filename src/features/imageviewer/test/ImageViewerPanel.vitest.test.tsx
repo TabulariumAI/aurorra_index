@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ViewerState } from "@tabulariumai/aurora-lens";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 let viewerPageCount = 2;
@@ -54,10 +54,6 @@ const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: stri
 const previewAction = <button type="button">Close preview</button>;
 
 describe("ImageViewerPanel", () => {
-  beforeEach(() => {
-    vi.spyOn(console, "info").mockImplementation(() => undefined);
-  });
-
   afterEach(() => {
     imageViewerStoreApi.getState().resetViewer();
     viewerPageCount = 2;
@@ -68,6 +64,7 @@ describe("ImageViewerPanel", () => {
 
   it("shows package progress and completes package flow", async () => {
     const onError = vi.fn();
+    const onJobEvent = vi.fn();
     const workerClient = {
       packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
       imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
@@ -81,6 +78,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
+      onJobEvent,
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -101,16 +99,16 @@ describe("ImageViewerPanel", () => {
       jsonUrl: directPackage.data,
       tiffUrl: directPackage.tiff,
     });
-    expect(console.info).toHaveBeenCalledWith("imageviewer package start", { session: "session-1" });
-    expect(console.info).toHaveBeenCalledWith("imageviewer package requested", { session: "session-1" });
-    expect(console.info).toHaveBeenCalledWith("imageviewer package status", { session: "session-1", status: "completed" });
-    expect(console.info).toHaveBeenCalledWith("imageviewer package download", { session: "session-1" });
-    expect(console.info).toHaveBeenCalledWith("imageviewer package downloaded", {
-      metadataPages: 0,
-      session: "session-1",
-      tiffBytes: 4,
-      tiffType: "image/tiff",
-    });
+    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
+      "image.package:started",
+      "image.package:completed",
+      "image.status:started",
+      "image.status:completed",
+      "image.data:started",
+      "image.data:completed",
+      "image.download:started",
+      "image.download:completed",
+    ]);
     expect(onError).not.toHaveBeenCalled();
     expect(screen.queryByText(/add|remove|reorder|export|draw/i)).not.toBeInTheDocument();
   });
@@ -129,6 +127,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -163,6 +162,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -192,6 +192,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -220,6 +221,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -256,6 +258,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -288,6 +291,7 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,

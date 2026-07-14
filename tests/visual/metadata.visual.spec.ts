@@ -12,6 +12,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   const quoteButton = page.getByRole("button", { name: "Expand quote" });
   const reprocessLink = page.getByRole("link", { name: "Reprocess" });
   const refineLink = page.getByRole("link", { name: "Refine or Chat" });
+  const dropButton = row.getByRole("button", { name: "Pop the index" });
 
   await expect(header).toHaveCSS("position", "sticky");
   await expect(header).toHaveCSS("top", "0px");
@@ -27,6 +28,16 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(refineLink).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(refineLink).toHaveCSS("box-shadow", "none");
   await expect(refineLink).toHaveCSS("text-decoration-line", "underline");
+  await expect(dropButton).toBeVisible();
+  await dropButton.hover();
+  await page.waitForTimeout(350);
+  await expect(dropButton).toHaveCSS("color", "rgb(17, 24, 39)");
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await dropButton.click();
+  await expect(dropButton).toHaveAttribute("data-armed", "true");
+  await expect(dropButton).toHaveCSS("width", "32px");
+  await expect(dropButton).toHaveCSS("height", "32px");
+  await expect(page.locator("[data-radix-popper-content-wrapper]")).toHaveCount(0);
   await expect(explanation).toBeVisible();
   await expect(expandButton).toHaveAttribute("aria-expanded", "false");
   await expect(expandButton).toHaveText("[+]");

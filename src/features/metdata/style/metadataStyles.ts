@@ -321,6 +321,13 @@ export const rowStyles = {
     textDecoration: "underline",
     textUnderlineOffset: "0.12em",
   },
+  valueWithViewer: {
+    alignItems: "flex-start",
+    display: "flex",
+    flex: "1 1 auto",
+    gap: "0.35rem",
+    minWidth: 0,
+  },
 } satisfies Record<string, CSSProperties | ((...args: never[]) => CSSProperties)>;
 
 export const segmentStyles = {

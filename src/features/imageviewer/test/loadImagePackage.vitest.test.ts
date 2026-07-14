@@ -10,6 +10,7 @@ describe("loadImagePackage", () => {
   });
 
   it("loads and stores an image package without rendering the viewer", async () => {
+    const onJobEvent = vi.fn();
     const workerClient = {
       packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
       imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
@@ -31,6 +32,7 @@ describe("loadImagePackage", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent,
       session: "session-1",
       workerClient,
     });
@@ -52,6 +54,16 @@ describe("loadImagePackage", () => {
       tiffType: "image/tiff",
     });
     expect(imageViewerStoreApi.getState().tiffBytes?.byteLength).toBe(4);
+    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
+      "image.package:started",
+      "image.package:completed",
+      "image.status:started",
+      "image.status:completed",
+      "image.data:started",
+      "image.data:completed",
+      "image.download:started",
+      "image.download:completed",
+    ]);
   });
 
   it("does not restart same-session loaded package", async () => {
@@ -75,6 +87,7 @@ describe("loadImagePackage", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       session: "session-1",
       workerClient,
     };
@@ -98,6 +111,7 @@ describe("loadImagePackage", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       request: null,
@@ -130,6 +144,7 @@ describe("loadImagePackage", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
+      onJobEvent: vi.fn(),
       session: "session-1",
       workerClient,
     });
@@ -153,6 +168,7 @@ describe("loadImagePackage", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
+      onJobEvent: vi.fn(),
       session: "session-1",
       workerClient,
     });

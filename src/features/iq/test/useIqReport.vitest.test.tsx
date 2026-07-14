@@ -16,6 +16,7 @@ function createClient(): IqWorkerClient {
   return {
     ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
     loadReport: vi.fn(async () => report),
+    pollReport: vi.fn(async () => ({ status: "completed" as const, data: report, isComplete: true as const })),
     startReport: vi.fn(async () => ({ status: "completed", data: {}, isComplete: true })),
   };
 }
@@ -29,21 +30,23 @@ describe("useIqReport", () => {
 
   it("loads report on mount and calls onIqLoaded", async () => {
     const client = createClient();
-    const callbacks = { onIqLoaded: vi.fn() };
+    const callbacks = { onIqLoaded: vi.fn(), onJobEvent: vi.fn() };
 
     renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, previewAction, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1"));
     expect(iqStoreApi.getState().report).toEqual(report);
     expect(callbacks.onIqLoaded).toHaveBeenCalledWith(report);
+    expect(callbacks.onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
   });
 
   it("refreshes and starts reports", async () => {
     const client = createClient();
-    const callbacks = { onIqRefresh: vi.fn(), onIqStarted: vi.fn() };
+    const callbacks = { onIqRefresh: vi.fn(), onIqStarted: vi.fn(), onJobEvent: vi.fn() };
     const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, previewAction, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(client.loadReport).toHaveBeenCalledTimes(1));
+    callbacks.onJobEvent.mockClear();
     await act(async () => {
       await result.current.loadReport(true);
       await result.current.startReport();
@@ -51,14 +54,21 @@ describe("useIqReport", () => {
 
     expect(callbacks.onIqRefresh).toHaveBeenCalledWith(report);
     expect(callbacks.onIqStarted).toHaveBeenCalledWith({ status: "completed", data: {}, isComplete: true });
+    expect(callbacks.onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
+      "iq.load:started",
+      "iq.load:completed",
+      "iq.start:started",
+      "iq.start:completed",
+    ]);
   });
 
   it("acks a gate, removes it from store, and calls onIqAck", async () => {
     const client = createClient();
-    const callbacks = { onIqAck: vi.fn() };
+    const callbacks = { onIqAck: vi.fn(), onJobEvent: vi.fn() };
     const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, previewAction, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(iqStoreApi.getState().report).toEqual(report));
+    callbacks.onJobEvent.mockClear();
     await act(async () => {
       await result.current.ackGate("gate-1");
     });
@@ -66,15 +76,17 @@ describe("useIqReport", () => {
     expect(client.ackGate).toHaveBeenCalledWith("token", "session-1", "gate-1");
     expect(iqStoreApi.getState().report?.gates).toEqual([]);
     expect(callbacks.onIqAck).toHaveBeenCalledWith("gate-1");
+    expect(callbacks.onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
   });
 
   it("reports errors and cancel", async () => {
     const client = createClient();
     vi.mocked(client.loadReport).mockRejectedValueOnce(Object.assign(new Error("load failed"), { code: "load_error", status: 500 }));
-    const callbacks = { onIqError: vi.fn(), onIqCanceled: vi.fn() };
+    const callbacks = { onIqError: vi.fn(), onIqCanceled: vi.fn(), onJobEvent: vi.fn() };
     const { unmount } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, previewAction, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(callbacks.onIqError).toHaveBeenCalledWith({ code: "load_error", details: undefined, error: "load failed", status: 500 }));
+    expect(callbacks.onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ job: "iq.load", phase: "failed" }));
     unmount();
     expect(callbacks.onIqCanceled).toHaveBeenCalledTimes(1);
   });

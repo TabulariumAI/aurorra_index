@@ -8,6 +8,7 @@ test("address map row forwards address through callback", async ({ page }) => {
 
   const openButton = page.getByRole("button", { name: `Open address ${expectedAddress}` });
   await expect(openButton).toBeVisible();
+  expect(await openButton.evaluate((button) => button.parentElement?.firstElementChild === button)).toBe(true);
   await openButton.click();
 
   const callbackSource = page.getByTestId("address-map-callback-source");

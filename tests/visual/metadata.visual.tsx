@@ -91,7 +91,7 @@ stage.innerHTML = "";
 
 createRoot(stage).render(
     <MetadataPanel
-      callbacks={{ onEditPage: noOp, onReprocessSegment: () => true }}
+      callbacks={{ onEditPage: noOp }}
       choices={[{ level: 1, service: "PartyClauseIndexing" }]}
       confirmedCodes={new Set()}
       metadata={activeMetadata}

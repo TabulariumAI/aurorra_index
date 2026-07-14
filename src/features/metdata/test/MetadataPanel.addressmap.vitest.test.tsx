@@ -58,6 +58,7 @@ function PanelHarness(): JSX.Element {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="property"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -77,6 +78,9 @@ describe("MetadataPanel address map integration", () => {
     render(<PanelHarness />);
 
     const openButton = await screen.findByRole("button", { name: "Open address 123 Main Street, Austin, TX 78701" });
+    const value = screen.getByText("123 Main Street, Austin, TX 78701");
+    expect(openButton.parentElement?.firstElementChild).toBe(openButton);
+    expect(openButton.parentElement?.lastElementChild).toBe(value);
     fireEvent.click(openButton);
 
     await waitFor(() => expect(screen.getByTestId("address-clicked").textContent).toBe("123 Main Street, Austin, TX 78701"));

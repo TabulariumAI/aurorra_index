@@ -58,6 +58,9 @@ export function createIqWorkerClient(config: IqWorkerConfig): IqWorkerClient {
     loadReport(token, session) {
       return runWorker({ apiBaseUrl, session, token, type: "iqData" });
     },
+    pollReport(token, session) {
+      return runWorker({ apiBaseUrl, session, token, type: "iqPoll" });
+    },
     startReport(token, session) {
       return runWorker({ apiBaseUrl, session, token, type: "iqStart" });
     },

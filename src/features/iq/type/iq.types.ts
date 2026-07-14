@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { JobEventCallback } from "../../job/type/job.types";
 
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
 export type IqUiStatus = "success" | "fail" | "warning" | "info";
@@ -78,6 +79,7 @@ export type IqWorkerResult<T> = { ok: true; data: T } | ({ ok: false } & IqWorke
 
 export type IqWorkerCommand =
   | { apiBaseUrl: string; session: string; token: string; type: "iqData" }
+  | { apiBaseUrl: string; session: string; token: string; type: "iqPoll" }
   | { apiBaseUrl: string; session: string; token: string; type: "iqStart" }
   | { apiBaseUrl: string; session: string; code: string; token: string; type: "iqAck" };
 
@@ -91,6 +93,10 @@ export type IqStartResult = {
   status: string;
 };
 
+export type IqPollResult =
+  | { data: null; isComplete: false; status: "pending" | "processing" }
+  | { data: IqReport; isComplete: true; status: "completed" };
+
 export type IqAckResult = {
   data: unknown;
   isComplete: true;
@@ -100,7 +106,18 @@ export type IqAckResult = {
 export type IqWorkerClient = {
   ackGate(token: string, session: string, code: string): Promise<IqAckResult>;
   loadReport(token: string, session: string): Promise<IqReport>;
+  pollReport(token: string, session: string): Promise<IqPollResult>;
   startReport(token: string, session: string): Promise<IqStartResult>;
+};
+
+export type LoadIqInput = {
+  apiGatewayUrl: string;
+  authToken: string;
+  onError(error: IqWorkerError): void;
+  onJobEvent: JobEventCallback;
+  pollIntervalMs?: number;
+  session: string;
+  workerClient?: IqWorkerClient;
 };
 
 export type IqCallbacks = {
@@ -110,6 +127,7 @@ export type IqCallbacks = {
   onIqLoaded?: (report: IqReport) => void;
   onIqRefresh?: (report: IqReport) => void;
   onIqStarted?: (result: IqStartResult) => void;
+  onJobEvent?: JobEventCallback;
 };
 
 export type IqPanelProps = {

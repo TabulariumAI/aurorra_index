@@ -1,4 +1,4 @@
-import type { IqAckResult, IqReport, IqStartResult, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
+import type { IqAckResult, IqPollResult, IqReport, IqStartResult, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
 
 type ParsedResponse = {
   contentType: string;
@@ -29,6 +29,24 @@ function reportFromPayload(payload: unknown): IqWorkerResult<IqReport> {
     }
   }
   return validateReport(payload);
+}
+
+function pollFromPayload(payload: unknown): IqWorkerResult<IqPollResult> {
+  if (!isObject(payload)) {
+    return { ok: false, code: "validation_error", error: "Response is not a valid IQ status." };
+  }
+  if (payload.status === "error") {
+    return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
+  }
+  if (payload.status === "pending" || payload.status === "processing") {
+    return { ok: true, data: { data: null, isComplete: false, status: payload.status } };
+  }
+  if (payload.status !== "completed") {
+    return { ok: false, code: "validation_error", error: "Response is not a valid IQ status." };
+  }
+  const report = reportFromPayload(payload);
+  if (!report.ok) return report;
+  return { ok: true, data: { data: report.data, isComplete: true, status: "completed" } };
 }
 
 function startFromPayload(payload: unknown): IqStartResult {
@@ -101,7 +119,7 @@ export class IqWorker {
     return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data` };
   }
 
-  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqReport | IqStartResult | IqAckResult>> {
+  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqReport | IqPollResult | IqStartResult | IqAckResult>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }
@@ -114,7 +132,7 @@ export class IqWorker {
     if (command.type === "iqAck" && (typeof command.code !== "string" || !command.code.trim())) {
       return { ok: false, code: "invalid_gate_code", error: "Gate code is missing or invalid." };
     }
-    if (command.type !== "iqData" && command.type !== "iqStart" && command.type !== "iqAck") {
+    if (command.type !== "iqData" && command.type !== "iqPoll" && command.type !== "iqStart" && command.type !== "iqAck") {
       return { ok: false, code: "invalid_command", error: "Unknown IQ worker command." };
     }
 
@@ -137,6 +155,7 @@ export class IqWorker {
     if (!response.ok) return httpError(parsed.data);
     if (command.type === "iqStart") return { ok: true, data: startFromPayload(parsed.data.payload) };
     if (command.type === "iqAck") return { ok: true, data: ackFromPayload(parsed.data.payload) };
+    if (command.type === "iqPoll") return pollFromPayload(parsed.data.payload);
     return reportFromPayload(parsed.data.payload);
   }
 }

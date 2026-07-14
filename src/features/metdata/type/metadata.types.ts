@@ -1,5 +1,6 @@
 import type { MetadataIndex as LensMetadataIndex } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
+import type { JobEventCallback } from "../../job/type/job.types";
 
 export type IndexSegmentValues = {
   TITLE: string;
@@ -179,19 +180,28 @@ export type IndexActionPayload = {
   value?: string;
 };
 
+export type MetadataAction =
+  | { action: "reprocess"; segment: string; session: string }
+  | { action: "confirm"; code: string; session: string }
+  | { action: "drop"; code: string; session: string };
+
+export type MetadataActionFailure = {
+  action: MetadataAction;
+  error: IndexWorkerError;
+};
+
 export type IndexMetadataCallbacks = {
   onAddressClick?: (address: string) => void;
-  onConfirmIndex?: (payload: IndexActionPayload) => boolean | Promise<boolean>;
-  onDropIndex?: (payload: IndexActionPayload) => boolean | Promise<boolean>;
+  onActionComplete?: (event: MetadataAction) => void;
+  onActionError?: (event: MetadataActionFailure) => void;
   onEditPage?: (payload: IndexActionPayload) => void;
   onIndexFocus?: (selected: IndexSelected | null) => void;
+  onJobEvent?: JobEventCallback;
   onLegalView?: (payload: IndexActionPayload) => void;
   onMetadataError?: (error: IndexWorkerError) => void;
   onMetadataLoaded?: (metadata: MetadataPayload) => void;
   onPageClick?: (payload: IndexActionPayload) => void;
   onRefresh?: (metadata: MetadataPayload) => void;
-  onReprocessComplete?: (segment: string) => void;
-  onReprocessSegment?: (segment: string) => boolean | Promise<boolean>;
   onSegmentExpand?: (segment: string) => void;
   onView?: (metadata: MetadataPayload) => void;
   onViewCanceled?: () => void;
@@ -210,15 +220,32 @@ export type IndexWorkerResult<T> =
   | { ok: true; data: T }
   | ({ ok: false } & IndexWorkerError);
 
-export type IndexWorkerCommand = {
+export type IndexApplyResult = {
+  applied: true;
+  patches: number;
+};
+
+export type IndexReprocessResult = {
+  data: string;
+  status: "completed";
+};
+
+export type IndexWorkerCommand = ({
   apiBaseUrl: string;
   session: string;
   token: string;
-  type: "indexData";
-};
+} & (
+  | { type: "indexData" }
+  | { segment: string; type: "reprocessSegment" }
+  | { code: string; type: "confirmIndex" }
+  | { code: string; type: "dropIndex" }
+));
 
 export type IndexWorkerClient = {
+  confirmIndex(token: string, session: string, code: string): Promise<IndexApplyResult>;
+  dropIndex(token: string, session: string, code: string): Promise<IndexApplyResult>;
   indexData(token: string, session: string): Promise<MetadataPayload>;
+  reprocessSegment(token: string, session: string, segment: string): Promise<IndexReprocessResult>;
 };
 
 export type IndexWorkerConfig = {

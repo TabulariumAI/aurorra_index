@@ -7,6 +7,7 @@ import {
   getPanelData,
   getSegmentItems,
   isAmbiguous,
+  replaceMetadataPageSegments,
   splitMetadataJSON,
 } from "../../metdata/data/metadataData";
 import type { MetadataJSONParts, MetadataPayload } from "../../metdata/type/metadata.types";
@@ -178,5 +179,41 @@ describe("metadata data normalization", () => {
       parcel_id: "PID-1",
       parcel_reference: "REF-1",
     });
+  });
+
+  it("replaces page segments for recordable and nonrecordable pages without changing unrelated metadata", () => {
+    const parts = splitMetadataJSON({
+      heading: { title: "Instrument" },
+      indexes: [{ code: "idx-1", value: "Alice" }],
+      pages: {
+        nonrecordables: [{ code: "page-b", name: "2", segments: ["exhibit"] }],
+        num_of_pages: 2,
+        recordables: [{ code: "page-a", name: "1", segments: ["recital"] }],
+      },
+      secrets: [],
+    } as MetadataPayload);
+
+    const recordable = replaceMetadataPageSegments(parts, "page-a", ["party_clause"]);
+    expect(recordable.pagesJSON.pages?.recordables?.[0].segments).toEqual(["party_clause"]);
+    expect(recordable.pagesJSON.pages?.nonrecordables).toBe(parts.pagesJSON.pages?.nonrecordables);
+    expect(recordable.indexJSON).toBe(parts.indexJSON);
+
+    const nonrecordable = replaceMetadataPageSegments(parts, "page-b", ["confidential"]);
+    expect(nonrecordable.pagesJSON.pages?.recordables).toBe(parts.pagesJSON.pages?.recordables);
+    expect(nonrecordable.pagesJSON.pages?.nonrecordables?.[0].segments).toEqual(["confidential"]);
+  });
+
+  it("does not add an absent page collection while replacing segments", () => {
+    const parts = splitMetadataJSON({
+      pages: {
+        num_of_pages: 1,
+        recordables: [{ code: "page-a", name: "1", segments: ["recital"] }],
+      },
+    } as MetadataPayload);
+
+    const updated = replaceMetadataPageSegments(parts, "page-a", ["exhibit"]);
+
+    expect(updated.pagesJSON.pages?.recordables?.[0].segments).toEqual(["exhibit"]);
+    expect(updated.pagesJSON.pages).not.toHaveProperty("nonrecordables");
   });
 });

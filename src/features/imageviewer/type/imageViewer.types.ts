@@ -1,6 +1,7 @@
 import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
 import type { IndexSelected } from "../../metdata/type/metadata.types";
+import type { JobEventCallback } from "../../job/type/job.types";
 
 export type PageRequest = {
   code: string;
@@ -34,6 +35,7 @@ export type HostInput = {
   apiGatewayUrl: string;
   authToken: string;
   onError: (error: ViewerError) => void;
+  onJobEvent: JobEventCallback;
   pageCount: number;
   pageMap: ReadonlyMap<string, string>;
   packagePollIntervalMs?: number;
@@ -98,6 +100,7 @@ export type LoadPackageInput = {
   apiGatewayUrl: string;
   authToken: string;
   onError: (error: ViewerError) => void;
+  onJobEvent: JobEventCallback;
   packagePollIntervalMs?: number;
   session: string;
   workerClient?: WorkerClient;
@@ -108,6 +111,7 @@ export type StoreState = {
   authToken: string | null;
   error: ViewerError | null;
   onError: ((error: ViewerError) => void) | null;
+  onJobEvent: JobEventCallback | null;
   pageCount: number;
   pageMap: ReadonlyMap<string, string>;
   packageMetadata: PackageMetadata | null;

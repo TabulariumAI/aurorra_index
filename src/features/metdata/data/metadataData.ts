@@ -3,6 +3,7 @@ import type {
   MetadataIndex,
   MetadataIndexJSON,
   MetadataJSONParts,
+  MetadataPage,
   MetadataPanelData,
   MetadataPayload,
   MetadataChainJSON,
@@ -176,5 +177,37 @@ export function getPanelData(data: MetadataPayload): MetadataPanelData {
     references: getSegmentItems(source.indexes, [indexSegments.REFERENCE]),
     transactions: getSegmentItems(source.indexes, [indexSegments.TRANSACTION]),
     vitals: getSegmentItems(source.indexes, [indexSegments.VITAL]),
+  };
+}
+
+function replacePageListSegments(pages: MetadataPage[] | undefined, pageCode: string, segments: string[]): MetadataPage[] | null {
+  if (!pages?.some((page) => String(page.code ?? "") === pageCode)) return null;
+  return pages.map((page) => (
+    String(page.code ?? "") === pageCode ? { ...page, segments } : page
+  ));
+}
+
+export function replaceMetadataPageSegments(parts: MetadataJSONParts, pageCode: string, segments: string[]): MetadataJSONParts {
+  const code = String(pageCode ?? "").trim();
+  if (!code) {
+    throw new Error("Page code is required.");
+  }
+
+  const normalizedSegments = segments.map((segment) => String(segment));
+  const pages = parts.pagesJSON?.pages;
+  const recordables = replacePageListSegments(pages?.recordables, code, normalizedSegments);
+  const nonrecordables = recordables ? null : replacePageListSegments(pages?.nonrecordables, code, normalizedSegments);
+  if (!recordables && !nonrecordables) throw new Error("Page was not found in metadata cache.");
+
+  return {
+    ...parts,
+    pagesJSON: {
+      ...parts.pagesJSON,
+      pages: {
+        ...pages,
+        ...(recordables ? { recordables } : {}),
+        ...(nonrecordables ? { nonrecordables } : {}),
+      },
+    },
   };
 }

@@ -21,6 +21,7 @@ describe("IqWorker", () => {
   it("builds data, start, and ack routes", () => {
     const worker = new IqWorker();
     expect(worker.buildRequest({ apiBaseUrl: "https://doc.example.com/", session: "session-1", token: "token", type: "iqData" }).url).toBe("https://doc.example.com/v1/iq/session-1/data");
+    expect(worker.buildRequest({ apiBaseUrl: "https://doc.example.com/", session: "session-1", token: "token", type: "iqPoll" }).url).toBe("https://doc.example.com/v1/iq/session-1/data");
     expect(worker.buildRequest({ apiBaseUrl: "https://doc.example.com/", session: "session-1", token: "token", type: "iqStart" }).url).toBe("https://doc.example.com/v1/iq/session-1/start");
     expect(worker.buildRequest({ apiBaseUrl: "https://doc.example.com/", code: "gate-abc", session: "session-1", token: "token", type: "iqAck" }).url).toBe("https://doc.example.com/v1/iq/session-1/gates/gate-abc/ack");
     expect(worker.buildRequest({ apiBaseUrl: "https://doc.example.com", code: "gate abc", session: "session 1", token: "token", type: "iqAck" }).url).toBe("https://doc.example.com/v1/iq/session%201/gates/gate%20abc/ack");
@@ -91,6 +92,32 @@ describe("IqWorker", () => {
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData" })).toEqual({
       ok: true,
       data: { iq_doc: 97, decision: "Pass", gates: [], segments: [], explanation: [] },
+    });
+  });
+
+  it("parses IQ polling states and completed report data", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ status: "pending", data: "" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqPoll" })).toEqual({
+      ok: true,
+      data: { status: "pending", data: null, isComplete: false },
+    });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ status: "processing", data: "" }));
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqPoll" })).toEqual({
+      ok: true,
+      data: { status: "processing", data: null, isComplete: false },
+    });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ status: "completed", data: "{\"iq_doc\":97,\"decision\":\"Pass\",\"gates\":[],\"segments\":[],\"explanation\":[]}" }));
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqPoll" })).toEqual({
+      ok: true,
+      data: {
+        status: "completed",
+        data: { iq_doc: 97, decision: "Pass", gates: [], segments: [], explanation: [] },
+        isComplete: true,
+      },
     });
   });
 });

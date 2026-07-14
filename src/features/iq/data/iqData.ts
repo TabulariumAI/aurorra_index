@@ -1,4 +1,18 @@
-import type { IqBucket, IqDecision, IqGate, IqGateStatus, IqReport, IqReportView, IqSegment, IqUiStatus } from "../type/iq.types";
+import type { IqBucket, IqDecision, IqGate, IqGateStatus, IqReport, IqReportView, IqSegment, IqUiStatus, IqWorkerError } from "../type/iq.types";
+
+export function toIqError(error: unknown): IqWorkerError {
+  const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
+  return {
+    code: typeof candidate?.code === "string" ? candidate.code : undefined,
+    details: candidate?.details,
+    error: typeof candidate?.error === "string"
+      ? candidate.error
+      : typeof candidate?.message === "string"
+        ? candidate.message
+        : "IQ request failed.",
+    status: typeof candidate?.status === "number" ? candidate.status : undefined,
+  };
+}
 
 export const GATE_PASS = "PASS";
 export const GATE_FAIL = "FAIL";

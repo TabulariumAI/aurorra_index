@@ -67,6 +67,7 @@ describe("MetadataPanel legal map trigger", () => {
         metadata={metadata}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
+        onReprocess={vi.fn()}
         openSegment="legal"
         removedCodes={new Set()}
         selectedIndex={null}
@@ -78,7 +79,11 @@ describe("MetadataPanel legal map trigger", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Open legal view" }));
+    const openButton = screen.getByRole("button", { name: "Open legal view" });
+    const value = screen.getByText("Lot Block");
+    expect(openButton.parentElement?.firstElementChild).toBe(openButton);
+    expect(openButton.parentElement?.lastElementChild).toBe(value);
+    fireEvent.click(openButton);
 
     await waitFor(() => expect(onLegalView).toHaveBeenCalledWith(expect.objectContaining({
       code: "legal-1",

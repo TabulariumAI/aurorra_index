@@ -1,4 +1,5 @@
 export { IqPanel } from "./component/IqPanel";
+export { loadIqReport } from "./data/loadIqReport";
 export { useIqReport } from "./hook/useIqReport";
 export { createIqWorkerClient } from "./worker/iqWorkerClient";
 export { iqStoreApi, useIqStore } from "./store/iqStore";
@@ -23,6 +24,7 @@ export type {
   IqGateStatus,
   IqGateView,
   IqPanelProps,
+  IqPollResult,
   IqReport,
   IqReportView,
   IqSegment,
@@ -36,4 +38,5 @@ export type {
   IqWorkerConfig,
   IqWorkerError,
   IqWorkerResult,
+  LoadIqInput,
 } from "./type/iq.types";
