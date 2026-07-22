@@ -147,29 +147,27 @@ export function legalSummaryStyle(): CSSProperties {
   };
 }
 
-export function disclosureButtonStyle(open: boolean): CSSProperties {
+export function disclosureButtonStyle(hovered: boolean, focused: boolean): CSSProperties {
   return {
+    alignItems: "flex-start",
     appearance: "none",
-    background: "transparent",
-    border: 0,
+    background: hovered || focused ? surfaceAccent : "transparent",
+    border: `1px solid ${hovered || focused ? borderAccent : "transparent"}`,
+    borderRadius: "0.2rem",
     boxShadow: "none",
-    color: open ? accentText : teal,
+    color: teal,
     cursor: "pointer",
     display: "inline-flex",
-    fontFamily: "inherit",
-    fontSize: "0.92rem",
-    fontWeight: 700,
+    height: "1.5rem",
     justifyContent: "center",
-    lineHeight: 1.28,
-    outline: "none",
+    outline: focused ? `2px solid ${borderAccent}` : "none",
+    outlineOffset: "1px",
     padding: 0,
     position: "absolute",
     right: 0,
-    textDecoration: "underline",
-    textUnderlineOffset: "0.12em",
     top: 0,
-    transition: "color 120ms ease",
-    whiteSpace: "nowrap",
+    transition: "background 120ms ease, border-color 120ms ease, color 120ms ease, outline-color 120ms ease",
+    width: "1.5rem",
   };
 }
 
@@ -178,28 +176,15 @@ export const detailLabelStyle: CSSProperties = {
   fontWeight: 700,
 };
 
-export const detailLineStyle: CSSProperties = {
-  display: "block",
-  minWidth: 0,
-  position: "relative",
-  width: "100%",
-};
-
-export const detailMeasureTextStyle: CSSProperties = {
-  color: textMuted,
-  display: "block",
-  fontSize: "0.92rem",
-  lineHeight: 1.28,
-  minWidth: 0,
-  overflow: "hidden",
-  overflowWrap: "anywhere",
-  pointerEvents: "none",
-  position: "absolute",
-  visibility: "hidden",
-  whiteSpace: "nowrap",
-  width: "100%",
-  wordBreak: "break-word",
-};
+export function detailLineStyle(hasDisclosure: boolean): CSSProperties {
+  return {
+    display: "block",
+    minHeight: hasDisclosure ? "1.5rem" : undefined,
+    minWidth: 0,
+    position: "relative",
+    width: "100%",
+  };
+}
 
 export function detailTextStyle(open: boolean, hasDisclosure: boolean): CSSProperties {
   return {
@@ -211,7 +196,7 @@ export function detailTextStyle(open: boolean, hasDisclosure: boolean): CSSPrope
     minWidth: 0,
     overflow: open || !hasDisclosure ? "visible" : "hidden",
     overflowWrap: "anywhere",
-    paddingRight: hasDisclosure ? "1.55rem" : 0,
+    paddingRight: hasDisclosure ? "1.75rem" : 0,
     textOverflow: open || !hasDisclosure ? "clip" : "ellipsis",
     whiteSpace: open || !hasDisclosure ? "normal" : "nowrap",
     wordBreak: "break-word",
@@ -219,9 +204,9 @@ export function detailTextStyle(open: boolean, hasDisclosure: boolean): CSSPrope
 }
 
 export const rowStyles = {
-  actionButton(disabled: boolean): CSSProperties {
+  actionButton(disabled: boolean, lineAligned: boolean): CSSProperties {
     return {
-      alignItems: "center",
+      alignItems: lineAligned ? "flex-start" : "center",
       background: "transparent",
       border: "1px solid transparent",
       borderRadius: "0.2rem",
@@ -305,12 +290,14 @@ export const rowStyles = {
   },
   value: {
     color: textStrong,
+    flex: "1 1 auto",
     fontSize: "0.98rem",
     fontWeight: 700,
     lineHeight: 1.25,
     letterSpacing: 0,
     minWidth: 0,
     overflowWrap: "anywhere",
+    position: "relative",
     textTransform: "none",
   },
   valueLink: {
@@ -320,6 +307,20 @@ export const rowStyles = {
     overflowWrap: "anywhere",
     textDecoration: "underline",
     textUnderlineOffset: "0.12em",
+  },
+  valueText(open: boolean, hasDisclosure: boolean): CSSProperties {
+    return {
+      boxSizing: "border-box",
+      display: "block",
+      minHeight: hasDisclosure ? "1.5rem" : undefined,
+      minWidth: 0,
+      overflow: open || !hasDisclosure ? "visible" : "hidden",
+      overflowWrap: "anywhere",
+      paddingRight: hasDisclosure ? "1.75rem" : 0,
+      textOverflow: open || !hasDisclosure ? "clip" : "ellipsis",
+      whiteSpace: open || !hasDisclosure ? "normal" : "nowrap",
+      wordBreak: "break-word",
+    };
   },
   valueWithViewer: {
     alignItems: "flex-start",

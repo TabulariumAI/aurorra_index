@@ -27,6 +27,7 @@
     "@radix-ui/react-progress": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.10",
     "@tabulariumai/aurora-lens": "^0.2.1",
+    "aurora-contracts": "file:../aurora_contracts",
     "aurorra-ui": "file:../aurorra_ui",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

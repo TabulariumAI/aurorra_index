@@ -7,7 +7,6 @@ import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import {
   disclosureButtonStyle,
   detailLabelStyle,
-  detailMeasureTextStyle,
   detailLineStyle,
   detailTextStyle,
   rowStyles,
@@ -25,8 +24,8 @@ export function cleanText(value: unknown): string {
   return String(value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function useDetailDisclosure(label: string, text: string, open: boolean) {
-  const measureRef = useRef<HTMLSpanElement | null>(null);
+function useTextDisclosure(text: string, open: boolean) {
+  const textRef = useRef<HTMLElement | null>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
 
   useLayoutEffect(() => {
@@ -34,14 +33,17 @@ function useDetailDisclosure(label: string, text: string, open: boolean) {
       return undefined;
     }
 
-    const measure = measureRef.current;
-    if (!measure) {
+    const textElement = textRef.current;
+    if (!textElement) {
       return undefined;
     }
 
     const readOverflow = () => {
-      const next = measure.scrollWidth > measure.clientWidth || measure.scrollHeight > measure.clientHeight;
-      setIsOverflowing((current) => current || next);
+      const lineHeight = Number.parseFloat(window.getComputedStyle(textElement).lineHeight);
+      const next = textElement.scrollWidth > textElement.clientWidth ||
+        textElement.scrollHeight > textElement.clientHeight ||
+        (lineHeight > 0 && textElement.getBoundingClientRect().height > lineHeight);
+      setIsOverflowing(next);
     };
 
     readOverflow();
@@ -67,7 +69,7 @@ function useDetailDisclosure(label: string, text: string, open: boolean) {
     const observer = new ResizeObserver(() => {
       readOverflow();
     });
-    observer.observe(measure);
+    observer.observe(textElement);
 
     return () => {
       window.cancelAnimationFrame(firstFrame);
@@ -76,10 +78,10 @@ function useDetailDisclosure(label: string, text: string, open: boolean) {
       }
       observer.disconnect();
     };
-  }, [label, open, text]);
+  }, [open, text]);
 
   return {
-    measureRef,
+    textRef,
     hasDisclosure: open || isOverflowing,
   };
 }
@@ -88,11 +90,13 @@ export function ActionButton({
   children,
   disabled = false,
   label,
+  lineAligned,
   onClick,
 }: {
   children: ReactNode;
   disabled?: boolean;
   label: string;
+  lineAligned: boolean;
   onClick?: () => void;
 }) {
   const [isInteracting, setInteracting] = useState(false);
@@ -122,7 +126,7 @@ export function ActionButton({
             }
           }}
           onMouseLeave={() => setInteracting(false)}
-          style={disabled ? rowStyles.actionButton(disabled) : { ...rowStyles.actionButton(disabled), ...interactionStyles }}
+          style={disabled ? rowStyles.actionButton(disabled, lineAligned) : { ...rowStyles.actionButton(disabled, lineAligned), ...interactionStyles }}
           type="button"
         >
           {children}
@@ -139,18 +143,50 @@ export function ActionButton({
     </Tooltip.Root>
   );
 }
-export function Icon({ name }: { name: "address" | "check" | "copy" | "edit" | "remove" }) {
+export function Icon({ name }: { name: "address" | "check" | "collapse" | "copy" | "edit" | "expand" | "remove" }) {
   const paths = {
     address: <><path d="M4 10.5C6 6.5 9 4.5 12 4.5s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6Z" /><circle cx="12" cy="10.5" r="2.2" /><path d="M8.5 18.5h7" /></>,
     check: <path d="m5 12 4 4 10-10" />,
+    collapse: <><rect height="16" rx="2" width="16" x="4" y="4" /><path d="M8 12h8" /></>,
     copy: <><rect height="11" rx="1.5" width="11" x="8" y="8" /><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" /></>,
     edit: <><path d="M4 17.5V20h2.5L18 8.5 15.5 6 4 17.5Z" /><path d="m14.5 7 2.5 2.5" /></>,
+    expand: <><rect height="16" rx="2" width="16" x="4" y="4" /><path d="M8 12h8" /><path d="M12 8v8" /></>,
     remove: <><path d="M5 7h14" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M8 7l1 13h6l1-13" /><path d="M9 7V5h6v2" /></>,
   };
   return (
     <svg aria-hidden="true" fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="18">
       {paths[name]}
     </svg>
+  );
+}
+
+function DisclosureButton({ name, open }: { name: string; open: boolean }) {
+  const [focused, setFocused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const label = `${open ? "Collapse" : "Expand"} ${name}`;
+  return (
+    <Tooltip.Root>
+      <Collapsible.Trigger asChild>
+        <Tooltip.Trigger asChild>
+          <button
+            aria-label={label}
+            onBlur={() => setFocused(false)}
+            onFocus={() => setFocused(true)}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={disclosureButtonStyle(hovered, focused)}
+            type="button"
+          >
+            <Icon name={open ? "collapse" : "expand"} />
+          </button>
+        </Tooltip.Trigger>
+      </Collapsible.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content sideOffset={6} style={rowStyles.tooltip}>
+          {label}
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 
@@ -184,8 +220,18 @@ export function openMetadataImage(
 }
 
 export function IndexValue({ onClick, value }: { onClick?: () => void; value: string }) {
-  return (
-    <div style={rowStyles.value}>
+  const [open, setOpen] = useState(false);
+  const { textRef, hasDisclosure } = useTextDisclosure(value, open);
+  const textStyle = rowStyles.valueText(open, hasDisclosure);
+  const content = (
+    <div
+      ref={(element) => {
+        if (!onClick) {
+          textRef.current = element;
+        }
+      }}
+      style={onClick ? rowStyles.value : { ...rowStyles.value, ...textStyle }}
+    >
       {onClick ? (
         <a
           href="#"
@@ -194,12 +240,22 @@ export function IndexValue({ onClick, value }: { onClick?: () => void; value: st
             event.stopPropagation();
             onClick();
           }}
-          style={rowStyles.valueLink}
+          ref={(element) => {
+            textRef.current = element;
+          }}
+          style={{ ...rowStyles.valueLink, ...textStyle }}
         >
           {value}
         </a>
       ) : value}
+      {hasDisclosure ? <DisclosureButton name="index value" open={open} /> : null}
     </div>
+  );
+
+  return (
+    <Collapsible.Root asChild open={open} onOpenChange={setOpen}>
+      {content}
+    </Collapsible.Root>
   );
 }
 function isAddressValue(item: MetadataIndex): boolean {
@@ -211,44 +267,26 @@ function isAddressValue(item: MetadataIndex): boolean {
 function DetailLine({ label, name, value }: { label: string; name: string; value: unknown }) {
   const text = cleanText(value);
   const [open, setOpen] = useState(false);
-  const { measureRef, hasDisclosure } = useDetailDisclosure(label, text, open);
+  const { textRef, hasDisclosure } = useTextDisclosure(text, open);
 
   if (!text) return null;
 
   const content = (
-    <div style={detailLineStyle}>
+    <div style={detailLineStyle(hasDisclosure)}>
       <span
-        aria-hidden="true"
-        ref={measureRef}
-        style={detailMeasureTextStyle}
-      >
-        <strong style={detailLabelStyle}>{label}:</strong> {text}
-      </span>
-      <span
+        ref={(element) => {
+          textRef.current = element;
+        }}
         style={detailTextStyle(open, hasDisclosure)}
       >
         <strong style={detailLabelStyle}>{label}:</strong> {text}
       </span>
-      {hasDisclosure ? (
-        <Collapsible.Trigger asChild>
-          <button
-            aria-label={open ? `Collapse ${name}` : `Expand ${name}`}
-            style={disclosureButtonStyle(open)}
-            type="button"
-          >
-            {open ? "[-]" : "[+]"}
-          </button>
-        </Collapsible.Trigger>
-      ) : null}
+      {hasDisclosure ? <DisclosureButton name={name} open={open} /> : null}
     </div>
   );
 
-  if (!hasDisclosure) {
-    return content;
-  }
-
   return (
-    <Collapsible.Root open={open} onOpenChange={setOpen}>
+    <Collapsible.Root asChild open={open} onOpenChange={setOpen}>
       {content}
     </Collapsible.Root>
   );
@@ -353,7 +391,7 @@ export function MetadataRow({
       <div style={rowStyles.header}>
         <div style={rowStyles.valueWithViewer}>
           {isAddressValue(item) && onAddressClick ? (
-            <ActionButton label={`Open address ${value}`} onClick={() => onAddressClick(value)}>
+            <ActionButton label={`Open address ${value}`} lineAligned onClick={() => onAddressClick(value)}>
               <Icon name="address" />
             </ActionButton>
           ) : null}
@@ -361,12 +399,12 @@ export function MetadataRow({
         </div>
         <div style={rowStyles.actionGroup}>
           {ambiguous ? (
-            <ActionButton label="Confirm index and remove ambiguity" onClick={() => onConfirm(payload)}>
+            <ActionButton label="Confirm index and remove ambiguity" lineAligned={false} onClick={() => onConfirm(payload)}>
               <Icon name="check" />
             </ActionButton>
           ) : null}
           {value ? (
-            <ActionButton label={`Copy value ${value}`} onClick={() => copyIndexValue(value)}>
+            <ActionButton label={`Copy value ${value}`} lineAligned={false} onClick={() => copyIndexValue(value)}>
               <Icon name="copy" />
             </ActionButton>
           ) : null}
@@ -383,7 +421,7 @@ export function MetadataRow({
             />
           ) : null}
           {type === "page" && callbacks.onEditPage && code ? (
-            <ActionButton label="Edit index" onClick={() => callbacks.onEditPage?.(payload)}>
+            <ActionButton label="Edit index" lineAligned={false} onClick={() => callbacks.onEditPage?.(payload)}>
               <Icon name="edit" />
             </ActionButton>
           ) : null}

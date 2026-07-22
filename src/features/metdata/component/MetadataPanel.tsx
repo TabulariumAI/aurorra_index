@@ -344,6 +344,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                           {String(group.type || "").trim() === "lot_block" ? (
                             <ActionButton
                               label="Open legal view"
+                              lineAligned
                               onClick={() => {
                                 callbacks.onLegalView?.(payload);
                               }}
@@ -355,7 +356,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                         </div>
                         <div style={rowStyles.actionGroup}>
                           {payload.value ? (
-                            <ActionButton label={`Copy value ${payload.value}`} onClick={() => copyIndexValue(payload.value)}>
+                            <ActionButton label={`Copy value ${payload.value}`} lineAligned={false} onClick={() => copyIndexValue(payload.value)}>
                               <Icon name="copy" />
                             </ActionButton>
                           ) : null}

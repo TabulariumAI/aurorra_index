@@ -1,5 +1,5 @@
+import type { JobName } from "aurora-contracts";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
-import type { JobName } from "../../job/type/job.types";
 import type { HostInput, LoadPackageInput } from "../type/imageViewer.types";
 import { createWorkerClient } from "../worker/imageWorkerClient";
 import { parsePackageUrls, toViewerError } from "./imageViewerData";

@@ -81,7 +81,7 @@ export type {
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";
-export type { JobEvent, JobEventCallback, JobName } from "./features/job/type/job.types";
+export type { JobEvent, JobEventCallback, JobName } from "aurora-contracts";
 export type {
   IndexMetadataProps,
   IndexActionPayload,

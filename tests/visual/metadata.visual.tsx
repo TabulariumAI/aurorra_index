@@ -32,6 +32,10 @@ const longQuote =
   "This quote is intentionally long so the metadata row keeps the source collapsed to a single line by default and only reveals the full quoted source after the user expands it with the inline disclosure control. ".repeat(
     3,
   );
+const longValue =
+  "All that certain lot, tract or parcel of land being 1.89 acres in the Patrick O'Rourk Survey A-666 and being more particularly described by metes and bounds. ".repeat(
+    3,
+  );
 
 const metadata: MetadataPayload = {
   fees: [],
@@ -46,7 +50,7 @@ const metadata: MetadataPayload = {
       page_number: "1",
       segment: "party",
       source: longQuote,
-      value: "Alice",
+      value: longValue,
     },
   ],
   pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
@@ -91,7 +95,7 @@ stage.innerHTML = "";
 
 createRoot(stage).render(
     <MetadataPanel
-      callbacks={{ onEditPage: noOp }}
+      callbacks={{ onEditPage: noOp, onPageClick: noOp }}
       choices={[{ level: 1, service: "PartyClauseIndexing" }]}
       confirmedCodes={new Set()}
       metadata={activeMetadata}

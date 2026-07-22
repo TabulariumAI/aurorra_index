@@ -1,8 +1,9 @@
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { MetadataPanel } from "../component/MetadataPanel";
-import { copyIndexValue } from "../component/MetadataRows";
+import { IndexValue, copyIndexValue } from "../component/MetadataRows";
 import { getPanelData } from "../data/metadataData";
 import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
 
@@ -31,6 +32,8 @@ const longExplanation =
   "This explanation is intentionally long so the metadata row stays collapsed to a single line by default and only reveals the full text after the user expands it with the inline disclosure control. ".repeat(3);
 const longQuote =
   "P:1. This quote is intentionally long so the metadata row keeps the source collapsed to a single line by default and only reveals the full quoted source after the user expands it with the inline disclosure control. ".repeat(3);
+const longValue =
+  "All that certain lot, tract or parcel of land being 1.89 acres in the Patrick O'Rourk Survey A-666 and being more particularly described by metes and bounds.";
 
 const originalScrollWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollWidth");
 const originalClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
@@ -292,22 +295,35 @@ describe("metadata visual surface", () => {
     expect(quoteLabel.parentElement).toBe(quote);
     expect(row).toHaveStyle({ boxShadow: "none" });
     expect(expandButton).toHaveAttribute("aria-expanded", "false");
-    expect(expandButton).toHaveTextContent("[+]");
-    expect(expandButton).toHaveStyle({ boxShadow: "none", outline: "none" });
+    expect(expandButton.textContent).toBe("");
+    expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
+    expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
+    expect(expandButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", height: "1.5rem", width: "1.5rem" });
+    expect(explanation.parentElement).toHaveStyle({ minHeight: "1.5rem" });
+    fireEvent.focus(expandButton);
+    expect(expandButton).toHaveStyle({
+      background: "rgba(6, 175, 193, 0.10)",
+      border: "1px solid #008ba3",
+      outline: "2px solid #008ba3",
+    });
+    fireEvent.blur(expandButton);
     expect(explanation).toHaveStyle({
       display: "block",
       overflow: "hidden",
-      paddingRight: "1.55rem",
+      paddingRight: "1.75rem",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     });
     expect(quoteButton).toHaveAttribute("aria-expanded", "false");
-    expect(quoteButton).toHaveTextContent("[+]");
-    expect(quoteButton).toHaveStyle({ boxShadow: "none", outline: "none" });
+    expect(quoteButton.textContent).toBe("");
+    expect(quoteButton.querySelector("svg rect")).toBeInTheDocument();
+    expect(quoteButton.querySelectorAll("svg path")).toHaveLength(2);
+    expect(quoteButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", height: "1.5rem", width: "1.5rem" });
+    expect(quote.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     expect(quote).toHaveStyle({
       display: "block",
       overflow: "hidden",
-      paddingRight: "1.55rem",
+      paddingRight: "1.75rem",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     });
@@ -315,7 +331,10 @@ describe("metadata visual surface", () => {
     fireEvent.click(expandButton);
 
     expect(await screen.findByRole("button", { name: "Collapse explanation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Collapse explanation" })).toHaveTextContent("[-]");
+    const collapseButton = screen.getByRole("button", { name: "Collapse explanation" });
+    expect(collapseButton.textContent).toBe("");
+    expect(collapseButton.querySelector("svg rect")).toBeInTheDocument();
+    expect(collapseButton.querySelectorAll("svg path")).toHaveLength(1);
     expect(explanation).toHaveStyle({
       overflow: "visible",
       textOverflow: "clip",
@@ -325,7 +344,7 @@ describe("metadata visual surface", () => {
     fireEvent.click(quoteButton);
 
     expect(await screen.findByRole("button", { name: "Collapse quote" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Collapse quote" })).toHaveTextContent("[-]");
+    expect(screen.getByRole("button", { name: "Collapse quote" }).textContent).toBe("");
     expect(quote).toHaveStyle({
       overflow: "visible",
       textOverflow: "clip",
@@ -334,6 +353,59 @@ describe("metadata visual surface", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Collapse explanation" }));
     expect(screen.getByRole("button", { name: "Expand explanation" })).toBeInTheDocument();
+  });
+
+  it("collapses every overflowing index value and keeps short values without disclosure", async () => {
+    const onClick = vi.fn();
+    const view = render(
+      <Tooltip.Provider>
+        <IndexValue onClick={onClick} value={longValue} />
+      </Tooltip.Provider>,
+    );
+    const value = screen.getByRole("link", { name: longValue });
+    const expandButton = await screen.findByRole("button", { name: "Expand index value" });
+
+    expect(expandButton).toHaveAttribute("aria-expanded", "false");
+    expect(expandButton.textContent).toBe("");
+    expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
+    expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
+    expect(expandButton).toHaveStyle({ alignItems: "flex-start", height: "1.5rem", width: "1.5rem" });
+    expect(value).toHaveStyle({ minHeight: "1.5rem" });
+    expect(value).toHaveStyle({
+      overflow: "hidden",
+      paddingRight: "1.75rem",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+    });
+
+    fireEvent.click(value);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    fireEvent.click(expandButton);
+
+    const collapseButton = screen.getByRole("button", { name: "Collapse index value" });
+    expect(collapseButton.textContent).toBe("");
+    expect(collapseButton.querySelector("svg rect")).toBeInTheDocument();
+    expect(collapseButton.querySelectorAll("svg path")).toHaveLength(1);
+    expect(value).toHaveStyle({
+      overflow: "visible",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+    });
+
+    view.unmount();
+    render(
+      <Tooltip.Provider>
+        <IndexValue value="Alice" />
+      </Tooltip.Provider>,
+    );
+    expect(screen.queryByRole("button", { name: /index value/i })).not.toBeInTheDocument();
+    const shortValue = screen.getByText("Alice");
+    expect(shortValue.style.minHeight).toBe("");
+    expect(shortValue).toHaveStyle({
+      overflow: "visible",
+      textOverflow: "clip",
+      whiteSpace: "normal",
+    });
   });
 
   it("stores metadata index fields when opening a metadata row image", async () => {
@@ -442,6 +514,8 @@ describe("metadata visual surface", () => {
     const quote = screen.getAllByText(/Short quote/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
     expect(screen.queryByRole("button", { name: "Expand explanation" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Expand quote" })).not.toBeInTheDocument();
+    expect(explanation.parentElement?.style.minHeight).toBe("");
+    expect(quote.parentElement?.style.minHeight).toBe("");
     expect(explanation).toHaveStyle({
       overflow: "visible",
       paddingRight: "0px",
@@ -578,9 +652,10 @@ describe("metadata visual surface", () => {
     expect(legalActionButtons).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open legal page" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy value Lot Block" })).toBeInTheDocument();
+    const copyButton = screen.getByRole("button", { name: "Copy value Lot Block" });
+    expect(copyButton).toHaveStyle({ alignItems: "center" });
     legalActionButtons.forEach((button) => {
-      expect(button).toHaveStyle({ width: "1.9rem", height: "1.9rem", padding: "0" });
+      expect(button).toHaveStyle({ alignItems: "flex-start", width: "1.9rem", height: "1.9rem", padding: "0" });
     });
     expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "underline" });
     fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));
