@@ -22,6 +22,14 @@ function createClient(): IqWorkerClient {
   };
 }
 
+function deferred<Value>() {
+  let resolve: (value: Value | PromiseLike<Value>) => void = () => undefined;
+  const promise = new Promise<Value>((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
 describe("loadIqReport", () => {
   beforeEach(() => {
     iqStoreApi.getState().resetIq();
@@ -71,6 +79,53 @@ describe("loadIqReport", () => {
 
     expect(client.startReport).toHaveBeenCalledTimes(1);
     expect(client.pollReport).toHaveBeenCalledTimes(1);
+  });
+
+  it("restarts a completed session when a reprocess requests a new IQ report", async () => {
+    const client = createClient();
+    vi.mocked(client.pollReport).mockReset();
+    vi.mocked(client.pollReport).mockResolvedValue({ data: report, isComplete: true, status: "completed" });
+    const input = {
+      apiGatewayUrl: "https://api",
+      authToken: "token",
+      onError: vi.fn(),
+      onJobEvent: vi.fn(),
+      pollIntervalMs: 0,
+      session: "session-1",
+      workerClient: client,
+    };
+
+    await loadIqReport(input);
+    await loadIqReport({ ...input, restart: true });
+
+    expect(client.startReport).toHaveBeenCalledTimes(2);
+    expect(client.pollReport).toHaveBeenCalledTimes(2);
+  });
+
+  it("queues a reprocess report restart behind an active report", async () => {
+    const client = createClient();
+    const firstPoll = deferred<{ data: IqReport; isComplete: true; status: "completed" }>();
+    vi.mocked(client.pollReport).mockReset();
+    vi.mocked(client.pollReport).mockImplementationOnce(() => firstPoll.promise).mockResolvedValueOnce({ data: report, isComplete: true, status: "completed" });
+    const input = {
+      apiGatewayUrl: "https://api",
+      authToken: "token",
+      onError: vi.fn(),
+      onJobEvent: vi.fn(),
+      pollIntervalMs: 0,
+      session: "session-1",
+      workerClient: client,
+    };
+
+    const firstLoad = loadIqReport(input);
+    const reprocessLoad = loadIqReport({ ...input, restart: true });
+    expect(client.startReport).toHaveBeenCalledTimes(1);
+
+    firstPoll.resolve({ data: report, isComplete: true, status: "completed" });
+    await Promise.all([firstLoad, reprocessLoad]);
+
+    expect(client.startReport).toHaveBeenCalledTimes(2);
+    expect(client.pollReport).toHaveBeenCalledTimes(2);
   });
 
   it("reports a start failure without polling", async () => {

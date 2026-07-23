@@ -43,7 +43,7 @@ describe("IqWorker", () => {
     await new IqWorker().run({ apiBaseUrl: "https://doc.example.com", session: "session-1", token: "token", type: "iqStart" });
     expect(fetchMock).toHaveBeenLastCalledWith("https://doc.example.com/v1/iq/session-1/start", {
       body: "{}",
-      headers: { Authorization: "Bearer token" },
+      headers: { Authorization: "Bearer token", "Content-Type": "application/json" },
       method: "POST",
     });
   });

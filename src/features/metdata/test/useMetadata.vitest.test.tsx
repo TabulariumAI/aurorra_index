@@ -175,12 +175,13 @@ describe("useMetadata", () => {
     vi.mocked(client.dropIndex).mockRejectedValueOnce(Object.assign(new Error("Drop failed"), { code: "index_drop_failed", status: 500 }));
     vi.mocked(client.reprocessSegment).mockRejectedValueOnce(Object.assign(new Error("Reprocess failed"), { code: "index_reprocess_failed", status: 500 }));
 
+    const onActionComplete = vi.fn();
     const onActionError = vi.fn();
     const onJobEvent = vi.fn();
     const props: IndexMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      callbacks: { onActionError, onJobEvent },
+      callbacks: { onActionComplete, onActionError, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       segments,
@@ -220,6 +221,7 @@ describe("useMetadata", () => {
         error: expect.objectContaining({ code: "index_reprocess_failed", error: "Reprocess failed", status: 500 }),
       }),
     );
+    expect(onActionComplete).not.toHaveBeenCalled();
     expect(onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ job: "metadata.reprocess", phase: "failed" }));
   });
 });

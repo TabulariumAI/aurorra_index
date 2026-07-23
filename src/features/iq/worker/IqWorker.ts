@@ -143,6 +143,7 @@ export class IqWorker {
         body: request.body,
         headers: {
           Authorization: `Bearer ${command.token}`,
+          ...(request.body ? { "Content-Type": "application/json" } : {}),
         },
         method: request.method,
       });

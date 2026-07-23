@@ -116,6 +116,7 @@ export type LoadIqInput = {
   onError(error: IqWorkerError): void;
   onJobEvent: JobEventCallback;
   pollIntervalMs?: number;
+  restart?: boolean;
   session: string;
   workerClient?: IqWorkerClient;
 };
