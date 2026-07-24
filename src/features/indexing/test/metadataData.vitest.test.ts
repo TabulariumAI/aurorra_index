@@ -186,34 +186,34 @@ describe("metadata data normalization", () => {
       heading: { title: "Instrument" },
       indexes: [{ code: "idx-1", value: "Alice" }],
       pages: {
-        nonrecordables: [{ code: "page-b", name: "2", segments: ["exhibit"] }],
+        nonrecordables: [{ code: "page-b", name: "2", segments: ["property"] }],
         num_of_pages: 2,
-        recordables: [{ code: "page-a", name: "1", segments: ["recital"] }],
+        recordables: [{ code: "page-a", name: "1", segments: ["reference"] }],
       },
       secrets: [],
     } as MetadataPayload);
 
-    const recordable = replaceMetadataPageSegments(parts, "page-a", ["party_clause"]);
-    expect(recordable.pagesJSON.pages?.recordables?.[0].segments).toEqual(["party_clause"]);
+    const recordable = replaceMetadataPageSegments(parts, "page-a", ["party"]);
+    expect(recordable.pagesJSON.pages?.recordables?.[0].segments).toEqual(["party"]);
     expect(recordable.pagesJSON.pages?.nonrecordables).toBe(parts.pagesJSON.pages?.nonrecordables);
     expect(recordable.indexJSON).toBe(parts.indexJSON);
 
-    const nonrecordable = replaceMetadataPageSegments(parts, "page-b", ["confidential"]);
+    const nonrecordable = replaceMetadataPageSegments(parts, "page-b", ["secrets"]);
     expect(nonrecordable.pagesJSON.pages?.recordables).toBe(parts.pagesJSON.pages?.recordables);
-    expect(nonrecordable.pagesJSON.pages?.nonrecordables?.[0].segments).toEqual(["confidential"]);
+    expect(nonrecordable.pagesJSON.pages?.nonrecordables?.[0].segments).toEqual(["secrets"]);
   });
 
   it("does not add an absent page collection while replacing segments", () => {
     const parts = splitMetadataJSON({
       pages: {
         num_of_pages: 1,
-        recordables: [{ code: "page-a", name: "1", segments: ["recital"] }],
+        recordables: [{ code: "page-a", name: "1", segments: ["reference"] }],
       },
     } as MetadataPayload);
 
-    const updated = replaceMetadataPageSegments(parts, "page-a", ["exhibit"]);
+    const updated = replaceMetadataPageSegments(parts, "page-a", ["property"]);
 
-    expect(updated.pagesJSON.pages?.recordables?.[0].segments).toEqual(["exhibit"]);
+    expect(updated.pagesJSON.pages?.recordables?.[0].segments).toEqual(["property"]);
     expect(updated.pagesJSON.pages).not.toHaveProperty("nonrecordables");
   });
 });

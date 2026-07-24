@@ -24,6 +24,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   const valueButton = row.getByRole("button", { name: "Expand index value" });
   const reprocessLink = page.getByRole("link", { name: "Reprocess" });
   const refineLink = page.getByRole("link", { name: "Refine or Chat" });
+  const copyButton = row.getByRole("button", { name: /Copy value/ });
   const dropButton = row.getByRole("button", { name: "Pop the index" });
 
   await expect(header).toHaveCSS("position", "sticky");
@@ -41,9 +42,11 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(refineLink).toHaveCSS("box-shadow", "none");
   await expect(refineLink).toHaveCSS("text-decoration-line", "underline");
   await expect(dropButton).toBeVisible();
+  await expect(copyButton).toHaveCSS("color", "rgb(0, 139, 163)");
+  await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
   await dropButton.hover();
   await page.waitForTimeout(350);
-  await expect(dropButton).toHaveCSS("color", "rgb(17, 24, 39)");
+  await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   await dropButton.click();
   await expect(dropButton).toHaveAttribute("data-armed", "true");
@@ -58,6 +61,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(explanation).toHaveCSS("display", "block");
   await expect(expandButton).toHaveCSS("position", "absolute");
   await expect(expandButton).toHaveCSS("box-shadow", "none");
+  await expect(expandButton).toHaveCSS("color", "rgb(32, 37, 45)");
   expect((await expandButton.boundingBox())!.width).toBe(24);
   expect((await expandButton.boundingBox())!.height).toBe(24);
   await expect(explanation.locator("..")).toHaveCSS("min-height", "24px");
@@ -88,6 +92,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(quoteButton.locator("svg rect")).toBeVisible();
   await expect(quoteButton.locator("svg path")).toHaveCount(2);
   await expect(quoteButton).toHaveCSS("box-shadow", "none");
+  await expect(quoteButton).toHaveCSS("color", "rgb(32, 37, 45)");
   await expect(quote).toHaveCSS("white-space", "nowrap");
   await expect(quote).toHaveCSS("overflow", "hidden");
   await expect(quote).toHaveCSS("text-overflow", "ellipsis");
@@ -97,6 +102,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(valueButton).toHaveText("");
   await expect(valueButton.locator("svg rect")).toBeVisible();
   await expect(valueButton.locator("svg path")).toHaveCount(2);
+  await expect(valueButton).toHaveCSS("color", "rgb(32, 37, 45)");
   await expect(value).toHaveCSS("white-space", "nowrap");
   await expect(value).toHaveCSS("overflow", "hidden");
   await expect(value).toHaveCSS("text-overflow", "ellipsis");

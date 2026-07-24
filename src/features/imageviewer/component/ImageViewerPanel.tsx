@@ -1,6 +1,7 @@
 import { ProgressBar } from "aurorra-ui";
 import { useEffect, useLayoutEffect } from "react";
 import type { JSX } from "react";
+import { addIndexStoreApi } from "../../addindex";
 import { loadImagePackage } from "../data/loadImagePackage";
 import { useImageViewer } from "../hook/useImageViewer";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
@@ -58,7 +59,7 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
   }, [apiGatewayUrl, authToken, onJobEvent, session, viewer.isRestoredSession, viewer.isRestoring, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
-  const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage";
+  const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage";
   const progress = loading || lensLoading;
 
   return (
@@ -67,19 +68,28 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
         <ImageViewerTopToolbar
           canActualSize={viewer.canActualSize}
           canClearSearch={viewer.canClearSearch}
+          canExport={viewer.canExport}
           canFitHeight={viewer.canFitHeight}
           canFitPage={viewer.canFitPage}
           canFitWidth={viewer.canFitWidth}
           canSearch={viewer.canSearch}
+          canSelect={viewer.canSelect}
           canZoomIn={viewer.canZoomIn}
           canZoomOut={viewer.canZoomOut}
+          selecting={viewer.selecting}
           onAction={(action) => {
             if (action === "actualSize") viewer.actualSize();
             if (action === "clearSearch") viewer.clearSearch();
+            if (action === "export") {
+              void viewer.exportSelection().then((selection) => {
+                if (selection) addIndexStoreApi.getState().open(selection);
+              });
+            }
             if (action === "fitHeight") viewer.fitHeight();
             if (action === "fitPage") viewer.fitPage();
             if (action === "fitWidth") viewer.fitWidth();
             if (action === "search") viewer.search();
+            if (action === "select") viewer.select();
             if (action === "zoomIn") viewer.zoomIn();
             if (action === "zoomOut") viewer.zoomOut();
           }}

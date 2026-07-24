@@ -16,7 +16,7 @@ const report = {
   ],
   segments: [
     {
-      segment_name: "party_clause",
+      segment_name: "party",
       expected_weight: 50,
       actual_weight: 45,
       iq: 90,

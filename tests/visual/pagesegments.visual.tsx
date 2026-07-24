@@ -16,19 +16,19 @@ const metadata: MetadataPayload = {
         class: "deed",
         code: "page-1",
         name: "1",
-        segments: ["recital", "exhibit"],
+        segments: ["reference", "property"],
       },
       {
         code: "page-2",
         name: "2",
-        segments: ["recital"],
+        segments: ["reference"],
       },
     ],
     nonrecordables: [
       {
         code: "page-3",
         name: "3",
-        segments: ["confidential"],
+        segments: ["secrets"],
       },
     ],
   },
@@ -41,6 +41,7 @@ const choices = [
   { level: 1, service: "ExhibitIndexing" },
   { level: 0, service: "ConfidentialIndexing" },
   { level: 1, service: "EndorsementIndexing" },
+  { level: 1, service: "PartyClauseIndexing" },
 ];
 
 function buildError(message: string): Error & { code: string; status: number } {
@@ -97,7 +98,7 @@ function PageSegmentsVisualHarness() {
         onJobEvent={(event) => setJobMessage(`${event.job}:${event.phase}`)}
         pageClass="blank"
         pageCode="page-1"
-        segments={["recital"]}
+        segments={["reference", "party"]}
         session={session}
         workerClient={workerClient}
       />

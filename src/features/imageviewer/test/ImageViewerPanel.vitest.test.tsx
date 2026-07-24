@@ -1,19 +1,28 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ViewerState } from "@tabulariumai/aurora-lens";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 let viewerPageCount = 2;
 let viewerRestoring = false;
 let viewerRestoredSession = false;
+const exportSelection = vi.hoisted(() => vi.fn(async () => ({
+  groups: [
+    { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },
+  ],
+  pageNumber: 3,
+})));
+const select = vi.hoisted(() => vi.fn());
 
 vi.mock("../hook/useImageViewer", () => ({
   useImageViewer: () => ({
     actualSize: vi.fn(),
     canActualSize: true,
     canClearSearch: true,
+    canExport: true,
     canFitHeight: true,
     canFitPage: true,
     canFitWidth: true,
@@ -22,10 +31,12 @@ vi.mock("../hook/useImageViewer", () => ({
     canGoNext: true,
     canGoPrevious: true,
     canSearch: true,
+    canSelect: true,
     canShowThumbnails: true,
     canZoomIn: true,
     canZoomOut: true,
     clearSearch: vi.fn(),
+    exportSelection,
     firstPage: vi.fn(),
     fitHeight: vi.fn(),
     fitPage: vi.fn(),
@@ -38,6 +49,8 @@ vi.mock("../hook/useImageViewer", () => ({
     pageCount: viewerPageCount,
     previousPage: vi.fn(),
     search: vi.fn(),
+    selecting: false,
+    select,
     showThumbnails: vi.fn(),
     zoomIn: vi.fn(),
     zoomOut: vi.fn(),
@@ -55,11 +68,15 @@ const previewAction = <button type="button">Close preview</button>;
 
 describe("ImageViewerPanel", () => {
   afterEach(() => {
+    addIndexStoreApi.getState().close();
     imageViewerStoreApi.getState().resetViewer();
     viewerPageCount = 2;
     viewerRestoring = false;
     viewerRestoredSession = false;
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    exportSelection.mockClear();
+    select.mockClear();
   });
 
   it("shows package progress and completes package flow", async () => {
@@ -92,6 +109,8 @@ describe("ImageViewerPanel", () => {
 
     expect(screen.getByRole("progressbar", { name: "image viewer progress" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Export" })).toBeEnabled();
     await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
     expect(workerClient.packageImage).toHaveBeenCalledBefore(workerClient.imageStatus);
     expect(workerClient.imageData).toHaveBeenCalled();
@@ -110,7 +129,36 @@ describe("ImageViewerPanel", () => {
       "image.download:completed",
     ]);
     expect(onError).not.toHaveBeenCalled();
-    expect(screen.queryByText(/add|remove|reorder|export|draw/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
+  });
+
+  it("opens Add Index with the exported selection", async () => {
+    viewerRestoredSession = true;
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      onJobEvent: vi.fn(),
+      pageCount: 2,
+      pageMap: new Map(),
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+    });
+
+    render(<ImageViewerPanel previewAction={previewAction} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    expect(select).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(exportSelection).toHaveBeenCalledTimes(1));
+    expect(addIndexStoreApi.getState().selection).toEqual({
+      groups: [
+        { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },
+      ],
+      pageNumber: 3,
+    });
   });
 
   it("does not restart package download when same-session panel remounts with cached package", async () => {
@@ -327,5 +375,14 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel previewAction={previewAction} />);
 
     expect(screen.getByRole("progressbar", { name: "image viewer progress" })).toBeInTheDocument();
+  });
+
+  it("shows lens progress while copying a selection", () => {
+    imageViewerStoreApi.setState({ viewerStatus: "copyingSelection" });
+
+    render(<ImageViewerPanel previewAction={previewAction} />);
+
+    expect(screen.getByRole("progressbar", { name: "image viewer progress" })).toBeInTheDocument();
+    expect(screen.getByText("Copying selection...")).toBeInTheDocument();
   });
 });

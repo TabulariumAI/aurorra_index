@@ -1,5 +1,7 @@
 import { createRoot } from "react-dom/client";
-import { ImageViewerPanel, imageViewerStoreApi } from "../../src/features/imageviewer";
+import { Dialog, DIALOG_BODY, DIALOG_SIZE } from "aurorra-ui";
+import { AddIndexPanel, addIndexStoreApi, useAddIndexStore } from "../../src/features/addindex";
+import { ImageViewerPanel } from "../../src/features/imageviewer";
 import { storeApi } from "../../src/store/state/store";
 import type { WorkerClient } from "../../src/features/imageviewer";
 import packageMetadata from "../../src/test/package/image.json";
@@ -56,31 +58,78 @@ storeApi.getState().setJSON("visual-session-001", {
   },
 });
 
-imageViewerStoreApi.getState().setHostInput({
+const hostInput = {
   apiGatewayUrl: "https://gateway.example.test",
   authToken: "token",
-  onError(error) {
-    throw new Error(error.error);
-  },
-  onJobEvent(event) {
-    stage.dataset.jobEvent = `${event.job}:${event.phase}`;
-  },
   pageCount: 4,
   pageMap: new Map([["1", "page-cover"], ["2", "page-legal"], ["3", "page-reference"], ["4", "page-ack"]]),
   packagePollIntervalMs: 50,
+  request: {
+    code: "idx-property-address",
+    highlightOptions: { scroll: false },
+    index: "property",
+    page: 2,
+    quote: "1428 Cedar Street",
+    segment: "property",
+    session: "visual-session-001",
+    value: "1428 Cedar Street",
+  },
   selectedIndex: { code: "idx-property-address", segment: "property" },
   session: "visual-session-001",
   workerClient,
-});
-imageViewerStoreApi.getState().setRequest({
-  code: "idx-property-address",
-  highlightOptions: { scroll: false },
-  index: "property",
-  page: 2,
-  quote: "1428 Cedar Street",
-  segment: "property",
-  session: "visual-session-001",
-  value: "1428 Cedar Street",
-});
+};
 
-createRoot(stage).render(<ImageViewerPanel />);
+function VisualImageViewer() {
+  const selection = useAddIndexStore((state) => state.selection);
+
+  return (
+    <>
+      <ImageViewerPanel
+        hostInput={{
+          ...hostInput,
+          onError(error) {
+            stage.dataset.error = error.error;
+          },
+          onJobEvent(event) {
+            stage.dataset.jobEvent = `${event.job}:${event.phase}`;
+          },
+        }}
+        previewAction={null}
+      />
+      {selection ? (
+        <Dialog
+          open
+          aria-label="Add selected index"
+          bodyMode={DIALOG_BODY.CENTER}
+          closeOnOverlay
+          draggable
+          heightMode={DIALOG_SIZE.MEDIUM}
+          onClose={() => addIndexStoreApi.getState().close()}
+          role="dialog"
+          showCloseButton={false}
+          showHeader
+          showOverlay
+        >
+          <AddIndexPanel
+            apiGatewayUrl={hostInput.apiGatewayUrl}
+            authToken={hostInput.authToken}
+            onClose={() => addIndexStoreApi.getState().close()}
+            onComplete={() => {
+              stage.dataset.addIndexComplete = "true";
+            }}
+            onError={(error) => {
+              stage.dataset.error = error.error;
+            }}
+            onJobEvent={(event) => {
+              stage.dataset.jobEvent = `${event.job}:${event.phase}`;
+            }}
+            selection={selection}
+            session={hostInput.session}
+          />
+        </Dialog>
+      ) : null}
+    </>
+  );
+}
+
+createRoot(stage).render(<VisualImageViewer />);

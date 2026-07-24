@@ -39,13 +39,13 @@ const choiceSections = {
 };
 
 const pageSegmentValues = new Set([
-  "recital",
-  "exhibit",
+  "reference",
+  "property",
   "endorsement",
   "transaction",
-  "party_clause",
-  "confidential",
-  "monetaryinfo",
+  "party",
+  "secrets",
+  "monetary",
   "acknowledgment",
   "court",
   "vital",

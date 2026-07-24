@@ -321,11 +321,11 @@
         "code": "6ebc8a7d-6298-474e-998a-ad01e004e0d0",
         "class": "notice",
         "segments": [
-          "exhibit",
-          "recital",
+          "property",
+          "reference",
           "transaction",
-          "party_clause",
-          "confidential"
+          "party",
+          "secrets"
         ],
         "name": "1",
         "explanation": "The document contains a clear standalone title at the top of the page indicating it is a notice regarding an obligation to pay an improvement district assessment to the City of San Antonio, Texas. The legal description references Bexar County, Texas, establishing jurisdiction. The content is a formal notice related to property assessment obligations, consistent with a notice document. The page is the first page with substantive legal and transactional content, so is_title_page is YES. There is no formal notarial acknowledgment section, so has_acknowledgment is NO. The page is not blank or a confirmation page."
@@ -335,7 +335,7 @@
         "class": "Acknowledgment",
         "segments": [
           "transaction",
-          "party_clause",
+          "party",
           "acknowledgment"
         ],
         "name": "2",

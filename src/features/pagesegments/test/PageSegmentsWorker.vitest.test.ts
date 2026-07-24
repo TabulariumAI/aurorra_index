@@ -23,12 +23,12 @@ describe("PageSegmentsWorker", () => {
     expect(worker.buildRequest({
       apiBaseUrl: "https://doc.example.com/",
       pageCode: "page/1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session/1",
       token: "token",
       type: "updatePageSegments",
     })).toEqual({
-      body: JSON.stringify({ segments: ["recital"] }),
+      body: JSON.stringify({ segments: ["reference"] }),
       method: "POST",
       url: "https://doc.example.com/v1/reprocess/session%2F1/page/page%2F1/segments",
     });
@@ -39,14 +39,14 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital", "confidential"],
+      segments: ["reference", "secrets"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",
     })).resolves.toEqual({ ok: true, data: undefined });
 
     expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/reprocess/session-1/page/page-1/segments", {
-      body: JSON.stringify({ segments: ["recital", "confidential"] }),
+      body: JSON.stringify({ segments: ["reference", "secrets"] }),
       headers: { Authorization: "Bearer token-1", "Content-Type": "application/json" },
       method: "POST",
     });
@@ -90,7 +90,7 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",
@@ -104,7 +104,7 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",
@@ -121,7 +121,7 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",
@@ -135,7 +135,7 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",
@@ -146,7 +146,7 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",
@@ -160,7 +160,7 @@ describe("PageSegmentsWorker", () => {
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       pageCode: "page-1",
-      segments: ["recital"],
+      segments: ["reference"],
       session: "session-1",
       token: "token-1",
       type: "updatePageSegments",

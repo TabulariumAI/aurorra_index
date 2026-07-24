@@ -31,6 +31,14 @@ export const imageViewerStyles = {
     gap: "0.3rem",
     minWidth: 0,
   },
+  selectionGroup: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    marginLeft: "0.2rem",
+    paddingLeft: "0.5rem",
+    borderLeft: "1px solid rgba(15, 23, 42, 0.12)",
+  },
   previewAction: {
     alignItems: "center",
     display: "flex",

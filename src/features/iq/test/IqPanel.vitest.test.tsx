@@ -10,7 +10,7 @@ const report: IqReport = {
   gates: [{ code: "gate-1", status: "PASS", description: "Pass" }],
   segments: [
     {
-      segment_name: "party_clause",
+      segment_name: "party",
       expected_weight: 50,
       actual_weight: 45,
       iq: 90,
@@ -54,7 +54,7 @@ describe("IqPanel", () => {
     expect(screen.getByText("Expected")).toBeInTheDocument();
     expect(screen.getByText("Actual")).toBeInTheDocument();
     expect(screen.getByText("IQ")).toBeInTheDocument();
-    expect(screen.getByText("Segment: Party Clause")).toBeInTheDocument();
+    expect(screen.getByText("Segment: Party")).toBeInTheDocument();
     expect(screen.getByText("Segment explanation")).toBeInTheDocument();
     expect(screen.getByText("Notes")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

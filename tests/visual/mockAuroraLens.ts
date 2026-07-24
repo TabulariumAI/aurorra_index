@@ -3,6 +3,8 @@ export type ViewerStatus = "idle" | "addingPages" | "loadingPage" | "loadingThum
 export type ViewerState = {
   canActualSize?: boolean;
   canClearSelection?: boolean;
+  canCopy?: boolean;
+  canDraw?: boolean;
   canFitHeight?: boolean;
   canFitPage?: boolean;
   canFitWidth?: boolean;
@@ -17,6 +19,7 @@ export type ViewerState = {
   pageCount?: number;
   pageIndex?: number;
   status?: ViewerStatus;
+  drawMode?: boolean;
   viewMode?: "page" | "thumbnails";
 };
 
@@ -33,6 +36,8 @@ export function configurePdfWorker(_workerUrl: string) {}
 const viewerState = {
   canActualSize: true,
   canClearSelection: true,
+  canCopy: true,
+  canDraw: true,
   canFitHeight: true,
   canFitPage: true,
   canFitWidth: true,
@@ -47,6 +52,7 @@ const viewerState = {
   pageCount: 4,
   pageIndex: 1,
   status: "ready" as const,
+  drawMode: false,
   viewMode: "page" as const,
 };
 
@@ -93,6 +99,55 @@ export class AuroraLens {
 
   close() {
     this.host.dataset.closed = "true";
+  }
+
+  async copySelection() {
+    this.options.onStatusChange?.("copyingSelection");
+    this.host.dataset.selection = "copied";
+    this.options.onStatusChange?.("ready");
+    return {
+      copied: true,
+      groups: [
+        {
+          value: {
+            context: ["JOHN SMITH, RESIDING AT 69-55 62ND STREET, RIDGEWOOD, NEW YORK 11385 PARTY OF THE FIRST PART, AND"],
+            kind: ["BODY"],
+            token: ["JOHN", "SMITH,"],
+          },
+        },
+        {
+          value: {
+            context: ["JOHN SMITH, RESIDING AT 69-55 62ND STREET, RIDGEWOOD, NEW YORK 11385 PARTY OF THE FIRST PART, AND"],
+            kind: ["BODY"],
+            token: ["JOHN SMITH"],
+          },
+        },
+        {
+          value: {
+            context: ["JOHN SMITH"],
+            kind: ["BODY"],
+            token: ["JOHN SMITH"],
+          },
+        },
+        {
+          value: {
+            context: ["JOHN M. SMITH, RESIDING AT 69-55 62ND STREET, RIDGEWOOD, NEW YORK 11385, AS TRUSTEE OF THE JOHN M. SMITH LIVING TRUST, DATED JUNE 9, 2025"],
+            kind: ["BODY"],
+            token: ["JOHN M. SMITH"],
+          },
+        },
+      ],
+      text: "JOHN SMITH\nJOHN M. SMITH",
+    };
+  }
+
+  readPageInfo() {
+    return {
+      class: "Deed",
+      indexes: [],
+      pageNumber: this.pageIndex + 1,
+      segments: [],
+    };
   }
 
   async decodeDoc(file: File, options: { page: number }) {
@@ -145,6 +200,11 @@ export class AuroraLens {
 
   searchIndex(page: number, index: { value: string }, _options?: unknown) {
     this.host.dataset.searchIndex = `${page}:${index.value}`;
+  }
+
+  setDrawMode(enabled: boolean) {
+    this.host.dataset.drawMode = String(enabled);
+    this.options.onStateChange?.({ ...viewerState, drawMode: enabled, pageIndex: this.pageIndex });
   }
 
   async nextPage() {

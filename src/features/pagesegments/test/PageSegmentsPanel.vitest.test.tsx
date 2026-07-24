@@ -11,9 +11,9 @@ const metadata = {
   heading: { title: "Instrument" },
   indexes: [],
   pages: {
-    nonrecordables: [{ code: "page-b", name: "2", segments: ["exhibit"] }],
+    nonrecordables: [{ code: "page-b", name: "2", segments: ["property"] }],
     num_of_pages: 2,
-    recordables: [{ code: "page-a", name: "1", segments: ["recital"] }],
+    recordables: [{ code: "page-a", name: "1", segments: ["reference"] }],
   },
   secrets: [],
 } as MetadataPayload;
@@ -46,7 +46,7 @@ describe("PageSegmentsPanel", () => {
         onJobEvent={onJobEvent}
         pageClass="blank"
         pageCode="page-a"
-        segments={["recital"]}
+        segments={["reference"]}
         session="session-1"
         workerClient={workerClient}
       />,
@@ -60,11 +60,11 @@ describe("PageSegmentsPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => expect(workerClient.updatePageSegments).toHaveBeenCalledTimes(1));
-    expect(workerClient.updatePageSegments).toHaveBeenCalledWith("token-1", "session-1", "page-a", ["recital", "confidential"]);
-    expect(onComplete).toHaveBeenCalledWith({ pageCode: "page-a", segments: ["recital", "confidential"], session: "session-1" });
+    expect(workerClient.updatePageSegments).toHaveBeenCalledWith("token-1", "session-1", "page-a", ["reference", "secrets"]);
+    expect(onComplete).toHaveBeenCalledWith({ pageCode: "page-a", segments: ["reference", "secrets"], session: "session-1" });
     expect(onError).not.toHaveBeenCalled();
     expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
-    expect(storeApi.getState().getJSON("session-1")?.pagesJSON.pages?.recordables?.[0].segments).toEqual(["recital", "confidential"]);
+    expect(storeApi.getState().getJSON("session-1")?.pagesJSON.pages?.recordables?.[0].segments).toEqual(["reference", "secrets"]);
     expect(screen.getByText("Page segment changes saved.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
@@ -92,7 +92,7 @@ describe("PageSegmentsPanel", () => {
         onJobEvent={vi.fn()}
         pageClass="title"
         pageCode="missing-page"
-        segments={["recital"]}
+        segments={["reference"]}
         session="session-1"
         workerClient={workerClient}
       />,
@@ -138,7 +138,7 @@ describe("PageSegmentsPanel", () => {
         onJobEvent={onJobEvent}
         pageClass="title"
         pageCode="page-a"
-        segments={["recital"]}
+        segments={["reference"]}
         session="session-1"
         workerClient={workerClient}
       />,
@@ -181,7 +181,7 @@ describe("PageSegmentsPanel", () => {
         onJobEvent={vi.fn()}
         pageClass="blank"
         pageCode="page-a"
-        segments={["recital"]}
+        segments={["reference"]}
         session="session-1"
         workerClient={workerClient}
       />,
@@ -215,7 +215,7 @@ describe("PageSegmentsPanel", () => {
           onJobEvent={vi.fn()}
           pageClass="blank"
           pageCode="page-a"
-          segments={["recital"]}
+          segments={["reference"]}
           session="session-1"
           workerClient={workerClient}
         />

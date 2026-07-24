@@ -126,7 +126,11 @@ describe("metadata visual surface", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Pop the index" })).toHaveAttribute("data-flat", "true");
+    const popButton = screen.getByRole("button", { name: "Pop the index" });
+    const copyButton = screen.getByRole("button", { name: "Copy value Alice" });
+    expect(popButton).toHaveAttribute("data-flat", "true");
+    expect(popButton).toHaveStyle({ color: "#008ba3" });
+    expect(copyButton).toHaveStyle({ color: "#008ba3" });
     expect(container.querySelector("[aria-label='Metadata']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Deed" })).toBeInTheDocument();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
@@ -298,7 +302,7 @@ describe("metadata visual surface", () => {
     expect(expandButton.textContent).toBe("");
     expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
     expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", height: "1.5rem", width: "1.5rem" });
+    expect(expandButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "#20252d", height: "1.5rem", width: "1.5rem" });
     expect(explanation.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     fireEvent.focus(expandButton);
     expect(expandButton).toHaveStyle({
@@ -318,7 +322,7 @@ describe("metadata visual surface", () => {
     expect(quoteButton.textContent).toBe("");
     expect(quoteButton.querySelector("svg rect")).toBeInTheDocument();
     expect(quoteButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(quoteButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", height: "1.5rem", width: "1.5rem" });
+    expect(quoteButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "#20252d", height: "1.5rem", width: "1.5rem" });
     expect(quote.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     expect(quote).toHaveStyle({
       display: "block",
@@ -576,7 +580,10 @@ describe("metadata visual surface", () => {
       funds: [],
       heading: { class: "mortgage", title: "Mortgage Deed" },
       indexes: [{ code: "idx-party-1", label: "grantor", page: "1", page_number: "1", segment: "party", value: "Alice" }],
-      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", class: "text" }] },
+      pages: {
+        num_of_pages: 1,
+        recordables: [{ code: "page-1", name: "1", class: "text", segments: ["reference", "property", "recital"] }],
+      },
       secrets: [],
     } as MetadataPayload;
     const onEditPage = vi.fn();
@@ -601,7 +608,11 @@ describe("metadata visual surface", () => {
 
     await screen.findByText("1 : Title page");
     fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
-    expect(onEditPage).toHaveBeenCalledTimes(1);
+    expect(onEditPage).toHaveBeenCalledWith(expect.objectContaining({
+      code: "page-1",
+      pageClass: "text",
+      pageSegments: ["reference", "property"],
+    }));
 
     rerender(<MetadataPanel {...props} openSegment="party" />);
 

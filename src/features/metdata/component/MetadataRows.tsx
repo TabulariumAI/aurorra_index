@@ -417,6 +417,7 @@ export function MetadataRow({
               onConfirm={() => onDrop(payload)}
               showPrompt={false}
               size="icon"
+              style={rowStyles.confirmActionButton}
               variant="secondary"
             />
           ) : null}

@@ -61,7 +61,7 @@ const metadata: MetadataPayload = {
   pages: {
     nonrecordables: [],
     num_of_pages: 2,
-    recordables: [{ class: "deed", code: "page-1", name: "1", segments: ["party_clause"] }],
+    recordables: [{ class: "deed", code: "page-1", name: "1", segments: ["party"] }],
   },
   secrets: [],
 };

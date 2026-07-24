@@ -69,6 +69,12 @@ export {
   UI_WARNING,
 } from "./features/iq";
 export {
+  AddIndexPanel,
+  addIndexStoreApi,
+  createAddIndexWorkerClient,
+  useAddIndexStore,
+} from "./features/addindex";
+export {
   imageViewerStoreApi,
   useImageViewerStore,
 } from "./features/imageviewer/store/imageViewerStore";
@@ -78,6 +84,19 @@ export type {
   LoadPackageInput,
   PageRequest,
 } from "./features/imageviewer/type/imageViewer.types";
+export type {
+  AddIndexComplete,
+  AddIndexPanelProps,
+  AddIndexRequest,
+  AddIndexResponse,
+  AddIndexSelection,
+  AddIndexStoreState,
+  AddIndexWorkerClient,
+  AddIndexWorkerCommand,
+  AddIndexWorkerConfig,
+  AddIndexWorkerError,
+  AddIndexWorkerResult,
+} from "./features/addindex";
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";

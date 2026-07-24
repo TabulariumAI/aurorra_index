@@ -31,13 +31,13 @@ describe("iqData", () => {
         { code: "other", status: "OTHER", description: "hidden" },
       ],
       segments: [
-        { segment_name: "party_clause", expected_weight: 1, actual_weight: 2, iq: 3, explanations: [1] },
+        { segment_name: "party", expected_weight: 1, actual_weight: 2, iq: 3, explanations: [1] },
       ],
     });
 
     expect(view.gates.items).toHaveLength(1);
     expect(view.gates.items[0].code).toBe("pass");
-    expect(view.segments[0].displayId).toBe("Party Clause");
+    expect(view.segments[0].displayId).toBe("Party");
     expect(view.segments[0].explanations).toEqual(["1"]);
   });
 

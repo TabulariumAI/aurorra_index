@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 import type { LensApi } from "../type/imageViewer.types";
@@ -14,6 +15,9 @@ const indexedDbViewerSessionStore = vi.hoisted(() => vi.fn());
 const lensInstances = vi.hoisted(() => [] as LensApi[]);
 const restoreSessionResult = vi.hoisted(() => ({ value: false }));
 const restoreSessionWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
+const exportSelectionError = vi.hoisted(() => ({ value: null as Error | null }));
+const viewerCanExport = vi.hoisted(() => ({ value: true }));
+const viewerCanSelect = vi.hoisted(() => ({ value: true }));
 const viewerCanSearch = vi.hoisted(() => ({ value: true }));
 const decodeDocError = vi.hoisted(() => ({ value: null as Error | null }));
 const auroraLensCtor = vi.hoisted(() =>
@@ -27,6 +31,8 @@ const auroraLensCtor = vi.hoisted(() =>
       options.onStateChange?.({
         canActualSize: status === "ready",
         canClearSelection: status === "ready",
+        canCopy: status === "ready" && viewerCanExport.value,
+        canDraw: status === "ready" && viewerCanSelect.value,
         canFitHeight: status === "ready",
         canFitPage: status === "ready",
         canFitWidth: status === "ready",
@@ -40,6 +46,7 @@ const auroraLensCtor = vi.hoisted(() =>
         canZoomOut: status === "ready",
         pageCount: status === "ready" ? 4 : 0,
         pageIndex: status === "ready" ? 1 : -1,
+        drawMode: false,
         status,
         viewMode: "page",
       });
@@ -49,6 +56,10 @@ const auroraLensCtor = vi.hoisted(() =>
       clear: vi.fn(),
       clearSelection: vi.fn(),
       close: vi.fn(),
+      copySelection: vi.fn(async () => {
+        if (exportSelectionError.value) throw exportSelectionError.value;
+        return { copied: true, groups: [{ value: { context: ["Mock paragraph"], kind: ["BODY"], token: ["Mock value"] } }], text: "" };
+      }),
       decodeDoc: vi.fn(async () => {
         if (decodeDocError.value) throw decodeDocError.value;
         emitState("loadingPage");
@@ -63,6 +74,7 @@ const auroraLensCtor = vi.hoisted(() =>
       loadMetadata: vi.fn(),
       nextPage: vi.fn(),
       previousPage: vi.fn(),
+      readPageInfo: vi.fn(() => ({ class: "Deed", indexes: [], pageNumber: 3, segments: [] })),
       restoreSession: vi.fn(async () => {
         await restoreSessionWait.promise;
         if (restoreSessionResult.value) emitState("ready");
@@ -70,6 +82,7 @@ const auroraLensCtor = vi.hoisted(() =>
       }),
       search: vi.fn(),
       searchIndex: vi.fn(),
+      setDrawMode: vi.fn(),
       showThumbnails: vi.fn(),
       zoomIn: vi.fn(),
       zoomOut: vi.fn(),
@@ -94,11 +107,20 @@ import { useImageViewer } from "../hook/useImageViewer";
 
 function Harness() {
   const viewer = useImageViewer();
+  const [exportedPage, setExportedPage] = useState<number | null>(null);
   return (
     <>
       <div ref={viewer.lensHostRef} />
       <button disabled={!viewer.canActualSize} onClick={viewer.actualSize} type="button">actual size</button>
       <button disabled={!viewer.canClearSearch} onClick={viewer.clearSearch} type="button">clear search</button>
+      <button disabled={!viewer.canSelect} onClick={viewer.select} type="button">select</button>
+      <button
+        disabled={!viewer.canExport}
+        onClick={() => void viewer.exportSelection().then((selection) => setExportedPage(selection?.pageNumber ?? null))}
+        type="button"
+      >
+        export
+      </button>
       <button disabled={!viewer.canGoFirst} onClick={viewer.firstPage} type="button">first page</button>
       <button disabled={!viewer.canFitHeight} onClick={viewer.fitHeight} type="button">fit height</button>
       <button disabled={!viewer.canFitPage} onClick={viewer.fitPage} type="button">fit page</button>
@@ -111,6 +133,7 @@ function Harness() {
       <button disabled={!viewer.canZoomOut} onClick={viewer.zoomOut} type="button">zoom out</button>
       <span data-testid="restored-session">{viewer.isRestoredSession ? "restored" : "not-restored"}</span>
       <span data-testid="restore-state">{viewer.isRestoring ? "restoring" : "ready"}</span>
+      <span data-testid="exported-page">{exportedPage}</span>
     </>
   );
 }
@@ -170,9 +193,12 @@ describe("useImageViewer", () => {
   afterEach(() => {
     imageViewerStoreApi.getState().resetViewer();
     lensInstances.length = 0;
+    exportSelectionError.value = null;
     decodeDocError.value = null;
     restoreSessionWait.promise = null;
     restoreSessionResult.value = false;
+    viewerCanExport.value = true;
+    viewerCanSelect.value = true;
     viewerCanSearch.value = true;
     vi.unstubAllGlobals();
     vi.clearAllMocks();
@@ -426,6 +452,8 @@ describe("useImageViewer", () => {
     await waitFor(() => expect(lensInstances[0].decodeDoc).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("button", { name: "actual size" }));
     fireEvent.click(screen.getByRole("button", { name: "clear search" }));
+    fireEvent.click(screen.getByRole("button", { name: "select" }));
+    fireEvent.click(screen.getByRole("button", { name: "export" }));
     fireEvent.click(screen.getByRole("button", { name: "first page" }));
     fireEvent.click(screen.getByRole("button", { name: "fit height" }));
     fireEvent.click(screen.getByRole("button", { name: "fit page" }));
@@ -438,6 +466,10 @@ describe("useImageViewer", () => {
 
     expect(lensInstances[0].actualSize).toHaveBeenCalledTimes(1);
     expect(lensInstances[0].clearSelection).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(lensInstances[0].copySelection).toHaveBeenCalledTimes(1));
+    expect(lensInstances[0].readPageInfo).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("exported-page")).toHaveTextContent("3");
+    expect(lensInstances[0].setDrawMode).toHaveBeenCalledWith(true);
     expect(lensInstances[0].fitHeight).toHaveBeenCalledTimes(1);
     expect(lensInstances[0].fitPage).toHaveBeenCalledTimes(1);
     expect(lensInstances[0].fitWidth).toHaveBeenCalledTimes(1);
@@ -450,7 +482,26 @@ describe("useImageViewer", () => {
     expect(imageViewerStoreApi.getState().searchText).toBe("");
     expect(console.info).toHaveBeenCalledWith("imageviewer lens action", { action: "actualSize" });
     expect(console.info).toHaveBeenCalledWith("imageviewer lens action", { action: "clearSearch" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer lens action", { action: "exportSelection" });
+    expect(console.info).toHaveBeenCalledWith("imageviewer lens action", { action: "select", enabled: true });
     expect(console.info).toHaveBeenCalledWith("imageviewer lens action", { action: "zoomIn" });
+  });
+
+  it("reports selection export errors", async () => {
+    const onError = vi.fn();
+    exportSelectionError.value = new Error("export failed");
+    setHost(onError);
+    setRequest();
+    setPackage();
+    await act(async () => {
+      render(<Harness />);
+    });
+    await waitFor(() => expect(lensInstances[0].decodeDoc).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole("button", { name: "export" }));
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ error: "export failed" }));
+    expect(imageViewerStoreApi.getState().status).toBe("error");
   });
 
   it("keeps search text writable and blocks search when lens search capability is false", async () => {

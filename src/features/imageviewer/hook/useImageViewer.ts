@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import type { AddIndexSelection } from "../../addindex";
 import { toPositivePage, toViewerError } from "../data/imageViewerData";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import type { LensApi, PageRequest } from "../type/imageViewer.types";
@@ -291,6 +292,26 @@ export function useImageViewer() {
     lensRef.current?.clearSelection();
   }, [pageReady, viewerState?.canClearSelection]);
 
+  const exportSelection = useCallback(async (): Promise<AddIndexSelection | null> => {
+    if (!pageReady || !viewerState?.canCopy) return null;
+    console.info("imageviewer lens action", { action: "exportSelection" });
+    try {
+      const result = await lensRef.current?.copySelection();
+      const pageInfo = lensRef.current?.readPageInfo();
+      if (!result?.copied || !pageInfo) return null;
+      return { groups: result.groups, pageNumber: pageInfo.pageNumber };
+    } catch (error) {
+      imageViewerStoreApi.getState().setError(toViewerError(error, "Could not export selected values."));
+      return null;
+    }
+  }, [pageReady, viewerState?.canCopy]);
+
+  const select = useCallback(() => {
+    if (!pageReady || !viewerState?.canDraw) return;
+    console.info("imageviewer lens action", { action: "select", enabled: !viewerState.drawMode });
+    lensRef.current?.setDrawMode(!viewerState.drawMode);
+  }, [pageReady, viewerState?.canDraw, viewerState?.drawMode]);
+
   const showThumbnails = useCallback(() => {
     if (!pageReady || !viewerState?.canShowThumbnails) return;
     console.info("imageviewer lens action", { action: "showThumbnails" });
@@ -338,6 +359,7 @@ export function useImageViewer() {
     actualSize,
     canActualSize: Boolean(pageReady && viewerState?.canActualSize),
     canClearSearch: Boolean(searchText || (pageReady && viewerState?.canClearSelection)),
+    canExport: Boolean(pageReady && viewerState?.canCopy),
     canFitHeight: Boolean(pageReady && viewerState?.canFitHeight),
     canFitPage: Boolean(pageReady && viewerState?.canFitPage),
     canFitWidth: Boolean(pageReady && viewerState?.canFitWidth),
@@ -346,10 +368,12 @@ export function useImageViewer() {
     canGoNext: Boolean(pageReady && viewerState?.canGoNext),
     canGoPrevious: Boolean(pageReady && viewerState?.canGoPrevious),
     canSearch: Boolean(pageReady && viewerState?.canSearch),
+    canSelect: Boolean(pageReady && viewerState?.canDraw),
     canShowThumbnails: Boolean(pageReady && viewerState?.canShowThumbnails),
     canZoomIn: Boolean(pageReady && viewerState?.canZoomIn),
     canZoomOut: Boolean(pageReady && viewerState?.canZoomOut),
     clearSearch,
+    exportSelection,
     firstPage,
     fitHeight,
     fitPage,
@@ -365,6 +389,8 @@ export function useImageViewer() {
     pageCount: viewerState?.pageCount ?? 0,
     previousPage,
     search,
+    selecting: Boolean(viewerState?.drawMode),
+    select,
     showThumbnails,
     zoomIn,
     zoomOut,

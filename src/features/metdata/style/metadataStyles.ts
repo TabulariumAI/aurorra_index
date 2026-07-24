@@ -155,7 +155,7 @@ export function disclosureButtonStyle(hovered: boolean, focused: boolean): CSSPr
     border: `1px solid ${hovered || focused ? borderAccent : "transparent"}`,
     borderRadius: "0.2rem",
     boxShadow: "none",
-    color: teal,
+    color: textStrong,
     cursor: "pointer",
     display: "inline-flex",
     height: "1.5rem",
@@ -210,7 +210,7 @@ export const rowStyles = {
       background: "transparent",
       border: "1px solid transparent",
       borderRadius: "0.2rem",
-      color: textStrong,
+      color: teal,
       cursor: disabled ? "not-allowed" : "pointer",
       display: "inline-flex",
       appearance: "none",
@@ -230,6 +230,9 @@ export const rowStyles = {
   actionButtonHover: {
     color: borderAccent,
     background: `${surfaceAccent}`,
+  },
+  confirmActionButton: {
+    color: teal,
   },
   actionGroup: {
     alignItems: "center",

@@ -3,13 +3,13 @@ import { storeApi } from "../../../store/state/store";
 import type { IndexChoice } from "../../metdata/type/metadata.types";
 
 export const PAGE_SEGMENT_CHOICES = Object.freeze({
-  recital: "RecitalIndexing",
-  exhibit: "ExhibitIndexing",
+  reference: "RecitalIndexing",
+  property: "ExhibitIndexing",
   endorsement: "EndorsementIndexing",
   transaction: "TransactionIndexing",
-  party_clause: "PartyClauseIndexing",
-  confidential: "ConfidentialIndexing",
-  monetaryinfo: "MonetaryInfoIndexing",
+  party: "PartyClauseIndexing",
+  secrets: "ConfidentialIndexing",
+  monetary: "MonetaryInfoIndexing",
   acknowledgment: "AcknowledgmentIndexing",
   court: "CourtIndexing",
   vital: "VitalIndexing",
@@ -18,26 +18,26 @@ export const PAGE_SEGMENT_CHOICES = Object.freeze({
 export type PageSegmentValue = keyof typeof PAGE_SEGMENT_CHOICES;
 
 export const PAGE_SEGMENT_ORDER = Object.freeze([
-  "recital",
-  "exhibit",
+  "reference",
+  "property",
   "endorsement",
   "transaction",
-  "party_clause",
-  "confidential",
-  "monetaryinfo",
+  "party",
+  "secrets",
+  "monetary",
   "acknowledgment",
   "court",
   "vital",
 ]) as readonly PageSegmentValue[];
 
 export const PAGE_SEGMENT_LABELS = Object.freeze({
-  recital: "Referance(Rectal)",
-  exhibit: "Property Terms(Exhibit)",
+  reference: "Referance(Rectal)",
+  property: "Property Terms(Exhibit)",
   endorsement: "Record Endorsements",
   transaction: "Transaction",
-  party_clause: "Part (Party Clause)",
-  confidential: "Confidential",
-  monetaryinfo: "Monetary Terms",
+  party: "Party (Party Clause)",
+  secrets: "Confidential",
+  monetary: "Monetary Terms",
   acknowledgment: "Notarial Acknowledgment",
   court: "Court",
   vital: "Vital",

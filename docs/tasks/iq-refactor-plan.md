@@ -525,7 +525,7 @@ Create exactly these package tests:
 - PASS-only gates produce `decision: "Pass"`.
 - WARNING-only gates produce `decision: "Review"`.
 - Unknown gate statuses are filtered.
-- Segment name `party_clause` displays `Party Clause`.
+- Segment name `party` displays `Party`.
 - Invalid decision normalizes to `"Review"`.
 
 `IqWorker.vitest.test.ts` must cover:
@@ -608,7 +608,7 @@ Visual harness:
   - `iq_doc: 90`
   - one PASS gate
   - one FAIL gate
-  - one segment named `party_clause`
+  - one segment named `party`
   - one report explanation
 - Browser test must verify:
   - `Indexing Quality (IQ)` is visible.
