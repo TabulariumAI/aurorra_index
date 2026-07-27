@@ -4,7 +4,7 @@ import { useMetadata } from "../hook/useMetadata";
 import { indexStoreApi } from "../store/indexStore";
 import { createDeferredState } from "../../indexing/data/deferredState";
 import { storeApi } from "../../../store/state/store";
-import type { IndexActionPayload, IndexMetadataProps, IndexWorkerClient, MetadataPayload } from "../type/metadata.types";
+import type { IndexActionPayload, IndexMetadataProps, IndexMetadataRefresh, IndexWorkerClient, MetadataPayload } from "../type/metadata.types";
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",
@@ -80,6 +80,7 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onActionError, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
+      refresh: null,
       segments,
       session: "session-1",
       workerClient: client,
@@ -100,12 +101,43 @@ describe("useMetadata", () => {
     expect(result.current.openSegment).toBe("party");
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
     expect(onActionError).not.toHaveBeenCalled();
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "metadata.reprocess:started",
-      "metadata.reprocess:completed",
-      "metadata.load:started",
-      "metadata.load:completed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed"]);
+  });
+
+  it("reloads metadata once for each matching host refresh event", async () => {
+    const client = createClient();
+    const onSegmentExpand = vi.fn();
+    const props: IndexMetadataProps = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: { onSegmentExpand },
+      choices: [],
+      deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
+      refresh: null,
+      segments,
+      session: "session-1",
+      workerClient: client,
+    };
+    const { result, rerender } = renderHook(
+      ({ refresh }: { refresh: IndexMetadataRefresh | null }) => useMetadata({ ...props, refresh }),
+      { initialProps: { refresh: null } as { refresh: IndexMetadataRefresh | null } },
+    );
+
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
+
+    rerender({ refresh: { id: 1, segment: "legal", session: "session-1" } });
+
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.openSegment).toBe("legal"));
+    expect(onSegmentExpand).toHaveBeenCalledWith("legal");
+
+    rerender({ refresh: { id: 1, segment: "legal", session: "session-1" } });
+    await act(async () => undefined);
+    expect(client.indexData).toHaveBeenCalledTimes(2);
+
+    rerender({ refresh: { id: 2, segment: "party", session: "session-2" } });
+    await act(async () => undefined);
+    expect(client.indexData).toHaveBeenCalledTimes(2);
   });
 
   it("marks confirm code state and emits a completion event", async () => {
@@ -118,6 +150,7 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
+      refresh: null,
       segments,
       session: "session-1",
       workerClient: client,
@@ -148,6 +181,7 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onIndexFocus, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
+      refresh: null,
       segments,
       session: "session-1",
       workerClient: client,
@@ -184,6 +218,7 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onActionError, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
+      refresh: null,
       segments,
       session: "session-1",
       workerClient: client,
@@ -222,6 +257,6 @@ describe("useMetadata", () => {
       }),
     );
     expect(onActionComplete).not.toHaveBeenCalled();
-    expect(onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ job: "metadata.reprocess", phase: "failed" }));
+    expect(onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ message: "Segment reprocessing failed", phase: "failed" }));
   });
 });

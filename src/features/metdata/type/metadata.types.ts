@@ -166,6 +166,12 @@ export type IndexDeferredState = {
   selectedIndex: IndexSelected | null;
 };
 
+export type IndexMetadataRefresh = {
+  id: number;
+  segment: string;
+  session: string;
+};
+
 export type IndexActionPayload = {
   code: string;
   highlightOptions?: { scroll: boolean };
@@ -272,6 +278,7 @@ export type IndexMetadataProps = {
   choices: IndexChoice[] | string | null;
   children?: ReactNode;
   deferredState: IndexDeferredState;
+  refresh: IndexMetadataRefresh | null;
   segments: IndexSegmentValues;
   session: string;
   workerClient?: IndexWorkerClient;

@@ -51,12 +51,7 @@ describe("loadIqReport", () => {
 
     expect(client.startReport).toHaveBeenCalledWith("token", "session-1");
     expect(client.pollReport).toHaveBeenCalledTimes(2);
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "iq.start:started",
-      "iq.start:completed",
-      "iq.poll:started",
-      "iq.poll:completed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed"]);
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", report, status: "success" });
   });
 
@@ -145,10 +140,7 @@ describe("loadIqReport", () => {
 
     expect(client.pollReport).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith({ code: "start_error", details: undefined, error: "start failed", status: 500 });
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "iq.start:started",
-      "iq.start:failed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "failed"]);
     expect(iqStoreApi.getState().status).toBe("error");
   });
 });

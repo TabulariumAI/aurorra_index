@@ -109,11 +109,11 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(dialog).toBeVisible();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
-  await expect(page.locator("#visual-stage")).toHaveAttribute("data-job-event", "index.add:started");
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "started");
   await expect.poll(() => serviceRequest).not.toBeNull();
   releaseService();
   await expect(page.locator("#visual-stage")).toHaveAttribute("data-add-index-complete", "true");
-  await expect(page.locator("#visual-stage")).toHaveAttribute("data-job-event", "index.add:completed");
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "completed");
   expect(serviceRequest).toEqual({
     authorization: "Bearer token",
     body: {
@@ -155,5 +155,5 @@ test("Add Index closes and posts failed progress when the service rejects the in
   await expect(dialog).toHaveCount(0);
   await expect(page.locator("#visual-stage")).toHaveAttribute("data-error", "Index already exists.");
   await expect(page.locator("#visual-stage")).not.toHaveAttribute("data-add-index-complete", "true");
-  await expect(page.locator("#visual-stage")).toHaveAttribute("data-job-event", "index.add:failed");
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "failed");
 });

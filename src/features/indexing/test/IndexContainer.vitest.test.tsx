@@ -93,6 +93,7 @@ describe("IndexContainer", () => {
         callbacks={{ onActionComplete, onEditPage, onJobEvent, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
+        refresh={null}
         segments={segments}
         session="session-1"
         workerClient={workerClient}
@@ -156,7 +157,6 @@ describe("IndexContainer", () => {
     fireEvent.click(await screen.findByRole("link", { name: "Reprocess" }));
     await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
     expect(onJobEvent).toHaveBeenCalledWith({
-      job: "metadata.reprocess",
       jobId: expect.any(String),
       message: "Reprocessing segment",
       phase: "started",
@@ -188,6 +188,7 @@ describe("IndexContainer", () => {
         callbacks={{ onMetadataError, onViewError }}
         choices={choices}
         deferredState={createDeferredState()}
+        refresh={null}
         segments={segments}
         session="session-1"
         workerClient={{
@@ -229,6 +230,7 @@ describe("IndexContainer", () => {
         callbacks={{ onViewCanceled }}
         choices={choices}
         deferredState={createDeferredState()}
+        refresh={null}
         segments={segments}
         session="session-1"
         workerClient={workerClient}

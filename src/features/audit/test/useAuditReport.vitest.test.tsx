@@ -72,7 +72,7 @@ describe("useAuditReport", () => {
     await waitFor(() => expect(callbacks.onAuditError).toHaveBeenCalledWith(error));
     expect(auditStoreApi.getState().error).toEqual(error);
     expect(auditStoreApi.getState().status).toBe("error");
-    expect(callbacks.onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ job: "audit.load", phase: "failed" }));
+    expect(callbacks.onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ message: "Audit report load failed", phase: "failed" }));
   });
 
   it("calls onAuditCanceled on unmount", async () => {

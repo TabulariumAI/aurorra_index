@@ -85,7 +85,7 @@ export function PageSegmentsPanel({
     const submitted = [...selected];
     pageSegmentsStoreApi.getState().setSaving();
     const jobId = crypto.randomUUID();
-    onJobEvent({ job: "page-segments.update", jobId, message: "Updating page segments", phase: "started", session });
+    onJobEvent({ jobId, message: "Updating page segments", phase: "started", session });
     try {
       await client.updatePageSegments(authToken, session, pageCode, submitted);
       updateCachedPageSegments(session, pageCode, submitted);
@@ -93,12 +93,12 @@ export function PageSegmentsPanel({
       onComplete({ pageCode, segments: submitted, session });
     } catch (submitError) {
       const workerError = toWorkerError(submitError);
-      onJobEvent({ error: workerError.error, job: "page-segments.update", jobId, message: "Page segment update failed", phase: "failed", session });
+      onJobEvent({ error: workerError.error, jobId, message: "Page segment update failed", phase: "failed", session });
       pageSegmentsStoreApi.getState().setError(workerError);
       onError({ error: workerError, pageCode, session });
       return;
     }
-    onJobEvent({ job: "page-segments.update", jobId, message: "Page segments updated", phase: "completed", session });
+    onJobEvent({ jobId, message: "Page segments updated", phase: "completed", session });
   };
 
   return (

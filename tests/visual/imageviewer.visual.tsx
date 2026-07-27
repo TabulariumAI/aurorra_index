@@ -91,7 +91,7 @@ function VisualImageViewer() {
             stage.dataset.error = error.error;
           },
           onJobEvent(event) {
-            stage.dataset.jobEvent = `${event.job}:${event.phase}`;
+            stage.dataset.event = event.phase;
           },
         }}
         previewAction={null}
@@ -121,7 +121,7 @@ function VisualImageViewer() {
               stage.dataset.error = error.error;
             }}
             onJobEvent={(event) => {
-              stage.dataset.jobEvent = `${event.job}:${event.phase}`;
+              stage.dataset.event = event.phase;
             }}
             selection={selection}
             session={hostInput.session}

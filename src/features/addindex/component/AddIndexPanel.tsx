@@ -49,10 +49,10 @@ export function AddIndexPanel({
       value: fields.index,
     };
     onClose();
-    onJobEvent({ job: "index.add", jobId, message: "Adding index", phase: "started", session });
+    onJobEvent({ jobId, message: "Adding index", phase: "started", session });
     try {
       await client.addIndex(authToken, session, request);
-      onJobEvent({ job: "index.add", jobId, message: "Index added", phase: "completed", session });
+      onJobEvent({ jobId, message: "Index added", phase: "completed", session });
       onComplete({ ...request, session });
     } catch (submitError) {
       const failure = submitError as Error & {
@@ -66,7 +66,7 @@ export function AddIndexPanel({
         error: failure.message,
         status: failure.status,
       };
-      onJobEvent({ error: workerError.error, job: "index.add", jobId, message: "Index add failed", phase: "failed", session });
+      onJobEvent({ error: workerError.error, jobId, message: "Index add failed", phase: "failed", session });
       onError(workerError);
     }
   };

@@ -118,16 +118,7 @@ describe("ImageViewerPanel", () => {
       jsonUrl: directPackage.data,
       tiffUrl: directPackage.tiff,
     });
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "image.package:started",
-      "image.package:completed",
-      "image.status:started",
-      "image.status:completed",
-      "image.data:started",
-      "image.data:completed",
-      "image.download:started",
-      "image.download:completed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed", "started", "completed", "started", "completed"]);
     expect(onError).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });

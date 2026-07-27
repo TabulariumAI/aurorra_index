@@ -95,7 +95,7 @@ function PageSegmentsVisualHarness() {
         onClose={onClose}
         onComplete={onComplete}
         onError={onError}
-        onJobEvent={(event) => setJobMessage(`${event.job}:${event.phase}`)}
+        onJobEvent={(event) => setJobMessage(event.phase)}
         pageClass="blank"
         pageCode="page-1"
         segments={["reference", "party"]}

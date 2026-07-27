@@ -39,7 +39,7 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-file-size", "812422");
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-file-type", "image/tiff");
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-metadata-pages", "5");
-  await expect(page.locator("#visual-stage")).toHaveAttribute("data-job-event", "image.download:completed");
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "completed");
 
   await page.getByRole("button", { name: "Zoom in" }).click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-zoom", "in");

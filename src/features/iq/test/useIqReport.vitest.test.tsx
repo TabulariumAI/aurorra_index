@@ -54,12 +54,7 @@ describe("useIqReport", () => {
 
     expect(callbacks.onIqRefresh).toHaveBeenCalledWith(report);
     expect(callbacks.onIqStarted).toHaveBeenCalledWith({ status: "completed", data: {}, isComplete: true });
-    expect(callbacks.onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "iq.load:started",
-      "iq.load:completed",
-      "iq.start:started",
-      "iq.start:completed",
-    ]);
+    expect(callbacks.onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed"]);
   });
 
   it("acks a gate, removes it from store, and calls onIqAck", async () => {
@@ -86,7 +81,7 @@ describe("useIqReport", () => {
     const { unmount } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, previewAction, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(callbacks.onIqError).toHaveBeenCalledWith({ code: "load_error", details: undefined, error: "load failed", status: 500 }));
-    expect(callbacks.onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ job: "iq.load", phase: "failed" }));
+    expect(callbacks.onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ message: "IQ report load failed", phase: "failed" }));
     unmount();
     expect(callbacks.onIqCanceled).toHaveBeenCalledTimes(1);
   });

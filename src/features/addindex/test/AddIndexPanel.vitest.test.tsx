@@ -118,10 +118,7 @@ describe("AddIndexPanel", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(onJobEvent.mock.invocationCallOrder[0]);
     expect(onJobEvent.mock.invocationCallOrder[0]).toBeLessThan(addIndex.mock.invocationCallOrder[0]);
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "index.add:started",
-      "index.add:completed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
     expect(onComplete).toHaveBeenCalledWith({
       aspect: "Party",
       session: "session-1",
@@ -160,10 +157,7 @@ describe("AddIndexPanel", () => {
     }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onComplete).not.toHaveBeenCalled();
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "index.add:started",
-      "index.add:failed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "failed"]);
   });
 
   it("closes without submitting", () => {

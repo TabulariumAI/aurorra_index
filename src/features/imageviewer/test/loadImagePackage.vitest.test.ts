@@ -54,16 +54,7 @@ describe("loadImagePackage", () => {
       tiffType: "image/tiff",
     });
     expect(imageViewerStoreApi.getState().tiffBytes?.byteLength).toBe(4);
-    expect(onJobEvent.mock.calls.map(([event]) => `${event.job}:${event.phase}`)).toEqual([
-      "image.package:started",
-      "image.package:completed",
-      "image.status:started",
-      "image.status:completed",
-      "image.data:started",
-      "image.data:completed",
-      "image.download:started",
-      "image.download:completed",
-    ]);
+    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed", "started", "completed", "started", "completed"]);
   });
 
   it("does not restart same-session loaded package", async () => {
