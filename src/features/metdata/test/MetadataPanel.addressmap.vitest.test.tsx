@@ -26,6 +26,22 @@ const segments: IndexSegmentValues = {
   VITAL: "vital",
 };
 
+const panelDefaults = {
+  actions: {
+    confirm: true,
+    drop: true,
+    refine: true,
+    reprocess: true,
+  },
+  sections: {
+    filterByChoices: true,
+    hiddenSegments: new Set<string>(),
+    showEmpty: false,
+  },
+  shortcuts: null,
+  status: "success" as const,
+};
+
 function PanelHarness(): JSX.Element {
   const [address, setAddress] = useState("");
 
@@ -50,6 +66,7 @@ function PanelHarness(): JSX.Element {
   return (
     <>
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{
           onAddressClick: (value) => setAddress(value),
         }}
@@ -65,7 +82,6 @@ function PanelHarness(): JSX.Element {
         segments={segments}
         session="session-address-map"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />
       <div data-testid="address-clicked">{address}</div>

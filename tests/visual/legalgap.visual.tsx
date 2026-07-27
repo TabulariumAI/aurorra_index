@@ -60,20 +60,24 @@ function LegalGapHarness(): JSX.Element {
 
   return (
     <MetadataPanel
+      actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
       callbacks={{}}
       choices={[{ level: 1, service: "LegalEnrichment" }]}
       confirmedCodes={new Set()}
       metadata={metadata}
       onConfirm={noOp}
       onDrop={noOp}
+      onReprocess={noOp}
       openSegment={segments.LEGAL}
       panelData={panelData}
       removedCodes={new Set()}
+      sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
       selectedIndex={null}
       segments={segments}
       session="visual-session-legal-gap"
       setSectionOpen={noOp}
-      store={{ error: null, status: "success" }}
+      shortcuts={null}
+      status="success"
     />
   );
 }

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
 import { indexStoreApi } from "../../metdata/store/indexStore";
+import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { createDeferredState } from "../data/deferredState";
 import type { IndexSegmentValues, MetadataPayload } from "../../metdata/type/metadata.types";
 
@@ -69,6 +70,7 @@ const metadata: MetadataPayload = {
 describe("IndexContainer", () => {
   afterEach(() => {
     indexStoreApi.getState().resetMetadata();
+    imageViewerStoreApi.getState().resetViewer();
   });
 
   it("fetches metadata, renders visible sections, and emits callbacks", async () => {
@@ -132,6 +134,20 @@ describe("IndexContainer", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "Alice" }));
     expect(onPageClick).toHaveBeenCalled();
+    expect(imageViewerStoreApi.getState().request).toMatchObject({
+      code: "idx-1",
+      index: "index",
+      metadataIndex: {
+        label: "grantor",
+        source: "source",
+        value: "Alice",
+      },
+      page: 1,
+      quote: "source",
+      segment: "party",
+      session: "session-1",
+      value: "Alice",
+    });
     expect(screen.queryByLabelText("Open page image 1")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit index" })).not.toBeInTheDocument();
 

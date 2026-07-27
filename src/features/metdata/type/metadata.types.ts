@@ -283,3 +283,16 @@ export type IndexMetadataProps = {
   session: string;
   workerClient?: IndexWorkerClient;
 };
+
+export type MetadataPanelActions = {
+  confirm: boolean;
+  drop: boolean;
+  refine: boolean;
+  reprocess: boolean;
+};
+
+export type MetadataPanelSections = {
+  filterByChoices: boolean;
+  hiddenSegments: ReadonlySet<string>;
+  showEmpty: boolean;
+};

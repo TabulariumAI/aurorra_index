@@ -29,6 +29,22 @@ const segments: IndexSegmentValues = {
   VITAL: "vital",
 };
 
+const panelDefaults = {
+  actions: {
+    confirm: true,
+    drop: true,
+    refine: true,
+    reprocess: true,
+  },
+  sections: {
+    filterByChoices: true,
+    hiddenSegments: new Set<string>(),
+    showEmpty: false,
+  },
+  shortcuts: null,
+  status: "success" as const,
+};
+
 const metadata: MetadataPayload = {
   fees: [],
   funds: [],
@@ -61,6 +77,7 @@ describe("MetadataPanel legal map trigger", () => {
     const onLegalView = vi.fn();
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{ onLegalView }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
@@ -74,7 +91,6 @@ describe("MetadataPanel legal map trigger", () => {
         segments={segments}
         session="session-legal"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );

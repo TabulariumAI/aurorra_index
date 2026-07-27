@@ -3,7 +3,6 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { ConfButton } from "aurorra-ui";
 import { useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { isAmbiguous } from "../data/metadataData";
-import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import {
   disclosureButtonStyle,
   detailLabelStyle,
@@ -198,24 +197,6 @@ export function openMetadataImage(
   onPageClick: NonNullable<IndexMetadataCallbacks["onPageClick"]>,
   payload: IndexActionPayload,
 ): void {
-  console.info("imageviewer request from metadata row", {
-    code: payload.code,
-    page: payload.page,
-    segment: payload.segment,
-    session: payload.session,
-    type: payload.type,
-  });
-  imageViewerStoreApi.getState().setRequest({
-    code: payload.code,
-    highlightOptions: { scroll: false },
-    index: payload.type,
-    metadataIndex: payload.metadataIndex ?? null,
-    page: payload.page,
-    quote: payload.quote ?? "",
-    segment: payload.segment,
-    session: payload.session,
-    value: payload.value ?? "",
-  });
   onPageClick(payload);
 }
 
@@ -341,8 +322,8 @@ export function MetadataRow({
   callbacks: IndexMetadataCallbacks;
   confirmed: boolean;
   item: MetadataIndex;
-  onConfirm: (payload: IndexActionPayload) => Promise<void> | void;
-  onDrop: (payload: IndexActionPayload) => Promise<void> | void;
+  onConfirm?: (payload: IndexActionPayload) => Promise<void> | void;
+  onDrop?: (payload: IndexActionPayload) => Promise<void> | void;
   onAddressClick?: (address: string) => void;
   pageClass?: string;
   pageSegments?: string[];
@@ -398,7 +379,7 @@ export function MetadataRow({
           <IndexValue value={value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
         </div>
         <div style={rowStyles.actionGroup}>
-          {ambiguous ? (
+          {ambiguous && onConfirm ? (
             <ActionButton label="Confirm index and remove ambiguity" lineAligned={false} onClick={() => onConfirm(payload)}>
               <Icon name="check" />
             </ActionButton>
@@ -408,7 +389,7 @@ export function MetadataRow({
               <Icon name="copy" />
             </ActionButton>
           ) : null}
-          {type !== "page" && code ? (
+          {type !== "page" && code && onDrop ? (
             <ConfButton
               aria-label="Pop the index"
               className="metadata-row-action"

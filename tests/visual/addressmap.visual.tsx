@@ -58,10 +58,12 @@ function AddressMapVisualHarness(): JSX.Element {
   const panelData = useMemo(() => getPanelData(metadata), [metadata]);
 
   const address = "123 Main Street, Austin, TX 78701";
+  const noOp = () => undefined;
 
   return (
     <>
       <MetadataPanel
+        actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
         callbacks={{
           onAddressClick: (value) => setAddressClicked(buildAddressMapEmbedUrl(value)),
           onPageClick: () => undefined,
@@ -69,16 +71,19 @@ function AddressMapVisualHarness(): JSX.Element {
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "ExhibitIndexing" }]}
         metadata={metadata}
-        onConfirm={() => undefined}
-        onDrop={() => undefined}
+        onConfirm={noOp}
+        onDrop={noOp}
+        onReprocess={noOp}
         openSegment={segments.PROPERTY}
+        panelData={panelData}
         removedCodes={new Set()}
+        sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
         selectedIndex={null}
         segments={segments}
         session="visual-session-addressmap"
         setSectionOpen={() => undefined}
-        store={{ error: null, status: "success" }}
-        panelData={panelData}
+        shortcuts={null}
+        status="success"
       />
       <div data-testid="address-map-callback-source">
         {addressClicked || "empty"}

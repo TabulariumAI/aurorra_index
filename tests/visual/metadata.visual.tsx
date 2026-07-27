@@ -94,20 +94,24 @@ stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 
 createRoot(stage).render(
-    <MetadataPanel
-      callbacks={{ onEditPage: noOp, onPageClick: noOp }}
-      choices={[{ level: 1, service: "PartyClauseIndexing" }]}
-      confirmedCodes={new Set()}
-      metadata={activeMetadata}
-      onConfirm={noOp}
-      onDrop={noOp}
-      openSegment={segments.PARTY}
-      panelData={activePanelData}
-      removedCodes={new Set()}
+  <MetadataPanel
+    actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
+    callbacks={{ onEditPage: noOp, onPageClick: noOp }}
+    choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+    confirmedCodes={new Set()}
+    metadata={activeMetadata}
+    onConfirm={noOp}
+    onDrop={noOp}
+    onReprocess={noOp}
+    openSegment={segments.PARTY}
+    panelData={activePanelData}
+    removedCodes={new Set()}
+    sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
     selectedIndex={null}
     segments={segments}
     session="visual-session-metadata"
     setSectionOpen={noOp}
-    store={{ error: null, status: "success" }}
+    shortcuts={null}
+    status="success"
   />,
 );

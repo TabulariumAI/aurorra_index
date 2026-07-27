@@ -6,11 +6,13 @@ import type {
   IndexChoice,
   IndexMetadataCallbacks,
   IndexSelected,
-  IndexStoreState,
   IndexSegmentValues,
+  MetadataPanelActions,
   MetadataIndex,
   MetadataPayload,
   MetadataPanelData,
+  MetadataPanelSections,
+  MetadataStatus,
 } from "../type/metadata.types";
 import {
   ActionButton,
@@ -52,21 +54,24 @@ const pageSegmentValues = new Set([
 ]);
 
 export type MetadataPanelProps = {
+  actions: MetadataPanelActions;
   callbacks: IndexMetadataCallbacks;
   choices: IndexChoice[] | string | null;
   children?: ReactNode;
   metadata: MetadataPayload | null;
-  onConfirm: (payload: IndexActionPayload) => Promise<void> | void;
-  onDrop: (payload: IndexActionPayload) => Promise<void> | void;
-  onReprocess: (segment: string) => Promise<void> | void;
+  onConfirm?: (payload: IndexActionPayload) => Promise<void> | void;
+  onDrop?: (payload: IndexActionPayload) => Promise<void> | void;
+  onReprocess?: (segment: string) => Promise<void> | void;
   confirmedCodes: Set<string>;
   openSegment: string | null;
   removedCodes: Set<string>;
+  sections: MetadataPanelSections;
   selectedIndex: IndexSelected | null;
   segments: IndexSegmentValues;
   session: string;
   setSectionOpen: (segment: string, open: boolean) => void;
-  store: Pick<IndexStoreState, "error" | "status">;
+  shortcuts: ReadonlyMap<string, string> | null;
+  status: MetadataStatus;
   panelData: MetadataPanelData | null;
 };
 
@@ -84,7 +89,7 @@ function getChoiceLevel(choices: MetadataPanelProps["choices"], name: string): n
   }
 }
 
-function segmentVisible(choices: MetadataPanelProps["choices"], segment: keyof typeof choiceSections): boolean {
+function choiceSegmentVisible(choices: MetadataPanelProps["choices"], segment: keyof typeof choiceSections): boolean {
   return getChoiceLevel(choices, choiceSections[segment]) > 0;
 }
 
@@ -141,19 +146,28 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     children,
     choices,
     confirmedCodes,
+    actions,
     metadata,
     onConfirm,
     onDrop,
     onReprocess,
     openSegment,
     removedCodes,
+    sections,
     segments,
     selectedIndex,
     session,
     setSectionOpen,
-    store,
+    shortcuts,
+    status,
     panelData,
   } = props;
+
+  const hidden = sections.hiddenSegments;
+  const isVisible = (segment: string) => !hidden.has(segment);
+  const choiceVisible = (segment: string, choice: keyof typeof choiceSections) =>
+    isVisible(segment) && (!sections.filterByChoices || choiceSegmentVisible(choices, choice));
+  const sectionShortcut = (segment: string) => shortcuts?.get(segment) ?? null;
 
   const rows = (items: MetadataIndex[], segment: string, emptyMessage: string, type = "index") => {
     const visibleItems = items.filter((item) => !removedCodes.has(String(item.code || "")));
@@ -166,8 +180,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           confirmed={confirmedCodes.has(code)}
           item={item}
           key={`${code}-${index}`}
-          onConfirm={onConfirm}
-          onDrop={onDrop}
+          onConfirm={actions.confirm ? onConfirm : undefined}
+          onDrop={actions.drop ? onDrop : undefined}
           onAddressClick={callbacks.onAddressClick}
           selected={Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segment))}
           segment={segment}
@@ -189,7 +203,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
       action={
         actionSegment ? (
           <div style={metadataStyles.actionGroup}>
-            {actionSegment ? (
+            {actions.reprocess && actionSegment && onReprocess ? (
               <SectionAction
                 onClick={async () => {
                   await onReprocess(actionSegment);
@@ -198,8 +212,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 Reprocess
               </SectionAction>
             ) : null}
-            {actionSegment && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
-            {callbacks.onEditPage ? (
+            {actions.reprocess && actionSegment && onReprocess && actions.refine && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
+            {actions.refine && callbacks.onEditPage ? (
               <SectionAction
                 onClick={() =>
                   callbacks.onEditPage?.({
@@ -220,17 +234,18 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
       count={count}
       onOpenChange={(open) => setSectionOpen(segment, open)}
       open={openSegment === segment}
+      shortcutKey={sectionShortcut(segment)}
       title={title}
     >
       {content}
     </MetadataSegment>
   );
 
-  if (store.status === "loading" && !metadata) {
+  if (status === "loading" && !metadata) {
     return null;
   }
 
-  if (store.status === "error") {
+  if (status === "error") {
     return null;
   }
 
@@ -261,7 +276,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             <span style={metadataStyles.session}>{session}</span>
           </div>
         </header>
-        {renderSegment(
+        {isVisible(segments.PAGE) ? renderSegment(
           segments.PAGE,
           "Pages",
           pageItems.length,
@@ -281,27 +296,27 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
               value: `${pageNum} : ${pageNum === "1" ? "Title" : formatLabel(pageClass)} page`,
             };
             return (
-            <MetadataRow
-              callbacks={callbacks}
-              confirmed={false}
-              item={item}
-              key={`${code}-${index}`}
-              onConfirm={onConfirm}
-              onDrop={onDrop}
-              onAddressClick={callbacks.onAddressClick}
-              pageClass={pageClass}
-              pageSegments={validSegments}
-              selected={Boolean(code && selectedIndex?.code === code)}
-              segment={segments.PAGE}
-              session={session}
-              type="page"
+              <MetadataRow
+                callbacks={callbacks}
+                confirmed={false}
+                item={item}
+                key={`${code}-${index}`}
+                onConfirm={actions.confirm ? onConfirm : undefined}
+                onDrop={actions.drop ? onDrop : undefined}
+                onAddressClick={callbacks.onAddressClick}
+                pageClass={pageClass}
+                pageSegments={validSegments}
+                selected={Boolean(code && selectedIndex?.code === code)}
+                segment={segments.PAGE}
+                session={session}
+                type="page"
               />
             );
           }) : <EmptyRow message="No recordables pages found." />,
           null,
-        )}
-        {segmentVisible(choices, "secrets") ? renderSegment(segments.SECRETS, "Confidential", secretItems.length, rows(secretItems, segments.SECRETS, "No confidential info found.", "secret")) : null}
-        {renderSegment(
+        ) : null}
+        {choiceVisible(segments.SECRETS, "secrets") ? renderSegment(segments.SECRETS, "Confidential", secretItems.length, rows(secretItems, segments.SECRETS, "No confidential info found.", "secret")) : null}
+        {isVisible(segments.TITLE) ? renderSegment(
           segments.TITLE,
           "Titles",
           titleItems.length,
@@ -312,12 +327,12 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             </article>
           )) : <EmptyRow message="No titles found." />,
           null,
-        )}
-        {segmentVisible(choices, "endorsement") ? renderSegment(segments.ENDORSEMENT, "Record Endorsements", panelData.endorsements.length, rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.")) : null}
-        {segmentVisible(choices, "party") ? renderSegment(segments.PARTY, "Parties(Party Clause)", panelData.parties.length, rows(panelData.parties, segments.PARTY, "No parties found.")) : null}
-        {segmentVisible(choices, "reference") ? renderSegment(segments.REFERENCE, "References(Recital)", panelData.references.length, rows(panelData.references, segments.REFERENCE, "No references found.")) : null}
-        {segmentVisible(choices, "property") ? renderSegment(segments.PROPERTY, "Property Terms(Exhibits)", panelData.properties.length, rows(panelData.properties, segments.PROPERTY, "No property Info found.")) : null}
-        {segmentVisible(choices, "legal") ? renderSegment(
+        ) : null}
+        {choiceVisible(segments.ENDORSEMENT, "endorsement") ? renderSegment(segments.ENDORSEMENT, "Record Endorsements", panelData.endorsements.length, rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.")) : null}
+        {choiceVisible(segments.PARTY, "party") ? renderSegment(segments.PARTY, "Parties(Party Clause)", panelData.parties.length, rows(panelData.parties, segments.PARTY, "No parties found.")) : null}
+        {choiceVisible(segments.REFERENCE, "reference") ? renderSegment(segments.REFERENCE, "References(Recital)", panelData.references.length, rows(panelData.references, segments.REFERENCE, "No references found.")) : null}
+        {choiceVisible(segments.PROPERTY, "property") ? renderSegment(segments.PROPERTY, "Property Terms(Exhibits)", panelData.properties.length, rows(panelData.properties, segments.PROPERTY, "No property Info found.")) : null}
+        {choiceVisible(segments.LEGAL, "legal") ? renderSegment(
           segments.LEGAL,
           "Legal Description",
           legalGroups.length,
@@ -375,15 +390,15 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             ) : <EmptyRow message="No legal descriptions found." />}
           </div>,
         ) : null}
-        {segmentVisible(choices, "monetary") ? renderSegment(segments.MONETARY, "Monetary Terms", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
-        {segmentVisible(choices, "acknowledgment") ? renderSegment(segments.ACKNOWLEDGMENT, "Notarial Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
-        {segmentVisible(choices, "transaction") ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
-        {segmentVisible(choices, "vital") ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}
-        {fiscal.factors.length ? renderSegment(segments.FEEFACTOR, "Fee Factors", fiscal.factors.length, fiscal.factors.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
-        {fiscal.fees.length ? renderSegment(segments.FEE, "Fees", fiscal.fees.length, fiscal.fees.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
-        {fiscal.funds.length ? renderSegment(segments.FUND, "Funds", fiscal.funds.length, fiscal.funds.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
-        {Array.isArray(metadata.chain) && metadata.chain.length ? renderSegment(segments.CHAIN, "Chain", metadata.chain.length, metadata.chain.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>), null) : null}
-        {metadata.history ? renderSegment(segments.HISTORY, "History", Object.keys(metadata.history).length, <pre style={metadataStyles.pre}>{JSON.stringify(metadata.history, null, 2)}</pre>, null) : null}
+        {choiceVisible(segments.MONETARY, "monetary") ? renderSegment(segments.MONETARY, "Monetary Terms", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
+        {choiceVisible(segments.ACKNOWLEDGMENT, "acknowledgment") ? renderSegment(segments.ACKNOWLEDGMENT, "Notarial Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
+        {choiceVisible(segments.TRANSACTION, "transaction") ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
+        {choiceVisible(segments.VITAL, "vital") ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}
+        {isVisible(segments.FEEFACTOR) && (fiscal.factors.length || sections.showEmpty) ? renderSegment(segments.FEEFACTOR, "Fee Factors", fiscal.factors.length, fiscal.factors.length ? fiscal.factors.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No fee factors found." />, null) : null}
+        {isVisible(segments.FEE) && (fiscal.fees.length || sections.showEmpty) ? renderSegment(segments.FEE, "Fees", fiscal.fees.length, fiscal.fees.length ? fiscal.fees.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No fees found." />, null) : null}
+        {isVisible(segments.FUND) && (fiscal.funds.length || sections.showEmpty) ? renderSegment(segments.FUND, "Funds", fiscal.funds.length, fiscal.funds.length ? fiscal.funds.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No fund distributions found." />, null) : null}
+        {isVisible(segments.CHAIN) && (Array.isArray(metadata.chain) && metadata.chain.length || sections.showEmpty) ? renderSegment(segments.CHAIN, "Chain", Array.isArray(metadata.chain) ? metadata.chain.length : 0, Array.isArray(metadata.chain) && metadata.chain.length ? metadata.chain.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No data found." />, null) : null}
+        {isVisible(segments.HISTORY) && (metadata.history && Object.keys(metadata.history).length || sections.showEmpty) ? renderSegment(segments.HISTORY, "History", metadata.history ? Object.keys(metadata.history).length : 0, metadata.history && Object.keys(metadata.history).length ? <pre style={metadataStyles.pre}>{JSON.stringify(metadata.history, null, 2)}</pre> : <EmptyRow message="No history found." />, null) : null}
         {children}
       </section>
     </Tooltip.Provider>

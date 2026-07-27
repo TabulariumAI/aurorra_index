@@ -28,6 +28,22 @@ const segments: IndexSegmentValues = {
   VITAL: "vital",
 };
 
+const panelDefaults = {
+  actions: {
+    confirm: true,
+    drop: true,
+    refine: true,
+    reprocess: true,
+  },
+  sections: {
+    filterByChoices: true,
+    hiddenSegments: new Set<string>(),
+    showEmpty: false,
+  },
+  shortcuts: null,
+  status: "success" as const,
+};
+
 const longExplanation =
   "This explanation is intentionally long so the metadata row stays collapsed to a single line by default and only reveals the full text after the user expands it with the inline disclosure control. ".repeat(3);
 const longQuote =
@@ -107,6 +123,7 @@ describe("metadata visual surface", () => {
 
     const { container } = render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{ onEditPage }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
@@ -120,7 +137,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-1"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={panelData}
       />,
     );
@@ -268,6 +284,7 @@ describe("metadata visual surface", () => {
 
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{}}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
@@ -281,7 +298,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-party-explanation"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );
@@ -412,7 +428,7 @@ describe("metadata visual surface", () => {
     });
   });
 
-  it("stores metadata index fields when opening a metadata row image", async () => {
+  it("forwards metadata index fields without mutating image viewer state", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -434,6 +450,7 @@ describe("metadata visual surface", () => {
 
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{ onPageClick }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
@@ -447,7 +464,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-party"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );
@@ -464,14 +480,7 @@ describe("metadata visual surface", () => {
         value: "Alice",
       },
     }));
-    expect(imageViewerStoreApi.getState().request).toMatchObject({
-      metadataIndex: {
-        ambiguous: "YES",
-        label: "grantor",
-        source: "Grantor source quote",
-        value: "Alice",
-      },
-    });
+    expect(imageViewerStoreApi.getState().request).toBeNull();
   });
 
   it("hides disclosure buttons when explanation and quote fit on one line", async () => {
@@ -495,6 +504,7 @@ describe("metadata visual surface", () => {
 
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{}}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
@@ -508,7 +518,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-party-short"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );
@@ -545,6 +554,7 @@ describe("metadata visual surface", () => {
 
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{}}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
@@ -558,7 +568,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-page"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );
@@ -588,6 +597,7 @@ describe("metadata visual surface", () => {
     } as MetadataPayload;
     const onEditPage = vi.fn();
     const props = {
+      ...panelDefaults,
       callbacks: { onEditPage },
       confirmedCodes: new Set<string>(),
       choices: [{ level: 1, service: "PartyClauseIndexing" }],
@@ -600,7 +610,6 @@ describe("metadata visual surface", () => {
       segments,
       session: "session-edit-action",
       setSectionOpen: vi.fn(),
-      store: { error: null, status: "success" as const },
       panelData: getPanelData(metadata),
     };
 
@@ -621,7 +630,6 @@ describe("metadata visual surface", () => {
   });
 
   it("uses row-level action controls for legal actions", async () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -640,6 +648,7 @@ describe("metadata visual surface", () => {
 
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{ onPageClick }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
@@ -653,7 +662,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-2"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={panelData}
       />,
     );
@@ -676,22 +684,7 @@ describe("metadata visual surface", () => {
       segment: "legal",
       session: "session-2",
     }));
-    expect(imageViewerStoreApi.getState().request).toMatchObject({
-      code: "legal-2",
-      index: "lot_block",
-      metadataIndex: null,
-      page: 3,
-      segment: "legal",
-      session: "session-2",
-      value: "Lot Block",
-    });
-    expect(info).toHaveBeenCalledWith("imageviewer request from metadata row", {
-      code: "legal-2",
-      page: 3,
-      segment: "legal",
-      session: "session-2",
-      type: "lot_block",
-    });
+    expect(imageViewerStoreApi.getState().request).toBeNull();
   });
 
   it("copies the displayed index value from the row action", async () => {
@@ -711,6 +704,7 @@ describe("metadata visual surface", () => {
 
     render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{}}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
@@ -724,7 +718,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-copy"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );
@@ -769,6 +762,7 @@ describe("metadata visual surface", () => {
 
     const { container } = render(
       <MetadataPanel
+        {...panelDefaults}
         callbacks={{}}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
@@ -782,7 +776,6 @@ describe("metadata visual surface", () => {
         segments={segments}
         session="session-legal-gap"
         setSectionOpen={vi.fn()}
-        store={{ error: null, status: "success" }}
         panelData={getPanelData(metadata)}
       />,
     );

@@ -6,6 +6,8 @@ export const ImageViewerPanel = lazy(async () => {
 });
 
 export { IndexContainer, IndexContainer as IndexMetadata } from "./features/indexing/component/IndexContainer";
+export { MetadataPanel } from "./features/metdata/component/MetadataPanel";
+export type { MetadataPanelProps } from "./features/metdata/component/MetadataPanel";
 export {
   asIndexArray,
   composeMetadataJSON,
@@ -135,6 +137,8 @@ export type {
   MetadataJSONParts,
   MetadataStatus,
   MetadataPanelData,
+  MetadataPanelActions,
+  MetadataPanelSections,
   MetadataAction,
   MetadataActionFailure,
 } from "./features/metdata/type/metadata.types";
