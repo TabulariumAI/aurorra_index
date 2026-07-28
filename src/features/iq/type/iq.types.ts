@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { JobEventCallback } from "aurora-contracts";
+import type { JobEventCallback } from "aurorra-ui";
 
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
 export type IqUiStatus = "success" | "fail" | "warning" | "info";

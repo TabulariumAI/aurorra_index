@@ -1,5 +1,5 @@
 import type { IndexChoice } from "../../metdata/type/metadata.types";
-import type { JobEventCallback } from "aurora-contracts";
+import type { JobEventCallback } from "aurorra-ui";
 
 export type PageSegmentsWorkerError = {
   code?: string;

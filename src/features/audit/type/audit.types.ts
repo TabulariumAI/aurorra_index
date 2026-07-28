@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { JobEventCallback } from "aurora-contracts";
+import type { JobEventCallback } from "aurorra-ui";
 
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
 

@@ -1,6 +1,6 @@
 import type { MetadataIndex as LensMetadataIndex } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
-import type { JobEventCallback } from "aurora-contracts";
+import type { JobEventCallback } from "aurorra-ui";
 
 export type IndexSegmentValues = {
   TITLE: string;

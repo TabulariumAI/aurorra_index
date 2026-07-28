@@ -16,7 +16,7 @@ export default defineConfig({
       "@radix-ui/react-progress": path.resolve(rootDir, "node_modules/@radix-ui/react-progress"),
       "@radix-ui/react-tooltip": path.resolve(rootDir, "node_modules/@radix-ui/react-tooltip"),
       "@tabulariumai/aurora-lens": path.resolve(rootDir, "tests/visual/mockAuroraLens.ts"),
-      "aurorra-ui": path.resolve(rootDir, "../aurorra_ui/src/index.ts"),
+      "aurorra-ui": path.resolve(rootDir, "../aurorra_ui/src/public-api.ts"),
     },
     dedupe: ["react", "react-dom", "@radix-ui/react-dialog", "@radix-ui/react-progress", "@radix-ui/react-tooltip"],
     preserveSymlinks: true,

@@ -1,5 +1,5 @@
 import type { SelectedGroup } from "@tabulariumai/aurora-lens";
-import type { JobEventCallback } from "aurora-contracts";
+import type { JobEventCallback } from "aurorra-ui";
 
 export type AddIndexSelection = {
   groups: SelectedGroup[];

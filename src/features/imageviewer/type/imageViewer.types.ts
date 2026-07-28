@@ -1,7 +1,7 @@
 import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
 import type { IndexSelected } from "../../metdata/type/metadata.types";
-import type { JobEventCallback } from "aurora-contracts";
+import type { JobEventCallback } from "aurorra-ui";
 
 export type PageRequest = {
   code: string;
