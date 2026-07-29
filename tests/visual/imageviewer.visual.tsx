@@ -103,6 +103,7 @@ function VisualImageViewer() {
           bodyMode={DIALOG_BODY.CENTER}
           closeOnOverlay
           draggable
+          heightStyle={{ height: "auto" }}
           heightMode={DIALOG_SIZE.MEDIUM}
           onClose={() => addIndexStoreApi.getState().close()}
           role="dialog"
