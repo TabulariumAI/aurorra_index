@@ -102,6 +102,7 @@ export type LoadPackageInput = {
   onError: (error: ViewerError) => void;
   onJobEvent: JobEventCallback;
   packagePollIntervalMs?: number;
+  restart?: boolean;
   session: string;
   workerClient?: WorkerClient;
 };
@@ -119,6 +120,7 @@ export type StoreState = {
   packageStatus: PackageStatus | null;
   packageVersion: number;
   request: PageRequest | null;
+  requestVersion: number;
   searchText: string;
   selectedIndex: IndexSelected | null;
   session: string | null;

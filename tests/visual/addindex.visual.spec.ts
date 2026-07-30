@@ -34,7 +34,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toBeVisible();
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(page.getByText("Page 3 of 4")).toBeVisible();
-  await page.getByRole("button", { name: "Select" }).click();
+  await page.getByRole("button", { exact: true, name: "Select" }).click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-draw-mode", "true");
   await page.getByRole("button", { name: "Export" }).click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-selection", "copied");
@@ -142,7 +142,7 @@ test("Add Index closes and posts failed progress when the service rejects the in
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toBeVisible();
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(page.getByText("Page 3 of 4")).toBeVisible();
-  await page.getByRole("button", { name: "Select" }).click();
+  await page.getByRole("button", { exact: true, name: "Select" }).click();
   await page.getByRole("button", { name: "Export" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Add selected index" });

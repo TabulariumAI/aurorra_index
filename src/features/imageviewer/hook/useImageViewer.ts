@@ -10,11 +10,11 @@ function toLensPage(page: number): number {
   return Math.max(0, toPositivePage(page) - 1);
 }
 
-function requestKey(request: PageRequest): string {
+function requestKey(request: PageRequest, requestVersion: number): string {
   const searchKey = request.metadataIndex
     ? `${request.metadataIndex.label}:${request.metadataIndex.value}:${request.metadataIndex.source}:${request.metadataIndex.ambiguous}`
     : `${request.value}:${request.quote}`;
-  return `${request.session}:${request.page}:${request.code}:${request.index}:${request.segment}:${searchKey}:${request.highlightOptions.scroll}`;
+  return `${request.session}:${requestVersion}:${request.page}:${request.code}:${request.index}:${request.segment}:${searchKey}:${request.highlightOptions.scroll}`;
 }
 
 async function syncLensRequest(lens: LensApi, request: PageRequest): Promise<void> {
@@ -65,19 +65,26 @@ export function useImageViewer() {
   const decodedSessionRef = useRef<string | null>(null);
   const decodedPackageVersionRef = useRef(0);
   const lastRequestKeyRef = useRef("");
+  const retryPackageRef = useRef(0);
+  const retryVersionRef = useRef(0);
+  const [decodedVersion, setDecodedVersion] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [lensReady, setLensReady] = useState(false);
+  const [reloadId, setReloadId] = useState(0);
   const [restoreDone, setRestoreDone] = useState(false);
   const [restoredSession, setRestoredSession] = useState(false);
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
   const request = useImageViewerStore((state) => state.request);
+  const requestVersion = useImageViewerStore((state) => state.requestVersion);
   const session = useImageViewerStore((state) => state.session);
   const packageMetadata = useImageViewerStore((state) => state.packageMetadata);
   const searchText = useImageViewerStore((state) => state.searchText);
   const tiffBytes = useImageViewerStore((state) => state.tiffBytes);
   const tiffType = useImageViewerStore((state) => state.tiffType);
   const viewerState = useImageViewerStore((state) => state.viewerState);
+  const status = useImageViewerStore((state) => state.status);
   const pageReady = Boolean(loaded && viewerState?.status === "ready" && viewerState.pageIndex >= 0);
+  const metadataReady = Boolean(pageReady && viewerState?.pageInfo);
 
   useLayoutEffect(() => {
     const lensHost = lensHostRef.current;
@@ -132,6 +139,10 @@ export function useImageViewer() {
       decodingPackageKeyRef.current = null;
       decodedSessionRef.current = null;
       decodedPackageVersionRef.current = 0;
+      retryPackageRef.current = 0;
+      retryVersionRef.current = 0;
+      setDecodedVersion(0);
+      setReloadId(0);
     };
   }, [session]);
 
@@ -205,7 +216,8 @@ export function useImageViewer() {
         applySearch(activeLens, activeRequest);
         decodedSessionRef.current = activeRequest.session;
         decodedPackageVersionRef.current = activePackageVersion;
-        lastRequestKeyRef.current = requestKey(activeRequest);
+        lastRequestKeyRef.current = requestKey(activeRequest, requestVersion);
+        setDecodedVersion(activePackageVersion);
         setLoaded(true);
         console.info("imageviewer lens ready", {
           page: activeRequest.page,
@@ -232,12 +244,35 @@ export function useImageViewer() {
     return () => {
       canceled = true;
     };
-  }, [lensReady, packageMetadata, packageVersion, request, restoreDone, tiffBytes, tiffType]);
+  }, [lensReady, packageMetadata, packageVersion, request, requestVersion, restoreDone, tiffBytes, tiffType]);
+
+  useEffect(() => {
+    if (
+      !pageReady ||
+      status !== "ready" ||
+      !request ||
+      requestVersion === 0 ||
+      viewerState?.pageIndex !== toLensPage(request.page) ||
+      viewerState.pageInfo
+    ) return;
+    if (retryVersionRef.current !== requestVersion) {
+      retryVersionRef.current = requestVersion;
+      retryPackageRef.current = decodedVersion;
+      setReloadId(requestVersion);
+      return;
+    }
+    if (decodedVersion > retryPackageRef.current) {
+      imageViewerStoreApi.getState().setError({
+        code: "image_metadata_unavailable",
+        error: "Image package metadata is unavailable for this page.",
+      });
+    }
+  }, [decodedVersion, pageReady, request, requestVersion, status, viewerState]);
 
   useEffect(() => {
     const lens = lensRef.current;
     if (!lens || !pageReady || !request) return;
-    const key = requestKey(request);
+    const key = requestKey(request, requestVersion);
     if (lastRequestKeyRef.current === key) return;
     lastRequestKeyRef.current = key;
     const activeLens = lens;
@@ -253,7 +288,7 @@ export function useImageViewer() {
     return () => {
       canceled = true;
     };
-  }, [pageReady, request]);
+  }, [pageReady, request, requestVersion]);
 
   const previousPage = useCallback(() => {
     if (!pageReady || !viewerState?.canGoPrevious) return;
@@ -280,10 +315,10 @@ export function useImageViewer() {
   }, [pageReady, viewerState?.canGoLast]);
 
   const search = useCallback(() => {
-    if (!searchText.trim() || !viewerState?.canSearch) return;
+    if (!metadataReady || !searchText.trim() || !viewerState?.canSearch) return;
     console.info("imageviewer lens action", { action: "search", length: searchText.length });
     lensRef.current?.search(searchText, { additive: false, context: null });
-  }, [searchText, viewerState?.canSearch]);
+  }, [metadataReady, searchText, viewerState?.canSearch]);
 
   const clearSearch = useCallback(() => {
     console.info("imageviewer lens action", { action: "clearSearch" });
@@ -307,10 +342,10 @@ export function useImageViewer() {
   }, [pageReady, viewerState?.canCopy]);
 
   const select = useCallback(() => {
-    if (!pageReady || !viewerState?.canDraw) return;
+    if (!metadataReady || !viewerState?.canDraw) return;
     console.info("imageviewer lens action", { action: "select", enabled: !viewerState.drawMode });
     lensRef.current?.setDrawMode(!viewerState.drawMode);
-  }, [pageReady, viewerState?.canDraw, viewerState?.drawMode]);
+  }, [metadataReady, viewerState?.canDraw, viewerState?.drawMode]);
 
   const showThumbnails = useCallback(() => {
     if (!pageReady || !viewerState?.canShowThumbnails) return;
@@ -367,8 +402,8 @@ export function useImageViewer() {
     canGoLast: Boolean(pageReady && viewerState?.canGoLast),
     canGoNext: Boolean(pageReady && viewerState?.canGoNext),
     canGoPrevious: Boolean(pageReady && viewerState?.canGoPrevious),
-    canSearch: Boolean(pageReady && viewerState?.canSearch),
-    canSelect: Boolean(pageReady && viewerState?.canDraw),
+    canSearch: Boolean(metadataReady && viewerState?.canSearch),
+    canSelect: Boolean(metadataReady && viewerState?.canDraw),
     canShowThumbnails: Boolean(pageReady && viewerState?.canShowThumbnails),
     canZoomIn: Boolean(pageReady && viewerState?.canZoomIn),
     canZoomOut: Boolean(pageReady && viewerState?.canZoomOut),
@@ -388,10 +423,12 @@ export function useImageViewer() {
     page: viewerState && viewerState.pageIndex >= 0 ? viewerState.pageIndex + 1 : 0,
     pageCount: viewerState?.pageCount ?? 0,
     previousPage,
+    reloadId,
     search,
     selecting: Boolean(viewerState?.drawMode),
     select,
     showThumbnails,
+    zoom: viewerState?.zoom,
     zoomIn,
     zoomOut,
   };

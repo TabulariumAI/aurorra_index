@@ -17,6 +17,7 @@ const restoreSessionResult = vi.hoisted(() => ({ value: false }));
 const restoreSessionWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
 const exportSelectionError = vi.hoisted(() => ({ value: null as Error | null }));
 const viewerCanExport = vi.hoisted(() => ({ value: true }));
+const viewerHasMetadata = vi.hoisted(() => ({ value: true }));
 const viewerCanSelect = vi.hoisted(() => ({ value: true }));
 const viewerCanSearch = vi.hoisted(() => ({ value: true }));
 const decodeDocError = vi.hoisted(() => ({ value: null as Error | null }));
@@ -40,15 +41,17 @@ const auroraLensCtor = vi.hoisted(() =>
         canGoLast: status === "ready",
         canGoNext: status === "ready",
         canGoPrevious: status === "ready",
-        canSearch: status === "ready" && viewerCanSearch.value,
+        canSearch: status === "ready" && viewerCanSearch.value && viewerHasMetadata.value,
         canShowThumbnails: status === "ready",
         canZoomIn: status === "ready",
         canZoomOut: status === "ready",
         pageCount: status === "ready" ? 4 : 0,
         pageIndex: status === "ready" ? 1 : -1,
+        pageInfo: status === "ready" && viewerHasMetadata.value ? { class: "Deed", indexes: [], pageNumber: 2, segments: [] } : null,
         drawMode: false,
         status,
         viewMode: "page",
+        zoom: status === "ready" ? 1.25 : 0,
       });
     };
     const lens = {
@@ -134,6 +137,8 @@ function Harness() {
       <span data-testid="restored-session">{viewer.isRestoredSession ? "restored" : "not-restored"}</span>
       <span data-testid="restore-state">{viewer.isRestoring ? "restoring" : "ready"}</span>
       <span data-testid="exported-page">{exportedPage}</span>
+      <span data-testid="reload-id">{viewer.reloadId}</span>
+      <span data-testid="zoom">{viewer.zoom}</span>
     </>
   );
 }
@@ -198,6 +203,7 @@ describe("useImageViewer", () => {
     restoreSessionWait.promise = null;
     restoreSessionResult.value = false;
     viewerCanExport.value = true;
+    viewerHasMetadata.value = true;
     viewerCanSelect.value = true;
     viewerCanSearch.value = true;
     vi.unstubAllGlobals();
@@ -329,6 +335,57 @@ describe("useImageViewer", () => {
     expect(imageViewerStoreApi.getState().status).toBe("error");
   });
 
+  it("reloads the existing Lens after View Index opens a page without metadata", async () => {
+    const onError = vi.fn();
+    viewerHasMetadata.value = false;
+    setHost(onError);
+    setRequest();
+    setPackage();
+    await act(async () => {
+      render(<Harness />);
+    });
+
+    await waitFor(() => expect(screen.getByTestId("reload-id")).toHaveTextContent("1"));
+    expect(screen.getByRole("button", { name: "search" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "select" })).toBeDisabled();
+
+    viewerHasMetadata.value = true;
+    act(() => {
+      setPackage();
+    });
+
+    await waitFor(() => expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(2));
+    expect(auroraLensCtor).toHaveBeenCalledTimes(1);
+    expect(lensInstances[0].clear).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(screen.getByRole("button", { name: "search" })).toBeEnabled());
+    expect(screen.getByRole("button", { name: "select" })).toBeEnabled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("reports metadata unavailable after the refreshed package is decoded", async () => {
+    const onError = vi.fn();
+    viewerHasMetadata.value = false;
+    setHost(onError);
+    setRequest();
+    setPackage();
+    await act(async () => {
+      render(<Harness />);
+    });
+
+    await waitFor(() => expect(screen.getByTestId("reload-id")).toHaveTextContent("1"));
+    act(() => {
+      setPackage();
+    });
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({
+      code: "image_metadata_unavailable",
+      error: "Image package metadata is unavailable for this page.",
+    }));
+    expect(auroraLensCtor).toHaveBeenCalledTimes(1);
+    expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(2);
+    expect(imageViewerStoreApi.getState().status).toBe("error");
+  });
+
   it("preserves same-session package bytes when lens unmounts", async () => {
     let view: ReturnType<typeof render> | null = null;
     seedPackage();
@@ -450,6 +507,7 @@ describe("useImageViewer", () => {
     });
 
     await waitFor(() => expect(lensInstances[0].decodeDoc).toHaveBeenCalled());
+    expect(screen.getByTestId("zoom")).toHaveTextContent("1.25");
     fireEvent.click(screen.getByRole("button", { name: "actual size" }));
     fireEvent.click(screen.getByRole("button", { name: "clear search" }));
     fireEvent.click(screen.getByRole("button", { name: "select" }));

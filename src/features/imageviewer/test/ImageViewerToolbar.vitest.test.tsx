@@ -30,26 +30,46 @@ describe("ImageViewerToolbar", () => {
         onSearchText={vi.fn()}
         previewAction={<button type="button">Close preview</button>}
         searchText="Cedar"
+        zoom={1}
       />,
     );
 
     expect(screen.getByLabelText("Image viewer top toolbar")).toBeInTheDocument();
     expect(screen.getByLabelText("Image view controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Scale controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Current scale")).toHaveTextContent("100%");
     expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search image text" })).toHaveAttribute("placeholder", "Search image text");
     expect(
       screen.getByLabelText("Image view controls").compareDocumentPosition(screen.getByLabelText("Image text search")),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    const searchBox = screen.getByRole("searchbox", { name: "Search image text" });
+    const search = screen.getByRole("button", { name: "Search" });
+    const select = screen.getByRole("button", { name: /^Select$/ });
+    const exportButton = screen.getByRole("button", { name: "Export" });
+    const clear = screen.getByRole("button", { name: "Clear selections" });
+    expect(searchBox.compareDocumentPosition(search)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(search.compareDocumentPosition(select)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(select.compareDocumentPosition(exportButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(exportButton.compareDocumentPosition(clear)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 
-    fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
-    fireEvent.click(screen.getByRole("button", { name: "Select" }));
-    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    fireEvent.click(search);
+    fireEvent.click(clear);
+    fireEvent.click(select);
+    fireEvent.click(exportButton);
     fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    const scaleOptions = screen.getByRole("button", { name: "Scale options" });
+    expect(scaleOptions).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(scaleOptions);
+    expect(scaleOptions).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(screen.getByRole("button", { name: "Fit width" }));
+    expect(screen.queryByRole("group", { name: "Scale options" })).not.toBeInTheDocument();
+    fireEvent.click(scaleOptions);
     fireEvent.click(screen.getByRole("button", { name: "Fit height" }));
+    fireEvent.click(scaleOptions);
     fireEvent.click(screen.getByRole("button", { name: "Fit page" }));
+    fireEvent.click(scaleOptions);
     fireEvent.click(screen.getByRole("button", { name: "Actual size" }));
 
     expect(onAction).toHaveBeenCalledWith("search");
@@ -69,6 +89,7 @@ describe("ImageViewerToolbar", () => {
     expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "zoomIn" });
     expect(screen.queryByRole("button", { name: "Find selected index" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Selection controls")).toBeInTheDocument();
+    expect(scaleOptions).toHaveAttribute("title", "Scale options");
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });
 
@@ -92,6 +113,7 @@ describe("ImageViewerToolbar", () => {
         onSearchText={onSearchText}
         previewAction={null}
         searchText="Cedar"
+        zoom={1}
       />,
     );
 
@@ -106,6 +128,60 @@ describe("ImageViewerToolbar", () => {
     expect(onSearchText).toHaveBeenCalledWith("Cedar Street");
     expect(console.info).toHaveBeenCalledWith("imageviewer toolbar search text", { length: 12 });
     expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("keeps unavailable scale controls disabled", () => {
+    render(
+      <ImageViewerTopToolbar
+        canActualSize={false}
+        canClearSearch
+        canExport
+        canFitHeight={false}
+        canFitPage={false}
+        canFitWidth={false}
+        canSearch
+        canSelect
+        canZoomIn={false}
+        canZoomOut={false}
+        selecting={false}
+        onAction={vi.fn()}
+        onSearchText={vi.fn()}
+        previewAction={null}
+        searchText=""
+        zoom={0.5}
+      />,
+    );
+
+    expect(screen.getByLabelText("Current scale")).toHaveTextContent("50%");
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Zoom in" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Scale options" })).toBeDisabled();
+  });
+
+  it("allows the toolbar to wrap without shrinking controls", () => {
+    render(
+      <ImageViewerTopToolbar
+        canActualSize
+        canClearSearch
+        canExport
+        canFitHeight
+        canFitPage
+        canFitWidth
+        canSearch
+        canSelect
+        canZoomIn
+        canZoomOut
+        selecting={false}
+        onAction={vi.fn()}
+        onSearchText={vi.fn()}
+        previewAction={null}
+        searchText=""
+        zoom={1}
+      />,
+    );
+
+    expect(screen.getByLabelText("Image viewer top toolbar")).toHaveStyle({ display: "flex", flexWrap: "wrap" });
+    expect(screen.getByLabelText("Image text search")).toHaveStyle({ flex: "1 1 20rem", maxWidth: "26rem", minWidth: "20rem" });
   });
 
   it("renders select mode as active and exposes the exit action", () => {
@@ -127,6 +203,7 @@ describe("ImageViewerToolbar", () => {
         onSearchText={vi.fn()}
         previewAction={null}
         searchText=""
+        zoom={1}
       />,
     );
 
@@ -160,6 +237,7 @@ describe("ImageViewerToolbar", () => {
         onSearchText={vi.fn()}
         previewAction={null}
         searchText="  "
+        zoom={1}
       />,
     );
 
@@ -192,6 +270,7 @@ describe("ImageViewerToolbar", () => {
         onSearchText={vi.fn()}
         previewAction={null}
         searchText="Cedar"
+        zoom={1}
       />,
     );
 

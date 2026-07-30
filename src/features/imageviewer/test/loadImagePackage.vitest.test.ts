@@ -91,6 +91,41 @@ describe("loadImagePackage", () => {
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
   });
 
+  it("restarts a same-session loaded package when requested", async () => {
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: {
+          data: "https://storage.test/image.json",
+          tiff: "https://storage.test/image.tiff",
+        },
+      })),
+      downloadPackage: vi.fn(async () => ({
+        packageMetadata: { pages: [] },
+        tiffBytes: new ArrayBuffer(4),
+        tiffType: "image/tiff",
+      })),
+    };
+    const input = {
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      onJobEvent: vi.fn(),
+      session: "session-1",
+      workerClient,
+    };
+
+    await loadImagePackage(input);
+    await loadImagePackage({ ...input, restart: true });
+
+    expect(workerClient.packageImage).toHaveBeenCalledTimes(2);
+    expect(workerClient.imageData).toHaveBeenCalledTimes(2);
+    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(2);
+    expect(imageViewerStoreApi.getState().packageVersion).toBe(2);
+  });
+
   it("does not restart package flow after same-session lens restore", async () => {
     const workerClient = {
       packageImage: vi.fn(),

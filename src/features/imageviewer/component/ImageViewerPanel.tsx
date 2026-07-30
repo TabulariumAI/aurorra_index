@@ -1,5 +1,5 @@
 import { ProgressBar } from "aurorra-ui";
-import { useEffect, useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { JSX } from "react";
 import { addIndexStoreApi } from "../../addindex";
 import { loadImagePackage } from "../data/loadImagePackage";
@@ -29,34 +29,35 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
   const onJobEvent = useImageViewerStore((state) => state.onJobEvent);
   const searchText = useImageViewerStore((state) => state.searchText);
   const session = useImageViewerStore((state) => state.session);
+  const requestVersion = useImageViewerStore((state) => state.requestVersion);
   const status = useImageViewerStore((state) => state.status);
   const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
   const workerClient = useImageViewerStore((state) => state.workerClient);
   const viewer = useImageViewer();
+  const reloadRef = useRef(0);
 
   useEffect(() => {
-    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring || viewer.isRestoredSession) return;
+    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring) return;
     const state = imageViewerStoreApi.getState();
     const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
     const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
-    if (
-      (state.status === "ready" && hasPackage) ||
-      restoredLensReady ||
-      state.status === "packaging" ||
-      state.status === "polling" ||
-      state.status === "downloading"
-    ) return;
+    if (state.status === "packaging" || state.status === "polling" || state.status === "downloading") return;
     if (!state.onError || !onJobEvent) return;
+    const restart = viewer.reloadId > reloadRef.current;
+    if (!restart && viewer.isRestoredSession) return;
+    if (!restart && ((state.status === "ready" && hasPackage) || restoredLensReady)) return;
+    if (restart) reloadRef.current = viewer.reloadId;
     void loadImagePackage({
       apiGatewayUrl,
       authToken,
       onError: state.onError,
       onJobEvent,
       packagePollIntervalMs: state.packagePollIntervalMs,
+      restart,
       session,
       workerClient: workerClient ?? undefined,
     });
-  }, [apiGatewayUrl, authToken, onJobEvent, session, viewer.isRestoredSession, viewer.isRestoring, workerClient]);
+  }, [apiGatewayUrl, authToken, onJobEvent, requestVersion, session, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
   const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage";
@@ -96,6 +97,7 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
           onSearchText={(value) => imageViewerStoreApi.getState().setSearchText(value)}
           previewAction={previewAction}
           searchText={searchText}
+          zoom={viewer.zoom}
         />
       )}
       <div style={imageViewerStyles.body}>

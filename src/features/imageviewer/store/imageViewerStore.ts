@@ -16,6 +16,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
   packageStatus: null,
   packageVersion: 0,
   request: null,
+  requestVersion: 0,
   searchText: "",
   selectedIndex: null,
   session: null,
@@ -53,6 +54,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       packageStatus: null,
       packageVersion: 0,
       request: null,
+      requestVersion: 0,
       searchText: "",
       selectedIndex: null,
       session: null,
@@ -85,6 +87,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       packageStatus: sameSession ? current.packageStatus : null,
       packageVersion: sameSession ? current.packageVersion : 0,
       request: input.request,
+      requestVersion: sameSession ? current.requestVersion : 0,
       selectedIndex: input.selectedIndex,
       session: input.session,
       status: sameSession ? current.status : "idle",
@@ -111,7 +114,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     set({ error: null, status: "ready" });
   },
   setRequest(request) {
-    set({ request });
+    set({ request, requestVersion: get().requestVersion + 1 });
   },
   setSearchText(value) {
     set({ searchText: value });

@@ -85,10 +85,29 @@ describe("imageViewerStore", () => {
 
     expect(imageViewerStoreApi.getState()).toMatchObject({
       packageMetadata: null,
+      requestVersion: 0,
       status: "idle",
       tiffBytes: null,
       tiffType: null,
     });
+  });
+
+  it("versions every View Index request", () => {
+    const request = {
+      code: "page-1",
+      highlightOptions: { scroll: false },
+      index: "page",
+      metadataIndex: null,
+      page: 1,
+      quote: "",
+      segment: "page",
+      session: "session-1",
+      value: "",
+    };
+    imageViewerStoreApi.getState().setRequest(request);
+    imageViewerStoreApi.getState().setRequest(request);
+
+    expect(imageViewerStoreApi.getState().requestVersion).toBe(2);
   });
 
   it("clears transient lens state without clearing same-session package values", () => {
