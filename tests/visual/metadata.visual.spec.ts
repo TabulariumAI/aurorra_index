@@ -25,7 +25,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   const reprocessLink = page.getByRole("link", { name: "Reprocess" });
   const refineLink = page.getByRole("link", { name: "Refine or Chat" });
   const copyButton = row.getByRole("button", { name: /Copy value/ });
-  const dropButton = row.getByRole("button", { name: "Pop the index" });
+  const dropButton = row.locator("button.metadata-row-action").last();
 
   await expect(header).toHaveCSS("position", "sticky");
   await expect(header).toHaveCSS("top", "0px");
@@ -42,14 +42,20 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(refineLink).toHaveCSS("box-shadow", "none");
   await expect(refineLink).toHaveCSS("text-decoration-line", "underline");
   await expect(dropButton).toBeVisible();
+  await expect(dropButton).toHaveAttribute("aria-label", "Pop the index");
   await expect(copyButton).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
+  await expect(dropButton).toHaveCSS("box-shadow", "none");
   await dropButton.hover();
   await page.waitForTimeout(350);
   await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(page.getByRole("tooltip")).toHaveCount(0);
   await dropButton.click();
   await expect(dropButton).toHaveAttribute("data-armed", "true");
+  await expect(dropButton).toHaveAttribute("aria-label", "Confirm");
+  await expect(dropButton).toHaveAttribute("title", "Confirm");
+  await expect(dropButton.locator("[data-confirm-progress='true']")).toBeVisible();
+  await expect(dropButton.locator("[data-confirm-progress='true'] > span")).toHaveCSS("transition-duration", "4s");
   await expect(dropButton).toHaveCSS("width", "32px");
   await expect(dropButton).toHaveCSS("height", "32px");
   await expect(page.locator("[data-radix-popper-content-wrapper]")).toHaveCount(0);

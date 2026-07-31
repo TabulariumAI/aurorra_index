@@ -232,6 +232,7 @@ export const rowStyles = {
     background: `${surfaceAccent}`,
   },
   confirmActionButton: {
+    boxShadow: "none",
     color: teal,
   },
   actionGroup: {

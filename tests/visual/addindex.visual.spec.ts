@@ -105,7 +105,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await typeInput.fill("Party");
   await expect(page.getByRole("button", { name: "Confirm" })).toBeEnabled();
   await page.getByRole("button", { name: "Confirm" }).click();
-  await expect(page.getByText("Click again to confirm")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
   await expect(dialog).toBeVisible();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
@@ -149,7 +149,7 @@ test("Add Index closes and posts failed progress when the service rejects the in
   await expect(dialog).toBeVisible();
   await page.getByRole("textbox", { name: "Type" }).fill("Party");
   await page.getByRole("button", { name: "Confirm" }).click();
-  await expect(page.getByText("Click again to confirm")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
   await page.getByRole("button", { name: "Confirm" }).click();
 
   await expect(dialog).toHaveCount(0);

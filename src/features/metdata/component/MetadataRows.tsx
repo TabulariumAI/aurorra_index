@@ -393,12 +393,13 @@ export function MetadataRow({
             <ConfButton
               aria-label="Pop the index"
               className="metadata-row-action"
+              confirmLabel="Confirm"
               flat
               label={<Icon name="remove" />}
               onConfirm={() => onDrop(payload)}
-              showPrompt={false}
               size="icon"
               style={rowStyles.confirmActionButton}
+              title="Pop the index"
               variant="secondary"
             />
           ) : null}

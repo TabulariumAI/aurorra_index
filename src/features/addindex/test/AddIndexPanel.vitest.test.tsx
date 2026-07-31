@@ -107,7 +107,7 @@ describe("AddIndexPanel", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Source" }), { target: { value: "Edited source" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Type" }), { target: { value: "  Party  " } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(screen.getByText("Click again to confirm")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     await waitFor(() => expect(workerClient.addIndex).toHaveBeenCalledWith("token-1", "session-1", {

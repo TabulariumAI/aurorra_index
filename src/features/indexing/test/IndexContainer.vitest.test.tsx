@@ -181,10 +181,11 @@ describe("IndexContainer", () => {
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
 
     const dropButton = screen.getByLabelText("Pop the index");
-    expect(dropButton).not.toHaveAttribute("title");
+    expect(dropButton).toHaveAttribute("title", "Pop the index");
     fireEvent.click(dropButton);
     expect(dropButton).toHaveAttribute("data-armed", "true");
-    expect(screen.queryByText("Click again to confirm")).not.toBeInTheDocument();
+    expect(dropButton).toHaveAttribute("aria-label", "Confirm");
+    expect(dropButton).toHaveAttribute("title", "Confirm");
     expect(workerClient.dropIndex).not.toHaveBeenCalled();
 
     fireEvent.click(dropButton);

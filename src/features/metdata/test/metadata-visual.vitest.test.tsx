@@ -146,6 +146,7 @@ describe("metadata visual surface", () => {
     const copyButton = screen.getByRole("button", { name: "Copy value Alice" });
     expect(popButton).toHaveAttribute("data-flat", "true");
     expect(popButton).toHaveStyle({ color: "#008ba3" });
+    expect(popButton).toHaveStyle({ boxShadow: "none" });
     expect(copyButton).toHaveStyle({ color: "#008ba3" });
     expect(container.querySelector("[aria-label='Metadata']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Deed" })).toBeInTheDocument();
