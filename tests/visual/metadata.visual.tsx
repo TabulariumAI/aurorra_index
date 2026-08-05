@@ -88,7 +88,9 @@ const scenario = new URLSearchParams(window.location.search).get("scenario");
 const activeMetadata = scenario === "metadata-short" ? shortMetadata : metadata;
 const activePanelData = scenario === "metadata-short" ? shortPanelData : panelData;
 
-stage.style.overflow = "auto";
+stage.style.display = "flex";
+stage.style.flexDirection = "column";
+stage.style.overflow = "hidden";
 stage.style.padding = "0 1rem 1rem";
 stage.style.boxSizing = "border-box";
 stage.innerHTML = "";

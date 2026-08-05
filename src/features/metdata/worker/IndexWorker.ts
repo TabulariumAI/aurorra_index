@@ -1,5 +1,5 @@
 import type {
-  IndexApplyResult,
+  IndexPatchResult,
   IndexReprocessResult,
   IndexWorkerCommand,
   IndexWorkerResult,
@@ -84,20 +84,20 @@ function resolveReprocess(payload: unknown): IndexWorkerResult<IndexReprocessRes
   return { ok: true, data: { data: payload.data, status: "completed" } };
 }
 
-function resolveApply(payload: unknown): IndexWorkerResult<IndexApplyResult> {
+function resolvePatch(payload: unknown): IndexWorkerResult<IndexPatchResult> {
   if (!isObject(payload)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid object." };
   }
-  if (typeof payload.applied !== "boolean") {
-    return { ok: false, code: "validation_error", error: "Missing required key: applied" };
+  if (typeof payload.data !== "string") {
+    return { ok: false, code: "validation_error", error: "Missing required key: data" };
   }
-  if (typeof payload.patches !== "number") {
-    return { ok: false, code: "validation_error", error: "Missing required key: patches" };
+  if (payload.status !== "completed" && payload.status !== "error" && payload.status !== "pending" && payload.status !== "processing") {
+    return { ok: false, code: "validation_error", error: "Invalid patch status." };
   }
-  if (payload.applied !== true) {
-    return { ok: false, code: "index_not_applied", details: payload, error: "Index update was not applied." };
+  if (typeof payload.version !== "number") {
+    return { ok: false, code: "validation_error", error: "Missing required key: version" };
   }
-  return { ok: true, data: { applied: true, patches: payload.patches } };
+  return { ok: true, data: payload as IndexPatchResult };
 }
 
 type ParsedResponse = {
@@ -146,18 +146,19 @@ export class IndexWorker {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
     if (command.type === "reprocessSegment") {
-      return { body: JSON.stringify({}), method: "POST", url: `${apiBaseUrl}/v1/reprocess/${session}/${encodeURIComponent(command.segment)}` };
+      return { body: JSON.stringify({}), method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/reprocess/${encodeURIComponent(command.segment)}` };
     }
     if (command.type === "confirmIndex") {
-      return { body: null, method: "POST", url: `${apiBaseUrl}/v1/reprocess/${session}/confirm/${encodeURIComponent(command.code)}` };
+      return { body: null, method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/confirm/${encodeURIComponent(command.code)}` };
     }
     if (command.type === "dropIndex") {
-      return { body: null, method: "POST", url: `${apiBaseUrl}/v1/reprocess/${session}/drop/${encodeURIComponent(command.code)}` };
+      return { body: null, method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/drop/${encodeURIComponent(command.code)}` };
     }
+    if (command.type === "patchStatus") return { body: null, method: "GET", url: `${apiBaseUrl}/v1/refine/${session}/patch/status/${command.version}` };
     return { body: null, method: "GET", url: `${apiBaseUrl}/v1/index/${session}/data` };
   }
 
-  async run(command: IndexWorkerCommand): Promise<IndexWorkerResult<MetadataPayload | IndexReprocessResult | IndexApplyResult>> {
+  async run(command: IndexWorkerCommand): Promise<IndexWorkerResult<MetadataPayload | IndexReprocessResult | IndexPatchResult>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }
@@ -173,7 +174,10 @@ export class IndexWorker {
     if (command.type === "reprocessSegment" && (typeof command.segment !== "string" || !command.segment.trim())) {
       return { ok: false, code: "invalid_segment", error: "Segment is missing or invalid." };
     }
-    if (command.type !== "indexData" && command.type !== "reprocessSegment" && command.type !== "confirmIndex" && command.type !== "dropIndex") {
+    if (command.type === "patchStatus" && (!Number.isInteger(command.version) || command.version < 0)) {
+      return { ok: false, code: "invalid_patch_version", error: "Patch version is missing or invalid." };
+    }
+    if (command.type !== "indexData" && command.type !== "reprocessSegment" && command.type !== "confirmIndex" && command.type !== "dropIndex" && command.type !== "patchStatus") {
       return { ok: false, code: "invalid_command", error: "Unknown index worker command." };
     }
 
@@ -216,7 +220,7 @@ export class IndexWorker {
       };
     }
     if (command.type === "reprocessSegment") return resolveReprocess(parsed.data.payload);
-    if (command.type === "confirmIndex" || command.type === "dropIndex") return resolveApply(parsed.data.payload);
+    if (command.type === "confirmIndex" || command.type === "dropIndex" || command.type === "patchStatus") return resolvePatch(parsed.data.payload);
     return resolveIndexData(parsed.data.payload);
   }
 }

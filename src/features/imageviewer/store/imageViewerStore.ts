@@ -7,6 +7,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
   apiGatewayUrl: "",
   authToken: null,
   error: null,
+  fitPageVersion: 0,
   onError: null,
   onJobEvent: null,
   pageCount: 1,
@@ -32,6 +33,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     const hasPackage = Boolean(current.packageMetadata && current.tiffBytes && current.tiffType !== null);
     set({
       error: null,
+      fitPageVersion: 0,
       packageStatus: hasPackage ? "completed" : null,
       searchText: "",
       status: hasPackage ? "ready" : "idle",
@@ -45,6 +47,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       apiGatewayUrl: "",
       authToken: null,
       error: null,
+      fitPageVersion: 0,
       onError: null,
       onJobEvent: null,
       pageCount: 1,
@@ -71,6 +74,9 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     get().onError?.(error);
     set({ error, status: "error" });
   },
+  fitPage() {
+    set({ fitPageVersion: get().fitPageVersion + 1 });
+  },
   setHostInput(input) {
     const current = get();
     const sameSession = current.session === input.session;
@@ -78,6 +84,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       apiGatewayUrl: input.apiGatewayUrl,
       authToken: input.authToken,
       error: null,
+      fitPageVersion: sameSession ? current.fitPageVersion : 0,
       onError: input.onError,
       onJobEvent: input.onJobEvent,
       pageCount: input.pageCount,

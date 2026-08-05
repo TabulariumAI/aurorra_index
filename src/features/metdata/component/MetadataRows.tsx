@@ -41,7 +41,7 @@ function useTextDisclosure(text: string, open: boolean) {
       const lineHeight = Number.parseFloat(window.getComputedStyle(textElement).lineHeight);
       const next = textElement.scrollWidth > textElement.clientWidth ||
         textElement.scrollHeight > textElement.clientHeight ||
-        (lineHeight > 0 && textElement.getBoundingClientRect().height > lineHeight);
+        (lineHeight > 0 && textElement.getBoundingClientRect().height > Math.max(lineHeight + 1, 24));
       setIsOverflowing(next);
     };
 

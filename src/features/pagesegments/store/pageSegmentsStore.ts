@@ -1,13 +1,16 @@
 import { create } from "zustand";
-import type { PageSegmentsWorkerError } from "../type/pageSegments.types";
+import type { PageSegmentsRequest, PageSegmentsWorkerError } from "../type/pageSegments.types";
 
 export type PageSegmentsStatus = "idle" | "saving" | "success" | "error";
 
 export type PageSegmentsStore = {
   committed: string[];
   error: PageSegmentsWorkerError | null;
+  request: PageSegmentsRequest | null;
   selected: string[];
   status: PageSegmentsStatus;
+  close: () => void;
+  open: (request: PageSegmentsRequest) => void;
   reset: (segments: string[]) => void;
   restore: () => void;
   setError: (error: PageSegmentsWorkerError) => void;
@@ -19,8 +22,15 @@ export type PageSegmentsStore = {
 export const usePageSegmentsStore = create<PageSegmentsStore>()((set) => ({
   committed: [],
   error: null,
+  request: null,
   selected: [],
   status: "idle",
+  close() {
+    set({ request: null });
+  },
+  open(request) {
+    set({ request });
+  },
   reset(segments) {
     set({ committed: [...segments], error: null, selected: [...segments], status: "idle" });
   },
@@ -34,7 +44,7 @@ export const usePageSegmentsStore = create<PageSegmentsStore>()((set) => ({
     set({ committed: [...segments], error: null, selected: [...segments], status: "success" });
   },
   setSelected(segments) {
-    set({ selected: [...segments] });
+    set({ error: null, selected: [...segments], status: "idle" });
   },
   setSaving() {
     set({ error: null, status: "saving" });

@@ -4,16 +4,29 @@ import type { AuditStoreState } from "../type/audit.types";
 const initialState = {
   activeSession: null,
   error: null,
+  refresh: null,
+  refreshId: 0,
   report: null,
   status: "idle",
-} satisfies Pick<AuditStoreState, "activeSession" | "error" | "report" | "status">;
+} satisfies Pick<AuditStoreState, "activeSession" | "error" | "refresh" | "refreshId" | "report" | "status">;
 
 export const useAuditStore = create<AuditStoreState>()((set) => ({
   ...initialState,
+  refreshAudit(session) {
+    set((state) => {
+      const id = state.refreshId + 1;
+      return {
+        refresh: { id, session },
+        refreshId: id,
+      };
+    });
+  },
   resetAudit() {
     set({
       activeSession: null,
       error: null,
+      refresh: null,
+      refreshId: 0,
       report: null,
       status: "idle",
     });

@@ -112,7 +112,7 @@ export type {
   IndexMetadataRefresh,
   IndexSegmentValues,
   IndexSelected,
-  IndexApplyResult,
+  IndexPatchResult,
   IndexStoreState,
   IndexWorkerClient,
   IndexWorkerCommand,

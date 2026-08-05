@@ -60,6 +60,7 @@ export type AddIndexPanelProps = {
   onComplete(event: AddIndexComplete): void;
   onError(error: AddIndexWorkerError): void;
   onJobEvent: JobEventCallback;
+  onReadyChange(ready: boolean): void;
   selection: AddIndexSelection;
   session: string;
   workerClient?: AddIndexWorkerClient;

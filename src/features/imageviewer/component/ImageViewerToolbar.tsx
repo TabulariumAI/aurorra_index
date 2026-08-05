@@ -18,6 +18,7 @@ type TopProps = {
   canSelect: boolean;
   canZoomIn: boolean;
   canZoomOut: boolean;
+  compact: boolean;
   selecting: boolean;
   onAction(action: TopAction): void;
   onSearchText(value: string): void;
@@ -99,6 +100,7 @@ export function ImageViewerTopToolbar({
   canSelect,
   canZoomIn,
   canZoomOut,
+  compact,
   selecting,
   onAction,
   onSearchText,
@@ -115,9 +117,8 @@ export function ImageViewerTopToolbar({
     onAction("search");
   };
 
-  return (
-    <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbar}>
-      <div aria-label="Image view controls" style={imageViewerStyles.viewGroup}>
+  const viewControls = (
+    <div aria-label="Image view controls" style={imageViewerStyles.viewGroup}>
         <div aria-label="Scale controls" style={imageViewerStyles.scaleGroup}>
           <ViewerButton disabled={!canZoomOut} label="Zoom out" name="zoomOut" onClick={() => {
             console.info("imageviewer toolbar action", { action: "zoomOut" });
@@ -169,8 +170,10 @@ export function ImageViewerTopToolbar({
             </Popover.Portal>
           </Popover.Root>
         </div>
-      </div>
-      <form aria-label="Image text search" onSubmit={submitSearch} style={imageViewerStyles.searchForm}>
+    </div>
+  );
+  const searchControls = (
+    <form aria-label="Image text search" onSubmit={submitSearch} style={imageViewerStyles.searchForm}>
         <input
           aria-label="Search image text"
           onChange={(event) => {
@@ -200,8 +203,27 @@ export function ImageViewerTopToolbar({
           console.info("imageviewer toolbar action", { action: "clearSearch" });
           onAction("clearSearch");
         }} />
-      </form>
-      <div style={imageViewerStyles.previewAction}>{previewAction}</div>
+    </form>
+  );
+  const closeAction = <div style={imageViewerStyles.previewAction}>{previewAction}</div>;
+
+  if (compact) {
+    return (
+      <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbarCompact}>
+        <div data-image-viewer-toolbar-row="primary" style={imageViewerStyles.compactTopRow}>
+          {viewControls}
+          {closeAction}
+        </div>
+        {searchControls}
+      </div>
+    );
+  }
+
+  return (
+    <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbar}>
+      {viewControls}
+      {searchControls}
+      {closeAction}
     </div>
   );
 }

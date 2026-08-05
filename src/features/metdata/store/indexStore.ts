@@ -5,6 +5,8 @@ import { storeApi } from "../../../store/state/store";
 export const useIndexStore = create<IndexStoreState>()((set) => ({
   activeSession: null,
   error: null,
+  refresh: null,
+  refreshId: 0,
   status: "idle",
   invalidateSession(session) {
     storeApi.getState().removeJSON(session);
@@ -20,7 +22,18 @@ export const useIndexStore = create<IndexStoreState>()((set) => ({
     set({
       activeSession: null,
       error: null,
+      refresh: null,
+      refreshId: 0,
       status: "idle",
+    });
+  },
+  refreshMetadata(session, segment) {
+    set((state) => {
+      const id = state.refreshId + 1;
+      return {
+        refresh: { id, segment, session },
+        refreshId: id,
+      };
     });
   },
   setError(error) {

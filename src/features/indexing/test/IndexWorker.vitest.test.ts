@@ -58,7 +58,7 @@ describe("IndexWorker", () => {
     })).toEqual({
       body: "{}",
       method: "POST",
-      url: "https://doc.example.com/v1/reprocess/session%2F1/party%2Fclause",
+      url: "https://doc.example.com/v1/refine/session%2F1/reprocess/party%2Fclause",
     });
     expect(worker.buildRequest({
       apiBaseUrl: "https://doc.example.com",
@@ -69,7 +69,7 @@ describe("IndexWorker", () => {
     })).toEqual({
       body: null,
       method: "POST",
-      url: "https://doc.example.com/v1/reprocess/session%2F1/confirm/idx%2F1",
+      url: "https://doc.example.com/v1/refine/session%2F1/confirm/idx%2F1",
     });
     expect(worker.buildRequest({
       apiBaseUrl: "https://doc.example.com",
@@ -80,7 +80,18 @@ describe("IndexWorker", () => {
     })).toEqual({
       body: null,
       method: "POST",
-      url: "https://doc.example.com/v1/reprocess/session%2F1/drop/idx%2F1",
+      url: "https://doc.example.com/v1/refine/session%2F1/drop/idx%2F1",
+    });
+    expect(worker.buildRequest({
+      apiBaseUrl: "https://doc.example.com",
+      session: "session/1",
+      token: "token",
+      type: "patchStatus",
+      version: 3,
+    })).toEqual({
+      body: null,
+      method: "GET",
+      url: "https://doc.example.com/v1/refine/session%2F1/patch/status/3",
     });
   });
 
@@ -105,14 +116,14 @@ describe("IndexWorker", () => {
 
   it("sends mutation commands with encoded values and required headers", async () => {
     const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
-      if (url.endsWith("/v1/reprocess/session-1/party%2Fclause")) {
+      if (url.endsWith("/v1/refine/session-1/reprocess/party%2Fclause")) {
         return jsonResponse({ data: "ok", status: "completed" });
       }
-      if (url.endsWith("/v1/reprocess/session-1/confirm/idx%2F1")) {
-        return jsonResponse({ applied: true, patches: 2 });
+      if (url.endsWith("/v1/refine/session-1/confirm/idx%2F1")) {
+        return jsonResponse({ data: "", status: "processing", version: 2 });
       }
-      if (url.endsWith("/v1/reprocess/session-1/drop/idx%2F1")) {
-        return jsonResponse({ applied: true, patches: 2 });
+      if (url.endsWith("/v1/refine/session-1/drop/idx%2F1")) {
+        return jsonResponse({ data: "", status: "processing", version: 2 });
       }
       return jsonResponse(indexData(metadata));
     });
@@ -132,26 +143,26 @@ describe("IndexWorker", () => {
       session: "session-1",
       token: "token-1",
       type: "confirmIndex",
-    })).resolves.toMatchObject({ ok: true, data: { applied: true, patches: 2 } });
+    })).resolves.toMatchObject({ ok: true, data: { data: "", status: "processing", version: 2 } });
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       code: "idx/1",
       session: "session-1",
       token: "token-1",
       type: "dropIndex",
-    })).resolves.toMatchObject({ ok: true, data: { applied: true, patches: 2 } });
+    })).resolves.toMatchObject({ ok: true, data: { data: "", status: "processing", version: 2 } });
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://doc.example.com/v1/reprocess/session-1/party%2Fclause", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://doc.example.com/v1/refine/session-1/reprocess/party%2Fclause", {
       body: "{}",
       headers: { Authorization: "Bearer token-1", "Content-Type": "application/json" },
       method: "POST",
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://doc.example.com/v1/reprocess/session-1/confirm/idx%2F1", {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://doc.example.com/v1/refine/session-1/confirm/idx%2F1", {
       body: null,
       headers: { Authorization: "Bearer token-1" },
       method: "POST",
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://doc.example.com/v1/reprocess/session-1/drop/idx%2F1", {
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://doc.example.com/v1/refine/session-1/drop/idx%2F1", {
       body: null,
       headers: { Authorization: "Bearer token-1" },
       method: "POST",
@@ -202,7 +213,7 @@ describe("IndexWorker", () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "ok", status: "completed" }, { status: 201 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", segment: "party", type: "reprocessSegment" })).resolves.toMatchObject({ code: "validation_error", ok: false, status: 201 });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ applied: true, patches: 1 }, { status: 201 })));
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing", version: 1 }, { status: 201 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "confirmIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false, status: 201 });
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "dropIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false, status: 201 });
   });
@@ -223,10 +234,10 @@ describe("IndexWorker", () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: 1, status: "completed" })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", segment: "party", type: "reprocessSegment" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ applied: true, patches: "2" })));
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing", version: "2" })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "confirmIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ applied: true })));
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing" })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "dropIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "pending", status: "pending" })));
@@ -235,11 +246,11 @@ describe("IndexWorker", () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "pending", status: 1 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", segment: "party", type: "reprocessSegment" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ applied: "false", patches: 0 })));
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "unknown", version: 1 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "confirmIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ applied: false, patches: 0 })));
-    await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "dropIndex" })).resolves.toMatchObject({ code: "index_not_applied", ok: false });
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: 1, status: "error", version: 1 })));
+    await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "dropIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(indexData({ heading: {} }))));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({ code: "validation_error", ok: false });

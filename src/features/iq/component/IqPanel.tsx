@@ -1,5 +1,4 @@
-import { ProgressBar } from "aurorra-ui";
-import type { JSX } from "react";
+import { useEffect, type JSX } from "react";
 import { useIqReport } from "../hook/useIqReport";
 import { iqStyles } from "../style/iqStyles";
 import type { IqPanelProps } from "../type/iq.types";
@@ -7,9 +6,19 @@ import { IqGates } from "./IqGates";
 import { IqSegments } from "./IqSegments";
 import { IqSummary } from "./IqSummary";
 
+const loadingLabel = "Retrieving IQ report...";
+
 export function IqPanel(props: IqPanelProps): JSX.Element | null {
   const { ackGate, ackingCodes, report, status, view } = useIqReport(props);
   const loading = status === "loading" || status === "refreshing";
+
+  useEffect(() => {
+    props.onReadyChange(!loading && status !== "idle");
+  }, [loading, props.onReadyChange, status]);
+
+  useEffect(() => {
+    props.onLoaderChange?.(loading ? [loadingLabel] : null);
+  }, [loading, props.onLoaderChange]);
 
   if (status === "error" && report === null) {
     return null;
@@ -17,20 +26,7 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
 
   return (
     <section aria-label="Indexing Quality" style={iqStyles.root}>
-      {loading ? (
-        <div style={iqStyles.progressOverlay}>
-          <ProgressBar
-            ariaLabel="IQ progress"
-            continuous
-            durationMs={10000}
-            label="Retrieving IQ report..."
-            running
-            showText={false}
-            visible
-          />
-        </div>
-      ) : null}
-      <div style={iqStyles.content}>
+      {!loading ? <div style={iqStyles.content}>
         {view === null ? (
           <>
             <div style={iqStyles.panelHeader}>{props.previewAction}</div>
@@ -59,7 +55,7 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
             ) : null}
           </>
         )}
-      </div>
+      </div> : null}
     </section>
   );
 }

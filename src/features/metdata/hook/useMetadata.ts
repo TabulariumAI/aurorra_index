@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { composeMetadataJSON, getPanelData, splitMetadataJSON } from "../data/metadataData";
 import { indexStoreApi, useIndexStore } from "../store/indexStore";
 import { storeApi, useStore } from "../../../store/state/store";
-import type { IndexActionPayload, IndexMetadataProps, IndexWorkerError, MetadataAction } from "../type/metadata.types";
+import type { IndexActionPayload, IndexMetadataProps, IndexPatchResult, IndexWorkerClient, IndexWorkerError, MetadataAction } from "../type/metadata.types";
 import { createIndexWorkerClient } from "../worker/indexWorkerClient";
 
 function toWorkerError(error: unknown, fallback = "Metadata request failed."): IndexWorkerError {
@@ -15,11 +15,21 @@ function toWorkerError(error: unknown, fallback = "Metadata request failed."): I
   };
 }
 
+async function waitForPatch(client: IndexWorkerClient, token: string, session: string, intervalMs: number, result: IndexPatchResult): Promise<void> {
+  let patch = result;
+  while (patch.status === "pending" || patch.status === "processing") {
+    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+    patch = await client.patchStatus(token, session, patch.version);
+  }
+  if (patch.status === "error") throw new Error(patch.data || "The refinement patch failed.");
+}
+
 export function useMetadata({
   authToken,
   apiGatewayUrl,
   callbacks,
   deferredState,
+  intervalMs,
   refresh,
   segments,
   session,
@@ -107,7 +117,8 @@ export function useMetadata({
       const jobId = crypto.randomUUID();
       callbacks.onJobEvent?.({ jobId, message: "Deleting index", phase: "started", session });
       try {
-        await client.dropIndex(authToken ?? "", session, payload.code);
+        const result = await client.dropIndex(authToken ?? "", session, payload.code);
+        await waitForPatch(client, authToken ?? "", session, intervalMs, result);
         callbacks.onJobEvent?.({ jobId, message: "Index deleted", phase: "completed", session });
         setRemovedCodes((current) => new Set([...current, payload.code]));
         if (selectedIndex?.code === payload.code) {
@@ -121,7 +132,7 @@ export function useMetadata({
         callbacks.onActionError?.({ action, error: workerError });
       }
     },
-    [authToken, callbacks, client, selectedIndex?.code, session],
+    [authToken, callbacks, client, intervalMs, selectedIndex?.code, session],
   );
 
   const onConfirm = useCallback(
@@ -130,7 +141,8 @@ export function useMetadata({
       const jobId = crypto.randomUUID();
       callbacks.onJobEvent?.({ jobId, message: "Confirming index", phase: "started", session });
       try {
-        await client.confirmIndex(authToken ?? "", session, payload.code);
+        const result = await client.confirmIndex(authToken ?? "", session, payload.code);
+        await waitForPatch(client, authToken ?? "", session, intervalMs, result);
         callbacks.onJobEvent?.({ jobId, message: "Index confirmed", phase: "completed", session });
         setConfirmedCodes((current) => new Set([...current, payload.code]));
         callbacks.onActionComplete?.(action);
@@ -140,7 +152,7 @@ export function useMetadata({
         callbacks.onActionError?.({ action, error: workerError });
       }
     },
-    [authToken, callbacks, client, session],
+    [authToken, callbacks, client, intervalMs, session],
   );
 
   const onReprocess = useCallback(

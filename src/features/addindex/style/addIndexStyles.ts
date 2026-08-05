@@ -10,11 +10,8 @@ export const addIndexStyles = {
     gap: "1rem",
     height: "auto",
     justifyContent: "flex-start",
-    margin: "0 auto",
     maxHeight: "100%",
-    maxWidth: "42rem",
     minHeight: 0,
-    padding: "1rem",
     width: "100%",
   },
   title: {

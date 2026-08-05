@@ -14,7 +14,7 @@ import type { PageSegmentsPanelProps, PageSegmentsWorkerError } from "../type/pa
 import { createPageSegmentsWorkerClient } from "../worker/pageSegmentsWorkerClient";
 
 function formatLabel(value: string): string {
-  return String(value || "")
+  return value
     .replace(/_/g, " ")
     .toLowerCase()
     .replace(/\b\w/g, (char) => char.toUpperCase());
@@ -25,7 +25,7 @@ function toWorkerError(error: unknown): PageSegmentsWorkerError {
   return {
     code: candidate.code,
     details: candidate.details,
-    error: candidate.error || candidate.message || "Page segment update failed.",
+    error: candidate.error ?? candidate.message ?? "Page segment update failed.",
     status: candidate.status,
   };
 }
@@ -52,6 +52,7 @@ export function PageSegmentsPanel({
   onComplete,
   onError,
   onJobEvent,
+  onReadyChange,
   pageClass,
   pageCode,
   segments,
@@ -62,10 +63,14 @@ export function PageSegmentsPanel({
   const error = usePageSegmentsStore((state) => state.error);
   const selected = usePageSegmentsStore((state) => state.selected);
   const status = usePageSegmentsStore((state) => state.status);
-  const client = useMemo(() => workerClient || createPageSegmentsWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
+  const client = useMemo(() => workerClient ?? createPageSegmentsWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
   const normalizedInputKey = normalizePageSegments(segments).join("|");
   const isDirty = !sameSegments(committed, selected);
   const blankChecked = pageClass === "blank" && selected.length === 0;
+
+  useEffect(() => {
+    onReadyChange(status !== "saving");
+  }, [onReadyChange, status]);
 
   useEffect(() => {
     pageSegmentsStoreApi.getState().reset(normalizedInputKey ? normalizedInputKey.split("|") : []);

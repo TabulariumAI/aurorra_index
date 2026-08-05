@@ -44,6 +44,7 @@ describe("PageSegmentsPanel", () => {
         onComplete={onComplete}
         onError={onError}
         onJobEvent={onJobEvent}
+        onReadyChange={vi.fn()}
         pageClass="blank"
         pageCode="page-a"
         segments={["reference"]}
@@ -67,6 +68,10 @@ describe("PageSegmentsPanel", () => {
     expect(storeApi.getState().getJSON("session-1")?.pagesJSON.pages?.recordables?.[0].segments).toEqual(["reference", "secrets"]);
     expect(screen.getByText("Page segment changes saved.")).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" }));
+    expect(screen.queryByText("Page segment changes saved.")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -90,6 +95,7 @@ describe("PageSegmentsPanel", () => {
         onComplete={vi.fn()}
         onError={onError}
         onJobEvent={vi.fn()}
+        onReadyChange={vi.fn()}
         pageClass="title"
         pageCode="missing-page"
         segments={["reference"]}
@@ -136,6 +142,7 @@ describe("PageSegmentsPanel", () => {
         onComplete={onComplete}
         onError={onError}
         onJobEvent={onJobEvent}
+        onReadyChange={vi.fn()}
         pageClass="title"
         pageCode="page-a"
         segments={["reference"]}
@@ -179,6 +186,7 @@ describe("PageSegmentsPanel", () => {
         onComplete={vi.fn()}
         onError={vi.fn()}
         onJobEvent={vi.fn()}
+        onReadyChange={vi.fn()}
         pageClass="blank"
         pageCode="page-a"
         segments={["reference"]}
@@ -213,6 +221,7 @@ describe("PageSegmentsPanel", () => {
             onError(event);
           }}
           onJobEvent={vi.fn()}
+          onReadyChange={vi.fn()}
           pageClass="blank"
           pageCode="page-a"
           segments={["reference"]}

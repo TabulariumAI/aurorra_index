@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import { Dialog, DIALOG_BODY, DIALOG_SIZE } from "aurorra-ui";
 import { AddIndexPanel, addIndexStoreApi, useAddIndexStore } from "../../src/features/addindex";
 import { ImageViewerPanel } from "../../src/features/imageviewer";
 import { storeApi } from "../../src/store/state/store";
@@ -9,6 +8,7 @@ import tiffUrl from "../../src/test/package/image.tiff?url";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
+const compact = new URLSearchParams(window.location.search).has("compact");
 
 stage.style.overflow = "auto";
 stage.style.padding = "1rem";
@@ -85,6 +85,7 @@ function VisualImageViewer() {
   return (
     <>
       <ImageViewerPanel
+        compact={compact}
         hostInput={{
           ...hostInput,
           onError(error) {
@@ -94,23 +95,20 @@ function VisualImageViewer() {
             stage.dataset.event = event.phase;
           },
         }}
-        previewAction={null}
+        onLoaderChange={(lines) => {
+          if (lines) {
+            stage.dataset.imageLoader = JSON.stringify(lines);
+          } else {
+            delete stage.dataset.imageLoader;
+          }
+        }}
+        onReadyChange={(ready) => {
+          stage.dataset.imageReady = String(ready);
+        }}
+        previewAction={<button aria-label="Close preview" type="button">X</button>}
       />
       {selection ? (
-        <Dialog
-          open
-          aria-label="Add selected index"
-          bodyMode={DIALOG_BODY.CENTER}
-          closeOnOverlay
-          draggable
-          heightStyle={{ height: "auto" }}
-          heightMode={DIALOG_SIZE.MEDIUM}
-          onClose={() => addIndexStoreApi.getState().close()}
-          role="dialog"
-          showCloseButton={false}
-          showHeader
-          showOverlay
-        >
+        <div data-testid="add-index-host">
           <AddIndexPanel
             apiGatewayUrl={hostInput.apiGatewayUrl}
             authToken={hostInput.authToken}
@@ -124,10 +122,13 @@ function VisualImageViewer() {
             onJobEvent={(event) => {
               stage.dataset.event = event.phase;
             }}
+            onReadyChange={(ready) => {
+              stage.dataset.addIndexReady = String(ready);
+            }}
             selection={selection}
             session={hostInput.session}
           />
-        </Dialog>
+        </div>
       ) : null}
     </>
   );

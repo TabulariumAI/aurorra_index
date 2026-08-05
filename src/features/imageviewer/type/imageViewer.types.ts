@@ -46,7 +46,10 @@ export type HostInput = {
 };
 
 export type PanelProps = {
+  compact: boolean;
   hostInput?: HostInput;
+  onLoaderChange?(lines: readonly string[] | null): void;
+  onReadyChange(ready: boolean): void;
   previewAction: ReactNode;
 };
 
@@ -111,6 +114,7 @@ export type StoreState = {
   apiGatewayUrl: string;
   authToken: string | null;
   error: ViewerError | null;
+  fitPageVersion: number;
   onError: ((error: ViewerError) => void) | null;
   onJobEvent: JobEventCallback | null;
   pageCount: number;
@@ -133,6 +137,7 @@ export type StoreState = {
   workerClient: WorkerClient | null;
   resetLens(): void;
   resetViewer(): void;
+  fitPage(): void;
   setError(error: ViewerError): void;
   setHostInput(input: HostInput): void;
   setLocalPackage(value: LocalPackage): void;

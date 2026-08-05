@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
 import { indexStoreApi } from "../../metdata/store/indexStore";
@@ -68,10 +68,12 @@ const metadata: MetadataPayload = {
 };
 
 describe("IndexContainer", () => {
-  afterEach(() => {
+afterEach(() => {
+  act(() => {
     indexStoreApi.getState().resetMetadata();
     imageViewerStoreApi.getState().resetViewer();
   });
+});
 
   it("fetches metadata, renders visible sections, and emits callbacks", async () => {
     const onMetadataLoaded = vi.fn();
@@ -81,10 +83,13 @@ describe("IndexContainer", () => {
     const onView = vi.fn();
     const onViewStarted = vi.fn();
     const onJobEvent = vi.fn();
+    const onLoaderChange = vi.fn();
+    const onReadyChange = vi.fn();
     const workerClient = {
-      confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
-      dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+      confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+      dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       indexData: vi.fn(async () => metadata),
+      patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
 
@@ -95,6 +100,9 @@ describe("IndexContainer", () => {
         callbacks={{ onActionComplete, onEditPage, onJobEvent, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
+        intervalMs={0}
+        onLoaderChange={onLoaderChange}
+        onReadyChange={onReadyChange}
         refresh={null}
         segments={segments}
         session="session-1"
@@ -105,19 +113,19 @@ describe("IndexContainer", () => {
     const shell = view.container.firstElementChild;
     expect(shell).not.toBeNull();
     if (shell) {
-      expect(shell).toHaveStyle({ overflow: "visible" });
-      expect(shell).toHaveStyle({ height: "auto" });
-      expect(shell).toHaveStyle({ minHeight: "0px" });
+      expect(shell).toHaveStyle({ display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: "0px", overflow: "hidden" });
       expect(shell).toHaveStyle({ width: "100%" });
       expect(shell).toHaveStyle({ minWidth: "0px" });
-      expect(shell).toHaveStyle({ boxShadow: "none" });
-      expect(shell).toHaveStyle({ paddingTop: "0px" });
-      expect(shell).not.toHaveStyle({ overflow: "auto" });
+      expect((shell as HTMLElement).style.boxShadow).toBe("");
+      expect((shell as HTMLElement).style.padding).toBe("");
+      expect(shell).not.toHaveStyle({ overflowY: "auto" });
     }
 
-    expect(screen.getByRole("progressbar", { name: "Metadata progress" })).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar", { name: "Metadata progress" })).not.toBeInTheDocument();
+    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving metadata..."]);
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    await waitFor(() => expect(screen.queryByRole("progressbar", { name: "Metadata progress" })).not.toBeInTheDocument());
+    expect(onReadyChange).toHaveBeenCalledWith(false);
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
     expect(onViewStarted).toHaveBeenCalledTimes(1);
     expect(onView).toHaveBeenCalledWith(metadata);
     expect(onMetadataLoaded).toHaveBeenCalledWith(metadata);
@@ -125,7 +133,9 @@ describe("IndexContainer", () => {
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
-      expect(header).toHaveStyle({ position: "sticky", top: "0px", zIndex: "2" });
+      expect(header).toHaveStyle({ borderBottom: "2px solid #06afc1", flex: "0 0 auto", position: "static" });
+      expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0", overflowX: "hidden", overflowY: "auto" });
+      expect(header.nextElementSibling?.nextElementSibling).toHaveAttribute("data-metadata-footer", "true");
     }
 
     fireEvent.click(screen.getByLabelText("Confirm index and remove ambiguity"));
@@ -153,6 +163,9 @@ describe("IndexContainer", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Pages/i }));
     const editButton = await screen.findByRole("button", { name: "Edit index" });
+    const footer = view.container.querySelector<HTMLElement>("[data-metadata-footer]");
+    expect(footer).toBeTruthy();
+    if (!footer) throw new Error("Metadata footer is missing.");
     expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
     fireEvent.click(editButton);
     expect(onEditPage).toHaveBeenCalledTimes(1);
@@ -170,7 +183,11 @@ describe("IndexContainer", () => {
     expect(workerClient.reprocessSegment).toHaveBeenCalledTimes(0);
 
     fireEvent.click(screen.getByRole("button", { name: /Parties\(Party Clause\)/i }));
-    fireEvent.click(await screen.findByRole("link", { name: "Reprocess" }));
+    const reprocess = await screen.findByRole("link", { name: "Reprocess" });
+    expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
+    expect(footer).toBeEmptyDOMElement();
+    expect(header?.nextElementSibling).toContainElement(reprocess);
+    fireEvent.click(reprocess);
     await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
     expect(onJobEvent).toHaveBeenCalledWith({
       jobId: expect.any(String),
@@ -205,13 +222,16 @@ describe("IndexContainer", () => {
         callbacks={{ onMetadataError, onViewError }}
         choices={choices}
         deferredState={createDeferredState()}
+        intervalMs={0}
+        onReadyChange={vi.fn()}
         refresh={null}
         segments={segments}
         session="session-1"
         workerClient={{
-          confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
-          dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+          confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+          dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
           indexData: vi.fn(async () => { throw new Error("broken"); }),
+          patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
           reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
         }}
       />,
@@ -235,9 +255,10 @@ describe("IndexContainer", () => {
   it("emits view canceled on unmount", () => {
     const onViewCanceled = vi.fn();
     const workerClient = {
-      confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
-      dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+      confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+      dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       indexData: vi.fn(async () => metadata),
+      patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
     const view = render(
@@ -247,6 +268,8 @@ describe("IndexContainer", () => {
         callbacks={{ onViewCanceled }}
         choices={choices}
         deferredState={createDeferredState()}
+        intervalMs={0}
+        onReadyChange={vi.fn()}
         refresh={null}
         segments={segments}
         session="session-1"

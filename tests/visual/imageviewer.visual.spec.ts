@@ -4,11 +4,17 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   await page.setViewportSize({ width: 1880, height: 1334 });
   await page.goto("/?scenario=imageviewer");
 
-  await expect(page.getByRole("progressbar", { name: "image viewer progress" })).toBeVisible();
+  await expect(page.locator("#visual-stage")).toHaveAttribute(
+    "data-image-loader",
+    '["Backend is generating the image package"]',
+  );
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-image-ready", "false");
+  await expect(page.getByRole("progressbar", { name: "image viewer progress" })).toHaveCount(0);
   await page.evaluate(() => {
     window.completeDocumentPackage = true;
   });
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toBeVisible();
+  await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("display", "grid");
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toBeVisible();
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
@@ -51,6 +57,8 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-file-type", "image/tiff");
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-metadata-pages", "5");
   await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "completed");
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-image-ready", "true");
+  await expect(page.locator("#visual-stage")).not.toHaveAttribute("data-image-loader");
 
   await page.getByRole("button", { name: "Zoom in" }).click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-zoom", "in");
@@ -129,9 +137,30 @@ test("image viewer disables metadata actions when the current page has no metada
   await expect(page.locator("[data-document-lens-host='true']")).toBeVisible();
 });
 
+test("compact image viewer keeps the toolbar grid and image mode", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 440, height: 900 });
+  await page.goto("/?scenario=imageviewer&compact");
+  await page.evaluate(() => {
+    window.completeDocumentPackage = true;
+  });
+
+  const toolbar = page.locator("[aria-label='Image viewer top toolbar']");
+  await expect(toolbar).toBeVisible();
+  await expect(toolbar).toHaveCSS("display", "grid");
+  const primaryRow = toolbar.locator("[data-image-viewer-toolbar-row='primary']");
+  const close = page.getByRole("button", { name: "Close preview" });
+  await expect(primaryRow).toBeVisible();
+  await expect(close).toBeVisible();
+  expect((await close.boundingBox())?.x).toBeGreaterThan((await primaryRow.boundingBox())?.x ?? 0);
+  const lens = page.locator("[data-document-lens-host='true']");
+  await expect(lens).toHaveAttribute("data-current-page", "2");
+  await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("compact-imageviewer-image-mode.png") });
+});
+
 test("image viewer toolbar wraps without horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 440, height: 900 });
-  await page.goto("/?scenario=imageviewer");
+  await page.goto("/?scenario=imageviewer&compact");
   await page.evaluate(() => {
     window.completeDocumentPackage = true;
   });
@@ -139,9 +168,17 @@ test("image viewer toolbar wraps without horizontal overflow", async ({ page }) 
   const toolbar = page.locator("[aria-label='Image viewer top toolbar']");
   const controls = page.locator("[aria-label='Image view controls']");
   const search = page.locator("[aria-label='Image text search']");
+  const close = page.getByRole("button", { name: "Close preview" });
   await expect(toolbar).toBeVisible();
   await expect(controls).toBeVisible();
   await expect(search).toBeVisible();
+  await expect(close).toBeVisible();
   expect(await toolbar.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  expect((await search.boundingBox())?.y).toBeGreaterThan((await controls.boundingBox())?.y ?? 0);
+  const controlsBox = await controls.boundingBox();
+  const closeBox = await close.boundingBox();
+  const searchBox = await search.boundingBox();
+  expect(closeBox?.y).toBeGreaterThanOrEqual(controlsBox?.y ?? 0);
+  expect((closeBox?.y ?? 0) + (closeBox?.height ?? 0)).toBeLessThanOrEqual((controlsBox?.y ?? 0) + (controlsBox?.height ?? 0));
+  expect(closeBox?.x).toBeGreaterThan((controlsBox?.x ?? 0) + (controlsBox?.width ?? 0));
+  expect(searchBox?.y).toBeGreaterThan((controlsBox?.y ?? 0));
 });

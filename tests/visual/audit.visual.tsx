@@ -58,6 +58,8 @@ createRoot(stage).render(
     apiGatewayUrl="https://doc.example.com"
     authToken="token"
     callbacks={{}}
+    onReadyChange={() => undefined}
+    previewAction={<button aria-label="Close preview" type="button">X</button>}
     session="session-1"
     workerClient={workerClient}
   />,

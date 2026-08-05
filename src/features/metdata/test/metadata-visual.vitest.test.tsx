@@ -153,8 +153,13 @@ describe("metadata visual surface", () => {
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
-      expect(header).toHaveStyle({ boxShadow: "none", position: "sticky", textAlign: "center", top: "0px", width: "100%", zIndex: "2" });
+      expect(header.parentElement).toHaveStyle({ display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: "0px", overflow: "hidden" });
+      expect(header).toHaveStyle({ borderBottom: "2px solid #06afc1", boxShadow: "none", boxSizing: "border-box", flex: "0 0 auto", justifyContent: "space-between", position: "static", textAlign: "left" });
       expect(header).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
+      expect(header.children).toHaveLength(2);
+      expect(header.firstElementChild).toBe(screen.getByRole("heading", { level: 2, name: "Deed" }));
+      expect(header.lastElementChild).toHaveTextContent("session-1");
+      expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
     }
 
     expect(screen.getByText("session-1")).toHaveStyle({
@@ -163,7 +168,7 @@ describe("metadata visual surface", () => {
       maxWidth: "100%",
     });
     const title = screen.getByRole("heading", { level: 2, name: "Deed" });
-    expect(title).toHaveStyle({ fontWeight: "700" });
+    expect(title).toHaveStyle({ fontSize: "1.82rem", fontWeight: "700" });
     const segmentButton = screen.getByRole("button", { name: /Parties\(Party Clause\)/i });
     const collapsedButton = screen.getByRole("button", { name: /Pages/i });
     expect(segmentButton).toHaveStyle({
@@ -227,6 +232,12 @@ describe("metadata visual surface", () => {
       boxShadow: "none",
       textDecoration: "underline",
     });
+    const footer = document.querySelector<HTMLElement>("[data-metadata-footer]");
+    expect(footer).toBeTruthy();
+    if (footer) {
+      expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
+      expect(footer).toBeEmptyDOMElement();
+    }
     const shell = segmentButton.parentElement?.children[1] as HTMLElement | undefined;
     expect(shell).toBeTruthy();
     if (shell) {
@@ -237,6 +248,7 @@ describe("metadata visual surface", () => {
       expect(content).toBeTruthy();
       if (actionLine) {
         expect(actionLine).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)", justifyContent: "flex-end" });
+        expect(actionLine).toContainElement(reprocessLink);
       }
       if (content) {
         expect(content).toHaveStyle({ padding: "0.72rem 0 0.82rem 0.24rem" });
@@ -582,6 +594,9 @@ describe("metadata visual surface", () => {
     });
     expect(pageRow).not.toHaveTextContent("Quote:");
     expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
+    const footer = document.querySelector<HTMLElement>("[data-metadata-footer]");
+    expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
+    expect(footer).toBeEmptyDOMElement();
   });
 
   it("renders the edit action only for page rows", async () => {

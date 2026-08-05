@@ -27,6 +27,7 @@ function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps 
     onComplete: vi.fn(),
     onError: vi.fn(),
     onJobEvent: vi.fn(),
+    onReadyChange: vi.fn(),
     selection,
     session: "session-1",
     workerClient: {
@@ -45,11 +46,10 @@ describe("AddIndexPanel", () => {
     render(<AddIndexPanel {...props()} />);
 
     const form = screen.getByRole("region", { name: "Add selected index form" });
-    expect(form).toHaveStyle({
-      gap: "1rem",
-      maxWidth: "42rem",
-      padding: "1rem",
-    });
+    expect(form).toHaveStyle({ gap: "1rem" });
+    expect(form.style.margin).toBe("");
+    expect(form.style.maxWidth).toBe("");
+    expect(form.style.padding).toBe("");
     expect(form.style.overflowY).toBe("");
     expect(form.querySelector("h2")).toHaveStyle({
       fontSize: "1.75rem",

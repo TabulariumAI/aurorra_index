@@ -46,7 +46,6 @@ export const legalMapStyles = {
     maxHeight: "100%",
     minHeight: 0,
     overflow: "hidden",
-    padding: "0",
     textAlign: "center",
     width: "100%",
   },

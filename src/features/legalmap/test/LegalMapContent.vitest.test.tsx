@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
 
 describe("LegalMapContent", () => {
   it("renders the pure legal map hierarchy without shell dialog controls", () => {
+    const onReadyChange = vi.fn();
     render(
       <LegalMapContent
         legal={{
@@ -21,6 +22,7 @@ describe("LegalMapContent", () => {
           ],
           plat: { city: "austin", county: "travis", state: "TX" },
         }}
+        onReadyChange={onReadyChange}
       />,
     );
 
@@ -42,10 +44,11 @@ describe("LegalMapContent", () => {
     expect(grid?.firstElementChild).toHaveStyle({ flex: "0 0 auto" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(onReadyChange).toHaveBeenCalledWith(true);
   });
 
   it("renders the donor empty-state text for empty legal data", () => {
-    render(<LegalMapContent legal={null} />);
+    render(<LegalMapContent legal={null} onReadyChange={vi.fn()} />);
 
     expect(screen.getByText("No valid property hierarchy data found.")).toBeInTheDocument();
   });

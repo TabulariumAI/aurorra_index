@@ -27,7 +27,11 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await page.setViewportSize({ width: 1880, height: 1334 });
   await page.goto("/?scenario=imageviewer");
 
-  await expect(page.getByRole("progressbar", { name: "image viewer progress" })).toBeVisible();
+  await expect(page.locator("#visual-stage")).toHaveAttribute(
+    "data-image-loader",
+    '["Backend is generating the image package"]',
+  );
+  await expect(page.getByRole("progressbar", { name: "image viewer progress" })).toHaveCount(0);
   await page.evaluate(() => {
     window.completeDocumentPackage = true;
   });
@@ -39,14 +43,12 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await page.getByRole("button", { name: "Export" }).click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-selection", "copied");
 
-  const dialog = page.getByRole("dialog", { name: "Add selected index" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toHaveAttribute("data-dialog-draggable", "true");
-  await expect(dialog).toHaveAttribute("data-height-mode", "medium");
-  await expect(dialog.locator("[data-dialog-body='true']")).toHaveAttribute("data-body-mode", "center");
+  const host = page.getByTestId("add-index-host");
+  await expect(host).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
   const form = page.getByRole("region", { name: "Add selected index form" });
-  await expect(form).toHaveCSS("max-width", "672px");
-  await expect(form).toHaveCSS("padding", "16px");
+  await expect(form).toHaveCSS("max-width", "none");
+  await expect(form).toHaveCSS("padding", "0px");
   await expect(form).toHaveCSS("overflow-y", "visible");
   await expect(form.locator("h2")).toHaveCSS("font-size", "28px");
   const indexInput = page.getByRole("textbox", { name: "Index" });
@@ -75,13 +77,11 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   expect(typeFieldBox).not.toBeNull();
   expect(indexFieldBox!.y).toBeLessThan(quoteFieldBox!.y);
   expect(quoteFieldBox!.y).toBeLessThan(typeFieldBox!.y);
-  const dialogBox = await dialog.boundingBox();
-  expect(dialogBox).not.toBeNull();
-  expect(dialogBox!.width).toBeLessThan(1880);
-  expect(dialogBox!.height).toBeLessThan(1334);
+  const formBox = await form.boundingBox();
+  expect(formBox).not.toBeNull();
+  expect(formBox!.width).toBeLessThan(1880);
+  expect(formBox!.height).toBeLessThan(1334);
   await expect.poll(async () => form.evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
-  await expect.poll(async () => dialog.locator("[data-dialog-body='true']")
-    .evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
   await expect(page.getByTestId("add-index-field")).toHaveCSS("border-radius", "8px");
   await expect(page.getByTestId("add-quote-field")).toHaveCSS("border-radius", "8px");
   await expect(page.getByTestId("add-type-field")).toHaveCSS("border-radius", "8px");
@@ -96,7 +96,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   expect(confirmBox!.x).toBeLessThan(cancelBox!.x);
   expect(Math.abs(
     actionsBox!.x + actionsBox!.width / 2
-      - (dialogBox!.x + dialogBox!.width / 2),
+      - (formBox!.x + formBox!.width / 2),
   )).toBeLessThanOrEqual(1);
 
   await indexInput.fill("Edited Index");
@@ -106,9 +106,9 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(page.getByRole("button", { name: "Confirm" })).toBeEnabled();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
-  await expect(dialog).toBeVisible();
+  await expect(host).toBeVisible();
   await page.getByRole("button", { name: "Confirm" }).click();
-  await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
+  await expect(host).toHaveCount(0);
   await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "started");
   await expect.poll(() => serviceRequest).not.toBeNull();
   releaseService();
@@ -145,14 +145,15 @@ test("Add Index closes and posts failed progress when the service rejects the in
   await page.getByRole("button", { exact: true, name: "Select" }).click();
   await page.getByRole("button", { name: "Export" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Add selected index" });
-  await expect(dialog).toBeVisible();
+  const host = page.getByTestId("add-index-host");
+  await expect(host).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
   await page.getByRole("textbox", { name: "Type" }).fill("Party");
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
   await page.getByRole("button", { name: "Confirm" }).click();
 
-  await expect(dialog).toHaveCount(0);
+  await expect(host).toHaveCount(0);
   await expect(page.locator("#visual-stage")).toHaveAttribute("data-error", "Index already exists.");
   await expect(page.locator("#visual-stage")).not.toHaveAttribute("data-add-index-complete", "true");
   await expect(page.locator("#visual-stage")).toHaveAttribute("data-event", "failed");

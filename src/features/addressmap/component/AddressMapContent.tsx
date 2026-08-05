@@ -3,16 +3,18 @@ import { appendAddressMapZoom } from "../data/addressMap";
 import { addressMapStyles } from "../style/addressMapStyles";
 import type { JSX } from "react";
 
-type AddressMapContentProps = {
+export type AddressMapContentProps = {
+  onReadyChange(ready: boolean): void;
   source: string;
   zoom: number;
 };
 
-export function AddressMapContent({ source, zoom }: AddressMapContentProps): JSX.Element {
+export function AddressMapContent({ onReadyChange, source, zoom }: AddressMapContentProps): JSX.Element {
   const [iframeSource, setIframeSource] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    onReadyChange(false);
     if (!source) {
       setIframeSource(null);
       setIsLoaded(false);
@@ -22,14 +24,16 @@ export function AddressMapContent({ source, zoom }: AddressMapContentProps): JSX
     const timer = window.setTimeout(() => {
       setIframeSource(appendAddressMapZoom(source, zoom));
       setIsLoaded(true);
+      onReadyChange(true);
     }, 50);
 
     return () => {
       clearTimeout(timer);
       setIframeSource(null);
       setIsLoaded(false);
+      onReadyChange(false);
     };
-  }, [source, zoom]);
+  }, [onReadyChange, source, zoom]);
 
   return (
     <div style={addressMapStyles.contentShell}>

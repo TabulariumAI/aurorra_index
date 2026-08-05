@@ -49,29 +49,34 @@ describe("AuditPanel", () => {
     auditStoreApi.getState().resetAudit();
   });
 
-  it("renders loading progress and empty state when report is pending", () => {
+  it("reports loading to the host without package loading presentation", () => {
+    const onLoaderChange = vi.fn();
     render(
       <AuditPanel
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
+        onLoaderChange={onLoaderChange}
+        onReadyChange={vi.fn()}
         previewAction={previewAction}
         session="session-1"
         workerClient={client(vi.fn(() => new Promise(() => undefined)))}
       />,
     );
 
-    expect(screen.getByLabelText("Audit progress")).toBeInTheDocument();
-    expect(screen.getByText("No gaps found.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving audit report..."]);
+    expect(screen.queryByText("No gaps found.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close preview" })).not.toBeInTheDocument();
   });
 
-  it("renders restored header layout, hidden costs, filters, gaps, and no dialog role", async () => {
+  it("renders a fixed audit header with a separately scrolling report body", async () => {
     render(
       <AuditPanel
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
+        onReadyChange={vi.fn()}
         previewAction={previewAction}
         session="session-1"
         workerClient={client()}
@@ -86,6 +91,19 @@ describe("AuditPanel", () => {
     expect(screen.getByText("$1.66")).toHaveStyle({ color: "var(--background-main, #ffffff)" });
     expect(screen.getByText("Change type")).toBeInTheDocument();
     expect(screen.getByText("Process")).toBeInTheDocument();
+    const header = document.querySelector("[data-audit-header]");
+    const body = screen.getByRole("region", { name: "Audit report body" });
+    expect(header).toHaveStyle({ flex: "0 0 auto" });
+    expect(body).toHaveStyle({
+      flex: "1 1 auto",
+      minHeight: "0",
+      overflowY: "auto",
+    });
+    expect(header?.contains(body)).toBe(false);
+    const primaryRow = screen.getByRole("button", { name: "Close preview" }).closest("[data-audit-header-row='primary']");
+    expect(primaryRow).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Close preview" }).parentElement).toHaveStyle({ flex: "0 0 auto" });
+    expect(screen.getByText("Out of 3").closest("[data-audit-header-row='primary']")).toBeNull();
     expect(screen.getByText("Newest addition message")).toBeInTheDocument();
     expect(screen.getByText("Old remove message")).toBeInTheDocument();
     expect(screen.getByText("Addition (1)")).toBeInTheDocument();
@@ -99,6 +117,7 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
+        onReadyChange={vi.fn()}
         previewAction={previewAction}
         session="session-1"
         workerClient={client()}

@@ -12,7 +12,8 @@ describe("AddressMapContent", () => {
     vi.useFakeTimers();
     const source = buildAddressMapEmbedUrl("123 Main St, Austin, TX 78701");
 
-    render(<AddressMapContent source={source} zoom={14} />);
+    const onReadyChange = vi.fn();
+    render(<AddressMapContent onReadyChange={onReadyChange} source={source} zoom={14} />);
 
     const iframe = screen.getByTestId("address-map-iframe");
 
@@ -22,6 +23,7 @@ describe("AddressMapContent", () => {
     expect(iframe).toHaveAttribute("frameBorder", "0");
     expect(iframe).toHaveStyle({ display: "none", width: "100%", height: "100%", background: "transparent" });
     expect(iframe.getAttribute("src")).toBeNull();
+    expect(onReadyChange).toHaveBeenCalledWith(false);
 
     act(() => {
       vi.advanceTimersByTime(50);
@@ -29,13 +31,14 @@ describe("AddressMapContent", () => {
 
     expect(iframe).toHaveStyle({ display: "block" });
     expect(iframe).toHaveAttribute("src", appendAddressMapZoom(source, 14));
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
   });
 
   it("uses custom zoom when open", () => {
     vi.useFakeTimers();
     const source = buildAddressMapEmbedUrl("456 Oak St, Austin, TX 78701");
 
-    render(<AddressMapContent source={source} zoom={17} />);
+    render(<AddressMapContent onReadyChange={vi.fn()} source={source} zoom={17} />);
 
     act(() => {
       vi.advanceTimersByTime(50);
@@ -51,7 +54,7 @@ describe("AddressMapContent", () => {
     vi.useFakeTimers();
     const source = buildAddressMapEmbedUrl("789 Pine St, Austin, TX 78701");
 
-    const { rerender } = render(<AddressMapContent source={source} zoom={14} />);
+    const { rerender } = render(<AddressMapContent onReadyChange={vi.fn()} source={source} zoom={14} />);
     const iframe = screen.getByTestId("address-map-iframe");
 
     act(() => {
@@ -61,7 +64,7 @@ describe("AddressMapContent", () => {
     expect(iframe).toHaveStyle({ display: "block" });
     expect(iframe).toHaveAttribute("src", appendAddressMapZoom(source, 14));
 
-    rerender(<AddressMapContent source="" zoom={14} />);
+    rerender(<AddressMapContent onReadyChange={vi.fn()} source="" zoom={14} />);
 
     expect([null, ""]).toContain(iframe.getAttribute("src"));
     expect(iframe).toHaveStyle({ display: "none" });

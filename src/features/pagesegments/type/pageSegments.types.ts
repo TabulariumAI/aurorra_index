@@ -35,6 +35,12 @@ export type PageSegmentsComplete = {
   segments: string[];
 };
 
+export type PageSegmentsRequest = {
+  code: string;
+  pageClass: string;
+  segments: string[];
+};
+
 export type PageSegmentsFailure = {
   error: PageSegmentsWorkerError;
   pageCode: string;
@@ -49,6 +55,7 @@ export type PageSegmentsPanelProps = {
   onComplete: (event: PageSegmentsComplete) => void;
   onError: (event: PageSegmentsFailure) => void;
   onJobEvent: JobEventCallback;
+  onReadyChange(ready: boolean): void;
   pageClass: string;
   pageCode: string;
   segments: string[];

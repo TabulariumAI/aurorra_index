@@ -545,6 +545,17 @@ describe("useImageViewer", () => {
     expect(console.info).toHaveBeenCalledWith("imageviewer lens action", { action: "zoomIn" });
   });
 
+  it("runs a requested fit page command after the selected image is ready", async () => {
+    seedPackage();
+    imageViewerStoreApi.getState().fitPage();
+    await act(async () => {
+      render(<Harness />);
+    });
+
+    await waitFor(() => expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(lensInstances[0].fitPage).toHaveBeenCalledTimes(1));
+  });
+
   it("reports selection export errors", async () => {
     const onError = vi.fn();
     exportSelectionError.value = new Error("export failed");

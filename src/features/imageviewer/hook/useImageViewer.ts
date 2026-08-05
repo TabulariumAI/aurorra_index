@@ -64,6 +64,7 @@ export function useImageViewer() {
   const decodingPackageKeyRef = useRef<string | null>(null);
   const decodedSessionRef = useRef<string | null>(null);
   const decodedPackageVersionRef = useRef(0);
+  const fitPageRequestRef = useRef(0);
   const lastRequestKeyRef = useRef("");
   const retryPackageRef = useRef(0);
   const retryVersionRef = useRef(0);
@@ -74,6 +75,7 @@ export function useImageViewer() {
   const [restoreDone, setRestoreDone] = useState(false);
   const [restoredSession, setRestoredSession] = useState(false);
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
+  const fitPageVersion = useImageViewerStore((state) => state.fitPageVersion);
   const request = useImageViewerStore((state) => state.request);
   const requestVersion = useImageViewerStore((state) => state.requestVersion);
   const session = useImageViewerStore((state) => state.session);
@@ -139,6 +141,7 @@ export function useImageViewer() {
       decodingPackageKeyRef.current = null;
       decodedSessionRef.current = null;
       decodedPackageVersionRef.current = 0;
+      fitPageRequestRef.current = 0;
       retryPackageRef.current = 0;
       retryVersionRef.current = 0;
       setDecodedVersion(0);
@@ -289,6 +292,14 @@ export function useImageViewer() {
       canceled = true;
     };
   }, [pageReady, request, requestVersion]);
+
+  useEffect(() => {
+    const lens = lensRef.current;
+    if (!lens || !pageReady || !viewerState?.canFitPage || fitPageVersion === 0 || fitPageRequestRef.current === fitPageVersion) return;
+    fitPageRequestRef.current = fitPageVersion;
+    console.info("imageviewer lens action", { action: "fitPage" });
+    lens.fitPage();
+  }, [fitPageVersion, pageReady, viewerState?.canFitPage]);
 
   const previousPage = useCallback(() => {
     if (!pageReady || !viewerState?.canGoPrevious) return;

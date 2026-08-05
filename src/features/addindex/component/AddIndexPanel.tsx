@@ -12,6 +12,7 @@ export function AddIndexPanel({
   onComplete,
   onError,
   onJobEvent,
+  onReadyChange,
   selection,
   session,
   workerClient,
@@ -39,7 +40,8 @@ export function AddIndexPanel({
       source: summary.context,
       type: "",
     });
-  }, [selection]);
+    onReadyChange(true);
+  }, [onReadyChange, selection]);
 
   const submit = async () => {
     const jobId = crypto.randomUUID();

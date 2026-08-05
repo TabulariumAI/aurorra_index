@@ -92,6 +92,8 @@ export type AuditPanelProps = {
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: AuditCallbacks;
+  onLoaderChange?(lines: readonly string[] | null): void;
+  onReadyChange(ready: boolean): void;
   previewAction: ReactNode;
   session: string;
   workerClient?: AuditWorkerClient;
@@ -101,7 +103,10 @@ export type AuditStoreState = {
   activeSession: string | null;
   error: AuditWorkerError | null;
   report: AuditReport | null;
+  refresh: { id: number; session: string } | null;
+  refreshId: number;
   status: AuditStatus;
+  refreshAudit(session: string): void;
   resetAudit(): void;
   setError(error: AuditWorkerError): void;
   setLoaded(session: string, report: AuditReport): void;

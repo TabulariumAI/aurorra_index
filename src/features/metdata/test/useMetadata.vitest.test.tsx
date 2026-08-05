@@ -38,9 +38,10 @@ const baseMetadata: MetadataPayload = {
 
 function createClient(): IndexWorkerClient {
   return {
-    confirmIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
-    dropIndex: vi.fn(async () => ({ applied: true as const, patches: 1 })),
+    confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+    dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
     indexData: vi.fn(async () => baseMetadata),
+    patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
     reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
   };
 }
@@ -80,6 +81,8 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onActionError, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -113,6 +116,8 @@ describe("useMetadata", () => {
       callbacks: { onSegmentExpand },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -150,6 +155,8 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -170,6 +177,43 @@ describe("useMetadata", () => {
     expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
   });
 
+  it("waits for the patch status before applying confirm and drop state", async () => {
+    const client = createClient();
+    vi.mocked(client.confirmIndex).mockResolvedValueOnce({ data: "", status: "processing", version: 3 });
+    vi.mocked(client.dropIndex).mockResolvedValueOnce({ data: "", status: "processing", version: 4 });
+    vi.mocked(client.patchStatus)
+      .mockResolvedValueOnce({ data: "", status: "completed", version: 3 })
+      .mockResolvedValueOnce({ data: "", status: "completed", version: 4 });
+    const onActionComplete = vi.fn();
+    const props: IndexMetadataProps = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: { onActionComplete },
+      choices: [],
+      deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
+      refresh: null,
+      segments,
+      session: "session-1",
+      workerClient: client,
+    };
+
+    const { result } = renderHook(() => useMetadata(props));
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      await result.current.onConfirm(rowPayload);
+      await result.current.onDrop(rowPayload);
+    });
+
+    expect(client.patchStatus).toHaveBeenNthCalledWith(1, "token", "session-1", 3);
+    expect(client.patchStatus).toHaveBeenNthCalledWith(2, "token", "session-1", 4);
+    expect(result.current.confirmedCodes.has("idx-1")).toBe(true);
+    expect(result.current.removedCodes.has("idx-1")).toBe(true);
+    expect(onActionComplete).toHaveBeenCalledTimes(2);
+  });
+
   it("clears matching selection on drop and emits completion", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();
@@ -181,6 +225,8 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onIndexFocus, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -218,6 +264,8 @@ describe("useMetadata", () => {
       callbacks: { onActionComplete, onActionError, onJobEvent },
       choices: [],
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",

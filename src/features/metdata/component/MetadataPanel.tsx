@@ -203,7 +203,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
       action={
         actionSegment ? (
           <div style={metadataStyles.actionGroup}>
-            {actions.reprocess && actionSegment && onReprocess ? (
+            {actions.reprocess && onReprocess ? (
               <SectionAction
                 onClick={async () => {
                   await onReprocess(actionSegment);
@@ -212,7 +212,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 Reprocess
               </SectionAction>
             ) : null}
-            {actions.reprocess && actionSegment && onReprocess && actions.refine && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
+            {actions.reprocess && onReprocess && actions.refine && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
             {actions.refine && callbacks.onEditPage ? (
               <SectionAction
                 onClick={() =>
@@ -224,7 +224,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                     type: "segment",
                   })
                 }
-                >
+              >
                 Refine or Chat
               </SectionAction>
             ) : null}
@@ -266,16 +266,14 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     fees: fiscalItems(metadata, "fees"),
     funds: fiscalItems(metadata, "funds"),
   };
-
   return (
     <Tooltip.Provider delayDuration={250}>
       <section aria-label="Metadata" style={metadataStyles.root}>
         <header style={metadataStyles.header}>
-          <div>
-            <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
-            <span style={metadataStyles.session}>{session}</span>
-          </div>
+          <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
+          <span style={metadataStyles.session}>{session}</span>
         </header>
+        <div aria-label="Metadata accordion" role="region" style={metadataStyles.accordion}>
         {isVisible(segments.PAGE) ? renderSegment(
           segments.PAGE,
           "Pages",
@@ -400,6 +398,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {isVisible(segments.CHAIN) && (Array.isArray(metadata.chain) && metadata.chain.length || sections.showEmpty) ? renderSegment(segments.CHAIN, "Chain", Array.isArray(metadata.chain) ? metadata.chain.length : 0, Array.isArray(metadata.chain) && metadata.chain.length ? metadata.chain.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No data found." />, null) : null}
         {isVisible(segments.HISTORY) && (metadata.history && Object.keys(metadata.history).length || sections.showEmpty) ? renderSegment(segments.HISTORY, "History", metadata.history ? Object.keys(metadata.history).length : 0, metadata.history && Object.keys(metadata.history).length ? <pre style={metadataStyles.pre}>{JSON.stringify(metadata.history, null, 2)}</pre> : <EmptyRow message="No history found." />, null) : null}
         {children}
+        </div>
+        <footer aria-label="Metadata actions" data-metadata-footer="true" style={metadataStyles.footerEmpty} />
       </section>
     </Tooltip.Provider>
   );

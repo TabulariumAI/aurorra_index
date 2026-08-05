@@ -25,6 +25,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn
         canZoomOut
+        compact={false}
         selecting={false}
         onAction={onAction}
         onSearchText={vi.fn()}
@@ -40,9 +41,18 @@ describe("ImageViewerToolbar", () => {
     expect(screen.getByLabelText("Current scale")).toHaveTextContent("100%");
     expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search image text" })).toHaveAttribute("placeholder", "Search image text");
+    const toolbar = screen.getByLabelText("Image viewer top toolbar");
+    const close = screen.getByRole("button", { name: "Close preview" });
+    const searchForm = screen.getByLabelText("Image text search");
+    expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto" });
+    expect(searchForm).toHaveStyle({ maxWidth: "none", minWidth: "0", width: "100%" });
+    expect(screen.getByLabelText("Image view controls").parentElement).toBe(toolbar);
+    expect(searchForm.parentElement).toBe(toolbar);
+    expect(close.parentElement?.parentElement).toBe(toolbar);
     expect(
-      screen.getByLabelText("Image view controls").compareDocumentPosition(screen.getByLabelText("Image text search")),
+      screen.getByLabelText("Image view controls").compareDocumentPosition(searchForm),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(searchForm.compareDocumentPosition(close)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     const searchBox = screen.getByRole("searchbox", { name: "Search image text" });
     const search = screen.getByRole("button", { name: "Search" });
     const select = screen.getByRole("button", { name: /^Select$/ });
@@ -93,6 +103,38 @@ describe("ImageViewerToolbar", () => {
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });
 
+  it("keeps the close action in the first row in compact mode", () => {
+    render(
+      <ImageViewerTopToolbar
+        canActualSize
+        canClearSearch
+        canExport
+        canFitHeight
+        canFitPage
+        canFitWidth
+        canSearch
+        canSelect
+        canZoomIn
+        canZoomOut
+        compact
+        selecting={false}
+        onAction={vi.fn()}
+        onSearchText={vi.fn()}
+        previewAction={<button type="button">Close preview</button>}
+        searchText=""
+        zoom={1}
+      />,
+    );
+
+    const toolbar = screen.getByLabelText("Image viewer top toolbar");
+    const primaryRow = toolbar.querySelector("[data-image-viewer-toolbar-row='primary']");
+    expect(toolbar).toHaveStyle({ display: "grid" });
+    expect(primaryRow).toHaveStyle({ display: "flex", justifyContent: "space-between" });
+    expect(screen.getByLabelText("Image view controls").parentElement).toBe(primaryRow);
+    expect(screen.getByRole("button", { name: "Close preview" }).parentElement?.parentElement).toBe(primaryRow);
+    expect(screen.getByLabelText("Image text search").parentElement).toBe(toolbar);
+  });
+
   it("keeps search input enabled when search action is disabled by lens state", () => {
     const onAction = vi.fn();
     const onSearchText = vi.fn();
@@ -108,6 +150,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn
         canZoomOut
+        compact={false}
         selecting={false}
         onAction={onAction}
         onSearchText={onSearchText}
@@ -143,6 +186,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn={false}
         canZoomOut={false}
+        compact={false}
         selecting={false}
         onAction={vi.fn()}
         onSearchText={vi.fn()}
@@ -158,7 +202,7 @@ describe("ImageViewerToolbar", () => {
     expect(screen.getByRole("button", { name: "Scale options" })).toBeDisabled();
   });
 
-  it("allows the toolbar to wrap without shrinking controls", () => {
+  it("keeps normal preview controls in one grid row", () => {
     render(
       <ImageViewerTopToolbar
         canActualSize
@@ -171,6 +215,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn
         canZoomOut
+        compact={false}
         selecting={false}
         onAction={vi.fn()}
         onSearchText={vi.fn()}
@@ -180,8 +225,8 @@ describe("ImageViewerToolbar", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Image viewer top toolbar")).toHaveStyle({ display: "flex", flexWrap: "wrap" });
-    expect(screen.getByLabelText("Image text search")).toHaveStyle({ flex: "1 1 20rem", maxWidth: "26rem", minWidth: "20rem" });
+    expect(screen.getByLabelText("Image viewer top toolbar")).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto" });
+    expect(screen.getByLabelText("Image text search")).toHaveStyle({ maxWidth: "none", minWidth: "0", width: "100%" });
   });
 
   it("renders select mode as active and exposes the exit action", () => {
@@ -198,6 +243,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn
         canZoomOut
+        compact={false}
         selecting
         onAction={onAction}
         onSearchText={vi.fn()}
@@ -232,6 +278,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn
         canZoomOut
+        compact={false}
         selecting={false}
         onAction={onAction}
         onSearchText={vi.fn()}
@@ -265,6 +312,7 @@ describe("ImageViewerToolbar", () => {
         canSelect
         canZoomIn
         canZoomOut
+        compact={false}
         selecting={false}
         onAction={onAction}
         onSearchText={vi.fn()}

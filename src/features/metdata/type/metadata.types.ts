@@ -226,9 +226,10 @@ export type IndexWorkerResult<T> =
   | { ok: true; data: T }
   | ({ ok: false } & IndexWorkerError);
 
-export type IndexApplyResult = {
-  applied: true;
-  patches: number;
+export type IndexPatchResult = {
+  data: string;
+  status: "completed" | "error" | "pending" | "processing";
+  version: number;
 };
 
 export type IndexReprocessResult = {
@@ -245,12 +246,14 @@ export type IndexWorkerCommand = ({
   | { segment: string; type: "reprocessSegment" }
   | { code: string; type: "confirmIndex" }
   | { code: string; type: "dropIndex" }
+  | { type: "patchStatus"; version: number }
 ));
 
 export type IndexWorkerClient = {
-  confirmIndex(token: string, session: string, code: string): Promise<IndexApplyResult>;
-  dropIndex(token: string, session: string, code: string): Promise<IndexApplyResult>;
+  confirmIndex(token: string, session: string, code: string): Promise<IndexPatchResult>;
+  dropIndex(token: string, session: string, code: string): Promise<IndexPatchResult>;
   indexData(token: string, session: string): Promise<MetadataPayload>;
+  patchStatus(token: string, session: string, version: number): Promise<IndexPatchResult>;
   reprocessSegment(token: string, session: string, segment: string): Promise<IndexReprocessResult>;
 };
 
@@ -263,7 +266,10 @@ export type MetadataStatus = "idle" | "loading" | "success" | "error";
 export type IndexStoreState = {
   activeSession: string | null;
   error: IndexWorkerError | null;
+  refresh: IndexMetadataRefresh | null;
+  refreshId: number;
   status: MetadataStatus;
+  refreshMetadata(session: string, segment: string): void;
   setError(error: IndexWorkerError): void;
   setLoaded(session: string): void;
   setLoading(session: string): void;
@@ -278,6 +284,9 @@ export type IndexMetadataProps = {
   choices: IndexChoice[] | string | null;
   children?: ReactNode;
   deferredState: IndexDeferredState;
+  intervalMs: number;
+  onLoaderChange?(lines: readonly string[] | null): void;
+  onReadyChange(ready: boolean): void;
   refresh: IndexMetadataRefresh | null;
   segments: IndexSegmentValues;
   session: string;

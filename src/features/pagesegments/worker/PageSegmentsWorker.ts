@@ -52,7 +52,7 @@ export class PageSegmentsWorker {
     return {
       body: JSON.stringify({ segments: command.segments }),
       method: "POST",
-      url: `${apiBaseUrl}/v1/reprocess/${encodeURIComponent(command.session)}/page/${encodeURIComponent(command.pageCode)}/segments`,
+      url: `${apiBaseUrl}/v1/refine/${encodeURIComponent(command.session)}/page/${encodeURIComponent(command.pageCode)}/`,
     };
   }
 

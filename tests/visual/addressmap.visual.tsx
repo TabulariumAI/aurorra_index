@@ -10,6 +10,13 @@ if (!stage) {
   throw new Error("Missing visual stage.");
 }
 
+stage.style.display = "flex";
+stage.style.flexDirection = "column";
+stage.style.overflow = "hidden";
+stage.style.padding = "0 1rem 1rem";
+stage.style.boxSizing = "border-box";
+stage.innerHTML = "";
+
 const segments: IndexSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",

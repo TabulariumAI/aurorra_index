@@ -110,6 +110,13 @@ describe("imageViewerStore", () => {
     expect(imageViewerStoreApi.getState().requestVersion).toBe(2);
   });
 
+  it("versions each fit page command", () => {
+    imageViewerStoreApi.getState().fitPage();
+    imageViewerStoreApi.getState().fitPage();
+
+    expect(imageViewerStoreApi.getState().fitPageVersion).toBe(2);
+  });
+
   it("clears transient lens state without clearing same-session package values", () => {
     imageViewerStoreApi.getState().setHostInput({
       apiGatewayUrl: "https://gateway",
@@ -130,6 +137,7 @@ describe("imageViewerStore", () => {
     imageViewerStoreApi.getState().resetLens();
 
     expect(imageViewerStoreApi.getState()).toMatchObject({
+      fitPageVersion: 0,
       packageMetadata: { pages: [] },
       packageStatus: "completed",
       searchText: "",

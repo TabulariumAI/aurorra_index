@@ -135,6 +135,8 @@ export type IqPanelProps = {
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: IqCallbacks;
+  onLoaderChange?(lines: readonly string[] | null): void;
+  onReadyChange(ready: boolean): void;
   previewAction: ReactNode;
   session: string;
   workerClient?: IqWorkerClient;

@@ -12,6 +12,7 @@ export type {
   PageSegmentsComplete,
   PageSegmentsFailure,
   PageSegmentsPanelProps,
+  PageSegmentsRequest,
   PageSegmentsWorkerClient,
   PageSegmentsWorkerCommand,
   PageSegmentsWorkerConfig,

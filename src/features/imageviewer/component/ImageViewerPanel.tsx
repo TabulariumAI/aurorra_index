@@ -1,4 +1,3 @@
-import { ProgressBar } from "aurorra-ui";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { JSX } from "react";
 import { addIndexStoreApi } from "../../addindex";
@@ -19,7 +18,7 @@ function lensProgressLabel(status: string): string {
   return "Loading...";
 }
 
-export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.Element {
+export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyChange, previewAction }: PanelProps): JSX.Element {
   useLayoutEffect(() => {
     if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
   }, [hostInput]);
@@ -63,9 +62,17 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
   const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage";
   const progress = loading || lensLoading;
 
+  useEffect(() => {
+    onReadyChange(status === "ready" && !lensLoading);
+  }, [lensLoading, onReadyChange, status]);
+
+  useEffect(() => {
+    onLoaderChange?.(progress ? [loading ? progressLabel(status) : lensProgressLabel(viewerStatus)] : null);
+  }, [loading, onLoaderChange, progress, status, viewerStatus]);
+
   return (
     <section aria-label="Image viewer" style={imageViewerStyles.root}>
-      {viewer.isThumbs ? null : (
+      {!viewer.isThumbs || compact ? (
         <ImageViewerTopToolbar
           canActualSize={viewer.canActualSize}
           canClearSearch={viewer.canClearSearch}
@@ -77,6 +84,7 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
           canSelect={viewer.canSelect}
           canZoomIn={viewer.canZoomIn}
           canZoomOut={viewer.canZoomOut}
+          compact={compact}
           selecting={viewer.selecting}
           onAction={(action) => {
             if (action === "actualSize") viewer.actualSize();
@@ -99,23 +107,11 @@ export function ImageViewerPanel({ hostInput, previewAction }: PanelProps): JSX.
           searchText={searchText}
           zoom={viewer.zoom}
         />
-      )}
+      ) : null}
       <div style={imageViewerStyles.body}>
         <div data-document-lens-host="true" ref={viewer.lensHostRef} style={imageViewerStyles.lensHost} />
-        {progress ? (
-          <div style={imageViewerStyles.overlay}>
-            <ProgressBar
-              ariaLabel="image viewer progress"
-              continuous
-              label={loading ? progressLabel(status) : lensProgressLabel(viewerStatus)}
-              running
-              showText
-              visible
-            />
-          </div>
-        ) : null}
       </div>
-      {viewer.isThumbs ? null : (
+      {progress || viewer.isThumbs ? null : (
         <ImageViewerFooterToolbar
           canGoFirst={viewer.canGoFirst}
           canGoLast={viewer.canGoLast}

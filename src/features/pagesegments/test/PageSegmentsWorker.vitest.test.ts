@@ -30,7 +30,7 @@ describe("PageSegmentsWorker", () => {
     })).toEqual({
       body: JSON.stringify({ segments: ["reference"] }),
       method: "POST",
-      url: "https://doc.example.com/v1/reprocess/session%2F1/page/page%2F1/segments",
+      url: "https://doc.example.com/v1/refine/session%2F1/page/page%2F1/",
     });
 
     const fetchMock = vi.fn(async () => emptyResponse());
@@ -45,7 +45,7 @@ describe("PageSegmentsWorker", () => {
       type: "updatePageSegments",
     })).resolves.toEqual({ ok: true, data: undefined });
 
-    expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/reprocess/session-1/page/page-1/segments", {
+    expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/refine/session-1/page/page-1/", {
       body: JSON.stringify({ segments: ["reference", "secrets"] }),
       headers: { Authorization: "Bearer token-1", "Content-Type": "application/json" },
       method: "POST",

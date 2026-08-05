@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { useEffect, type JSX } from "react";
 import type { LegalPayload } from "../../metdata/type/metadata.types";
 import { isBlank, normalizeLegalData, type PlatBlock, type PlatLot, type PlatPhase } from "../data/legalData";
 import {
@@ -127,8 +127,12 @@ function Legend({ matchPlatSubdivision, presentLayers }: { matchPlatSubdivision:
   );
 }
 
-export function LegalMapContent({ legal }: { legal: LegalPayload | null | undefined }): JSX.Element {
+export function LegalMapContent({ legal, onReadyChange }: { legal: LegalPayload | null | undefined; onReadyChange(ready: boolean): void }): JSX.Element {
   const view = normalizeLegalData(legal);
+
+  useEffect(() => {
+    onReadyChange(true);
+  }, [legal, onReadyChange]);
 
   if (view.isEmptyStructure) {
     return (

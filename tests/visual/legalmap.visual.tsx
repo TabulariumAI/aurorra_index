@@ -13,6 +13,7 @@ stage.appendChild(main);
 
 createRoot(main).render(
   <LegalMapContent
+    onReadyChange={() => undefined}
     legal={{
       groups: [
         {

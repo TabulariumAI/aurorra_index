@@ -49,18 +49,6 @@ export const iqStyles = {
     justifyContent: "space-between",
     width: "100%",
   },
-  progressOverlay: {
-    alignItems: "flex-start",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(248,250,252,0.28))",
-    display: "flex",
-    inset: 0,
-    justifyContent: "center",
-    overflow: "hidden",
-    padding: "0.35rem 0.7rem 0",
-    pointerEvents: "auto",
-    position: "absolute",
-    zIndex: 2,
-  },
   summaryCard: {
     alignItems: "center",
     background: "#ffffff",
