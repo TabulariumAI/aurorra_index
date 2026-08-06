@@ -1,6 +1,6 @@
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useState, type JSX, type ReactNode } from "react";
-import { segmentStyles } from "../style/metadataStyles";
+import { segmentStyles } from "../style/metadataViewStyles";
 
 export function MetadataSegment({
   action,

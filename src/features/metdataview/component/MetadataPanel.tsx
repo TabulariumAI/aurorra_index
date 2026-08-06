@@ -1,19 +1,18 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { type JSX, type ReactNode } from "react";
-import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataStyles";
+import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataViewStyles";
 import type {
-  IndexActionPayload,
-  IndexChoice,
-  IndexMetadataCallbacks,
-  IndexSelected,
-  IndexSegmentValues,
+  MetdataActionPayload,
+  MetdataMetadataCallbacks,
+  MetdataSelected,
+  MetdataSegmentValues,
   MetadataPanelActions,
   MetadataIndex,
   MetadataPayload,
   MetadataPanelData,
   MetadataPanelSections,
   MetadataStatus,
-} from "../type/metadata.types";
+} from "../type/metadataView.types";
 import {
   ActionButton,
   EmptyRow,
@@ -55,19 +54,19 @@ const pageSegmentValues = new Set([
 
 export type MetadataPanelProps = {
   actions: MetadataPanelActions;
-  callbacks: IndexMetadataCallbacks;
-  choices: IndexChoice[] | string | null;
+  callbacks: MetdataMetadataCallbacks;
+  choices: unknown;
   children?: ReactNode;
   metadata: MetadataPayload | null;
-  onConfirm?: (payload: IndexActionPayload) => Promise<void> | void;
-  onDrop?: (payload: IndexActionPayload) => Promise<void> | void;
+  onConfirm?: (payload: MetdataActionPayload) => Promise<void> | void;
+  onDrop?: (payload: MetdataActionPayload) => Promise<void> | void;
   onReprocess?: (segment: string) => Promise<void> | void;
   confirmedCodes: Set<string>;
   openSegment: string | null;
   removedCodes: Set<string>;
   sections: MetadataPanelSections;
-  selectedIndex: IndexSelected | null;
-  segments: IndexSegmentValues;
+  selectedIndex: MetdataSelected | null;
+  segments: MetdataSegmentValues;
   session: string;
   setSectionOpen: (segment: string, open: boolean) => void;
   shortcuts: ReadonlyMap<string, string> | null;
@@ -342,7 +341,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                   const code = String(group.code || "");
                   const page = Number(group.page || 0);
                   const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
-                  const payload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") } satisfies IndexActionPayload;
+                  const payload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") } satisfies MetdataActionPayload;
                   const onPageClick = page && code ? callbacks.onPageClick : undefined;
                   return (
                     <article

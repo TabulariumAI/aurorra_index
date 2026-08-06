@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
-import { MetadataPanel } from "../../src/features/metdata/component/MetadataPanel";
-import { getPanelData } from "../../src/features/metdata/data/metadataData";
-import type { IndexSegmentValues, MetadataPayload } from "../../src/features/metdata/type/metadata.types";
+import { MetadataPanel } from "../../src/features/metdataview/component/MetadataPanel";
+import { getPanelData } from "../../src/features/metdataview/data/metadataData";
+import type { MetdataSegmentValues, MetadataPayload } from "../../src/features/metdataview/type/metadataView.types";
 
-const segments: IndexSegmentValues = {
+const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
   COURT: "court",

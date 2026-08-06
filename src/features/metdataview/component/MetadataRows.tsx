@@ -9,8 +9,8 @@ import {
   detailLineStyle,
   detailTextStyle,
   rowStyles,
-} from "../style/metadataStyles";
-import type { IndexActionPayload, IndexMetadataCallbacks, MetadataIndex } from "../type/metadata.types";
+} from "../style/metadataViewStyles";
+import type { MetdataActionPayload, MetdataMetadataCallbacks, MetadataIndex } from "../type/metadataView.types";
 
 export function formatLabel(value: unknown): string {
   return String(value || "")
@@ -194,8 +194,8 @@ export function copyIndexValue(value: string): Promise<void> {
 }
 
 export function openMetadataImage(
-  onPageClick: NonNullable<IndexMetadataCallbacks["onPageClick"]>,
-  payload: IndexActionPayload,
+  onPageClick: NonNullable<MetdataMetadataCallbacks["onPageClick"]>,
+  payload: MetdataActionPayload,
 ): void {
   onPageClick(payload);
 }
@@ -319,11 +319,11 @@ export function MetadataRow({
   session,
   type = "index",
 }: {
-  callbacks: IndexMetadataCallbacks;
+  callbacks: MetdataMetadataCallbacks;
   confirmed: boolean;
   item: MetadataIndex;
-  onConfirm?: (payload: IndexActionPayload) => Promise<void> | void;
-  onDrop?: (payload: IndexActionPayload) => Promise<void> | void;
+  onConfirm?: (payload: MetdataActionPayload) => Promise<void> | void;
+  onDrop?: (payload: MetdataActionPayload) => Promise<void> | void;
   onAddressClick?: (address: string) => void;
   pageClass?: string;
   pageSegments?: string[];
@@ -345,7 +345,7 @@ export function MetadataRow({
   };
   const aspect = formatLabel(item.aspect || "");
   const ambiguous = isAmbiguous(item.ambiguous);
-  const payload: IndexActionPayload = {
+  const payload: MetdataActionPayload = {
     code,
     metadataIndex,
     page,

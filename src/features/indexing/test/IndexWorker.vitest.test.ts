@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { IndexWorker } from "../../metdata/worker/IndexWorker";
+import { IndexWorker } from "../../metdataview/worker/metdataWorker";
 
 const metadata = {
   fees: [],

@@ -3,9 +3,9 @@ import { useState, type JSX } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { getPanelData } from "../data/metadataData";
-import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
+import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView.types";
 
-const segments: IndexSegmentValues = {
+const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
   COURT: "court",

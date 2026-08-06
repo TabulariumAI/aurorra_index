@@ -8,10 +8,10 @@ This task is limited to metadata JSON storage and retrieval. It must not change 
 
 ## Current Code Contract
 
-- `aurorra_index/src/features/metdata/store/indexStore.ts` currently stores full metadata payloads in `dataBySession`.
-- `aurorra_index/src/features/metdata/hook/useMetadata.ts` currently retrieves metadata with `store.dataBySession[session]`.
-- `aurorra_index/src/features/metdata/data/metadataData.ts` currently derives panel data from a full `MetadataPayload`.
-- `aurorra_index/src/features/metdata/type/metadata.types.ts` currently types the store as `Record<string, MetadataPayload>`.
+- `aurorra_index/src/features/metdataview/store/metadataStore.ts` currently stores full metadata payloads in `dataBySession`.
+- `aurorra_index/src/features/metdataview/hook/useMetadata.ts` currently retrieves metadata with `store.dataBySession[session]`.
+- `aurorra_index/src/features/metdataview/data/metadataData.ts` currently derives panel data from a full `MetadataPayload`.
+- `aurorra_index/src/features/metdataview/type/metadataView.types.ts` currently types the store as `Record<string, MetadataPayload>`.
 - `aurorra_index/src/public-api.ts` exports metadata data helpers, the metadata store API, and metadata types.
 
 ## Required JSON Parts
@@ -32,10 +32,10 @@ Every key listed above must be represented in the typed split structure. Missing
 
 Production changes are limited to these files:
 
-- `aurorra_index/src/features/metdata/type/metadata.types.ts`
-- `aurorra_index/src/features/metdata/data/metadataData.ts`
-- `aurorra_index/src/features/metdata/store/indexStore.ts`
-- `aurorra_index/src/features/metdata/hook/useMetadata.ts`
+- `aurorra_index/src/features/metdataview/type/metadataView.types.ts`
+- `aurorra_index/src/features/metdataview/data/metadataData.ts`
+- `aurorra_index/src/features/metdataview/store/metadataStore.ts`
+- `aurorra_index/src/features/metdataview/hook/useMetadata.ts`
 - `aurorra_index/src/public-api.ts`
 
 Test changes are limited to these files:
@@ -51,7 +51,7 @@ No other production file is in scope.
 
 ### 1. Add Split Metadata Types
 
-Update `metadata.types.ts` with explicit types for each stored JSON part:
+Update `metadataView.types.ts` with explicit types for each stored JSON part:
 
 - `MetadataHeadingJSON`
 - `MetadataSecretsJSON`
@@ -62,7 +62,7 @@ Update `metadata.types.ts` with explicit types for each stored JSON part:
 - `MetadataFinancialJSON`
 - `MetadataJSONParts`
 
-Update `IndexStoreState` so the store owns split metadata by session:
+Update `MetdataStoreState` so the store owns split metadata by session:
 
 - Replace `dataBySession: Record<string, MetadataPayload>` with `metadataJSONBySession: Record<string, MetadataJSONParts>`.
 - Keep `setData(session: string, data: MetadataPayload): void` as the public write API.

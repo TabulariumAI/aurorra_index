@@ -1,4 +1,4 @@
-import type { LegalElement, LegalGroup, LegalPayload } from "../../metdata/type/metadata.types";
+import type { LegalElement, LegalGroup, LegalPayload } from "../../metdataview/type/metadataView.types";
 
 const stateAbbr: Record<string, string> = {
   AL: "Alabama",

@@ -149,7 +149,7 @@ export function PageSegmentsPanel({
         <div id="pageSegmentsMessage" style={pageSegmentsStyles.message("success")}>Page segment changes saved.</div>
       ) : null}
       {status === "error" && error ? (
-        <div id="pageSegmentsMessage" style={pageSegmentsStyles.message("error")}>{`Page segment update failed. ${error.error}`.trim()}</div>
+        <div id="pageSegmentsMessage" style={pageSegmentsStyles.message("error")}>Page segment changes could not be saved. Please try again.</div>
       ) : null}
       <footer id="pageSegmentsFooter" style={pageSegmentsStyles.footer}>
         {isDirty || status === "error" ? (

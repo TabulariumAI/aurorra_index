@@ -1,10 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMetadata } from "../hook/useMetadata";
-import { indexStoreApi } from "../store/indexStore";
+import { indexStoreApi } from "../store/metadataStore";
 import { createDeferredState } from "../../indexing/data/deferredState";
 import { storeApi } from "../../../store/state/store";
-import type { IndexActionPayload, IndexMetadataProps, IndexMetadataRefresh, IndexWorkerClient, MetadataPayload } from "../type/metadata.types";
+import type { MetdataActionPayload, MetdataMetadataProps, MetdataMetadataRefresh, MetdataWorkerClient, MetadataPayload } from "../type/metadataView.types";
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",
@@ -36,7 +36,7 @@ const baseMetadata: MetadataPayload = {
   secrets: [],
 };
 
-function createClient(): IndexWorkerClient {
+function createClient(): MetdataWorkerClient {
   return {
     confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
     dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
@@ -46,7 +46,9 @@ function createClient(): IndexWorkerClient {
   };
 }
 
-const rowPayload: IndexActionPayload = {
+const choices = [{ level: 1, service: "PartyClauseIndexing" }];
+
+const rowPayload: MetdataActionPayload = {
   code: "idx-1",
   highlightOptions: { scroll: false },
   metadataIndex: null,
@@ -75,11 +77,11 @@ describe("useMetadata", () => {
       .mockResolvedValueOnce(baseMetadata)
       .mockResolvedValueOnce({ ...baseMetadata, heading: { title: "Reprocessed" } });
 
-    const props: IndexMetadataProps = {
+    const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       callbacks: { onActionComplete, onActionError, onJobEvent },
-      choices: [],
+      choices,
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
       intervalMs: 0,
       onReadyChange: vi.fn(),
@@ -92,6 +94,7 @@ describe("useMetadata", () => {
     const { result } = renderHook(() => useMetadata(props));
 
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
+    expect(result.current.choices).toEqual(choices);
     onJobEvent.mockClear();
     expect(result.current.openSegment).toBe("legal");
 
@@ -107,14 +110,83 @@ describe("useMetadata", () => {
     expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed"]);
   });
 
+  it("uses cached metadata without downloading it again", async () => {
+    const client = createClient();
+    storeApi.getState().setJSON("session-1", {
+      chainJSON: {},
+      financialJSON: { fees: [], funds: [] },
+      headingJSON: { heading: { class: "deed", title: "Warranty Deed" } },
+      indexJSON: { indexes: [{ code: "idx-1", segment: "party", value: "Alice" }] },
+      legalJSON: {},
+      pagesJSON: { pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] } },
+      secretsJSON: { secrets: [] },
+    });
+    const onMetadataLoaded = vi.fn();
+    const props: MetdataMetadataProps = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: { onMetadataLoaded },
+      choices: null,
+      deferredState: createDeferredState(),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
+      refresh: null,
+      segments,
+      session: "session-1",
+      workerClient: client,
+    };
+
+    const { result } = renderHook(() => useMetadata(props));
+
+    await waitFor(() => expect(indexStoreApi.getState().status).toBe("success"));
+    expect(client.indexData).not.toHaveBeenCalled();
+    expect(result.current.choices).toBeNull();
+    expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata);
+  });
+
+  it("clears prior view actions when switching to cached metadata", async () => {
+    const client = createClient();
+    const props: Omit<MetdataMetadataProps, "session"> = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: {},
+      choices,
+      deferredState: createDeferredState(),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
+      refresh: null,
+      segments,
+      workerClient: client,
+    };
+    const { result, rerender } = renderHook(
+      ({ session }: { session: string }) => useMetadata({ ...props, session }),
+      { initialProps: { session: "session-1" } },
+    );
+
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await result.current.onConfirm(rowPayload);
+    });
+    expect(result.current.confirmedCodes.has("idx-1")).toBe(true);
+    const cached = storeApi.getState().getJSON("session-1");
+    if (!cached) throw new Error("Metadata cache was not populated.");
+    storeApi.getState().setJSON("session-2", cached);
+
+    rerender({ session: "session-2" });
+
+    await waitFor(() => expect(indexStoreApi.getState().activeSession).toBe("session-2"));
+    expect(client.indexData).toHaveBeenCalledTimes(1);
+    expect(result.current.confirmedCodes).toEqual(new Set());
+  });
+
   it("reloads metadata once for each matching host refresh event", async () => {
     const client = createClient();
     const onSegmentExpand = vi.fn();
-    const props: IndexMetadataProps = {
+    const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       callbacks: { onSegmentExpand },
-      choices: [],
+      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       onReadyChange: vi.fn(),
@@ -124,8 +196,8 @@ describe("useMetadata", () => {
       workerClient: client,
     };
     const { result, rerender } = renderHook(
-      ({ refresh }: { refresh: IndexMetadataRefresh | null }) => useMetadata({ ...props, refresh }),
-      { initialProps: { refresh: null } as { refresh: IndexMetadataRefresh | null } },
+      ({ refresh }: { refresh: MetdataMetadataRefresh | null }) => useMetadata({ ...props, refresh }),
+      { initialProps: { refresh: null } as { refresh: MetdataMetadataRefresh | null } },
     );
 
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
@@ -149,11 +221,11 @@ describe("useMetadata", () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const onJobEvent = vi.fn();
-    const props: IndexMetadataProps = {
+    const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       callbacks: { onActionComplete, onJobEvent },
-      choices: [],
+      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       onReadyChange: vi.fn(),
@@ -185,11 +257,11 @@ describe("useMetadata", () => {
       .mockResolvedValueOnce({ data: "", status: "completed", version: 3 })
       .mockResolvedValueOnce({ data: "", status: "completed", version: 4 });
     const onActionComplete = vi.fn();
-    const props: IndexMetadataProps = {
+    const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       callbacks: { onActionComplete },
-      choices: [],
+      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       onReadyChange: vi.fn(),
@@ -219,11 +291,11 @@ describe("useMetadata", () => {
     const onActionComplete = vi.fn();
     const onIndexFocus = vi.fn();
     const onJobEvent = vi.fn();
-    const props: IndexMetadataProps = {
+    const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       callbacks: { onActionComplete, onIndexFocus, onJobEvent },
-      choices: [],
+      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       intervalMs: 0,
       onReadyChange: vi.fn(),
@@ -258,11 +330,11 @@ describe("useMetadata", () => {
     const onActionComplete = vi.fn();
     const onActionError = vi.fn();
     const onJobEvent = vi.fn();
-    const props: IndexMetadataProps = {
+    const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       callbacks: { onActionComplete, onActionError, onJobEvent },
-      choices: [],
+      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       intervalMs: 0,
       onReadyChange: vi.fn(),

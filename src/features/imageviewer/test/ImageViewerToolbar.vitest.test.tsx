@@ -44,7 +44,7 @@ describe("ImageViewerToolbar", () => {
     const toolbar = screen.getByLabelText("Image viewer top toolbar");
     const close = screen.getByRole("button", { name: "Close preview" });
     const searchForm = screen.getByLabelText("Image text search");
-    expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto" });
+    expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto", padding: "0.55rem" });
     expect(searchForm).toHaveStyle({ maxWidth: "none", minWidth: "0", width: "100%" });
     expect(screen.getByLabelText("Image view controls").parentElement).toBe(toolbar);
     expect(searchForm.parentElement).toBe(toolbar);
@@ -128,7 +128,7 @@ describe("ImageViewerToolbar", () => {
 
     const toolbar = screen.getByLabelText("Image viewer top toolbar");
     const primaryRow = toolbar.querySelector("[data-image-viewer-toolbar-row='primary']");
-    expect(toolbar).toHaveStyle({ display: "grid" });
+    expect(toolbar).toHaveStyle({ display: "grid", padding: "0.55rem" });
     expect(primaryRow).toHaveStyle({ display: "flex", justifyContent: "space-between" });
     expect(screen.getByLabelText("Image view controls").parentElement).toBe(primaryRow);
     expect(screen.getByRole("button", { name: "Close preview" }).parentElement?.parentElement).toBe(primaryRow);
@@ -348,6 +348,7 @@ describe("ImageViewerToolbar", () => {
     );
 
     expect(screen.getByLabelText("Image viewer footer toolbar")).toBeInTheDocument();
+    expect(screen.getByLabelText("Image viewer footer toolbar")).toHaveStyle({ padding: "0.55rem" });
     expect(screen.getByText("Page 2 of 4")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Thumbnails" }));

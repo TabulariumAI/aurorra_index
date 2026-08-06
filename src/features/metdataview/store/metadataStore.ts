@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import type { IndexStoreState } from "../type/metadata.types";
+import type { MetdataStoreState } from "../type/metadataView.types";
 import { storeApi } from "../../../store/state/store";
 
-export const useIndexStore = create<IndexStoreState>()((set) => ({
+export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
   activeSession: null,
   error: null,
   refresh: null,
@@ -19,6 +19,9 @@ export const useIndexStore = create<IndexStoreState>()((set) => ({
   },
   resetMetadata() {
     storeApi.getState().resetJSON();
+    get().resetView();
+  },
+  resetView() {
     set({
       activeSession: null,
       error: null,

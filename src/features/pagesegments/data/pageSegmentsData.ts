@@ -1,6 +1,5 @@
-import { replaceMetadataPageSegments } from "../../metdata/data/metadataData";
+import { replaceMetadataPageSegments } from "../../metdataview/data/metadataData";
 import { storeApi } from "../../../store/state/store";
-import type { IndexChoice } from "../../metdata/type/metadata.types";
 
 export const PAGE_SEGMENT_CHOICES = Object.freeze({
   reference: "RecitalIndexing",
@@ -43,15 +42,15 @@ export const PAGE_SEGMENT_LABELS = Object.freeze({
   vital: "Vital",
 });
 
-function parseChoices(choices: IndexChoice[] | string | null): IndexChoice[] {
+function parseChoices(choices: unknown): Array<{ level?: unknown; service?: unknown }> {
   let parsed: unknown = choices;
   while (typeof parsed === "string") {
     parsed = JSON.parse(parsed);
   }
-  return Array.isArray(parsed) ? parsed as IndexChoice[] : [];
+  return Array.isArray(parsed) ? parsed as Array<{ level?: unknown; service?: unknown }> : [];
 }
 
-export function getChoiceLevel(choices: IndexChoice[] | string | null, name: string): number {
+export function getChoiceLevel(choices: unknown, name: string): number {
   try {
     const parsed = parseChoices(choices);
     const match = parsed.find((choice) => choice && typeof choice === "object" && choice.service === name);

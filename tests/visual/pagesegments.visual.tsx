@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
 import { useMemo, useState } from "react";
 import { PageSegmentsPanel, type PageSegmentsPanelProps } from "../../src/features/pagesegments";
-import { splitMetadataJSON } from "../../src/features/metdata/data/metadataData";
+import { splitMetadataJSON } from "../../src/features/metdataview/data/metadataData";
 import { storeApi } from "../../src/store/state/store";
-import type { MetadataPayload } from "../../src/features/metdata/type/metadata.types";
+import type { MetadataPayload } from "../../src/features/metdataview/type/metadataView.types";
 
 const metadata: MetadataPayload = {
   fees: [],

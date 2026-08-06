@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { storeApi } from "../../../store/state/store";
-import { splitMetadataJSON } from "../../metdata/data/metadataData";
-import type { MetadataPayload } from "../../metdata/type/metadata.types";
+import { splitMetadataJSON } from "../../metdataview/data/metadataData";
+import type { MetadataPayload } from "../../metdataview/type/metadataView.types";
 import { PageSegmentsPanel } from "../component/PageSegmentsPanel";
 import { pageSegmentsStoreApi } from "../store/pageSegmentsStore";
 import { useState } from "react";
@@ -118,7 +118,8 @@ describe("PageSegmentsPanel", () => {
       session: "session-1",
     }));
     expect(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" })).toBeChecked();
-    expect(screen.getByText(/Page segment update failed/i)).toBeInTheDocument();
+    expect(screen.getByText("Page segment changes could not be saved. Please try again.")).toBeInTheDocument();
+    expect(screen.queryByText(/Missing page/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByRole("checkbox", { name: "Referance(Rectal)" })).toBeChecked();
@@ -237,7 +238,7 @@ describe("PageSegmentsPanel", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
-    await waitFor(() => expect(screen.getByText(/Page segment update failed/i)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Page segment changes could not be saved. Please try again.")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Submit" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();

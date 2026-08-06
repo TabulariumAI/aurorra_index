@@ -1,4 +1,3 @@
-import type { IndexChoice } from "../../metdata/type/metadata.types";
 import type { JobEventCallback } from "aurorra-ui";
 
 export type PageSegmentsWorkerError = {
@@ -50,7 +49,7 @@ export type PageSegmentsFailure = {
 export type PageSegmentsPanelProps = {
   apiGatewayUrl: string;
   authToken: string;
-  choices: IndexChoice[] | string | null;
+  choices: unknown;
   onClose: () => void;
   onComplete: (event: PageSegmentsComplete) => void;
   onError: (event: PageSegmentsFailure) => void;

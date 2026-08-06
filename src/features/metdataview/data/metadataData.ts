@@ -11,7 +11,7 @@ import type {
   MetadataLegalJSON,
   MetadataPagesJSON,
   MetadataSecretsJSON,
-} from "../type/metadata.types";
+} from "../type/metadataView.types";
 
 export const indexSegments = Object.freeze({
   ACKNOWLEDGMENT: "acknowledgment",

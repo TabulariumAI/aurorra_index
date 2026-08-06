@@ -12,7 +12,7 @@ Remove nested scrollbars from the `aurorra_index` metadata UI, keep the host she
 
 ## Risk review
 ### 1. Scroll ownership conflict
-- `aurorra_index` currently owns its own vertical scroll via `metadataStyles.rootShell` in `src/features/metdata/style/metadataStyles.ts`.
+- `aurorra_index` currently owns its own vertical scroll via `metadataStyles.rootShell` in `src/features/metdataview/style/metadataViewStyles.ts`.
 - The host shell in `document_web` also owns layout and scrolling in `src/app/shell/style/AppShell.styles.ts`.
 - Risk: changing only one side leaves the nested-scroll bug intact.
 - Mitigation: treat scroll ownership as a cross-package behavior. The package shell must stop being a scroll container, and the host shell behavior must stay the single scrolling frame for the metadata surface.
@@ -40,7 +40,7 @@ Remove nested scrollbars from the `aurorra_index` metadata UI, keep the host she
 
 ## Implementation contract
 - `document_web/src/app/shell/style/AppShell.styles.ts` remains the host scroll owner for the metadata experience.
-- `aurorra_index/src/features/metdata/style/metadataStyles.ts` must not define a competing vertical scroll container for `rootShell`.
+- `aurorra_index/src/features/metdataview/style/metadataViewStyles.ts` must not define a competing vertical scroll container for `rootShell`.
 - `rootShell` must be a flow container only: no `overflow: auto`, no `height` lock, no `minHeight` lock, no box shadow, no border radius, and no internal scrollbar styling.
 - The package surface must keep its current component tree: `IndexContainer` -> `MetadataProgress` -> `MetadataView`; no new wrapper layers.
 - The session string remains raw text, but it must wrap cleanly and never overflow the header area.
@@ -125,14 +125,14 @@ Remove nested scrollbars from the `aurorra_index` metadata UI, keep the host she
 
 ## Files to update
 ### Production
-- `aurorra_index/src/features/metdata/style/metadataStyles.ts`
-- `aurorra_index/src/features/metdata/component/MetadataView.tsx`
-- `aurorra_index/src/features/metdata/component/MetadataSection.tsx`
-- `aurorra_index/src/features/metdata/component/MetadataRows.tsx`
+- `aurorra_index/src/features/metdataview/style/metadataViewStyles.ts`
+- `aurorra_index/src/features/metdataview/component/MetadataView.tsx`
+- `aurorra_index/src/features/metdataview/component/MetadataSection.tsx`
+- `aurorra_index/src/features/metdataview/component/MetadataRows.tsx`
 
 ### Tests
 - `aurorra_index/src/features/indexing/test/IndexContainer.vitest.test.tsx`
-- `aurorra_index/src/features/metdata/test/metadata-visual.vitest.test.tsx`
+- `aurorra_index/src/features/metdataview/test/metadata-visual.vitest.test.tsx`
 - `document_web/src/app/shell/test/AppShell.vitest.test.tsx`
 
 ### Not expected to change

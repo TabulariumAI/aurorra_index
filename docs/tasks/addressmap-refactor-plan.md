@@ -9,10 +9,10 @@ Remove dialog and display ownership from `aurorra_index/src/features/addressmap`
 ## Current code reality
 - `aurorra_index/src/features/addressmap/component/AddressMapDialog.tsx` wraps `AddressMapContent` in `aurorra-ui/Dialog`.
 - `aurorra_index/src/features/addressmap/hook/useAddressMap.ts` owns dialog open/source/zoom state.
-- `aurorra_index/src/features/metdata/hook/useMetadata.ts` imports `useAddressMap` and passes address dialog state to `MetadataPanel`.
-- `aurorra_index/src/features/metdata/component/MetadataPanel.tsx` imports and renders `AddressMapDialog`.
-- `aurorra_index/src/features/metdata/component/MetadataRows.tsx` opens the package-owned map state through `onAddressMapOpen`.
-- `IndexMetadataCallbacks.onAddressClick` already exists and `document_web/src/features/metadata/legacy/metadataRuntime.ts` already emits `EVENTS.showIndexAddress`.
+- `aurorra_index/src/features/metdataview/hook/useMetadata.ts` imports `useAddressMap` and passes address dialog state to `MetadataPanel`.
+- `aurorra_index/src/features/metdataview/component/MetadataPanel.tsx` imports and renders `AddressMapDialog`.
+- `aurorra_index/src/features/metdataview/component/MetadataRows.tsx` opens the package-owned map state through `onAddressMapOpen`.
+- `MetdataMetadataCallbacks.onAddressClick` already exists and `document_web/src/features/metadata/legacy/metadataRuntime.ts` already emits `EVENTS.showIndexAddress`.
 
 ## Required package contract
 - `AddressMapContent` remains the only React address map component exported by the package.
@@ -29,9 +29,9 @@ Remove dialog and display ownership from `aurorra_index/src/features/addressmap`
 4. Delete `aurorra_index/src/features/addressmap/type/addressMap.types.ts`.
 5. Update `aurorra_index/src/features/addressmap/index.ts` to export only `AddressMapContent` and address map data helpers.
 6. Update `aurorra_index/src/public-api.ts` to stop exporting `AddressMapDialog`, `useAddressMap`, and `UseAddressMapResult`.
-7. Update `aurorra_index/src/features/metdata/hook/useMetadata.ts` to remove `useAddressMap` and all address map open/source/zoom return fields.
-8. Update `aurorra_index/src/features/metdata/component/MetadataPanel.tsx` to remove `AddressMapDialog`, `addressMapOpen`, `addressMapSource`, `addressMapZoom`, `closeAddressMap`, and `openAddressMap`.
-9. Update `aurorra_index/src/features/metdata/component/MetadataRows.tsx` so the address action renders only when `callbacks.onAddressClick` exists and calls `callbacks.onAddressClick(value)`.
+7. Update `aurorra_index/src/features/metdataview/hook/useMetadata.ts` to remove `useAddressMap` and all address map open/source/zoom return fields.
+8. Update `aurorra_index/src/features/metdataview/component/MetadataPanel.tsx` to remove `AddressMapDialog`, `addressMapOpen`, `addressMapSource`, `addressMapZoom`, `closeAddressMap`, and `openAddressMap`.
+9. Update `aurorra_index/src/features/metdataview/component/MetadataRows.tsx` so the address action renders only when `callbacks.onAddressClick` exists and calls `callbacks.onAddressClick(value)`.
 10. Keep `AddressMapContent` iframe behavior unchanged: lazy loading, `referrerPolicy="no-referrer"`, fullscreen enabled, delayed source assignment, and source reset when `source` changes to empty.
 
 ## Tests
@@ -39,7 +39,7 @@ Remove dialog and display ownership from `aurorra_index/src/features/addressmap`
 - Keep and update `aurorra_index/src/features/addressmap/test/addressMap.vitest.test.ts`.
 - Delete `aurorra_index/src/features/addressmap/test/AddressMapDialog.vitest.test.tsx`.
 - Delete `aurorra_index/src/features/addressmap/test/useAddressMap.vitest.test.tsx`.
-- Update `aurorra_index/src/features/metdata/test/MetadataPanel.addressmap.vitest.test.tsx` to assert the address row calls `callbacks.onAddressClick` and no dialog role renders.
+- Update `aurorra_index/src/features/metdataview/test/MetadataPanel.addressmap.vitest.test.tsx` to assert the address row calls `callbacks.onAddressClick` and no dialog role renders.
 - Add or update grep assertions in tests so `aurorra_index/src/features/addressmap` contains no `Dialog` import and no `AddressMapDialog` symbol.
 
 ## Validation

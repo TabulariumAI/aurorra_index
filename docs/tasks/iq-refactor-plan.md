@@ -31,7 +31,7 @@ Spark must not make implementation decisions. If an implementation detail is not
 - `document_web\src\bootstrap\app-imports.ts`
 - `document_web\src\domains\shared\utils\worker\workerhelper.js`
 - `aurorra_index\src\features\metdata\worker\IndexWorker.ts`
-- `aurorra_index\src\features\metdata\worker\indexWorkerClient.ts`
+- `aurorra_index\src\features\metdataview\worker\metadataWorkerClient.ts`
 - `aurorra_index\src\features\metdata\hook\useMetadata.ts`
 - `aurorra_index\src\features\metdata\store\indexStore.ts`
 - `aurorra_index\src\features\indexing\component\IndexProgress.tsx`

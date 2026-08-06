@@ -1,6 +1,6 @@
 import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
-import type { IndexSelected } from "../../metdata/type/metadata.types";
+import type { MetdataSelected } from "../../metdataview/type/metadataView.types";
 import type { JobEventCallback } from "aurorra-ui";
 
 export type PageRequest = {
@@ -41,7 +41,7 @@ export type HostInput = {
   packagePollIntervalMs?: number;
   request: PageRequest | null;
   session: string;
-  selectedIndex: IndexSelected | null;
+  selectedIndex: MetdataSelected | null;
   workerClient?: WorkerClient;
 };
 
@@ -126,7 +126,7 @@ export type StoreState = {
   request: PageRequest | null;
   requestVersion: number;
   searchText: string;
-  selectedIndex: IndexSelected | null;
+  selectedIndex: MetdataSelected | null;
   session: string | null;
   status: Status;
   tiffBytes: ArrayBuffer | null;

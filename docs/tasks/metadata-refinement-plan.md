@@ -8,9 +8,9 @@ Chat/refine is explicitly out of scope. Do not move or change the chat dialog, c
 
 ## Current Code Reality
 
-- `src/features/metdata/component/MetadataPanel.tsx` and `MetadataRows.tsx` render metadata actions through host callbacks.
-- `src/features/metdata/hook/useMetadata.ts` owns loaded metadata JSON, confirmed codes, removed codes, and `GET /v1/index/{session}/data`.
-- `src/features/metdata/worker/IndexWorker.ts` and `indexWorkerClient.ts` are the package worker/client pattern for authenticated metadata requests.
+- `src/features/metdataview/component/MetadataPanel.tsx` and `MetadataRows.tsx` render metadata actions through host callbacks.
+- `src/features/metdataview/hook/useMetadata.ts` owns loaded metadata JSON, confirmed codes, removed codes, and `GET /v1/index/{session}/data`.
+- `src/features/metdataview/worker/metdataWorker.ts` and `metadataWorkerClient.ts` are the package worker/client pattern for authenticated metadata requests.
 - `document_web/src/features/metadata/legacy/metadataRuntime.ts` currently performs reprocess, confirm, and drop through the legacy worker path.
 - `document_web/src/domains/refine/svc/refine_service.js` opens the legacy `PageSegmentsDialog` after `EVENTS.reFinePage`.
 - `document_web/src/domains/shared/viewer/shell/pagesegmentsdialog.js` renders the legacy page-segment UI. Its Submit and Reprocess callbacks only show success state; they do not call the page-segment endpoint.
@@ -55,7 +55,7 @@ Chat/refine is explicitly out of scope. Do not move or change the chat dialog, c
 
 ### Metadata Action Requests
 
-Extend the existing metadata worker/client contract in `src/features/metdata` with typed commands and client methods for these exact requests. Reuse the `IqWorker` multi-command pattern and the existing `IndexWorker` response/error handling pattern.
+Extend the existing metadata worker/client contract in `src/features/metdataview` with typed commands and client methods for these exact requests. Reuse the `IqWorker` multi-command pattern and the existing `IndexWorker` response/error handling pattern.
 
 | Action | Method and URL | Body | Success state |
 |---|---|---|---|
@@ -79,7 +79,7 @@ Use these exact response rules:
 
 - Reprocess succeeds only for HTTP `200` JSON shaped as `{ "status": "completed", "data": "string" }`. A valid body with any other status returns `reprocess_not_completed`.
 - Confirm and drop succeed only for HTTP `200` JSON shaped as `{ "applied": true, "patches": number }`. A valid body with `applied: false` returns `index_not_applied`.
-- For all non-`2xx` responses, parse the backend `{ "code": "string", "message": "string" }` error into `IndexWorkerError`.
+- For all non-`2xx` responses, parse the backend `{ "code": "string", "message": "string" }` error into `MetdataWorkerError`.
 - A malformed success body is a typed `validation_error`; do not infer success from HTTP status alone for reprocess, confirm, or drop.
 
 ### Page-Segment Panel
@@ -92,7 +92,7 @@ Use this exact panel contract:
 export type PageSegmentsPanelProps = {
   apiGatewayUrl: string;
   authToken: string;
-  choices: IndexChoice[] | string | null;
+  choices: MetdataChoice[] | string | null;
   onClose: () => void;
   onComplete: (event: PageSegmentsComplete) => void;
   onError: (event: PageSegmentsFailure) => void;
@@ -161,7 +161,7 @@ export type PageSegmentsStore = {
 
 ### Package-to-Host Events
 
-Extend `IndexMetadataCallbacks` with these exact types and callback names:
+Extend `MetdataMetadataCallbacks` with these exact types and callback names:
 
 ```ts
 export type MetadataAction =
@@ -171,10 +171,10 @@ export type MetadataAction =
 
 export type MetadataActionFailure = {
   action: MetadataAction;
-  error: IndexWorkerError;
+  error: MetdataWorkerError;
 };
 
-export type IndexMetadataCallbacks = {
+export type MetdataMetadataCallbacks = {
   // Existing non-mutation callbacks remain unchanged.
   onActionComplete?: (event: MetadataAction) => void;
   onActionError?: (event: MetadataActionFailure) => void;
@@ -197,12 +197,12 @@ The package never displays host alerts, opens host dialogs, or emits global even
 
 Update these files:
 
-- `src/features/metdata/type/metadata.types.ts`
-- `src/features/metdata/worker/IndexWorker.ts`
-- `src/features/metdata/worker/indexWorkerClient.ts`
-- `src/features/metdata/hook/useMetadata.ts`
-- `src/features/metdata/component/MetadataPanel.tsx`
-- `src/features/metdata/component/MetadataRows.tsx`
+- `src/features/metdataview/type/metadataView.types.ts`
+- `src/features/metdataview/worker/metdataWorker.ts`
+- `src/features/metdataview/worker/metadataWorkerClient.ts`
+- `src/features/metdataview/hook/useMetadata.ts`
+- `src/features/metdataview/component/MetadataPanel.tsx`
+- `src/features/metdataview/component/MetadataRows.tsx`
 - `src/public-api.ts`
 
 Required changes:
@@ -290,9 +290,9 @@ Run the focused page-segment and metadata action tests while implementing, then 
 
 Run after implementation:
 
-1. `rg -n "EventBus|EVENTS|globalThis|WorkerHelper|document_web|pagesegmentsdialog" src/features/metdata src/features/pagesegments`
+1. `rg -n "EventBus|EVENTS|globalThis|WorkerHelper|document_web|pagesegmentsdialog" src/features/metdataview src/features/pagesegments`
 2. `rg -n "reFinePage|PageSegmentsDialog" document_web/src/domains/refine document_web/src/domains/shared/viewer`
-3. `rg -n "[ \t]+$" src/features/metdata src/features/pagesegments docs/tasks/metadata-refinement-plan.md`
+3. `rg -n "[ \t]+$" src/features/metdataview src/features/pagesegments docs/tasks/metadata-refinement-plan.md`
 
 Expected results:
 

@@ -2,7 +2,7 @@ import type { MetadataIndex as LensMetadataIndex } from "@tabulariumai/aurora-le
 import type { ReactNode } from "react";
 import type { JobEventCallback } from "aurorra-ui";
 
-export type IndexSegmentValues = {
+export type MetdataSegmentValues = {
   TITLE: string;
   PAGE: string;
   PARTY: string;
@@ -23,7 +23,7 @@ export type IndexSegmentValues = {
   COURT: string;
 };
 
-export type IndexChoice = {
+export type MetdataChoice = {
   service: string;
   level: number | string;
 };
@@ -155,24 +155,24 @@ export type MetadataPanelData = MetadataPayload & {
   vitals: MetadataIndex[];
 };
 
-export type IndexSelected = {
+export type MetdataSelected = {
   code: string;
   segment: string | null;
 };
 
-export type IndexDeferredState = {
+export type MetdataDeferredState = {
   pageMap: ReadonlyMap<string, string>;
   segment: string | null;
-  selectedIndex: IndexSelected | null;
+  selectedIndex: MetdataSelected | null;
 };
 
-export type IndexMetadataRefresh = {
+export type MetdataMetadataRefresh = {
   id: number;
   segment: string;
   session: string;
 };
 
-export type IndexActionPayload = {
+export type MetdataActionPayload = {
   code: string;
   highlightOptions?: { scroll: boolean };
   metadataIndex?: LensMetadataIndex | null;
@@ -193,51 +193,51 @@ export type MetadataAction =
 
 export type MetadataActionFailure = {
   action: MetadataAction;
-  error: IndexWorkerError;
+  error: MetdataWorkerError;
 };
 
-export type IndexMetadataCallbacks = {
+export type MetdataMetadataCallbacks = {
   onAddressClick?: (address: string) => void;
   onActionComplete?: (event: MetadataAction) => void;
   onActionError?: (event: MetadataActionFailure) => void;
-  onEditPage?: (payload: IndexActionPayload) => void;
-  onIndexFocus?: (selected: IndexSelected | null) => void;
+  onEditPage?: (payload: MetdataActionPayload) => void;
+  onIndexFocus?: (selected: MetdataSelected | null) => void;
   onJobEvent?: JobEventCallback;
-  onLegalView?: (payload: IndexActionPayload) => void;
-  onMetadataError?: (error: IndexWorkerError) => void;
+  onLegalView?: (payload: MetdataActionPayload) => void;
+  onMetadataError?: (error: MetdataWorkerError) => void;
   onMetadataLoaded?: (metadata: MetadataPayload) => void;
-  onPageClick?: (payload: IndexActionPayload) => void;
+  onPageClick?: (payload: MetdataActionPayload) => void;
   onRefresh?: (metadata: MetadataPayload) => void;
   onSegmentExpand?: (segment: string) => void;
   onView?: (metadata: MetadataPayload) => void;
   onViewCanceled?: () => void;
-  onViewError?: (error: IndexWorkerError) => void;
+  onViewError?: (error: MetdataWorkerError) => void;
   onViewStarted?: () => void;
 };
 
-export type IndexWorkerError = {
+export type MetdataWorkerError = {
   code?: string;
   details?: unknown;
   error: string;
   status?: number;
 };
 
-export type IndexWorkerResult<T> =
+export type MetdataWorkerResult<T> =
   | { ok: true; data: T }
-  | ({ ok: false } & IndexWorkerError);
+  | ({ ok: false } & MetdataWorkerError);
 
-export type IndexPatchResult = {
+export type MetdataPatchResult = {
   data: string;
   status: "completed" | "error" | "pending" | "processing";
   version: number;
 };
 
-export type IndexReprocessResult = {
+export type MetdataReprocessResult = {
   data: string;
   status: "completed";
 };
 
-export type IndexWorkerCommand = ({
+export type MetdataWorkerCommand = ({
   apiBaseUrl: string;
   session: string;
   token: string;
@@ -249,48 +249,49 @@ export type IndexWorkerCommand = ({
   | { type: "patchStatus"; version: number }
 ));
 
-export type IndexWorkerClient = {
-  confirmIndex(token: string, session: string, code: string): Promise<IndexPatchResult>;
-  dropIndex(token: string, session: string, code: string): Promise<IndexPatchResult>;
+export type MetdataWorkerClient = {
+  confirmIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
+  dropIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
   indexData(token: string, session: string): Promise<MetadataPayload>;
-  patchStatus(token: string, session: string, version: number): Promise<IndexPatchResult>;
-  reprocessSegment(token: string, session: string, segment: string): Promise<IndexReprocessResult>;
+  patchStatus(token: string, session: string, version: number): Promise<MetdataPatchResult>;
+  reprocessSegment(token: string, session: string, segment: string): Promise<MetdataReprocessResult>;
 };
 
-export type IndexWorkerConfig = {
+export type MetdataWorkerConfig = {
   apiBaseUrl: string;
 };
 
 export type MetadataStatus = "idle" | "loading" | "success" | "error";
 
-export type IndexStoreState = {
+export type MetdataStoreState = {
   activeSession: string | null;
-  error: IndexWorkerError | null;
-  refresh: IndexMetadataRefresh | null;
+  error: MetdataWorkerError | null;
+  refresh: MetdataMetadataRefresh | null;
   refreshId: number;
   status: MetadataStatus;
   refreshMetadata(session: string, segment: string): void;
-  setError(error: IndexWorkerError): void;
+  setError(error: MetdataWorkerError): void;
   setLoaded(session: string): void;
   setLoading(session: string): void;
   resetMetadata(): void;
+  resetView(): void;
   invalidateSession(session: string): void;
 };
 
-export type IndexMetadataProps = {
+export type MetdataMetadataProps = {
   authToken: string | null;
   apiGatewayUrl: string;
-  callbacks: IndexMetadataCallbacks;
-  choices: IndexChoice[] | string | null;
+  callbacks: MetdataMetadataCallbacks;
+  choices: unknown;
   children?: ReactNode;
-  deferredState: IndexDeferredState;
+  deferredState: MetdataDeferredState;
   intervalMs: number;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
-  refresh: IndexMetadataRefresh | null;
-  segments: IndexSegmentValues;
+  refresh: MetdataMetadataRefresh | null;
+  segments: MetdataSegmentValues;
   session: string;
-  workerClient?: IndexWorkerClient;
+  workerClient?: MetdataWorkerClient;
 };
 
 export type MetadataPanelActions = {

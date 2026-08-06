@@ -1,4 +1,4 @@
-import type { MetadataJSONParts } from "../../features/metdata/type/metadata.types";
+import type { MetadataJSONParts } from "../../features/metdataview/type/metadataView.types";
 
 export type StoreValues = {
   jsonBySession: Record<string, MetadataJSONParts>;

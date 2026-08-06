@@ -15,7 +15,11 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   });
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toBeVisible();
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("display", "grid");
+  await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("padding-top", "8.8px");
+  await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("padding-bottom", "8.8px");
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toBeVisible();
+  await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toHaveCSS("padding-top", "8.8px");
+  await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toHaveCSS("padding-bottom", "8.8px");
   await expect(page.locator("[aria-label='Image viewer top toolbar']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
   await expect(page.locator("[data-document-lens-host='true']")).toHaveCSS("background-color", "rgb(248, 250, 252)");
@@ -147,6 +151,8 @@ test("compact image viewer keeps the toolbar grid and image mode", async ({ page
   const toolbar = page.locator("[aria-label='Image viewer top toolbar']");
   await expect(toolbar).toBeVisible();
   await expect(toolbar).toHaveCSS("display", "grid");
+  await expect(toolbar).toHaveCSS("padding-top", "8.8px");
+  await expect(toolbar).toHaveCSS("padding-bottom", "8.8px");
   const primaryRow = toolbar.locator("[data-image-viewer-toolbar-row='primary']");
   const close = page.getByRole("button", { name: "Close preview" });
   await expect(primaryRow).toBeVisible();

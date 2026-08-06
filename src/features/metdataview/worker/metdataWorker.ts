@@ -1,10 +1,10 @@
 import type {
-  IndexPatchResult,
-  IndexReprocessResult,
-  IndexWorkerCommand,
-  IndexWorkerResult,
+  MetdataPatchResult,
+  MetdataReprocessResult,
+  MetdataWorkerCommand,
+  MetdataWorkerResult,
   MetadataPayload,
-} from "../type/metadata.types";
+} from "../type/metadataView.types";
 
 type IndexDataEnvelope = {
   data: string;
@@ -15,7 +15,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function validateMetadataPayload(data: unknown): IndexWorkerResult<MetadataPayload> {
+function validateMetadataPayload(data: unknown): MetdataWorkerResult<MetadataPayload> {
   if (!isObject(data)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid object." };
   }
@@ -33,7 +33,7 @@ function validateMetadataPayload(data: unknown): IndexWorkerResult<MetadataPaylo
   return { ok: true, data: data as MetadataPayload };
 }
 
-function validateIndexDataEnvelope(data: unknown): IndexWorkerResult<IndexDataEnvelope> {
+function validateIndexDataEnvelope(data: unknown): MetdataWorkerResult<IndexDataEnvelope> {
   if (!isObject(data)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid object." };
   }
@@ -46,7 +46,7 @@ function validateIndexDataEnvelope(data: unknown): IndexWorkerResult<IndexDataEn
   return { ok: true, data: data as IndexDataEnvelope };
 }
 
-function parseMetadataData(data: string): IndexWorkerResult<MetadataPayload> {
+function parseMetadataData(data: string): MetdataWorkerResult<MetadataPayload> {
   let payload: unknown;
   try {
     payload = JSON.parse(data);
@@ -56,7 +56,7 @@ function parseMetadataData(data: string): IndexWorkerResult<MetadataPayload> {
   return validateMetadataPayload(payload);
 }
 
-function resolveIndexData(payload: unknown): IndexWorkerResult<MetadataPayload> {
+function resolveIndexData(payload: unknown): MetdataWorkerResult<MetadataPayload> {
   const envelope = validateIndexDataEnvelope(payload);
   if (!envelope.ok) return envelope;
   if (envelope.data.status === "error") {
@@ -68,7 +68,7 @@ function resolveIndexData(payload: unknown): IndexWorkerResult<MetadataPayload> 
   return parseMetadataData(envelope.data.data);
 }
 
-function resolveReprocess(payload: unknown): IndexWorkerResult<IndexReprocessResult> {
+function resolveReprocess(payload: unknown): MetdataWorkerResult<MetdataReprocessResult> {
   if (!isObject(payload)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid object." };
   }
@@ -84,7 +84,7 @@ function resolveReprocess(payload: unknown): IndexWorkerResult<IndexReprocessRes
   return { ok: true, data: { data: payload.data, status: "completed" } };
 }
 
-function resolvePatch(payload: unknown): IndexWorkerResult<IndexPatchResult> {
+function resolvePatch(payload: unknown): MetdataWorkerResult<MetdataPatchResult> {
   if (!isObject(payload)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid object." };
   }
@@ -97,7 +97,7 @@ function resolvePatch(payload: unknown): IndexWorkerResult<IndexPatchResult> {
   if (typeof payload.version !== "number") {
     return { ok: false, code: "validation_error", error: "Missing required key: version" };
   }
-  return { ok: true, data: payload as IndexPatchResult };
+  return { ok: true, data: payload as MetdataPatchResult };
 }
 
 type ParsedResponse = {
@@ -106,7 +106,7 @@ type ParsedResponse = {
   response: Response;
 };
 
-async function parseResponse(response: Response): Promise<IndexWorkerResult<ParsedResponse>> {
+async function parseResponse(response: Response): Promise<MetdataWorkerResult<ParsedResponse>> {
   const contentType = response.headers.get("content-type")?.toLowerCase() || "";
   const responseText = await response.text();
   let payload: unknown = null;
@@ -124,7 +124,7 @@ async function parseResponse(response: Response): Promise<IndexWorkerResult<Pars
   return { ok: true, data: { contentType, payload, response } };
 }
 
-function httpError(parsed: ParsedResponse): IndexWorkerResult<never> {
+function httpError(parsed: ParsedResponse): MetdataWorkerResult<never> {
   const { payload, response } = parsed;
   let error = `HTTP ${response.status}`;
   let code: string | undefined;
@@ -142,7 +142,7 @@ function httpError(parsed: ParsedResponse): IndexWorkerResult<never> {
 }
 
 export class IndexWorker {
-  buildRequest(command: IndexWorkerCommand): { body: string | null; method: "GET" | "POST"; url: string } {
+  buildRequest(command: MetdataWorkerCommand): { body: string | null; method: "GET" | "POST"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
     if (command.type === "reprocessSegment") {
@@ -158,7 +158,7 @@ export class IndexWorker {
     return { body: null, method: "GET", url: `${apiBaseUrl}/v1/index/${session}/data` };
   }
 
-  async run(command: IndexWorkerCommand): Promise<IndexWorkerResult<MetadataPayload | IndexReprocessResult | IndexPatchResult>> {
+  async run(command: MetdataWorkerCommand): Promise<MetdataWorkerResult<MetadataPayload | MetdataReprocessResult | MetdataPatchResult>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }
@@ -225,7 +225,7 @@ export class IndexWorker {
   }
 }
 
-self.onmessage = async (event: MessageEvent<IndexWorkerCommand>) => {
+self.onmessage = async (event: MessageEvent<MetdataWorkerCommand>) => {
   const worker = new IndexWorker();
   const result = await worker.run(event.data);
   self.postMessage(result);

@@ -9,8 +9,8 @@ import {
   isAmbiguous,
   replaceMetadataPageSegments,
   splitMetadataJSON,
-} from "../../metdata/data/metadataData";
-import type { MetadataJSONParts, MetadataPayload } from "../../metdata/type/metadata.types";
+} from "../../metdataview/data/metadataData";
+import type { MetadataJSONParts, MetadataPayload } from "../../metdataview/type/metadataView.types";
 
 const metadataFixturePath = join(process.cwd(), "src", "test", "metadata#v1.json");
 

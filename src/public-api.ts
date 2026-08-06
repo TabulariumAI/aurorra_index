@@ -6,8 +6,8 @@ export const ImageViewerPanel = lazy(async () => {
 });
 
 export { IndexContainer, IndexContainer as IndexMetadata } from "./features/indexing/component/IndexContainer";
-export { MetadataPanel } from "./features/metdata/component/MetadataPanel";
-export type { MetadataPanelProps } from "./features/metdata/component/MetadataPanel";
+export { MetadataPanel } from "./features/metdataview/component/MetadataPanel";
+export type { MetadataPanelProps } from "./features/metdataview/component/MetadataPanel";
 export {
   asIndexArray,
   composeMetadataJSON,
@@ -20,7 +20,7 @@ export {
   isAmbiguous,
   isValidIndex,
   splitMetadataJSON,
-} from "./features/metdata/data/metadataData";
+} from "./features/metdataview/data/metadataData";
 export {
   formatLocation,
   getElements,
@@ -33,10 +33,10 @@ export {
 } from "./features/legalmap/data/legalData";
 export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
 export { createDeferredState } from "./features/indexing/data/deferredState";
-export { indexStoreApi, useIndexStore } from "./features/metdata/store/indexStore";
+export { indexStoreApi, useIndexStore } from "./features/metdataview/store/metadataStore";
 export { AddressMapContent } from "./features/addressmap";
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
-export { createIndexWorkerClient } from "./features/metdata/worker/indexWorkerClient";
+export { createIndexWorkerClient } from "./features/metdataview/worker/metadataWorkerClient";
 export {
   PageSegmentsPanel,
   createPageSegmentsWorkerClient,
@@ -104,22 +104,22 @@ export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";
 export type { JobEvent, JobEventCallback } from "aurorra-ui";
 export type {
-  IndexMetadataProps,
-  IndexActionPayload,
-  IndexChoice,
-  IndexDeferredState,
-  IndexMetadataCallbacks,
-  IndexMetadataRefresh,
-  IndexSegmentValues,
-  IndexSelected,
-  IndexPatchResult,
-  IndexStoreState,
-  IndexWorkerClient,
-  IndexWorkerCommand,
-  IndexWorkerConfig,
-  IndexWorkerError,
-  IndexWorkerResult,
-  IndexReprocessResult,
+  MetdataMetadataProps,
+  MetdataActionPayload,
+  MetdataChoice,
+  MetdataDeferredState,
+  MetdataMetadataCallbacks,
+  MetdataMetadataRefresh,
+  MetdataSegmentValues,
+  MetdataSelected,
+  MetdataPatchResult,
+  MetdataStoreState,
+  MetdataWorkerClient,
+  MetdataWorkerCommand,
+  MetdataWorkerConfig,
+  MetdataWorkerError,
+  MetdataWorkerResult,
+  MetdataReprocessResult,
   LegalElement,
   LegalGroup,
   LegalPayload,
@@ -141,7 +141,7 @@ export type {
   MetadataPanelSections,
   MetadataAction,
   MetadataActionFailure,
-} from "./features/metdata/type/metadata.types";
+} from "./features/metdataview/type/metadataView.types";
 export type {
   PageSegmentsComplete,
   PageSegmentsFailure,

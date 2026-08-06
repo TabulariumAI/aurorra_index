@@ -5,9 +5,9 @@ import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { MetadataPanel } from "../component/MetadataPanel";
 import { IndexValue, copyIndexValue } from "../component/MetadataRows";
 import { getPanelData } from "../data/metadataData";
-import type { IndexSegmentValues, MetadataPayload } from "../type/metadata.types";
+import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView.types";
 
-const segments: IndexSegmentValues = {
+const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
   COURT: "court",

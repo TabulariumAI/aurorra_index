@@ -5,7 +5,7 @@ import type {
   PageRequest,
   ViewerError,
 } from "../type/imageViewer.types";
-import type { IndexSelected, MetadataIndex, MetadataPayload } from "../../metdata/type/metadata.types";
+import type { MetdataSelected, MetadataIndex, MetadataPayload } from "../../metdataview/type/metadataView.types";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -65,7 +65,7 @@ function resolveRow(row: MetadataIndex | undefined): { ambiguous: string; label:
 
 export function resolveSelectedIndex(
   metadata: MetadataPayload | null,
-  selectedIndex: IndexSelected | null,
+  selectedIndex: MetdataSelected | null,
 ): { ambiguous: string; label: string; pageNumber: number; source: string; value: string } | null {
   if (!metadata || !selectedIndex?.code) return null;
   const groups = [metadata.indexes, metadata.parties, metadata.secrets];

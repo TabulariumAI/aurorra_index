@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { indexStoreApi } from "../../metdata/store/indexStore";
-import { composeMetadataJSON, splitMetadataJSON } from "../../metdata/data/metadataData";
-import type { MetadataPayload } from "../../metdata/type/metadata.types";
+import { indexStoreApi } from "../../metdataview/store/metadataStore";
+import { composeMetadataJSON, splitMetadataJSON } from "../../metdataview/data/metadataData";
+import type { MetadataPayload } from "../../metdataview/type/metadataView.types";
 import { storeApi } from "../../../store/state/store";
 
 describe("index store", () => {
@@ -66,6 +66,25 @@ describe("index store", () => {
     indexStoreApi.getState().invalidateSession("session-1");
 
     expect(storeApi.getState().jsonBySession["session-1"]).toBeUndefined();
+    expect(indexStoreApi.getState().status).toBe("idle");
+  });
+
+  it("resets the active view without discarding session metadata", () => {
+    const payload = splitMetadataJSON({
+      fees: [],
+      funds: [],
+      heading: {},
+      indexes: [],
+      pages: { num_of_pages: 1 },
+      secrets: [],
+    } as unknown as MetadataPayload);
+    storeApi.getState().setJSON("session-1", payload);
+    indexStoreApi.getState().setLoaded("session-1");
+
+    indexStoreApi.getState().resetView();
+
+    expect(storeApi.getState().getJSON("session-1")).toEqual(payload);
+    expect(indexStoreApi.getState().activeSession).toBeNull();
     expect(indexStoreApi.getState().status).toBe("idle");
   });
 

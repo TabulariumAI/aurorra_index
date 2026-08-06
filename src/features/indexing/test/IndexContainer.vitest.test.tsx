@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
-import { indexStoreApi } from "../../metdata/store/indexStore";
+import { indexStoreApi } from "../../metdataview/store/metadataStore";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { createDeferredState } from "../data/deferredState";
-import type { IndexSegmentValues, MetadataPayload } from "../../metdata/type/metadata.types";
+import type { MetdataSegmentValues, MetadataPayload } from "../../metdataview/type/metadataView.types";
 
-const segments: IndexSegmentValues = {
+const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
   COURT: "court",

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { composeMetadataJSON, getPanelData, splitMetadataJSON } from "../data/metadataData";
-import { indexStoreApi, useIndexStore } from "../store/indexStore";
+import { indexStoreApi, useIndexStore } from "../store/metadataStore";
 import { storeApi, useStore } from "../../../store/state/store";
-import type { IndexActionPayload, IndexMetadataProps, IndexPatchResult, IndexWorkerClient, IndexWorkerError, MetadataAction } from "../type/metadata.types";
-import { createIndexWorkerClient } from "../worker/indexWorkerClient";
+import type { MetdataActionPayload, MetdataMetadataProps, MetdataPatchResult, MetdataWorkerClient, MetdataWorkerError, MetadataAction } from "../type/metadataView.types";
+import { createIndexWorkerClient } from "../worker/metadataWorkerClient";
 
-function toWorkerError(error: unknown, fallback = "Metadata request failed."): IndexWorkerError {
+function toWorkerError(error: unknown, fallback = "Metadata request failed."): MetdataWorkerError {
   const candidate = error as { code?: string; details?: unknown; error?: string; message?: string; status?: number };
   return {
     code: candidate.code,
@@ -15,7 +15,7 @@ function toWorkerError(error: unknown, fallback = "Metadata request failed."): I
   };
 }
 
-async function waitForPatch(client: IndexWorkerClient, token: string, session: string, intervalMs: number, result: IndexPatchResult): Promise<void> {
+async function waitForPatch(client: MetdataWorkerClient, token: string, session: string, intervalMs: number, result: MetdataPatchResult): Promise<void> {
   let patch = result;
   while (patch.status === "pending" || patch.status === "processing") {
     await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
@@ -28,13 +28,14 @@ export function useMetadata({
   authToken,
   apiGatewayUrl,
   callbacks,
+  choices,
   deferredState,
   intervalMs,
   refresh,
   segments,
   session,
   workerClient,
-}: IndexMetadataProps) {
+}: MetdataMetadataProps) {
   const callbacksRef = useRef(callbacks);
   const store = useIndexStore();
   const json = useStore((state) => state.getJSON(session));
@@ -55,6 +56,15 @@ export function useMetadata({
 
   const loadMetadata = useCallback(
     async (refresh: boolean) => {
+      const cached = refresh ? null : composeMetadataJSON(storeApi.getState().getJSON(session));
+      if (cached) {
+        indexStoreApi.getState().setLoaded(session);
+        setRemovedCodes(new Set());
+        setConfirmedCodes(new Set());
+        callbacks.onView?.(cached);
+        callbacks.onMetadataLoaded?.(cached);
+        return cached;
+      }
       indexStoreApi.getState().setLoading(session);
       callbacks.onViewStarted?.();
       const jobId = crypto.randomUUID();
@@ -112,7 +122,7 @@ export function useMetadata({
   );
 
   const onDrop = useCallback(
-    async (payload: IndexActionPayload) => {
+    async (payload: MetdataActionPayload) => {
       const action: MetadataAction = { action: "drop", code: payload.code, session };
       const jobId = crypto.randomUUID();
       callbacks.onJobEvent?.({ jobId, message: "Deleting index", phase: "started", session });
@@ -136,7 +146,7 @@ export function useMetadata({
   );
 
   const onConfirm = useCallback(
-    async (payload: IndexActionPayload) => {
+    async (payload: MetdataActionPayload) => {
       const action: MetadataAction = { action: "confirm", code: payload.code, session };
       const jobId = crypto.randomUUID();
       callbacks.onJobEvent?.({ jobId, message: "Confirming index", phase: "started", session });
@@ -183,6 +193,7 @@ export function useMetadata({
 
   return {
     confirmedCodes,
+    choices,
     loadMetadata,
     metadata,
     onConfirm,
