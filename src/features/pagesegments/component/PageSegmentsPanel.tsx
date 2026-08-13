@@ -51,7 +51,6 @@ export function PageSegmentsPanel({
   onClose,
   onComplete,
   onError,
-  onJobEvent,
   onReadyChange,
   pageClass,
   pageCode,
@@ -89,8 +88,6 @@ export function PageSegmentsPanel({
   const submit = async () => {
     const submitted = [...selected];
     pageSegmentsStoreApi.getState().setSaving();
-    const jobId = crypto.randomUUID();
-    onJobEvent({ jobId, message: "Updating page segments", phase: "started", session });
     try {
       await client.updatePageSegments(authToken, session, pageCode, submitted);
       updateCachedPageSegments(session, pageCode, submitted);
@@ -98,12 +95,10 @@ export function PageSegmentsPanel({
       onComplete({ pageCode, segments: submitted, session });
     } catch (submitError) {
       const workerError = toWorkerError(submitError);
-      onJobEvent({ error: workerError.error, jobId, message: "Page segment update failed", phase: "failed", session });
       pageSegmentsStoreApi.getState().setError(workerError);
       onError({ error: workerError, pageCode, session });
       return;
     }
-    onJobEvent({ jobId, message: "Page segments updated", phase: "completed", session });
   };
 
   return (

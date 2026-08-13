@@ -26,7 +26,6 @@ function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps 
     onClose: vi.fn(),
     onComplete: vi.fn(),
     onError: vi.fn(),
-    onJobEvent: vi.fn(),
     onReadyChange: vi.fn(),
     selection,
     session: "session-1",
@@ -95,12 +94,11 @@ describe("AddIndexPanel", () => {
     const onClose = vi.fn();
     const onComplete = vi.fn();
     const onError = vi.fn();
-    const onJobEvent = vi.fn();
     const addIndex = vi.fn(async () => ({ accepted: true as const, description: "Index added." }));
     const workerClient: AddIndexWorkerClient = {
       addIndex,
     };
-    render(<AddIndexPanel {...props({ onClose, onComplete, onError, onJobEvent, workerClient })} />);
+    render(<AddIndexPanel {...props({ onClose, onComplete, onError, workerClient })} />);
 
     fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Edited Index" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Page Number" }), { target: { value: "7" } });
@@ -116,9 +114,7 @@ describe("AddIndexPanel", () => {
       value: "Edited Index",
     }));
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(onJobEvent.mock.invocationCallOrder[0]);
-    expect(onJobEvent.mock.invocationCallOrder[0]).toBeLessThan(addIndex.mock.invocationCallOrder[0]);
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
+    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(addIndex.mock.invocationCallOrder[0]);
     expect(onComplete).toHaveBeenCalledWith({
       aspect: "Party",
       session: "session-1",
@@ -132,7 +128,6 @@ describe("AddIndexPanel", () => {
     const onClose = vi.fn();
     const onComplete = vi.fn();
     const onError = vi.fn();
-    const onJobEvent = vi.fn();
     const serviceError = Object.assign(new Error("Index already exists."), {
       code: "index_not_added",
       details: { accepted: false, description: "Index already exists." },
@@ -143,7 +138,7 @@ describe("AddIndexPanel", () => {
         throw serviceError;
       }),
     };
-    render(<AddIndexPanel {...props({ onClose, onComplete, onError, onJobEvent, workerClient })} />);
+    render(<AddIndexPanel {...props({ onClose, onComplete, onError, workerClient })} />);
 
     fireEvent.change(screen.getByRole("textbox", { name: "Type" }), { target: { value: "Party" } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
@@ -157,7 +152,6 @@ describe("AddIndexPanel", () => {
     }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onComplete).not.toHaveBeenCalled();
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "failed"]);
   });
 
   it("closes without submitting", () => {

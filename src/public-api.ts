@@ -8,6 +8,9 @@ export const ImageViewerPanel = lazy(async () => {
 export { IndexContainer, IndexContainer as IndexMetadata } from "./features/indexing/component/IndexContainer";
 export { MetadataPanel } from "./features/metdataview/component/MetadataPanel";
 export type { MetadataPanelProps } from "./features/metdataview/component/MetadataPanel";
+export { EmptyRow, MetadataRow } from "./features/metdataview/component/MetadataRows";
+export type { MetadataDetail, MetadataRowProps } from "./features/metdataview/component/MetadataRows";
+export { MetadataSegment } from "./features/metdataview/component/MetadataSegment";
 export {
   asIndexArray,
   composeMetadataJSON,
@@ -102,7 +105,6 @@ export type {
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";
-export type { JobEvent, JobEventCallback } from "aurorra-ui";
 export type {
   MetdataMetadataProps,
   MetdataActionPayload,
@@ -124,7 +126,15 @@ export type {
   LegalGroup,
   LegalPayload,
   MetadataHeading,
+  MetadataChainId,
+  MetadataChainRecord,
+  MetadataConveyance,
+  MetadataEncumbrance,
+  MetadataFeeFactor,
+  MetadataFeeItem,
+  MetadataHistory,
   MetadataIndex,
+  MetadataMortgage,
   MetadataPage,
   MetadataPayload,
   MetadataHeadingJSON,

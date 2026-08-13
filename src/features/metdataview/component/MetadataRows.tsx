@@ -305,22 +305,15 @@ function AspectLine({ aspect, label }: { aspect: string; label: string }) {
   );
 }
 
-export function MetadataRow({
-  callbacks,
-  confirmed,
-  item,
-  onConfirm,
-  onDrop,
-  onAddressClick,
-  pageClass,
-  pageSegments,
-  selected,
-  segment,
-  session,
-  type = "index",
-}: {
+export type MetadataDetail = {
+  label: string;
+  value: unknown;
+};
+
+export type MetadataRowProps = {
   callbacks: MetdataMetadataCallbacks;
   confirmed: boolean;
+  details?: readonly MetadataDetail[];
   item: MetadataIndex;
   onConfirm?: (payload: MetdataActionPayload) => Promise<void> | void;
   onDrop?: (payload: MetdataActionPayload) => Promise<void> | void;
@@ -331,7 +324,23 @@ export function MetadataRow({
   segment: string | null;
   session: string;
   type?: string;
-}): JSX.Element {
+};
+
+export function MetadataRow({
+  callbacks,
+  confirmed,
+  details,
+  item,
+  onConfirm,
+  onDrop,
+  onAddressClick,
+  pageClass,
+  pageSegments,
+  selected,
+  segment,
+  session,
+  type = "index",
+}: MetadataRowProps): JSX.Element {
   const code = String(item.code || "");
   const page = Number(item.page || item.page_number || 0);
   const value = cleanText(item.value);
@@ -412,7 +421,10 @@ export function MetadataRow({
       </div>
       <AspectLine aspect={aspect} label={label} />
       <DetailLine label="Explanation" name="explanation" value={item.explanation} />
-      {type !== "page" ? <DetailLine label="Quote" name="quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
+      {details?.map((detail, index) => (
+        <DetailLine key={`${detail.label}-${index}`} label={detail.label} name={detail.label} value={detail.value} />
+      ))}
+      {type !== "page" && (page || item.source) ? <DetailLine label="Quote" name="quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
     </article>
   );
 }

@@ -167,7 +167,6 @@ function setHost(onError = vi.fn()) {
     apiGatewayUrl: "https://gateway",
     authToken: "token",
     onError,
-    onJobEvent: vi.fn(),
     pageCount: 2,
     pageMap: new Map(),
     request: null,

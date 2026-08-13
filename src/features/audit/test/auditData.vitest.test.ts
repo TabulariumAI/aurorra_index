@@ -11,7 +11,7 @@ import {
   PROCESS_VERIFICATION,
   prepareAuditReport,
 } from "../data/auditData";
-import type { AuditFilters, AuditReport } from "../type/audit.types";
+import type { AuditFilters } from "../type/audit.types";
 
 const rawReport = {
   gaps: [

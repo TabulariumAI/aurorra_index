@@ -25,7 +25,6 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
 
   const apiGatewayUrl = useImageViewerStore((state) => state.apiGatewayUrl);
   const authToken = useImageViewerStore((state) => state.authToken);
-  const onJobEvent = useImageViewerStore((state) => state.onJobEvent);
   const searchText = useImageViewerStore((state) => state.searchText);
   const session = useImageViewerStore((state) => state.session);
   const requestVersion = useImageViewerStore((state) => state.requestVersion);
@@ -41,7 +40,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
     const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
     const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
     if (state.status === "packaging" || state.status === "polling" || state.status === "downloading") return;
-    if (!state.onError || !onJobEvent) return;
+    if (!state.onError) return;
     const restart = viewer.reloadId > reloadRef.current;
     if (!restart && viewer.isRestoredSession) return;
     if (!restart && ((state.status === "ready" && hasPackage) || restoredLensReady)) return;
@@ -50,13 +49,12 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
       apiGatewayUrl,
       authToken,
       onError: state.onError,
-      onJobEvent,
       packagePollIntervalMs: state.packagePollIntervalMs,
       restart,
       session,
       workerClient: workerClient ?? undefined,
     });
-  }, [apiGatewayUrl, authToken, onJobEvent, requestVersion, session, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
+  }, [apiGatewayUrl, authToken, requestVersion, session, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
   const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage";

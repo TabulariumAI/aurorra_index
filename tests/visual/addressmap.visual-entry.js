@@ -10,6 +10,8 @@ if (scenario === "legal-gap") {
   await import("./iq.visual.tsx");
 } else if (scenario === "metadata") {
   await import("./metadata.visual.tsx");
+} else if (scenario === "metadata-reprocess") {
+  await import("./metadata.visual.tsx");
 } else if (scenario === "metadata-short") {
   await import("./metadata.visual.tsx");
 } else if (scenario === "pagesegments-fail") {

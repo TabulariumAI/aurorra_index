@@ -115,7 +115,7 @@ describe("IndexWorker", () => {
   });
 
   it("sends mutation commands with encoded values and required headers", async () => {
-    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+    const fetchMock = vi.fn(async (url: string) => {
       if (url.endsWith("/v1/refine/session-1/reprocess/party%2Fclause")) {
         return jsonResponse({ data: "ok", status: "completed" });
       }

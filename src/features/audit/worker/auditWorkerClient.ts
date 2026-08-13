@@ -1,4 +1,4 @@
-import type { AuditReport, AuditWorkerClient, AuditWorkerConfig, AuditWorkerResult } from "../type/audit.types";
+import type { AuditWorkerClient, AuditWorkerConfig, AuditWorkerResult } from "../type/audit.types";
 
 type WorkerError = Error & {
   code?: string;

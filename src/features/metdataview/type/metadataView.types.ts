@@ -1,6 +1,5 @@
 import type { MetadataIndex as LensMetadataIndex } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
-import type { JobEventCallback } from "aurorra-ui";
 
 export type MetdataSegmentValues = {
   TITLE: string;
@@ -17,8 +16,6 @@ export type MetdataSegmentValues = {
   LEGAL: string;
   MONETARY: string;
   ENDORSEMENT: string;
-  CHAIN: string;
-  HISTORY: string;
   VITAL: string;
   COURT: string;
 };
@@ -40,6 +37,82 @@ export type MetadataIndex = {
   segment?: string;
   source?: string;
   value?: string;
+};
+
+export type MetadataFeeFactor = {
+  ambiguous?: string;
+  amount: string;
+  code?: string;
+  explanation?: string;
+  name: string;
+};
+
+export type MetadataFeeItem = {
+  amount: string;
+  code?: string;
+  explanation?: string;
+  formula: string;
+  name: string;
+};
+
+export type MetadataChainId = {
+  key: string;
+  value?: string;
+};
+
+export type MetadataChainRecord = {
+  address?: string;
+  class: string;
+  code?: string;
+  date?: string;
+  docsref?: string;
+  explanation?: string;
+  identifiers?: MetadataChainId[];
+  lotblocks?: string;
+  metesbounds?: string;
+  number?: string;
+  page?: string;
+  platsref?: string;
+  plss?: string;
+  required: string;
+  role: string;
+  session?: string;
+  source?: string;
+  status?: string;
+  title: string;
+};
+
+export type MetadataConveyance = {
+  amount?: string;
+  date?: string;
+  explanation?: string;
+  grantees?: string;
+  grantors?: string;
+  title_company?: string;
+};
+
+export type MetadataMortgage = {
+  amount?: string;
+  borrowers?: string;
+  date?: string;
+  explanation?: string;
+  lender?: string;
+  status?: string;
+};
+
+export type MetadataEncumbrance = {
+  amount?: string;
+  date?: string;
+  enc_type?: string;
+  explanation?: string;
+  parties?: string;
+  status?: string;
+};
+
+export type MetadataHistory = {
+  conveyance?: MetadataConveyance[];
+  encumbrance?: MetadataEncumbrance[];
+  mortgage?: MetadataMortgage[];
 };
 
 export type MetadataPage = {
@@ -127,12 +200,12 @@ export type MetadataJSONParts = {
 };
 
 export type MetadataPayload = {
-  chain?: Record<string, unknown>[];
-  fee_factors?: Record<string, unknown>[];
-  fees?: Record<string, unknown>[];
-  funds?: Record<string, unknown>[];
+  chain?: MetadataChainRecord[];
+  fee_factors?: MetadataFeeFactor[];
+  fees?: MetadataFeeItem[];
+  funds?: MetadataFeeItem[];
   heading?: MetadataHeading;
-  history?: Record<string, unknown>;
+  history?: MetadataHistory;
   indexes?: MetadataIndex[];
   legals?: LegalPayload;
   pages?: {
@@ -202,7 +275,6 @@ export type MetdataMetadataCallbacks = {
   onActionError?: (event: MetadataActionFailure) => void;
   onEditPage?: (payload: MetdataActionPayload) => void;
   onIndexFocus?: (selected: MetdataSelected | null) => void;
-  onJobEvent?: JobEventCallback;
   onLegalView?: (payload: MetdataActionPayload) => void;
   onMetadataError?: (error: MetdataWorkerError) => void;
   onMetadataLoaded?: (metadata: MetadataPayload) => void;

@@ -29,7 +29,6 @@ describe("PageSegmentsPanel", () => {
     const onClose = vi.fn();
     const onComplete = vi.fn();
     const onError = vi.fn();
-    const onJobEvent = vi.fn();
     const workerClient = {
       updatePageSegments: vi.fn(async () => undefined),
     };
@@ -43,7 +42,6 @@ describe("PageSegmentsPanel", () => {
         onClose={onClose}
         onComplete={onComplete}
         onError={onError}
-        onJobEvent={onJobEvent}
         onReadyChange={vi.fn()}
         pageClass="blank"
         pageCode="page-a"
@@ -64,7 +62,6 @@ describe("PageSegmentsPanel", () => {
     expect(workerClient.updatePageSegments).toHaveBeenCalledWith("token-1", "session-1", "page-a", ["reference", "secrets"]);
     expect(onComplete).toHaveBeenCalledWith({ pageCode: "page-a", segments: ["reference", "secrets"], session: "session-1" });
     expect(onError).not.toHaveBeenCalled();
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
     expect(storeApi.getState().getJSON("session-1")?.pagesJSON.pages?.recordables?.[0].segments).toEqual(["reference", "secrets"]);
     expect(screen.getByText("Page segment changes saved.")).toBeInTheDocument();
 
@@ -94,7 +91,6 @@ describe("PageSegmentsPanel", () => {
         onClose={vi.fn()}
         onComplete={vi.fn()}
         onError={onError}
-        onJobEvent={vi.fn()}
         onReadyChange={vi.fn()}
         pageClass="title"
         pageCode="missing-page"
@@ -129,7 +125,6 @@ describe("PageSegmentsPanel", () => {
   it("fails without completion when the metadata cache update fails", async () => {
     const onComplete = vi.fn();
     const onError = vi.fn();
-    const onJobEvent = vi.fn();
     const workerClient = {
       updatePageSegments: vi.fn(async () => undefined),
     };
@@ -142,7 +137,6 @@ describe("PageSegmentsPanel", () => {
         onClose={vi.fn()}
         onComplete={onComplete}
         onError={onError}
-        onJobEvent={onJobEvent}
         onReadyChange={vi.fn()}
         pageClass="title"
         pageCode="page-a"
@@ -166,7 +160,6 @@ describe("PageSegmentsPanel", () => {
       session: "session-1",
     }));
     expect(onComplete).not.toHaveBeenCalled();
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "failed"]);
   });
 
   it("does not call package metadata fetch or worker on open", () => {
@@ -186,7 +179,6 @@ describe("PageSegmentsPanel", () => {
         onClose={vi.fn()}
         onComplete={vi.fn()}
         onError={vi.fn()}
-        onJobEvent={vi.fn()}
         onReadyChange={vi.fn()}
         pageClass="blank"
         pageCode="page-a"
@@ -221,7 +213,6 @@ describe("PageSegmentsPanel", () => {
             setMessage(`error-${event.pageCode}`);
             onError(event);
           }}
-          onJobEvent={vi.fn()}
           onReadyChange={vi.fn()}
           pageClass="blank"
           pageCode="page-a"

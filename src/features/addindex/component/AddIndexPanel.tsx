@@ -11,7 +11,6 @@ export function AddIndexPanel({
   onClose,
   onComplete,
   onError,
-  onJobEvent,
   onReadyChange,
   selection,
   session,
@@ -44,17 +43,14 @@ export function AddIndexPanel({
   }, [onReadyChange, selection]);
 
   const submit = async () => {
-    const jobId = crypto.randomUUID();
     const request = {
       aspect: fields.type.trim(),
       source: `P ${fields.page.trim()}  ${fields.source}`,
       value: fields.index,
     };
     onClose();
-    onJobEvent({ jobId, message: "Adding index", phase: "started", session });
     try {
       await client.addIndex(authToken, session, request);
-      onJobEvent({ jobId, message: "Index added", phase: "completed", session });
       onComplete({ ...request, session });
     } catch (submitError) {
       const failure = submitError as Error & {
@@ -68,7 +64,6 @@ export function AddIndexPanel({
         error: failure.message,
         status: failure.status,
       };
-      onJobEvent({ error: workerError.error, jobId, message: "Index add failed", phase: "failed", session });
       onError(workerError);
     }
   };

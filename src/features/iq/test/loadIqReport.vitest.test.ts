@@ -35,15 +35,13 @@ describe("loadIqReport", () => {
     iqStoreApi.getState().resetIq();
   });
 
-  it("starts, polls, stores the report, and emits each job lifecycle", async () => {
+  it("starts, polls, and stores the report", async () => {
     const client = createClient();
-    const onJobEvent = vi.fn();
 
     await loadIqReport({
       apiGatewayUrl: "https://api",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent,
       pollIntervalMs: 0,
       session: "session-1",
       workerClient: client,
@@ -51,7 +49,6 @@ describe("loadIqReport", () => {
 
     expect(client.startReport).toHaveBeenCalledWith("token", "session-1");
     expect(client.pollReport).toHaveBeenCalledTimes(2);
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed"]);
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", report, status: "success" });
   });
 
@@ -63,7 +60,6 @@ describe("loadIqReport", () => {
       apiGatewayUrl: "https://api",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pollIntervalMs: 0,
       session: "session-1",
       workerClient: client,
@@ -84,7 +80,6 @@ describe("loadIqReport", () => {
       apiGatewayUrl: "https://api",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pollIntervalMs: 0,
       session: "session-1",
       workerClient: client,
@@ -106,7 +101,6 @@ describe("loadIqReport", () => {
       apiGatewayUrl: "https://api",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pollIntervalMs: 0,
       session: "session-1",
       workerClient: client,
@@ -127,20 +121,17 @@ describe("loadIqReport", () => {
     const client = createClient();
     vi.mocked(client.startReport).mockRejectedValueOnce(Object.assign(new Error("start failed"), { code: "start_error", status: 500 }));
     const onError = vi.fn();
-    const onJobEvent = vi.fn();
 
     await loadIqReport({
       apiGatewayUrl: "https://api",
       authToken: "token",
       onError,
-      onJobEvent,
       session: "session-1",
       workerClient: client,
     });
 
     expect(client.pollReport).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledWith({ code: "start_error", details: undefined, error: "start failed", status: 500 });
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "failed"]);
     expect(iqStoreApi.getState().status).toBe("error");
   });
 });

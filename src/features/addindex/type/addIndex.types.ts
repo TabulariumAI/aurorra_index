@@ -1,5 +1,4 @@
 import type { SelectedGroup } from "@tabulariumai/aurora-lens";
-import type { JobEventCallback } from "aurorra-ui";
 
 export type AddIndexSelection = {
   groups: SelectedGroup[];
@@ -59,7 +58,6 @@ export type AddIndexPanelProps = {
   onClose(): void;
   onComplete(event: AddIndexComplete): void;
   onError(error: AddIndexWorkerError): void;
-  onJobEvent: JobEventCallback;
   onReadyChange(ready: boolean): void;
   selection: AddIndexSelection;
   session: string;

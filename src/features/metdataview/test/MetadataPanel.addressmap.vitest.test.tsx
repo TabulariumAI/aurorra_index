@@ -7,13 +7,11 @@ import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView
 
 const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
-  CHAIN: "chain",
   COURT: "court",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
   FUND: "fund",
-  HISTORY: "history",
   LEGAL: "legal",
   MONETARY: "monetary",
   PAGE: "page",

@@ -72,7 +72,6 @@ const workerClient: PageSegmentsPanelProps["workerClient"] = {
 
 function PageSegmentsVisualHarness() {
   const [completeMessage, setCompleteMessage] = useState("");
-  const [jobMessage, setJobMessage] = useState("");
 
   const onComplete = (event: { pageCode: string; session: string; segments: string[] }) => {
     setCompleteMessage(`Updated ${event.pageCode} in ${event.session} to ${event.segments.join(",")}`);
@@ -95,7 +94,6 @@ function PageSegmentsVisualHarness() {
         onClose={onClose}
         onComplete={onComplete}
         onError={onError}
-        onJobEvent={(event) => setJobMessage(event.phase)}
         onReadyChange={() => undefined}
         pageClass="blank"
         pageCode="page-1"
@@ -104,7 +102,6 @@ function PageSegmentsVisualHarness() {
         workerClient={workerClient}
       />
       <div data-testid="completion-message">{completeMessage}</div>
-      <div data-testid="job-message">{jobMessage}</div>
     </>
   );
 }

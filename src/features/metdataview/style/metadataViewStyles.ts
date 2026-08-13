@@ -1,5 +1,17 @@
 import type { CSSProperties } from "react";
 
+export const metadataSpinnerCss = `
+@keyframes aurorra-index-spinner {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurorra-index-progress-spinner {
+    animation: none !important;
+  }
+}
+`;
+
 const surfacePanel = "#ffffff";
 const surfaceRaised = "#f8fafc";
 const surfaceAccent = "rgba(6, 175, 193, 0.10)";
@@ -77,16 +89,6 @@ export const metadataStyles = {
     color: textMuted,
     fontSize: "0.9rem",
     lineHeight: 1.3,
-  },
-  pre: {
-    background: "#f8fafc",
-    border: `1px solid ${borderSubtle}`,
-    color: textStrong,
-    fontSize: "0.82rem",
-    margin: 0,
-    overflowX: "auto",
-    padding: "0.5rem 0.65rem",
-    whiteSpace: "pre-wrap",
   },
   rootShell: {
     boxSizing: "border-box",
@@ -376,6 +378,17 @@ export const segmentStyles = {
     padding: 0,
     textDecoration: "underline",
   },
+  reprocessSpinner: {
+    animation: "aurorra-index-spinner 1.35s linear infinite",
+    border: "2px solid rgba(0, 139, 163, 0.25)",
+    borderRadius: "999px",
+    borderTopColor: "var(--primary-color-light, #008ba3)",
+    boxSizing: "border-box",
+    display: "inline-block",
+    flex: "0 0 auto",
+    height: "0.9rem",
+    width: "0.9rem",
+  },
   content: {
     display: "grid",
     gap: "0.3rem",
@@ -395,7 +408,6 @@ export const segmentStyles = {
       alignItems: "center",
       background: surfacePanel,
       borderRadius: "999px",
-      //border: `1px solid ${open ? borderAccent : borderSubtle}`,
       boxSizing: "border-box",
       color: open ? accentText : textMuted,
       display: "inline-flex",
@@ -408,18 +420,16 @@ export const segmentStyles = {
       padding: "0 0.32rem",
     };
   },
-  root(open: boolean): CSSProperties {
-    return {
-      backgroundColor: surfacePanel,
-      borderTop: `1px solid ${borderSubtle}`,
-      borderRadius: "0",
-      boxSizing: "border-box",
-      boxShadow: "none",
-      flex: "0 0 auto",
-      margin: 0,
-      overflow: "hidden",
-      width: "100%",
-    };
+  root: {
+    backgroundColor: surfacePanel,
+    borderTop: `1px solid ${borderSubtle}`,
+    borderRadius: "0",
+    boxSizing: "border-box",
+    boxShadow: "none",
+    flex: "0 0 auto",
+    margin: 0,
+    overflow: "hidden",
+    width: "100%",
   },
   trigger(open: boolean): CSSProperties {
     return {

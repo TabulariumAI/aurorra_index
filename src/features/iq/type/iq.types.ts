@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { JobEventCallback } from "aurorra-ui";
 
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
 export type IqUiStatus = "success" | "fail" | "warning" | "info";
@@ -114,7 +113,6 @@ export type LoadIqInput = {
   apiGatewayUrl: string;
   authToken: string;
   onError(error: IqWorkerError): void;
-  onJobEvent: JobEventCallback;
   pollIntervalMs?: number;
   restart?: boolean;
   session: string;
@@ -128,7 +126,6 @@ export type IqCallbacks = {
   onIqLoaded?: (report: IqReport) => void;
   onIqRefresh?: (report: IqReport) => void;
   onIqStarted?: (result: IqStartResult) => void;
-  onJobEvent?: JobEventCallback;
 };
 
 export type IqPanelProps = {

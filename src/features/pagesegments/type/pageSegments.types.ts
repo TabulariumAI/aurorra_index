@@ -1,5 +1,3 @@
-import type { JobEventCallback } from "aurorra-ui";
-
 export type PageSegmentsWorkerError = {
   code?: string;
   details?: unknown;
@@ -53,7 +51,6 @@ export type PageSegmentsPanelProps = {
   onClose: () => void;
   onComplete: (event: PageSegmentsComplete) => void;
   onError: (event: PageSegmentsFailure) => void;
-  onJobEvent: JobEventCallback;
   onReadyChange(ready: boolean): void;
   pageClass: string;
   pageCode: string;

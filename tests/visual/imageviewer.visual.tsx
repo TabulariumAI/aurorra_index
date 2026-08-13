@@ -91,9 +91,6 @@ function VisualImageViewer() {
           onError(error) {
             stage.dataset.error = error.error;
           },
-          onJobEvent(event) {
-            stage.dataset.event = event.phase;
-          },
         }}
         onLoaderChange={(lines) => {
           if (lines) {
@@ -118,9 +115,6 @@ function VisualImageViewer() {
             }}
             onError={(error) => {
               stage.dataset.error = error.error;
-            }}
-            onJobEvent={(event) => {
-              stage.dataset.event = event.phase;
             }}
             onReadyChange={(ready) => {
               stage.dataset.addIndexReady = String(ready);

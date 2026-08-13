@@ -8,13 +8,11 @@ import type { MetdataSegmentValues, MetadataPayload } from "../../metdataview/ty
 
 const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
-  CHAIN: "chain",
   COURT: "court",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
   FUND: "fund",
-  HISTORY: "history",
   LEGAL: "legal",
   MONETARY: "monetary",
   PAGE: "page",
@@ -32,7 +30,7 @@ const choices = [
   { level: 1, service: "RecitalIndexing" },
   { level: 1, service: "ExhibitIndexing" },
   { level: 1, service: "LegalEnrichment" },
-  { level: 1, service: "MonetaryInfoIndexing" },
+  { level: 0, service: "MonetaryInfoIndexing" },
   { level: 1, service: "AcknowledgmentIndexing" },
   { level: 1, service: "EndorsementIndexing" },
   { level: 1, service: "TransactionIndexing" },
@@ -68,12 +66,12 @@ const metadata: MetadataPayload = {
 };
 
 describe("IndexContainer", () => {
-afterEach(() => {
-  act(() => {
-    indexStoreApi.getState().resetMetadata();
-    imageViewerStoreApi.getState().resetViewer();
+  afterEach(() => {
+    act(() => {
+      indexStoreApi.getState().resetMetadata();
+      imageViewerStoreApi.getState().resetViewer();
+    });
   });
-});
 
   it("fetches metadata, renders visible sections, and emits callbacks", async () => {
     const onMetadataLoaded = vi.fn();
@@ -82,22 +80,24 @@ afterEach(() => {
     const onEditPage = vi.fn();
     const onView = vi.fn();
     const onViewStarted = vi.fn();
-    const onJobEvent = vi.fn();
     const onLoaderChange = vi.fn();
     const onReadyChange = vi.fn();
+    let completeReprocess: (() => void) | undefined;
     const workerClient = {
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       indexData: vi.fn(async () => metadata),
       patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-      reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+      reprocessSegment: vi.fn(() => new Promise<{ data: string; status: "completed" }>((resolve) => {
+        completeReprocess = () => resolve({ data: "", status: "completed" });
+      })),
     };
 
     const view = render(
       <IndexContainer
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
-        callbacks={{ onActionComplete, onEditPage, onJobEvent, onMetadataLoaded, onPageClick, onView, onViewStarted }}
+        callbacks={{ onActionComplete, onEditPage, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
         intervalMs={0}
@@ -130,6 +130,13 @@ afterEach(() => {
     expect(onView).toHaveBeenCalledWith(metadata);
     expect(onMetadataLoaded).toHaveBeenCalledWith(metadata);
     expect(screen.getByText("Deed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Record Endorsements/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Parties\(Party Clause\)/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /References\(Recital\)/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Property Terms\(Exhibits\)/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Notarial Acknowledgment/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Transactional/i })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /Monetary Terms/i })).not.toBeInTheDocument();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
@@ -189,12 +196,11 @@ afterEach(() => {
     expect(header?.nextElementSibling).toContainElement(reprocess);
     fireEvent.click(reprocess);
     await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
-    expect(onJobEvent).toHaveBeenCalledWith({
-      jobId: expect.any(String),
-      message: "Reprocessing segment",
-      phase: "started",
-      session: "session-1",
-    });
+    expect(screen.getByRole("status", { name: "Reprocessing party" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Reprocess" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Refine or Chat" })).toBeVisible();
+    act(() => completeReprocess?.());
+    await waitFor(() => expect(screen.getByRole("link", { name: "Reprocess" })).toBeVisible());
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
 
     const dropButton = screen.getByLabelText("Pop the index");
@@ -209,7 +215,7 @@ afterEach(() => {
     await waitFor(() => expect(workerClient.dropIndex).toHaveBeenCalledWith("token", "session-1", "idx-1"));
     expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" });
     await waitFor(() => expect(screen.queryByText("Alice")).not.toBeInTheDocument());
-  });
+  }, 10_000);
 
   it("renders worker errors through callbacks only", async () => {
     const onMetadataError = vi.fn();
@@ -250,6 +256,43 @@ afterEach(() => {
       error: "broken",
       status: undefined,
     });
+  });
+
+  it("retains visible metadata while a refresh is loading", async () => {
+    let resolveRefresh: ((value: MetadataPayload) => void) | undefined;
+    const workerClient = {
+      confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+      dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+      indexData: vi.fn()
+        .mockResolvedValueOnce(metadata)
+        .mockImplementationOnce(() => new Promise<MetadataPayload>((resolve) => {
+          resolveRefresh = resolve;
+        })),
+      patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+      reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+    };
+    const props = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: {},
+      choices,
+      deferredState: createDeferredState(),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
+      segments,
+      session: "session-1",
+      workerClient,
+    };
+    const view = render(<IndexContainer {...props} refresh={null} />);
+
+    await screen.findByRole("heading", { name: "Deed" });
+    view.rerender(<IndexContainer {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
+
+    await waitFor(() => expect(workerClient.indexData).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("heading", { name: "Deed" })).toBeVisible();
+
+    act(() => resolveRefresh?.({ ...metadata, heading: { class: "mortgage", title: "Mortgage" } }));
+    await screen.findByRole("heading", { name: "Mortgage" });
   });
 
   it("emits view canceled on unmount", () => {

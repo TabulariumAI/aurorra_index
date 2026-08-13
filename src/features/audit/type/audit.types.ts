@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { JobEventCallback } from "aurorra-ui";
 
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
 
@@ -85,7 +84,6 @@ export type AuditCallbacks = {
   onAuditCanceled?: () => void;
   onAuditError?: (error: AuditWorkerError) => void;
   onAuditLoaded?: (report: AuditReport) => void;
-  onJobEvent?: JobEventCallback;
 };
 
 export type AuditPanelProps = {

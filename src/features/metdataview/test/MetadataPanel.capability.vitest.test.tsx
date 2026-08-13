@@ -7,13 +7,11 @@ import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView
 
 const segments: MetdataSegmentValues = {
   ACKNOWLEDGMENT: "acknowledgment",
-  CHAIN: "chain",
   COURT: "court",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
   FUND: "fund",
-  HISTORY: "history",
   LEGAL: "legal",
   MONETARY: "monetary",
   PAGE: "page",
@@ -27,12 +25,16 @@ const segments: MetdataSegmentValues = {
 };
 
 const metadata: MetadataPayload = {
-  chain: [],
-  fee_factors: [],
-  fees: [],
-  funds: [],
+  chain: [{ class: "deed", required: "true", role: "grantee", title: "Alice" }],
+  fee_factors: [{ amount: "1", name: "Page count" }],
+  fees: [{ amount: "125", formula: "base fee", name: "Recording fee" }],
+  funds: [{ amount: "75", formula: "allocation", name: "General fund" }],
   heading: { class: "deed", title: "Warranty Deed" },
-  history: {},
+  history: {
+    conveyance: [],
+    encumbrance: [],
+    mortgage: [],
+  },
   indexes: [{
     code: "idx-1",
     label: "grantor",
@@ -68,14 +70,14 @@ describe("MetadataPanel capability mode", () => {
         removedCodes={new Set()}
         sections={{
           filterByChoices: false,
-          hiddenSegments: new Set([segments.CHAIN, segments.HISTORY]),
+          hiddenSegments: new Set(),
           showEmpty: true,
         }}
         selectedIndex={null}
         segments={segments}
         session="session-capability"
         setSectionOpen={vi.fn()}
-        shortcuts={new Map([[segments.PARTY, "p"], [segments.FEE, "e"]])}
+        shortcuts={new Map([[segments.PARTY, "p"]])}
         status="success"
       />,
     );
@@ -84,11 +86,12 @@ describe("MetadataPanel capability mode", () => {
     expect(screen.queryByRole("link", { name: "Reprocess" })).not.toBeInTheDocument();
     expect(screen.queryByText("Refine or Chat")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fees/i })).toHaveTextContent("0");
-    expect(screen.queryByRole("button", { name: /Chain/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /History/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Fee Factors/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Fees/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Funds/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Chain/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^History/i })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Parties\(Party Clause\)/i }).querySelector("u")?.textContent).toBe("P");
-    expect(screen.getByRole("button", { name: /Fees/i }).querySelector("u")?.textContent).toBe("e");
 
     fireEvent.click(screen.getByRole("link", { name: "Alice" }));
 
@@ -100,7 +103,7 @@ describe("MetadataPanel capability mode", () => {
     expect(imageViewerStoreApi.getState().request).toBeNull();
   });
 
-  it("returns no panel on explicit error status", () => {
+  it("retains visible metadata on explicit error status", () => {
     const { container } = render(
       <MetadataPanel
         actions={{
@@ -130,6 +133,6 @@ describe("MetadataPanel capability mode", () => {
       />,
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(container.querySelector("[aria-label='Metadata']")).toHaveTextContent("Alice");
   });
 });

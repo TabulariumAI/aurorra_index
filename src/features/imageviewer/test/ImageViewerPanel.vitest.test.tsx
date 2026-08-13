@@ -89,9 +89,8 @@ describe("ImageViewerPanel", () => {
     onReadyChange.mockClear();
   });
 
-  it("reports package progress through the host and completes package flow", async () => {
+  it("completes the package flow through the host", async () => {
     const onError = vi.fn();
-    const onJobEvent = vi.fn();
     const onLoaderChange = vi.fn();
     const workerClient = {
       packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
@@ -106,7 +105,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
-      onJobEvent,
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -133,7 +131,6 @@ describe("ImageViewerPanel", () => {
       jsonUrl: directPackage.data,
       tiffUrl: directPackage.tiff,
     });
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed", "started", "completed", "started", "completed"]);
     expect(onError).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });
@@ -162,7 +159,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       request: null,
@@ -199,7 +195,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -237,7 +232,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -267,7 +261,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -297,7 +290,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -326,7 +318,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -363,7 +354,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,
@@ -396,7 +386,6 @@ describe("ImageViewerPanel", () => {
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
-      onJobEvent: vi.fn(),
       pageCount: 2,
       pageMap: new Map(),
       packagePollIntervalMs: 1,

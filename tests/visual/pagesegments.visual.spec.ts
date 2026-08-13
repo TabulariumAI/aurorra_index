@@ -29,7 +29,6 @@ test("page segments panel renders choices, updates actions, and shows success st
   await expect(page.getByRole("button", { name: "Cancel" })).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Submit" })).not.toBeVisible();
   await expect(page.getByTestId("completion-message")).toHaveText("Updated page-1 in visual-session-pagesegments to reference,endorsement,party");
-  await expect(page.getByTestId("job-message")).toHaveText("completed");
 });
 
 test("page segments panel surfaces update failure and keeps action state", async ({ page }) => {
@@ -48,5 +47,4 @@ test("page segments panel surfaces update failure and keeps action state", async
   await expect(page.getByRole("button", { name: "Submit" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Close" })).not.toBeVisible();
   await expect(page.getByTestId("completion-message")).toHaveText("Failed page-1 in visual-session-pagesegments: Could not save page segments.");
-  await expect(page.getByTestId("job-message")).toHaveText("failed");
 });

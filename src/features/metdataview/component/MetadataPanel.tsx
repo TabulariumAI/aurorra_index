@@ -1,6 +1,6 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { type JSX, type ReactNode } from "react";
-import { legalSummaryStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataViewStyles";
+import { legalSummaryStyle, metadataSpinnerCss, metadataStyles, rowStyles, segmentStyles } from "../style/metadataViewStyles";
 import type {
   MetdataActionPayload,
   MetdataMetadataCallbacks,
@@ -69,9 +69,11 @@ export type MetadataPanelProps = {
   segments: MetdataSegmentValues;
   session: string;
   setSectionOpen: (segment: string, open: boolean) => void;
+  showHeader?: boolean;
   shortcuts: ReadonlyMap<string, string> | null;
   status: MetadataStatus;
   panelData: MetadataPanelData | null;
+  reprocessingSegment?: string | null;
 };
 
 function getChoiceLevel(choices: MetadataPanelProps["choices"], name: string): number {
@@ -110,11 +112,6 @@ function pages(metadata: MetadataPayload) {
     ...recordables.map((page) => ({ page, recordable: true })),
     ...nonrecordables.map((page) => ({ page, recordable: false })),
   ];
-}
-
-function fiscalItems(metadata: MetadataPayload, key: "fee_factors" | "fees" | "funds") {
-  const items = metadata[key] || [];
-  return items.filter((item) => Number((item as { amount?: unknown }).amount || 0) !== 0 || Boolean((item as { explanation?: unknown }).explanation));
 }
 
 function SectionAction({
@@ -157,9 +154,11 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     selectedIndex,
     session,
     setSectionOpen,
+    showHeader,
     shortcuts,
     status,
     panelData,
+    reprocessingSegment,
   } = props;
 
   const hidden = sections.hiddenSegments;
@@ -202,7 +201,11 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
       action={
         actionSegment ? (
           <div style={metadataStyles.actionGroup}>
-            {actions.reprocess && onReprocess ? (
+            {reprocessingSegment === actionSegment ? (
+              <span aria-label={`Reprocessing ${actionSegment}`} role="status">
+                <span aria-hidden="true" className="aurorra-index-progress-spinner" style={segmentStyles.reprocessSpinner} />
+              </span>
+            ) : actions.reprocess && onReprocess ? (
               <SectionAction
                 onClick={async () => {
                   await onReprocess(actionSegment);
@@ -240,11 +243,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     </MetadataSegment>
   );
 
-  if (status === "loading" && !metadata) {
-    return null;
-  }
-
-  if (status === "error") {
+  if ((status === "loading" || status === "error") && !metadata) {
     return null;
   }
 
@@ -260,18 +259,16 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const pageItems = pages(metadata);
   const legalGroups = (metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || []).filter((group) => Array.isArray(group.elements) && group.elements.length > 0);
   const secretItems = (metadata.secrets || []).filter((item) => cleanText(item.value) && !cleanText(item.value).startsWith("xxx") && !cleanText(item.value).includes("Not explicitly provided"));
-  const fiscal = {
-    factors: fiscalItems(metadata, "fee_factors"),
-    fees: fiscalItems(metadata, "fees"),
-    funds: fiscalItems(metadata, "funds"),
-  };
   return (
     <Tooltip.Provider delayDuration={250}>
       <section aria-label="Metadata" style={metadataStyles.root}>
-        <header style={metadataStyles.header}>
-          <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
-          <span style={metadataStyles.session}>{session}</span>
-        </header>
+        <style>{metadataSpinnerCss}</style>
+        {showHeader !== false ? (
+          <header style={metadataStyles.header}>
+            <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
+            <span style={metadataStyles.session}>{session}</span>
+          </header>
+        ) : null}
         <div aria-label="Metadata accordion" role="region" style={metadataStyles.accordion}>
         {isVisible(segments.PAGE) ? renderSegment(
           segments.PAGE,
@@ -391,11 +388,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {choiceVisible(segments.ACKNOWLEDGMENT, "acknowledgment") ? renderSegment(segments.ACKNOWLEDGMENT, "Notarial Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
         {choiceVisible(segments.TRANSACTION, "transaction") ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
         {choiceVisible(segments.VITAL, "vital") ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}
-        {isVisible(segments.FEEFACTOR) && (fiscal.factors.length || sections.showEmpty) ? renderSegment(segments.FEEFACTOR, "Fee Factors", fiscal.factors.length, fiscal.factors.length ? fiscal.factors.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No fee factors found." />, null) : null}
-        {isVisible(segments.FEE) && (fiscal.fees.length || sections.showEmpty) ? renderSegment(segments.FEE, "Fees", fiscal.fees.length, fiscal.fees.length ? fiscal.fees.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No fees found." />, null) : null}
-        {isVisible(segments.FUND) && (fiscal.funds.length || sections.showEmpty) ? renderSegment(segments.FUND, "Funds", fiscal.funds.length, fiscal.funds.length ? fiscal.funds.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No fund distributions found." />, null) : null}
-        {isVisible(segments.CHAIN) && (Array.isArray(metadata.chain) && metadata.chain.length || sections.showEmpty) ? renderSegment(segments.CHAIN, "Chain", Array.isArray(metadata.chain) ? metadata.chain.length : 0, Array.isArray(metadata.chain) && metadata.chain.length ? metadata.chain.map((item, index) => <pre key={index} style={metadataStyles.pre}>{JSON.stringify(item, null, 2)}</pre>) : <EmptyRow message="No data found." />, null) : null}
-        {isVisible(segments.HISTORY) && (metadata.history && Object.keys(metadata.history).length || sections.showEmpty) ? renderSegment(segments.HISTORY, "History", metadata.history ? Object.keys(metadata.history).length : 0, metadata.history && Object.keys(metadata.history).length ? <pre style={metadataStyles.pre}>{JSON.stringify(metadata.history, null, 2)}</pre> : <EmptyRow message="No history found." />, null) : null}
         {children}
         </div>
         <footer aria-label="Metadata actions" data-metadata-footer="true" style={metadataStyles.footerEmpty} />

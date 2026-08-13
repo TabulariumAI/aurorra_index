@@ -32,7 +32,7 @@ export function MetadataSegment({
   ) : title;
 
   return (
-    <Collapsible.Root onOpenChange={onOpenChange} open={open} style={segmentStyles.root(open)}>
+    <Collapsible.Root onOpenChange={onOpenChange} open={open} style={segmentStyles.root}>
       <Collapsible.Trigger asChild>
         <button
           onBlur={() => setHovered(false)}

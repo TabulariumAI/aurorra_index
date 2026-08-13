@@ -107,6 +107,7 @@ createRoot(stage).render(
     onReprocess={noOp}
     openSegment={segments.PARTY}
     panelData={activePanelData}
+    reprocessingSegment={scenario === "metadata-reprocess" ? segments.PARTY : null}
     removedCodes={new Set()}
     sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
     selectedIndex={null}

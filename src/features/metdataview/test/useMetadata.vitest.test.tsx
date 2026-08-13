@@ -8,13 +8,11 @@ import type { MetdataActionPayload, MetdataMetadataProps, MetdataMetadataRefresh
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",
-  CHAIN: "chain",
   COURT: "court",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
   FUND: "fund",
-  HISTORY: "history",
   LEGAL: "legal",
   MONETARY: "monetary",
   PAGE: "page",
@@ -72,7 +70,6 @@ describe("useMetadata", () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const onActionError = vi.fn();
-    const onJobEvent = vi.fn();
     vi.mocked(client.indexData)
       .mockResolvedValueOnce(baseMetadata)
       .mockResolvedValueOnce({ ...baseMetadata, heading: { title: "Reprocessed" } });
@@ -80,7 +77,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      callbacks: { onActionComplete, onActionError, onJobEvent },
+      callbacks: { onActionComplete, onActionError },
       choices,
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
       intervalMs: 0,
@@ -95,7 +92,6 @@ describe("useMetadata", () => {
 
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
     expect(result.current.choices).toEqual(choices);
-    onJobEvent.mockClear();
     expect(result.current.openSegment).toBe("legal");
 
     await act(async () => {
@@ -107,7 +103,38 @@ describe("useMetadata", () => {
     expect(result.current.openSegment).toBe("party");
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
     expect(onActionError).not.toHaveBeenCalled();
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed", "started", "completed"]);
+  });
+
+  it("keeps reprocess progress local until the segment request completes", async () => {
+    const client = createClient();
+    let complete: (() => void) | undefined;
+    vi.mocked(client.reprocessSegment).mockImplementationOnce(() => new Promise<{ data: string; status: "completed" }>((resolve) => {
+      complete = () => resolve({ data: "", status: "completed" });
+    }));
+    const props: MetdataMetadataProps = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: {},
+      choices,
+      deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
+      refresh: null,
+      segments,
+      session: "session-1",
+      workerClient: client,
+    };
+    const { result } = renderHook(() => useMetadata(props));
+
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
+    void act(() => {
+      void result.current.onReprocess("party");
+    });
+    await waitFor(() => expect(client.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
+    expect(result.current.reprocessingSegment).toBe("party");
+
+    act(() => complete?.());
+    await waitFor(() => expect(result.current.reprocessingSegment).toBeNull());
   });
 
   it("uses cached metadata without downloading it again", async () => {
@@ -142,6 +169,38 @@ describe("useMetadata", () => {
     expect(client.indexData).not.toHaveBeenCalled();
     expect(result.current.choices).toBeNull();
     expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata);
+  });
+
+  it("reports a rejecting host load callback as a view error", async () => {
+    const client = createClient();
+    const onMetadataError = vi.fn();
+    const onViewError = vi.fn();
+    const props: MetdataMetadataProps = {
+      authToken: "token",
+      apiGatewayUrl: "https://doc.example.com",
+      callbacks: {
+        onMetadataError,
+        onMetadataLoaded: () => {
+          throw new Error("Required choices are missing.");
+        },
+        onViewError,
+      },
+      choices: null,
+      deferredState: createDeferredState(),
+      intervalMs: 0,
+      onReadyChange: vi.fn(),
+      refresh: null,
+      segments,
+      session: "session-1",
+      workerClient: client,
+    };
+
+    renderHook(() => useMetadata(props));
+
+    await waitFor(() => expect(indexStoreApi.getState().status).toBe("error"));
+    expect(indexStoreApi.getState().error).toMatchObject({ error: "Required choices are missing." });
+    expect(onViewError).toHaveBeenCalledWith(expect.objectContaining({ error: "Required choices are missing." }));
+    expect(onMetadataError).toHaveBeenCalledWith(expect.objectContaining({ error: "Required choices are missing." }));
   });
 
   it("clears prior view actions when switching to cached metadata", async () => {
@@ -220,11 +279,10 @@ describe("useMetadata", () => {
   it("marks confirm code state and emits a completion event", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();
-    const onJobEvent = vi.fn();
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      callbacks: { onActionComplete, onJobEvent },
+      callbacks: { onActionComplete },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
@@ -237,7 +295,6 @@ describe("useMetadata", () => {
 
     const { result } = renderHook(() => useMetadata(props));
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
-    onJobEvent.mockClear();
 
     await act(async () => {
       await result.current.onConfirm(rowPayload);
@@ -246,7 +303,6 @@ describe("useMetadata", () => {
     expect(client.confirmIndex).toHaveBeenCalledWith("token", "session-1", "idx-1");
     expect(result.current.confirmedCodes.has("idx-1")).toBe(true);
     expect(onActionComplete).toHaveBeenCalledWith({ action: "confirm", code: "idx-1", session: "session-1" });
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
   });
 
   it("waits for the patch status before applying confirm and drop state", async () => {
@@ -290,11 +346,10 @@ describe("useMetadata", () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const onIndexFocus = vi.fn();
-    const onJobEvent = vi.fn();
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      callbacks: { onActionComplete, onIndexFocus, onJobEvent },
+      callbacks: { onActionComplete, onIndexFocus },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       intervalMs: 0,
@@ -307,7 +362,6 @@ describe("useMetadata", () => {
 
     const { result } = renderHook(() => useMetadata(props));
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
-    onJobEvent.mockClear();
 
     await act(async () => {
       await result.current.onDrop(rowPayload);
@@ -318,7 +372,6 @@ describe("useMetadata", () => {
     expect(onIndexFocus).toHaveBeenCalledWith(null);
     expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" });
     expect(result.current.removedCodes.has("idx-1")).toBe(true);
-    expect(onJobEvent.mock.calls.map(([event]) => event.phase)).toEqual(["started", "completed"]);
   });
 
   it("emits action failures for mutation route errors", async () => {
@@ -329,11 +382,10 @@ describe("useMetadata", () => {
 
     const onActionComplete = vi.fn();
     const onActionError = vi.fn();
-    const onJobEvent = vi.fn();
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      callbacks: { onActionComplete, onActionError, onJobEvent },
+      callbacks: { onActionComplete, onActionError },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       intervalMs: 0,
@@ -346,7 +398,6 @@ describe("useMetadata", () => {
 
     const { result } = renderHook(() => useMetadata(props));
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
-    onJobEvent.mockClear();
 
     await act(async () => {
       await result.current.onConfirm(rowPayload);
@@ -376,7 +427,7 @@ describe("useMetadata", () => {
         error: expect.objectContaining({ code: "index_reprocess_failed", error: "Reprocess failed", status: 500 }),
       }),
     );
+    expect(result.current.reprocessingSegment).toBeNull();
     expect(onActionComplete).not.toHaveBeenCalled();
-    expect(onJobEvent).toHaveBeenLastCalledWith(expect.objectContaining({ message: "Segment reprocessing failed", phase: "failed" }));
   });
 });

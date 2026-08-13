@@ -59,6 +59,8 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await expect(dropButton).toHaveAttribute("aria-label", "Confirm");
   await expect(dropButton).toHaveAttribute("title", "Confirm");
   await expect(dropButton.locator("[data-confirm-progress='true']")).toBeVisible();
+  await expect(dropButton.locator("[data-confirm-progress='true']")).toHaveCSS("height", "4px");
+  await expect(dropButton.locator("[data-confirm-progress='true'] > span")).toHaveCSS("background-color", "rgba(255, 255, 255, 0.78)");
   await expect(dropButton.locator("[data-confirm-progress='true'] > span")).toHaveCSS("transition-duration", "4s");
   await expect(dropButton).toHaveCSS("width", "32px");
   await expect(dropButton).toHaveCSS("height", "32px");
@@ -222,4 +224,29 @@ test("metadata short rows hide disclosure controls when text fits", async ({ pag
   ]);
   expect(explanationLineBox!.height - explanationBox!.height).toBeLessThanOrEqual(0.5);
   expect(quoteLineBox!.height - quoteBox!.height).toBeLessThanOrEqual(0.5);
+});
+
+test("metadata reprocess stays in the section action line", async ({ page }) => {
+  await page.goto("/?scenario=metadata-reprocess");
+
+  const accordion = page.getByRole("region", { name: "Metadata accordion" });
+  const progress = page.getByRole("status", { name: "Reprocessing party" });
+  const spinner = progress.locator(".aurorra-index-progress-spinner");
+  const refine = accordion.getByRole("link", { name: "Refine or Chat" });
+
+  await expect(progress).toBeVisible();
+  await expect(accordion.getByRole("link", { name: "Reprocess" })).toHaveCount(0);
+  await expect(refine).toBeVisible();
+  await expect(spinner).toHaveCSS("border-radius", "999px");
+  await expect(spinner).toHaveCSS("animation-name", "aurorra-index-spinner");
+  const [progressBox, actionBox, refineBox] = await Promise.all([
+    spinner.boundingBox(),
+    progress.locator("..").boundingBox(),
+    refine.boundingBox(),
+  ]);
+  expect(progressBox).not.toBeNull();
+  expect(actionBox).not.toBeNull();
+  expect(refineBox).not.toBeNull();
+  expect(Math.abs((progressBox!.y + (progressBox!.height / 2)) - (refineBox!.y + (refineBox!.height / 2)))).toBeLessThanOrEqual(2);
+  expect(progressBox!.x + progressBox!.width).toBeLessThanOrEqual(actionBox!.x + actionBox!.width);
 });

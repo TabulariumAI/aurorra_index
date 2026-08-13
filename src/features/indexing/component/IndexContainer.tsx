@@ -42,7 +42,7 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
 
   return (
     <div style={metadataStyles.rootShell}>
-      {!loading ? <MetadataPanel
+      <MetadataPanel
         actions={{
           confirm: true,
           drop: true,
@@ -59,9 +59,10 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
         segments={segments}
         session={session}
         shortcuts={null}
+        showHeader
         status={metadata.store.status}
         {...metadata}
-      /> : null}
+      />
     </div>
   );
 }
