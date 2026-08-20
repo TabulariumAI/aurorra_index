@@ -33,6 +33,7 @@ const panelDefaults = {
     refine: true,
     reprocess: true,
   },
+  batch: "Pending",
   sections: {
     filterByChoices: true,
     hiddenSegments: new Set<string>(),
@@ -106,35 +107,83 @@ afterEach(() => {
 });
 
 describe("metadata visual surface", () => {
-  it("renders the package metadata surface with stable section controls", async () => {
+  it("shows header actions only for the expanded action segment", () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
       heading: { class: "deed", title: "Warranty Deed" },
-      indexes: [{ code: "idx-1", label: "grantor", page: "1", page_number: "1", segment: "party", value: "Alice" }],
+      indexes: [
+        { code: "party-1", label: "grantor", page: "1", page_number: "1", segment: "party", value: "Alice" },
+        { code: "endorsement-1", label: "recording_date", page: "1", page_number: "1", segment: "endorsement", value: "May 28, 2025" },
+      ],
+      pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
+      secrets: [],
+    };
+    const props = {
+      ...panelDefaults,
+      callbacks: { onEditPage: vi.fn() },
+      choices: [
+        { level: 1, service: "PartyClauseIndexing" },
+        { level: 1, service: "EndorsementIndexing" },
+      ],
+      confirmedCodes: new Set<string>(),
+      metadata,
+      onConfirm: vi.fn(),
+      onDrop: vi.fn(),
+      onReprocess: vi.fn(),
+      removedCodes: new Set<string>(),
+      selectedIndex: null,
+      segments,
+      session: "session-1",
+      setSectionOpen: vi.fn(),
+      panelData: getPanelData(metadata),
+    };
+    const { rerender } = render(<MetadataPanel {...props} openSegment="party" />);
+    const partyHeader = screen.getByRole("button", { name: /Parties\(Party Clause\)/i }).parentElement;
+    const endorsementHeader = screen.getByRole("button", { name: "Record Endorsements" }).parentElement;
+
+    expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(2);
+    expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
+
+    rerender(<MetadataPanel {...props} openSegment="endorsement" />);
+
+    expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
+    expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(2);
+  });
+
+  it("renders the package metadata surface with standard one-click index actions", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      indexes: [{ ambiguous: "YES", code: "idx-1", label: "grantor", page: "1", page_number: "1", segment: "party", value: "Alice" }],
       pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
       secrets: [],
     };
     const panelData = getPanelData(metadata);
     const onEditPage = vi.fn();
+    const onConfirm = vi.fn();
+    const onDrop = vi.fn();
     const onReprocess = vi.fn(async () => undefined);
+    const setSectionOpen = vi.fn();
 
     const { container } = render(
       <MetadataPanel
         {...panelDefaults}
         callbacks={{ onEditPage }}
+        batch="Property Intake"
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
         metadata={metadata}
-        onConfirm={vi.fn()}
-        onDrop={vi.fn()}
+        onConfirm={onConfirm}
+        onDrop={onDrop}
         onReprocess={onReprocess}
         openSegment="party"
         removedCodes={new Set()}
         selectedIndex={{ code: "idx-1", segment: "party" }}
         segments={segments}
         session="session-1"
-        setSectionOpen={vi.fn()}
+        setSectionOpen={setSectionOpen}
         panelData={panelData}
       />,
     );
@@ -142,119 +191,140 @@ describe("metadata visual surface", () => {
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     const popButton = screen.getByRole("button", { name: "Pop the index" });
     const copyButton = screen.getByRole("button", { name: "Copy value Alice" });
-    expect(popButton).toHaveAttribute("data-flat", "true");
-    expect(popButton).toHaveStyle({ color: "#008ba3" });
+    const confirmButton = screen.getByRole("button", { name: "Confirm index and remove ambiguity" });
+    expect(popButton).toHaveClass("metadata-row-action");
+    expect(popButton).toHaveStyle({ color: "var(--primary)" });
     expect(popButton).toHaveStyle({ boxShadow: "none" });
-    expect(copyButton).toHaveStyle({ color: "#008ba3" });
+    expect(copyButton).toHaveStyle({ color: "var(--primary)" });
+    fireEvent.click(confirmButton);
+    fireEvent.click(popButton);
+    expect(onConfirm).toHaveBeenCalledOnce();
+    expect(onDrop).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: /^Confirm$/ })).not.toBeInTheDocument();
     expect(container.querySelector("[aria-label='Metadata']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Deed" })).toBeInTheDocument();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
       expect(header.parentElement).toHaveStyle({ display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: "0px", overflow: "hidden" });
-      expect(header).toHaveStyle({ borderBottom: "2px solid #06afc1", boxShadow: "none", boxSizing: "border-box", flex: "0 0 auto", justifyContent: "space-between", position: "static", textAlign: "left" });
+      expect(header).toHaveStyle({ flex: "0 0 auto", position: "static" });
       expect(header).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
       expect(header.children).toHaveLength(2);
       expect(header.firstElementChild).toBe(screen.getByRole("heading", { level: 2, name: "Deed" }));
+      expect(header.lastElementChild).toHaveTextContent("Property Intake");
       expect(header.lastElementChild).toHaveTextContent("session-1");
       expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
     }
 
+    expect(screen.getByText("Property Intake")).toHaveStyle({ fontWeight: "700" });
     expect(screen.getByText("session-1")).toHaveStyle({
-      overflowWrap: "anywhere",
-      wordBreak: "break-word",
-      maxWidth: "100%",
+      fontSize: "0.75rem",
+      lineHeight: "1.35",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
     });
     const title = screen.getByRole("heading", { level: 2, name: "Deed" });
-    expect(title).toHaveStyle({ fontSize: "1.82rem", fontWeight: "700" });
+    expect(title).toHaveStyle({
+      fontSize: "calc(var(--panel-title-size) * 1.15)",
+      fontWeight: "var(--panel-title-weight)",
+      letterSpacing: "var(--panel-title-tracking)",
+      lineHeight: "var(--panel-title-line-height)",
+    });
     const segmentButton = screen.getByRole("button", { name: /Parties\(Party Clause\)/i });
     const collapsedButton = screen.getByRole("button", { name: /Pages/i });
+    const segmentHeader = segmentButton.parentElement;
+    const collapsedHeader = collapsedButton.parentElement;
+    expect(segmentHeader).toBeTruthy();
+    if (segmentHeader) {
+      expect(segmentHeader).toHaveStyle({
+        alignItems: "center",
+        display: "flex",
+        gap: "0.65rem",
+        minHeight: "2.85rem",
+        padding: "0.424rem 0px 0.442rem",
+      });
+    }
     expect(segmentButton).toHaveStyle({
+      alignSelf: "stretch",
       boxSizing: "border-box",
-      height: "auto",
-      minHeight: "2.85rem",
-      padding: "0.424rem 0.88rem 0.442rem",
-      transition: "none",
-      transform: "none",
-      width: "100%",
+      flex: "1 1 auto",
+      minWidth: "0px",
+      padding: "0px",
     });
     const segmentTitleBox = segmentButton.firstElementChild as HTMLElement | null;
     expect(segmentTitleBox).toBeTruthy();
     if (segmentTitleBox) {
       expect(segmentTitleBox).toHaveStyle({ flex: "1 1 auto", minWidth: "0px" });
     }
-    const segmentRoot = segmentButton.parentElement;
+    const segmentRoot = segmentHeader?.parentElement;
     expect(segmentRoot).toBeTruthy();
     if (segmentRoot) {
       expect(segmentRoot).toHaveStyle({
-        backgroundColor: "rgb(255, 255, 255)",
-        borderTop: "1px solid #06afc1",
-        borderRadius: "0",
-        boxSizing: "border-box",
-        boxShadow: "none",
         margin: "0px",
         overflow: "hidden",
         width: "100%",
       });
     }
-    expect(segmentButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
-    const segmentCount = segmentButton.lastElementChild as HTMLElement | null;
+    const segmentCount = segmentHeader?.lastElementChild as HTMLElement | null;
     expect(segmentCount).toBeTruthy();
-    if (segmentCount) {
-      expect(segmentCount).toHaveStyle({ backgroundColor: "rgb(255, 255, 255)" });
-    }
+    const collapsedCount = collapsedHeader?.lastElementChild as HTMLElement | null;
+    expect(collapsedCount).toBeTruthy();
+    expect(collapsedHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
     const selectedRow = container.querySelector("[data-index-code='idx-1']");
     expect(selectedRow).toHaveAttribute("data-active", "true");
-    expect(selectedRow).toHaveStyle({ backgroundColor: "rgba(6, 175, 193, 0.1)" });
     fireEvent.mouseEnter(collapsedButton);
-    expect(collapsedButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
     fireEvent.mouseLeave(collapsedButton);
-    expect(collapsedButton).toHaveStyle({ backgroundColor: "rgba(0, 0, 0, 0)" });
     fireEvent.mouseEnter(segmentButton);
-    expect(segmentButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
     fireEvent.mouseLeave(segmentButton);
-    expect(segmentButton).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)" });
     expect(screen.queryByText("▾")).not.toBeInTheDocument();
     expect(screen.queryByText("▸")).not.toBeInTheDocument();
     expect(screen.getByText("Alice")).toHaveStyle({ fontWeight: "700", textTransform: "none" });
-    const reprocessLink = screen.getByRole("link", { name: "Reprocess" });
-    const refineLink = screen.getByRole("link", { name: "Refine or Chat" });
-    expect(reprocessLink).toHaveStyle({
-      backgroundColor: "rgba(0, 0, 0, 0)",
+    const reprocessButton = screen.getByRole("button", { name: "Reprocess" });
+    const chatButton = screen.getByRole("button", { name: "Open AI chat" });
+    expect(reprocessButton).toHaveStyle({
+      background: "transparent",
       boxShadow: "none",
-      textDecoration: "underline",
+      color: "var(--primary)",
+      height: "2.75rem",
     });
-    expect(screen.getByText("|")).toHaveTextContent("|");
-    expect(refineLink).toHaveStyle({
-      backgroundColor: "rgba(0, 0, 0, 0)",
+    expect(reprocessButton).toHaveTextContent("Reprocess");
+    expect(reprocessButton.querySelector("svg")).toBeNull();
+    expect(chatButton).toHaveStyle({
+      background: "transparent",
       boxShadow: "none",
-      textDecoration: "underline",
+      color: "var(--primary)",
+      height: "2.75rem",
     });
+    expect(chatButton).toHaveTextContent("AI chat");
+    expect(chatButton.querySelector("svg")).toBeNull();
+    expect(screen.queryByText("|")).not.toBeInTheDocument();
+    const actionGroup = reprocessButton.parentElement;
+    expect(actionGroup).toBeTruthy();
+    expect(actionGroup?.parentElement).toBe(segmentHeader);
+    expect(segmentButton).not.toContainElement(reprocessButton);
+    expect(actionGroup?.nextElementSibling).toBe(segmentCount);
     const footer = document.querySelector<HTMLElement>("[data-metadata-footer]");
     expect(footer).toBeTruthy();
     if (footer) {
       expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
       expect(footer).toBeEmptyDOMElement();
     }
-    const shell = segmentButton.parentElement?.children[1] as HTMLElement | undefined;
+    const shell = segmentHeader?.nextElementSibling as HTMLElement | undefined;
     expect(shell).toBeTruthy();
     if (shell) {
       expect(shell).toHaveStyle({ padding: "0px" });
-      const actionLine = shell.children[0] as HTMLElement | undefined;
-      const content = shell.children[1] as HTMLElement | undefined;
-      expect(actionLine).toBeTruthy();
+      expect(shell.children).toHaveLength(1);
+      const content = shell.children[0] as HTMLElement | undefined;
       expect(content).toBeTruthy();
-      if (actionLine) {
-        expect(actionLine).toHaveStyle({ backgroundColor: "rgb(248, 250, 252)", justifyContent: "flex-end" });
-        expect(actionLine).toContainElement(reprocessLink);
-      }
       if (content) {
-        expect(content).toHaveStyle({ padding: "0.72rem 0 0.82rem 0.24rem" });
+        expect(content).toHaveStyle({ padding: "0.72rem 0px 0.82rem" });
         expect(content).not.toHaveStyle({ borderLeft: "1px solid #d9e1ea" });
-        expect(content.firstElementChild).toHaveStyle({ borderTopWidth: "1px" });
       }
     }
     fireEvent.click(segmentButton);
+    expect(setSectionOpen).toHaveBeenCalledWith("party", false);
+    setSectionOpen.mockClear();
     if (segmentTitleBox) {
       expect(segmentTitleBox).toHaveStyle({ flex: "1 1 auto", minWidth: "0px" });
     }
@@ -262,9 +332,10 @@ describe("metadata visual surface", () => {
     expect(onReprocess).not.toHaveBeenCalled();
     expect(onEditPage).not.toHaveBeenCalled();
 
-    fireEvent.click(reprocessLink);
+    fireEvent.click(reprocessButton);
     await waitFor(() => expect(onReprocess).toHaveBeenCalledWith("party"));
-    fireEvent.click(refineLink);
+    fireEvent.click(chatButton);
+    expect(setSectionOpen).not.toHaveBeenCalled();
     expect(onEditPage).toHaveBeenCalledWith({
       code: "",
       page: 0,
@@ -329,13 +400,12 @@ describe("metadata visual surface", () => {
     expect(expandButton.textContent).toBe("");
     expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
     expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "#20252d", height: "1.5rem", width: "1.5rem" });
+    expect(expandButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "var(--title-ink)", height: "2.75rem", width: "2.75rem" });
     expect(explanation.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     fireEvent.focus(expandButton);
     expect(expandButton).toHaveStyle({
-      background: "rgba(6, 175, 193, 0.10)",
-      border: "1px solid #008ba3",
-      outline: "2px solid #008ba3",
+      background: "var(--accent-surface)",
+      outline: "2px solid var(--primary)",
     });
     fireEvent.blur(expandButton);
     expect(explanation).toHaveStyle({
@@ -349,7 +419,7 @@ describe("metadata visual surface", () => {
     expect(quoteButton.textContent).toBe("");
     expect(quoteButton.querySelector("svg rect")).toBeInTheDocument();
     expect(quoteButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(quoteButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "#20252d", height: "1.5rem", width: "1.5rem" });
+    expect(quoteButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "var(--title-ink)", height: "2.75rem", width: "2.75rem" });
     expect(quote.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     expect(quote).toHaveStyle({
       display: "block",
@@ -400,7 +470,7 @@ describe("metadata visual surface", () => {
     expect(expandButton.textContent).toBe("");
     expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
     expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "flex-start", height: "1.5rem", width: "1.5rem" });
+    expect(expandButton).toHaveStyle({ alignItems: "flex-start", height: "2.75rem", width: "2.75rem" });
     expect(value).toHaveStyle({ minHeight: "1.5rem" });
     expect(value).toHaveStyle({
       overflow: "hidden",
@@ -685,10 +755,15 @@ describe("metadata visual surface", () => {
     expect(legalActionButtons).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open legal page" })).not.toBeInTheDocument();
+    const legalCard = screen.getByRole("link", { name: "Lot Block" }).closest("article");
+    expect(legalCard).toHaveStyle({ alignItems: "start", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto" });
+    expect(legalCard?.firstElementChild).toHaveStyle({ display: "flex", flexDirection: "column", gap: "0.25rem" });
+    expect(legalCard?.firstElementChild?.firstElementChild).toHaveStyle({ alignItems: "flex-start", display: "flex", minWidth: "0px" });
+    expect(screen.getByRole("button", { name: "Copy value Lot Block" }).parentElement).toHaveStyle({ alignSelf: "start" });
     const copyButton = screen.getByRole("button", { name: "Copy value Lot Block" });
     expect(copyButton).toHaveStyle({ alignItems: "center" });
     legalActionButtons.forEach((button) => {
-      expect(button).toHaveStyle({ alignItems: "flex-start", width: "1.9rem", height: "1.9rem", padding: "0" });
+      expect(button).toHaveStyle({ alignItems: "flex-start", width: "2.75rem", height: "2.75rem", padding: "0" });
     });
     expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "underline" });
     fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));

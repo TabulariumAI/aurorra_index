@@ -2,19 +2,19 @@ import type { CSSProperties } from "react";
 import type { AuditGapView } from "../type/audit.types";
 
 const gapMetaPalette: Record<string, string> = {
-  header: "#0f172a",
-  border: "#dbeafe",
-  muted: "#64748b",
+  header: "var(--title-ink)",
+  border: "var(--border-card)",
+  muted: "var(--slate-500)",
 };
 
 export const auditStyles = {
   root: {
     alignItems: "stretch",
     boxSizing: "border-box",
-    color: "#0f172a",
+    color: "var(--title-ink)",
     display: "flex",
     flexDirection: "column",
-    fontFamily: "Arial, Helvetica, sans-serif",
+    fontFamily: "var(--font-ui)",
     height: "100%",
     justifyContent: "flex-start",
     minHeight: 0,
@@ -24,9 +24,13 @@ export const auditStyles = {
     width: "100%",
   } as CSSProperties,
   header: {
+    background: "var(--white)",
+    borderBottom: "1px solid var(--border-card)",
     boxSizing: "border-box",
+    display: "flex",
     flex: "0 0 auto",
-    padding: "0.85rem 1rem 0.6rem",
+    minHeight: "var(--panel-header-height)",
+    padding: "var(--panel-header-padding)",
     position: "relative",
     textAlign: "left",
     width: "100%",
@@ -37,8 +41,9 @@ export const auditStyles = {
     minHeight: 0,
     overflowX: "hidden",
     overflowY: "auto",
-    padding: "0 1rem 0.85rem",
+    padding: "0 var(--panel-content-padding) 0.85rem",
     position: "relative",
+    scrollbarColor: "#efefef transparent",
     textAlign: "left",
     width: "100%",
   } as CSSProperties,
@@ -54,10 +59,10 @@ export const auditStyles = {
     justifyContent: "flex-end",
     width: "100%",
   } as CSSProperties,
-  summaryCosts: {
-    color: "var(--background-main, #ffffff)",
+  usageCosts: {
+    color: "var(--title-ink)",
     fontSize: "0.95rem",
-    marginTop: "0.5rem",
+    margin: "0.85rem 0 0",
   } as CSSProperties,
   summaryBadge: {
     alignItems: "center",
@@ -90,23 +95,31 @@ export const auditStyles = {
     gap: "0.75rem",
     width: "100%",
   } as CSSProperties,
-  headerTopRow: {
-    alignItems: "flex-start",
+  titleRow: {
+    alignItems: "center",
     display: "flex",
     gap: "0.75rem",
     justifyContent: "space-between",
     minWidth: 0,
     width: "100%",
   } as CSSProperties,
+  title: {
+    color: gapMetaPalette.header,
+    fontSize: "var(--panel-title-size)",
+    fontWeight: "var(--panel-title-weight)",
+    letterSpacing: "var(--panel-title-tracking)",
+    lineHeight: "var(--panel-title-line-height)",
+    margin: 0,
+  } as CSSProperties,
   headerClose: {
     flex: "0 0 auto",
   } as CSSProperties,
-  headerSpacer: {
-    flex: "1 1 auto",
-  } as CSSProperties,
-  headerSummary: {
-    display: "flex",
-    justifyContent: "flex-start",
+  controlsRow: {
+    alignItems: "end",
+    display: "grid",
+    gap: "0.75rem",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    minWidth: 0,
     width: "100%",
   } as CSSProperties,
   filters: {
@@ -133,7 +146,8 @@ export const auditStyles = {
   filterSelect: {
     boxSizing: "border-box",
     border: `0.0625rem solid ${gapMetaPalette.border}`,
-    borderRadius: "0.5rem",
+    borderRadius: "var(--radius-control)",
+    minHeight: "2.5rem",
     minWidth: "8rem",
     padding: "0.45rem 0.6rem",
     width: "100%",
@@ -145,12 +159,6 @@ export const auditStyles = {
   empty: {
     color: gapMetaPalette.muted,
   } as CSSProperties,
-  sectionTitle: {
-    color: gapMetaPalette.header,
-    fontSize: "0.95rem",
-    fontWeight: 700,
-    margin: "0 0 0.35rem",
-  } as CSSProperties,
   gaps: {
     boxSizing: "border-box",
     display: "flex",
@@ -159,9 +167,10 @@ export const auditStyles = {
     marginTop: "0.45rem",
   } as CSSProperties,
   gapCard: {
-    background: "#ffffff",
-    border: `0.0625rem solid ${gapMetaPalette.border}`,
-    borderRadius: "0.65rem",
+    background: "var(--white)",
+    border: `1px solid ${gapMetaPalette.border}`,
+    borderRadius: "var(--radius-card)",
+    boxShadow: "var(--shadow-card)",
     boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
@@ -183,7 +192,7 @@ export const auditStyles = {
     fontSize: "0.8rem",
   } as CSSProperties,
   gapMessage: {
-    color: "#334155",
+    color: "var(--body-ink)",
     fontSize: "0.92rem",
     lineHeight: 1.35,
     whiteSpace: "pre-wrap",
@@ -195,7 +204,7 @@ export const auditStyles = {
     fontStyle: "italic",
   } as CSSProperties,
   toggle: {
-    color: "#2563eb",
+    color: "var(--primary-dark)",
     cursor: "pointer",
     textDecoration: "underline",
   } as CSSProperties,

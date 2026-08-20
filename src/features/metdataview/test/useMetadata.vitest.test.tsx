@@ -77,6 +77,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onActionComplete, onActionError },
       choices,
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
@@ -114,6 +115,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: {},
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -152,6 +154,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onMetadataLoaded },
       choices: null,
       deferredState: createDeferredState(),
@@ -178,6 +181,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: {
         onMetadataError,
         onMetadataLoaded: () => {
@@ -208,6 +212,7 @@ describe("useMetadata", () => {
     const props: Omit<MetdataMetadataProps, "session"> = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: {},
       choices,
       deferredState: createDeferredState(),
@@ -244,6 +249,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onSegmentExpand },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -282,6 +288,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onActionComplete },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -316,6 +323,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onActionComplete },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -349,6 +357,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onActionComplete, onIndexFocus },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
@@ -385,6 +394,7 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: { onActionComplete, onActionError },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),

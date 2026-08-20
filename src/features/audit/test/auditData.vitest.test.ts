@@ -15,63 +15,74 @@ import type { AuditFilters } from "../type/audit.types";
 
 const rawReport = {
   gaps: [
-    { aspect: "Beta", message: "first", page: 2, process: "user", date: "2026-01-01T12:00:00Z", changeType: "REMOVE" },
-    { aspect: "Alpha", message: "second", page: 4, process: "verification", date: "2026-01-03T12:00:00Z", changeType: "ADD" },
-    { aspect: "Gamma", message: "third", page: 1, process: "Reprocess |", date: "2026-01-02T12:00:00Z", changeType: "UPDATE" },
-    ["Alpha", "raw array", "10", "correction", "2026-01-04T09:00:00Z", "CORRECTION"],
-    [null, "empty", "", "", "", ""],
+    { solution: "REMOVE", explanation: "first", page: "2", owner: "user", timestamp: "2026-01-01T12:00:00Z", segment: "party" },
+    { solution: "ADD", explanation: "second", page: "4", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: "reference" },
+    { solution: "UPDATE", explanation: "third", page: "1", owner: "Reprocess |", timestamp: "2026-01-02T12:00:00Z", segment: "party" },
+    { solution: "CORRECTION", explanation: "raw object", page: "010", owner: "correction", timestamp: "2026-01-04T09:00:00Z", segment: null },
+    { solution: "", explanation: "empty", page: "0", owner: "", timestamp: "", segment: null },
+    { aspect: "ADD", changeType: "ADD", date: "2026-01-05T12:00:00Z", message: "legacy", page: 5, process: "verification" },
     null,
   ],
   usage: { costs: ["$1.50", 2] as const },
 } as const;
 
 describe("auditData", () => {
-  it("normalizes arrays and objects and sorts gaps", () => {
+  it("normalizes GapEntry objects and sorts gaps", () => {
     expect(normalizeAuditReport(rawReport)).toEqual({
       gaps: [
         {
-          aspect: "Alpha",
-          message: "raw array",
-          page: 10,
-          process: PROCESS_ENRICHMENT,
-          date: "2026-01-04T09:00:00Z",
-          changeType: "CORRECTION",
+          solution: CHANGE_CORRECTION,
+          explanation: "raw object",
+          page: "010",
+          owner: PROCESS_ENRICHMENT,
+          timestamp: "2026-01-04T09:00:00Z",
+          segment: null,
         },
         {
-          aspect: "Alpha",
-          message: "second",
-          page: 4,
-          process: PROCESS_VERIFICATION,
-          date: "2026-01-03T12:00:00Z",
-          changeType: CHANGE_ADD,
+          solution: CHANGE_ADD,
+          explanation: "second",
+          page: "4",
+          owner: PROCESS_VERIFICATION,
+          timestamp: "2026-01-03T12:00:00Z",
+          segment: "reference",
         },
         {
-          aspect: "Gamma",
-          message: "third",
-          page: 1,
-          process: PROCESS_REPROCESS,
-          date: "2026-01-02T12:00:00Z",
-          changeType: CHANGE_CORRECTION,
+          solution: CHANGE_CORRECTION,
+          explanation: "third",
+          page: "1",
+          owner: PROCESS_REPROCESS,
+          timestamp: "2026-01-02T12:00:00Z",
+          segment: "party",
         },
-      {
-        aspect: "Beta",
-        message: "first",
-        page: 2,
-        process: PROCESS_USER,
-        date: "2026-01-01T12:00:00Z",
-        changeType: CHANGE_REMOVE,
-      },
-      {
-        aspect: "",
-        message: "empty",
-        page: 0,
-        process: PROCESS_OTHER,
-        date: "",
-        changeType: PROCESS_OTHER,
-      },
-    ],
+        {
+          solution: CHANGE_REMOVE,
+          explanation: "first",
+          page: "2",
+          owner: PROCESS_USER,
+          timestamp: "2026-01-01T12:00:00Z",
+          segment: "party",
+        },
+        {
+          solution: PROCESS_OTHER,
+          explanation: "empty",
+          page: "0",
+          owner: PROCESS_OTHER,
+          timestamp: "",
+          segment: null,
+        },
+      ],
       usage: { costs: ["$1.50", "2"] },
     });
+  });
+
+  it("rejects obsolete audit entry shapes", () => {
+    expect(normalizeAuditReport({
+      gaps: [
+        ["ADD", "legacy array", "1", "verification", "2026-01-01T12:00:00Z", "ADD"],
+        { aspect: "ADD", changeType: "ADD", date: "2026-01-01T12:00:00Z", message: "legacy object", page: 1, process: "verification" },
+        { solution: "", explanation: "", page: "", owner: "", timestamp: "", segment: null },
+      ],
+    })).toEqual({ gaps: [] });
   });
 
   it("computes filtered counts and visible rows", () => {

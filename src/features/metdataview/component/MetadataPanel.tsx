@@ -54,6 +54,7 @@ const pageSegmentValues = new Set([
 
 export type MetadataPanelProps = {
   actions: MetadataPanelActions;
+  batch: string;
   callbacks: MetdataMetadataCallbacks;
   choices: unknown;
   children?: ReactNode;
@@ -114,30 +115,9 @@ function pages(metadata: MetadataPayload) {
   ];
 }
 
-function SectionAction({
-  children,
-  onClick,
-}: {
-  children: ReactNode;
-  onClick: () => Promise<void> | void;
-}) {
-  return (
-    <a
-      href="#"
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        void onClick();
-      }}
-      style={segmentStyles.actionLink}
-    >
-      {children}
-    </a>
-  );
-}
-
 export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const {
+    batch,
     callbacks,
     children,
     choices,
@@ -198,25 +178,23 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     actionSegment: string | null = segment,
   ) => (
     <MetadataSegment
-      action={
-        actionSegment ? (
-          <div style={metadataStyles.actionGroup}>
+      headerAction={
+        actionSegment && openSegment === segment ? (
+          <div style={segmentStyles.actionGroup}>
             {reprocessingSegment === actionSegment ? (
-              <span aria-label={`Reprocessing ${actionSegment}`} role="status">
+              <span aria-label={`Reprocessing ${actionSegment}`} role="status" style={segmentStyles.actionProgress}>
                 <span aria-hidden="true" className="aurorra-index-progress-spinner" style={segmentStyles.reprocessSpinner} />
               </span>
             ) : actions.reprocess && onReprocess ? (
-              <SectionAction
-                onClick={async () => {
-                  await onReprocess(actionSegment);
-                }}
-              >
+              <ActionButton label="Reprocess" lineAligned={false} text onClick={() => void onReprocess(actionSegment)}>
                 Reprocess
-              </SectionAction>
+              </ActionButton>
             ) : null}
-            {actions.reprocess && onReprocess && actions.refine && callbacks.onEditPage ? <span aria-hidden="true" style={segmentStyles.actionDivider}>|</span> : null}
             {actions.refine && callbacks.onEditPage ? (
-              <SectionAction
+              <ActionButton
+                label="Open AI chat"
+                lineAligned={false}
+                text
                 onClick={() =>
                   callbacks.onEditPage?.({
                     code: "",
@@ -227,8 +205,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                   })
                 }
               >
-                Refine or Chat
-              </SectionAction>
+                AI chat
+              </ActionButton>
             ) : null}
           </div>
         ) : null
@@ -266,7 +244,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {showHeader !== false ? (
           <header style={metadataStyles.header}>
             <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
-            <span style={metadataStyles.session}>{session}</span>
+            <div style={metadataStyles.headerInfo}>
+              <strong style={metadataStyles.batch}>{batch}</strong>
+              <span style={metadataStyles.session}>{session}</span>
+            </div>
           </header>
         ) : null}
         <div aria-label="Metadata accordion" role="region" style={metadataStyles.accordion}>
@@ -348,12 +329,13 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                       style={rowStyles.row(isLegalRowSelected, "forestgreen")}
                       key={`${code}-${index}`}
                     >
-                      <div style={rowStyles.header}>
+                      <div style={rowStyles.content}>
                         <div style={rowStyles.valueWithViewer}>
                           {String(group.type || "").trim() === "lot_block" ? (
                             <ActionButton
                               label="Open legal view"
                               lineAligned
+                              text={false}
                               onClick={() => {
                                 callbacks.onLegalView?.(payload);
                               }}
@@ -363,20 +345,20 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                           ) : null}
                           <IndexValue value={payload.value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
                         </div>
-                        <div style={rowStyles.actionGroup}>
-                          {payload.value ? (
-                            <ActionButton label={`Copy value ${payload.value}`} lineAligned={false} onClick={() => copyIndexValue(payload.value)}>
-                              <Icon name="copy" />
-                            </ActionButton>
-                          ) : null}
-                        </div>
+                        {(group.elements || []).map((element, elementIndex) => (
+                          <div key={`${element.aspect}-${elementIndex}`} style={metadataStyles.legalElement}>
+                            <strong>{formatLabel(element.aspect || "")}:</strong> {cleanText(element.value)}
+                            {element.explanation ? <div style={metadataStyles.muted}>{element.explanation}</div> : null}
+                          </div>
+                        ))}
                       </div>
-                      {(group.elements || []).map((element, elementIndex) => (
-                        <div key={`${element.aspect}-${elementIndex}`} style={metadataStyles.legalElement}>
-                          <strong>{formatLabel(element.aspect || "")}:</strong> {cleanText(element.value)}
-                          {element.explanation ? <div style={metadataStyles.muted}>{element.explanation}</div> : null}
-                        </div>
-                      ))}
+                      <div style={rowStyles.actionGroup}>
+                        {payload.value ? (
+                          <ActionButton label={`Copy value ${payload.value}`} lineAligned={false} text={false} onClick={() => copyIndexValue(payload.value)}>
+                            <Icon name="copy" />
+                          </ActionButton>
+                        ) : null}
+                      </div>
                     </article>
                   );
                 })}

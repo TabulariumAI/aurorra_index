@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { AuditWorker } from "../worker/AuditWorker";
 import type { AuditWorkerCommand } from "../type/audit.types";
 
@@ -15,9 +13,13 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}) {
   });
 }
 
-function auditFixture() {
-  return JSON.parse(readFileSync(resolve(process.cwd(), "..", `document_${"web"}`, "test-sources", "audit#v1.json"), "utf8"));
-}
+const auditFixture = {
+  gaps: [
+    { solution: "REMOVE", explanation: "Remove index", page: "4", owner: "enrichment", timestamp: "2026-01-04T12:00:00Z", segment: "party" },
+    { solution: "ADD", explanation: "Add index", page: "1", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: null },
+  ],
+  usage: { costs: ["$0.9480"] },
+};
 
 describe("AuditWorker", () => {
   beforeEach(() => {
@@ -118,7 +120,7 @@ describe("AuditWorker", () => {
   it("returns normalized audit report on success", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
       gaps: [
-        { aspect: "ADD", message: "alpha", page: 2, process: "verification", date: "2026-01-03T12:00:00Z", changeType: "ADD" },
+        { solution: "ADD", explanation: "alpha", page: "2", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: "reference" },
       ],
       usage: {
         costs: [1, 2],
@@ -133,14 +135,14 @@ describe("AuditWorker", () => {
     })).toEqual({
       ok: true,
       data: {
-        gaps: [{ aspect: "ADD", message: "alpha", page: 2, process: "VERIFICATION", date: "2026-01-03T12:00:00Z", changeType: "ADD" }],
+        gaps: [{ solution: "ADD", explanation: "alpha", page: "2", owner: "VERIFICATION", timestamp: "2026-01-03T12:00:00Z", segment: "reference" }],
         usage: { costs: ["1", "2"] },
       },
     });
   });
 
-  it("normalizes the copied audit fixture from a raw report response", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(auditFixture())));
+  it("normalizes the complete GapEntry contract from a raw report response", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(auditFixture)));
 
     const result = await new AuditWorker().run({
       apiBaseUrl: "x",
@@ -151,18 +153,19 @@ describe("AuditWorker", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.error);
-    expect(result.data.gaps).toHaveLength(47);
+    expect(result.data.gaps).toHaveLength(2);
     expect(result.data.usage).toEqual({ costs: ["$0.9480"] });
     expect(result.data.gaps[0]).toMatchObject({
-      changeType: "REMOVE",
-      message: "Remove index for enrichment refresh: aspect='person', value='WALTER EPPERSON'",
-      process: "ENRICHMENT",
+      solution: "REMOVE",
+      explanation: "Remove index",
+      owner: "ENRICHMENT",
+      segment: "party",
     });
   });
 
   it("unwraps completed audit data envelopes before normalization", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
-      data: JSON.stringify(auditFixture()),
+      data: JSON.stringify(auditFixture),
       status: "completed",
     })));
 
@@ -175,7 +178,7 @@ describe("AuditWorker", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.error);
-    expect(result.data.gaps).toHaveLength(47);
+    expect(result.data.gaps).toHaveLength(2);
     expect(result.data.usage).toEqual({ costs: ["$0.9480"] });
   });
 

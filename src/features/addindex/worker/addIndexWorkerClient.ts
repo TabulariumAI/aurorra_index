@@ -50,12 +50,17 @@ export function createAddIndexWorkerClient(config: AddIndexWorkerConfig): AddInd
       return runWorker({
         apiBaseUrl,
         aspect: request.aspect,
+        explanation: request.explanation,
+        label: request.label,
+        segment: request.segment,
         session,
-        source: request.source,
         token,
         type: "addIndex",
         value: request.value,
       });
+    },
+    patchStatus(token, session, version) {
+      return runWorker({ apiBaseUrl, session, token, type: "patchStatus", version });
     },
   };
 }

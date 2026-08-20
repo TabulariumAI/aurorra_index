@@ -18,10 +18,10 @@ export const iqStyles = {
   root: {
     alignItems: "stretch",
     boxSizing: "border-box",
-    color: "#0f172a",
+    color: "var(--title-ink)",
     display: "flex",
     flexDirection: "column",
-    fontFamily: "Arial, Helvetica, sans-serif",
+    fontFamily: "var(--font-ui)",
     height: "100%",
     justifyContent: "flex-start",
     minHeight: 0,
@@ -37,7 +37,7 @@ export const iqStyles = {
     minHeight: 0,
     overflowX: "hidden",
     overflowY: "auto",
-    padding: "0.85rem 1rem 0.85rem",
+    padding: "0.85rem var(--panel-content-padding)",
     position: "relative",
     textAlign: "left",
     width: "100%",
@@ -51,11 +51,11 @@ export const iqStyles = {
   },
   summaryCard: {
     alignItems: "center",
-    background: "#ffffff",
-    border: "0.0625rem solid #e5e7eb",
-    borderRadius: "0.625rem",
+    background: "var(--white)",
+    border: "1px solid var(--border-card)",
+    borderRadius: "var(--radius-card)",
     boxSizing: "border-box",
-    boxShadow: "0 0.5rem 1.75rem rgba(2,6,23,0.08)",
+    boxShadow: "var(--shadow-card)",
     display: "grid",
     gap: "0.75rem",
     gridTemplateColumns: "auto 1fr",
@@ -71,19 +71,19 @@ export const iqStyles = {
     lineHeight: 1,
   },
   metricSubtext: {
-    color: "#64748b",
+    color: "var(--slate-500)",
     fontSize: "0.85rem",
     marginTop: "0.125rem",
   },
   metricLabel: {
-    color: "#0f172a",
+    color: "var(--title-ink)",
     fontSize: "1.1rem",
     fontWeight: 700,
     marginBottom: "0.375rem",
   },
   metricTrack: {
-    background: "#f1f5f9",
-    border: "0.0625rem solid #e5e7eb",
+    background: "var(--gray-100)",
+    border: "1px solid var(--border-card)",
     borderRadius: "9999rem",
     height: "0.625rem",
     overflow: "hidden",
@@ -97,12 +97,12 @@ export const iqStyles = {
     };
   },
   divider: {
-    background: "#e2e8f0",
+    background: "var(--gray-300)",
     height: "0.0625rem",
     margin: "0.35rem 0 0.8rem",
   },
   sectionTitle: {
-    color: "#0f172a",
+    color: "var(--title-ink)",
     fontSize: "1.02rem",
     fontWeight: 700,
     margin: "0 0 0.45rem",
@@ -117,9 +117,9 @@ export const iqStyles = {
   },
   segmentHeaderCell(align: "left" | "right"): CSSProperties {
     return {
-      background: "#ffffff",
-      borderBottom: "0.0625rem solid #e5e7eb",
-      color: "#0f172a",
+      background: "var(--white)",
+      borderBottom: "1px solid var(--border-subtle)",
+      color: "var(--title-ink)",
       fontWeight: 700,
       padding: "0.5rem 0.625rem",
       position: "sticky",
@@ -129,8 +129,8 @@ export const iqStyles = {
   },
   segmentCell(align: "left" | "right", strong?: boolean): CSSProperties {
     return {
-      borderBottom: "0.0625rem solid #f1f5f9",
-      color: strong ? "#0f172a" : "#334155",
+      borderBottom: "1px solid var(--border-subtle)",
+      color: strong ? "var(--title-ink)" : "var(--body-ink)",
       fontWeight: strong ? 700 : 400,
       padding: "0.5rem 0.625rem",
       textAlign: align,
@@ -140,7 +140,7 @@ export const iqStyles = {
     marginTop: "0.5rem",
   },
   explanationTitle: {
-    color: "#0f172a",
+    color: "var(--title-ink)",
     fontWeight: 400,
     marginBottom: "0.15rem",
   },
@@ -155,7 +155,7 @@ export const iqStyles = {
   },
   gateRow: {
     alignItems: "start",
-    borderBottom: "0.0625rem dashed #e5e7eb",
+    borderBottom: "1px dashed var(--border-card)",
     boxSizing: "border-box",
     display: "grid",
     gap: "0.75rem",
@@ -164,7 +164,7 @@ export const iqStyles = {
   },
   gateStatus: {
     alignItems: "center",
-    color: "#0f172a",
+    color: "var(--title-ink)",
     display: "inline-flex",
     fontSize: "0.8rem",
     fontWeight: 700,
@@ -184,7 +184,7 @@ export const iqStyles = {
     };
   },
   gateText: {
-    color: "#0f172a",
+    color: "var(--title-ink)",
     fontSize: "0.92rem",
     lineHeight: 1.3,
     wordBreak: "break-word",
@@ -196,7 +196,7 @@ export const iqStyles = {
     justifySelf: "end",
   },
   empty: {
-    color: "#64748b",
+    color: "var(--slate-500)",
   },
   notesTitle: {
     fontWeight: 700,

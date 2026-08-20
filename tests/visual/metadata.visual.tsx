@@ -98,6 +98,7 @@ stage.innerHTML = "";
 createRoot(stage).render(
   <MetadataPanel
     actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
+    batch="Pending"
     callbacks={{ onEditPage: noOp, onPageClick: noOp }}
     choices={[{ level: 1, service: "PartyClauseIndexing" }]}
     confirmedCodes={new Set()}

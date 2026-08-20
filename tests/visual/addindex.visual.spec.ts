@@ -10,7 +10,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   const serviceGate = new Promise<void>((resolve) => {
     releaseService = resolve;
   });
-  await page.route("https://gateway.example.test/v1/refine/visual-session-001/add/index", async (route) => {
+  await page.route("https://gateway.example.test/v1/refine/visual-session-001/patch/add", async (route) => {
     const request = route.request();
     serviceRequest = {
       authorization: request.headers().authorization,
@@ -19,7 +19,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
     };
     await serviceGate;
     await route.fulfill({
-      body: JSON.stringify({ accepted: true, description: "Index added." }),
+      body: JSON.stringify({ data: "", status: "completed", version: 3 }),
       contentType: "application/json",
       status: 200,
     });
@@ -45,12 +45,11 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
 
   const host = page.getByTestId("add-index-host");
   await expect(host).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
   const form = page.getByRole("region", { name: "Add selected index form" });
   await expect(form).toHaveCSS("max-width", "none");
   await expect(form).toHaveCSS("padding", "0px");
   await expect(form).toHaveCSS("overflow-y", "visible");
-  await expect(form.locator("h2")).toHaveCSS("font-size", "28px");
+  await expect(form.locator("h2")).toHaveCount(0);
   const indexInput = page.getByRole("textbox", { name: "Index" });
   const pageInput = page.getByRole("textbox", { name: "Page Number" });
   const sourceInput = page.getByRole("textbox", { name: "Source" });
@@ -82,9 +81,9 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   expect(formBox!.width).toBeLessThan(1880);
   expect(formBox!.height).toBeLessThan(1334);
   await expect.poll(async () => form.evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
-  await expect(page.getByTestId("add-index-field")).toHaveCSS("border-radius", "8px");
-  await expect(page.getByTestId("add-quote-field")).toHaveCSS("border-radius", "8px");
-  await expect(page.getByTestId("add-type-field")).toHaveCSS("border-radius", "8px");
+  await expect(page.getByTestId("add-index-field")).toHaveCSS("border-radius", "13.6px");
+  await expect(page.getByTestId("add-quote-field")).toHaveCSS("border-radius", "13.6px");
+  await expect(page.getByTestId("add-type-field")).toHaveCSS("border-radius", "13.6px");
   const actionsBox = await page.getByTestId("add-index-actions").boundingBox();
   const confirmBox = await page.getByRole("button", { name: "Confirm" }).boundingBox();
   const cancelBox = await page.getByRole("button", { name: "Cancel" }).boundingBox();
@@ -115,18 +114,20 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   expect(serviceRequest).toEqual({
     authorization: "Bearer token",
     body: {
-      aspect: "Party",
-      source: "P 7  Edited source",
-      value: "Edited Index",
+      segment: "party",
+      explanation: "P 7  Edited source",
+      new_index_label: "Party",
+      new_index_aspect: "Party",
+      new_index_value: "Edited Index",
     },
     method: "POST",
   });
 });
 
 test("Add Index closes and posts failed progress when the service rejects the index", async ({ page }) => {
-  await page.route("https://gateway.example.test/v1/refine/visual-session-001/add/index", async (route) => {
+  await page.route("https://gateway.example.test/v1/refine/visual-session-001/patch/add", async (route) => {
     await route.fulfill({
-      body: JSON.stringify({ accepted: false, description: "Index already exists." }),
+      body: JSON.stringify({ data: "Index already exists.", status: "error", version: 3 }),
       contentType: "application/json",
       status: 200,
     });
@@ -145,7 +146,6 @@ test("Add Index closes and posts failed progress when the service rejects the in
 
   const host = page.getByTestId("add-index-host");
   await expect(host).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Add selected index" })).toHaveCount(0);
   await page.getByRole("textbox", { name: "Type" }).fill("Party");
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");

@@ -1,6 +1,5 @@
 import * as Collapsible from "@radix-ui/react-collapsible";
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ConfButton } from "aurorra-ui";
 import { useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import { isAmbiguous } from "../data/metadataData";
 import {
@@ -9,6 +8,7 @@ import {
   detailLineStyle,
   detailTextStyle,
   rowStyles,
+  segmentStyles,
 } from "../style/metadataViewStyles";
 import type { MetdataActionPayload, MetdataMetadataCallbacks, MetadataIndex } from "../type/metadataView.types";
 
@@ -91,12 +91,14 @@ export function ActionButton({
   label,
   lineAligned,
   onClick,
+  text,
 }: {
   children: ReactNode;
   disabled?: boolean;
   label: string;
   lineAligned: boolean;
   onClick?: () => void;
+  text: boolean;
 }) {
   const [isInteracting, setInteracting] = useState(false);
   const interactionStyles = isInteracting ? rowStyles.actionButtonHover : null;
@@ -125,7 +127,7 @@ export function ActionButton({
             }
           }}
           onMouseLeave={() => setInteracting(false)}
-          style={disabled ? rowStyles.actionButton(disabled, lineAligned) : { ...rowStyles.actionButton(disabled, lineAligned), ...interactionStyles }}
+          style={disabled ? rowStyles.actionButton(disabled, lineAligned, text) : { ...rowStyles.actionButton(disabled, lineAligned, text), ...interactionStyles }}
           type="button"
         >
           {children}
@@ -142,7 +144,7 @@ export function ActionButton({
     </Tooltip.Root>
   );
 }
-export function Icon({ name }: { name: "address" | "check" | "collapse" | "copy" | "edit" | "expand" | "remove" }) {
+export function Icon({ name }: { name: "address" | "check" | "collapse" | "copy" | "edit" | "expand" | "refresh" | "remove" }) {
   const paths = {
     address: <><path d="M4 10.5C6 6.5 9 4.5 12 4.5s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6Z" /><circle cx="12" cy="10.5" r="2.2" /><path d="M8.5 18.5h7" /></>,
     check: <path d="m5 12 4 4 10-10" />,
@@ -150,6 +152,7 @@ export function Icon({ name }: { name: "address" | "check" | "collapse" | "copy"
     copy: <><rect height="11" rx="1.5" width="11" x="8" y="8" /><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" /></>,
     edit: <><path d="M4 17.5V20h2.5L18 8.5 15.5 6 4 17.5Z" /><path d="m14.5 7 2.5 2.5" /></>,
     expand: <><rect height="16" rx="2" width="16" x="4" y="4" /><path d="M8 12h8" /><path d="M12 8v8" /></>,
+    refresh: <><path d="M20 11a8 8 0 1 0 2 5.3" /><path d="M20 4v7h-7" /></>,
     remove: <><path d="M5 7h14" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M8 7l1 13h6l1-13" /><path d="M9 7V5h6v2" /></>,
   };
   return (
@@ -341,6 +344,7 @@ export function MetadataRow({
   session,
   type = "index",
 }: MetadataRowProps): JSX.Element {
+  const [pendingAction, setPendingAction] = useState<"confirm" | "drop" | null>(null);
   const code = String(item.code || "");
   const page = Number(item.page || item.page_number || 0);
   const value = cleanText(item.value);
@@ -378,53 +382,80 @@ export function MetadataRow({
       data-status={status}
       style={rowStyles.row(selected, borderColor)}
     >
-      <div style={rowStyles.header}>
+      <div style={rowStyles.content}>
         <div style={rowStyles.valueWithViewer}>
           {isAddressValue(item) && onAddressClick ? (
-            <ActionButton label={`Open address ${value}`} lineAligned onClick={() => onAddressClick(value)}>
+            <ActionButton label={`Open address ${value}`} lineAligned text={false} onClick={() => onAddressClick(value)}>
               <Icon name="address" />
             </ActionButton>
           ) : null}
           <IndexValue value={value} onClick={onPageClick ? () => openMetadataImage(onPageClick, payload) : undefined} />
         </div>
-        <div style={rowStyles.actionGroup}>
-          {ambiguous && onConfirm ? (
-            <ActionButton label="Confirm index and remove ambiguity" lineAligned={false} onClick={() => onConfirm(payload)}>
-              <Icon name="check" />
-            </ActionButton>
+        <AspectLine aspect={aspect} label={label} />
+        <DetailLine label="Explanation" name="explanation" value={item.explanation} />
+        {details?.map((detail, index) => (
+          <DetailLine key={`${detail.label}-${index}`} label={detail.label} name={detail.label} value={detail.value} />
+        ))}
+        {type !== "page" && (page || item.source) ? <DetailLine label="Quote" name="quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
+      </div>
+      <div style={rowStyles.actionGroup}>
+        {ambiguous && onConfirm ? (
+            pendingAction === "confirm" ? (
+              <span aria-label="Confirming index" role="status" style={rowStyles.actionProgress}>
+                <span aria-hidden="true" className="aurorra-index-progress-spinner" style={segmentStyles.reprocessSpinner} />
+              </span>
+            ) : (
+              <ActionButton
+                label="Confirm index and remove ambiguity"
+                lineAligned={false}
+                text={false}
+                onClick={async () => {
+                  setPendingAction("confirm");
+                  try {
+                    await onConfirm(payload);
+                  } finally {
+                    setPendingAction(null);
+                  }
+                }}
+              >
+                <Icon name="check" />
+              </ActionButton>
+            )
           ) : null}
           {value ? (
-            <ActionButton label={`Copy value ${value}`} lineAligned={false} onClick={() => copyIndexValue(value)}>
+            <ActionButton label={`Copy value ${value}`} lineAligned={false} text={false} onClick={() => copyIndexValue(value)}>
               <Icon name="copy" />
             </ActionButton>
           ) : null}
           {type !== "page" && code && onDrop ? (
-            <ConfButton
-              aria-label="Pop the index"
-              className="metadata-row-action"
-              confirmLabel="Confirm"
-              flat
-              label={<Icon name="remove" />}
-              onConfirm={() => onDrop(payload)}
-              size="icon"
-              style={rowStyles.confirmActionButton}
-              title="Pop the index"
-              variant="secondary"
-            />
+            pendingAction === "drop" ? (
+              <span aria-label="Dropping index" role="status" style={rowStyles.actionProgress}>
+                <span aria-hidden="true" className="aurorra-index-progress-spinner" style={segmentStyles.reprocessSpinner} />
+              </span>
+            ) : (
+              <ActionButton
+                label="Pop the index"
+                lineAligned={false}
+                text={false}
+                onClick={async () => {
+                  setPendingAction("drop");
+                  try {
+                    await onDrop(payload);
+                  } finally {
+                    setPendingAction(null);
+                  }
+                }}
+              >
+                <Icon name="remove" />
+              </ActionButton>
+            )
           ) : null}
-          {type === "page" && callbacks.onEditPage && code ? (
-            <ActionButton label="Edit index" lineAligned={false} onClick={() => callbacks.onEditPage?.(payload)}>
+        {type === "page" && callbacks.onEditPage && code ? (
+            <ActionButton label="Edit index" lineAligned={false} text={false} onClick={() => callbacks.onEditPage?.(payload)}>
               <Icon name="edit" />
             </ActionButton>
-          ) : null}
-        </div>
+        ) : null}
       </div>
-      <AspectLine aspect={aspect} label={label} />
-      <DetailLine label="Explanation" name="explanation" value={item.explanation} />
-      {details?.map((detail, index) => (
-        <DetailLine key={`${detail.label}-${index}`} label={detail.label} name={detail.label} value={detail.value} />
-      ))}
-      {type !== "page" && (page || item.source) ? <DetailLine label="Quote" name="quote" value={`P:${page || ""}. ${item.source || ""}`} /> : null}
     </article>
   );
 }

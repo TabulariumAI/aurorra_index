@@ -6,7 +6,7 @@ describe("addIndexWorkerClient", () => {
     vi.unstubAllGlobals();
   });
 
-  it("posts the Add Index command and resolves an accepted response", async () => {
+  it("posts the Add Index command and resolves the patch response", async () => {
     const posted: unknown[] = [];
     const terminate = vi.fn();
     class WorkerMock {
@@ -19,7 +19,7 @@ describe("addIndexWorkerClient", () => {
         posted.push(command);
         this.onmessage?.({
           data: {
-            data: { accepted: true, description: "Index added." },
+            data: { data: "", status: "processing", version: 3 },
             ok: true,
           },
         } as MessageEvent);
@@ -33,15 +33,19 @@ describe("addIndexWorkerClient", () => {
     const client = createAddIndexWorkerClient({ apiBaseUrl: "https://gateway" });
     await expect(client.addIndex("token", "session-1", {
       aspect: "party",
-      source: "P 3  Selected context",
+      explanation: "P 3  Selected context",
+      label: "party",
+      segment: "party",
       value: "Selected value",
-    })).resolves.toEqual({ accepted: true, description: "Index added." });
+    })).resolves.toEqual({ data: "", status: "processing", version: 3 });
 
     expect(posted).toEqual([{
       apiBaseUrl: "https://gateway",
       aspect: "party",
+      explanation: "P 3  Selected context",
+      label: "party",
+      segment: "party",
       session: "session-1",
-      source: "P 3  Selected context",
       token: "token",
       type: "addIndex",
       value: "Selected value",
@@ -57,8 +61,8 @@ describe("addIndexWorkerClient", () => {
       postMessage() {
         this.onmessage?.({
           data: {
-            code: "index_not_added",
-            details: { accepted: false, description: "Index already exists." },
+            code: "patch_error",
+            details: { data: "Index already exists.", status: "error", version: 3 },
             error: "Index already exists.",
             ok: false,
             status: 200,
@@ -74,11 +78,13 @@ describe("addIndexWorkerClient", () => {
     const client = createAddIndexWorkerClient({ apiBaseUrl: "https://gateway" });
     await expect(client.addIndex("token", "session-1", {
       aspect: "party",
-      source: "P 3  Selected context",
+      explanation: "P 3  Selected context",
+      label: "party",
+      segment: "party",
       value: "Selected value",
     })).rejects.toMatchObject({
-      code: "index_not_added",
-      details: { accepted: false, description: "Index already exists." },
+      code: "patch_error",
+      details: { data: "Index already exists.", status: "error", version: 3 },
       message: "Index already exists.",
       status: 200,
     });
@@ -102,7 +108,9 @@ describe("addIndexWorkerClient", () => {
     const client = createAddIndexWorkerClient({ apiBaseUrl: "https://gateway" });
     await expect(client.addIndex("token", "session-1", {
       aspect: "party",
-      source: "P 3  Selected context",
+      explanation: "P 3  Selected context",
+      label: "party",
+      segment: "party",
       value: "Selected value",
     })).rejects.toThrow("Worker crashed");
     expect(terminate).toHaveBeenCalledTimes(1);

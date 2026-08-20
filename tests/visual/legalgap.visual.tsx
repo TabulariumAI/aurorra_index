@@ -61,6 +61,7 @@ function LegalGapHarness(): JSX.Element {
   return (
     <MetadataPanel
       actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
+      batch="Pending"
       callbacks={{}}
       choices={[{ level: 1, service: "LegalEnrichment" }]}
       confirmedCodes={new Set()}

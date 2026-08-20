@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
 import { indexStoreApi } from "../../metdataview/store/metadataStore";
@@ -82,10 +82,13 @@ describe("IndexContainer", () => {
     const onViewStarted = vi.fn();
     const onLoaderChange = vi.fn();
     const onReadyChange = vi.fn();
+    let completeDrop: (() => void) | undefined;
     let completeReprocess: (() => void) | undefined;
     const workerClient = {
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-      dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
+      dropIndex: vi.fn(() => new Promise<{ data: string; status: "completed"; version: number }>((resolve) => {
+        completeDrop = () => resolve({ data: "", status: "completed", version: 1 });
+      })),
       indexData: vi.fn(async () => metadata),
       patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       reprocessSegment: vi.fn(() => new Promise<{ data: string; status: "completed" }>((resolve) => {
@@ -97,6 +100,7 @@ describe("IndexContainer", () => {
       <IndexContainer
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
+        batch="Pending"
         callbacks={{ onActionComplete, onEditPage, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
@@ -140,7 +144,7 @@ describe("IndexContainer", () => {
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
-      expect(header).toHaveStyle({ borderBottom: "2px solid #06afc1", flex: "0 0 auto", position: "static" });
+      expect(header).toHaveStyle({ flex: "0 0 auto", position: "static" });
       expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0", overflowX: "hidden", overflowY: "auto" });
       expect(header.nextElementSibling?.nextElementSibling).toHaveAttribute("data-metadata-footer", "true");
     }
@@ -189,31 +193,35 @@ describe("IndexContainer", () => {
     expect(workerClient.dropIndex).toHaveBeenCalledTimes(0);
     expect(workerClient.reprocessSegment).toHaveBeenCalledTimes(0);
 
-    fireEvent.click(screen.getByRole("button", { name: /Parties\(Party Clause\)/i }));
-    const reprocess = await screen.findByRole("link", { name: "Reprocess" });
+    const partyTrigger = screen.getByRole("button", { name: /Parties\(Party Clause\)/i });
+    fireEvent.click(partyTrigger);
+    const partyHeader = partyTrigger.parentElement;
+    if (!partyHeader) throw new Error("Party header is missing.");
+    const partyActions = within(partyHeader);
+    const reprocess = await partyActions.findByRole("button", { name: "Reprocess" });
     expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
     expect(footer).toBeEmptyDOMElement();
-    expect(header?.nextElementSibling).toContainElement(reprocess);
+    expect(reprocess.parentElement?.parentElement).toBe(partyTrigger.parentElement);
+    expect(partyTrigger).not.toContainElement(reprocess);
     fireEvent.click(reprocess);
     await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
-    expect(screen.getByRole("status", { name: "Reprocessing party" })).toBeVisible();
-    expect(screen.queryByRole("link", { name: "Reprocess" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Refine or Chat" })).toBeVisible();
+    expect(partyActions.getByRole("status", { name: "Reprocessing party" })).toBeVisible();
+    expect(partyActions.queryByRole("button", { name: "Reprocess" })).not.toBeInTheDocument();
+    expect(partyActions.getByRole("button", { name: "Open AI chat" })).toBeVisible();
     act(() => completeReprocess?.());
-    await waitFor(() => expect(screen.getByRole("link", { name: "Reprocess" })).toBeVisible());
+    await waitFor(() => expect(partyActions.getByRole("button", { name: "Reprocess" })).toBeVisible());
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
 
     const dropButton = screen.getByLabelText("Pop the index");
-    expect(dropButton).toHaveAttribute("title", "Pop the index");
-    fireEvent.click(dropButton);
-    expect(dropButton).toHaveAttribute("data-armed", "true");
-    expect(dropButton).toHaveAttribute("aria-label", "Confirm");
-    expect(dropButton).toHaveAttribute("title", "Confirm");
-    expect(workerClient.dropIndex).not.toHaveBeenCalled();
-
     fireEvent.click(dropButton);
     await waitFor(() => expect(workerClient.dropIndex).toHaveBeenCalledWith("token", "session-1", "idx-1"));
-    expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" });
+    expect(screen.getByRole("status", { name: "Dropping index" })).toBeVisible();
+    expect(screen.queryByLabelText("Pop the index")).not.toBeInTheDocument();
+    await act(async () => {
+      completeDrop?.();
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" }));
     await waitFor(() => expect(screen.queryByText("Alice")).not.toBeInTheDocument());
   }, 10_000);
 
@@ -225,6 +233,7 @@ describe("IndexContainer", () => {
       <IndexContainer
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
+        batch="Pending"
         callbacks={{ onMetadataError, onViewError }}
         choices={choices}
         deferredState={createDeferredState()}
@@ -274,6 +283,7 @@ describe("IndexContainer", () => {
     const props = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
+      batch: "Pending",
       callbacks: {},
       choices,
       deferredState: createDeferredState(),
@@ -308,6 +318,7 @@ describe("IndexContainer", () => {
       <IndexContainer
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
+        batch="Pending"
         callbacks={{ onViewCanceled }}
         choices={choices}
         deferredState={createDeferredState()}

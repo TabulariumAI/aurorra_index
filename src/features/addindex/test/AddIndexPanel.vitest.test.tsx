@@ -27,10 +27,13 @@ function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps 
     onComplete: vi.fn(),
     onError: vi.fn(),
     onReadyChange: vi.fn(),
+    intervalMs: 0,
+    segment: "party",
     selection,
     session: "session-1",
     workerClient: {
-      addIndex: vi.fn(async () => ({ accepted: true as const, description: "Index added." })),
+      addIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 })),
+      patchStatus: vi.fn(),
     },
     ...overrides,
   };
@@ -50,27 +53,23 @@ describe("AddIndexPanel", () => {
     expect(form.style.maxWidth).toBe("");
     expect(form.style.padding).toBe("");
     expect(form.style.overflowY).toBe("");
-    expect(form.querySelector("h2")).toHaveStyle({
-      fontSize: "1.75rem",
-      fontWeight: "700",
-      margin: "0px",
-    });
+    expect(form.querySelector("h2")).toBeNull();
     const indexField = screen.getByTestId("add-index-field");
     const quoteField = screen.getByTestId("add-quote-field");
     const typeField = screen.getByTestId("add-type-field");
     expect(indexField).toHaveStyle({
-      background: "#ffffff",
-      borderRadius: "0.5rem",
+      background: "var(--white)",
+      borderRadius: "var(--radius-card)",
       padding: "0.6rem 0.75rem",
     });
     expect(quoteField).toHaveStyle({
-      background: "#ffffff",
-      borderRadius: "0.5rem",
+      background: "var(--white)",
+      borderRadius: "var(--radius-card)",
       padding: "0.6rem 0.75rem",
     });
     expect(typeField).toHaveStyle({
-      background: "#ffffff",
-      borderRadius: "0.5rem",
+      background: "var(--white)",
+      borderRadius: "var(--radius-card)",
       padding: "0.6rem 0.75rem",
     });
     expect(indexField.compareDocumentPosition(quoteField)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -94,9 +93,10 @@ describe("AddIndexPanel", () => {
     const onClose = vi.fn();
     const onComplete = vi.fn();
     const onError = vi.fn();
-    const addIndex = vi.fn(async () => ({ accepted: true as const, description: "Index added." }));
+    const addIndex = vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 }));
     const workerClient: AddIndexWorkerClient = {
       addIndex,
+      patchStatus: vi.fn(),
     };
     render(<AddIndexPanel {...props({ onClose, onComplete, onError, workerClient })} />);
 
@@ -110,15 +110,19 @@ describe("AddIndexPanel", () => {
 
     await waitFor(() => expect(workerClient.addIndex).toHaveBeenCalledWith("token-1", "session-1", {
       aspect: "Party",
-      source: "P 7  Edited source",
+      explanation: "P 7  Edited source",
+      label: "Party",
+      segment: "party",
       value: "Edited Index",
     }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(addIndex.mock.invocationCallOrder[0]);
     expect(onComplete).toHaveBeenCalledWith({
       aspect: "Party",
+      explanation: "P 7  Edited source",
+      label: "Party",
       session: "session-1",
-      source: "P 7  Edited source",
+      segment: "party",
       value: "Edited Index",
     });
     expect(onError).not.toHaveBeenCalled();
@@ -137,6 +141,7 @@ describe("AddIndexPanel", () => {
       addIndex: vi.fn(async () => {
         throw serviceError;
       }),
+      patchStatus: vi.fn(),
     };
     render(<AddIndexPanel {...props({ onClose, onComplete, onError, workerClient })} />);
 
@@ -154,10 +159,27 @@ describe("AddIndexPanel", () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
+  it("waits for the patch to complete before emitting completion", async () => {
+    const onComplete = vi.fn();
+    const workerClient: AddIndexWorkerClient = {
+      addIndex: vi.fn(async () => ({ data: "", status: "processing" as const, version: 3 })),
+      patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 })),
+    };
+    render(<AddIndexPanel {...props({ intervalMs: 0, onComplete, workerClient })} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Type" }), { target: { value: "Party" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(workerClient.patchStatus).toHaveBeenCalledWith("token-1", "session-1", 3));
+    expect(onComplete).toHaveBeenCalledOnce();
+  });
+
   it("closes without submitting", () => {
     const onClose = vi.fn();
     const workerClient: AddIndexWorkerClient = {
-      addIndex: vi.fn(async () => ({ accepted: true as const, description: "Index added." })),
+      addIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 })),
+      patchStatus: vi.fn(),
     };
     render(<AddIndexPanel {...props({ onClose, workerClient })} />);
 

@@ -12,55 +12,62 @@ export const metadataSpinnerCss = `
 }
 `;
 
-const surfacePanel = "#ffffff";
-const surfaceRaised = "#f8fafc";
-const surfaceAccent = "rgba(6, 175, 193, 0.10)";
+const surfacePanel = "var(--white)";
+const surfaceRaised = "var(--gray-50)";
+const surfaceAccent = "var(--accent-surface)";
 const segmentSurface = surfaceRaised;
-const borderSubtle = "#06afc1";
-const borderAccent = "#008ba3";
-const textStrong = "#20252d";
-const textMuted = "#687386";
-const teal = "#008ba3";
-const accentText = "#008ba3";
+const borderSubtle = "var(--border-card)";
+const borderAccent = "var(--primary)";
+const textStrong = "var(--title-ink)";
+const textMuted = "var(--slate-500)";
+const teal = "var(--primary)";
 
 export const metadataStyles = {
   accordion: {
     alignItems: "stretch",
+    boxSizing: "border-box",
     display: "flex",
     flex: "1 1 0",
     flexDirection: "column",
-    gap: "0.15rem",
+    gap: "0.75rem",
     minHeight: 0,
     overflowX: "hidden",
     overflowY: "auto",
-  },
-  actionGroup: {
-    alignItems: "center",
-    display: "inline-flex",
-    gap: "0.35rem",
-    justifyContent: "center",
+    padding: "0 1.2rem var(--panel-content-padding)",
   },
   article: {
     background: surfacePanel,
     border: `1px solid ${borderSubtle}`,
-    borderLeft: "0.13rem solid #07879a",
+    borderLeft: "0.13rem solid var(--primary-dark)",
     color: textStrong,
     margin: 0,
     padding: "0.48rem 0.66rem",
+  },
+  batch: {
+    color: textStrong,
+    display: "block",
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    lineHeight: 1.35,
+    maxWidth: "100%",
+    overflowWrap: "anywhere",
+    whiteSpace: "normal",
   },
   header: {
     alignItems: "center",
     background: surfacePanel,
     border: 0,
-    borderBottom: `2px solid ${borderSubtle}`,
+    borderBottom: "1px solid var(--border-card)",
     boxSizing: "border-box",
     boxShadow: "none",
     display: "flex",
+    flexWrap: "wrap",
+    gap: "var(--panel-header-gap)",
     justifyContent: "space-between",
     margin: 0,
-    minHeight: "3.2rem",
+    minHeight: "var(--panel-header-height)",
     flex: "0 0 auto",
-    padding: "0.55rem 0.72rem",
+    padding: "var(--panel-header-padding)",
     position: "static",
     textAlign: "left",
   },
@@ -69,6 +76,15 @@ export const metadataStyles = {
     height: 0,
     overflow: "hidden",
     padding: 0,
+  },
+  headerInfo: {
+    alignItems: "flex-end",
+    display: "flex",
+    flex: "0 1 auto",
+    flexDirection: "column",
+    maxWidth: "100%",
+    minWidth: 0,
+    textAlign: "right",
   },
   legalElement: {
     borderTop: `1px solid ${borderSubtle}`,
@@ -107,7 +123,7 @@ export const metadataStyles = {
   },
   root: {
     color: textStrong,
-    fontFamily: "Arial, Helvetica, sans-serif",
+    fontFamily: "var(--font-ui)",
     display: "flex",
     flex: "1 1 auto",
     flexDirection: "column",
@@ -126,26 +142,27 @@ export const metadataStyles = {
   session: {
     color: textMuted,
     display: "block",
-    flex: "0 1 auto",
-    fontSize: "1rem",
+    fontSize: "0.75rem",
     fontWeight: 500,
-    marginLeft: "1rem",
-    overflowWrap: "anywhere",
-    wordBreak: "break-word",
+    lineHeight: 1.35,
     maxWidth: "100%",
-    marginTop: "0.12rem",
-    minWidth: 0,
+    overflow: "hidden",
     textAlign: "right",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   title: {
     color: textStrong,
     flex: "1 1 auto",
-    fontSize: "1.82rem",
-    fontWeight: 700,
-    letterSpacing: 0,
-    lineHeight: 1.1,
+    fontSize: "calc(var(--panel-title-size) * 1.15)",
+    fontWeight: "var(--panel-title-weight)",
+    letterSpacing: "var(--panel-title-tracking)",
+    lineHeight: "var(--panel-title-line-height)",
     margin: 0,
-    minWidth: 0,
+    minWidth: "min-content",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
 } satisfies Record<string, CSSProperties>;
 
@@ -162,21 +179,21 @@ export function disclosureButtonStyle(hovered: boolean, focused: boolean): CSSPr
     appearance: "none",
     background: hovered || focused ? surfaceAccent : "transparent",
     border: `1px solid ${hovered || focused ? borderAccent : "transparent"}`,
-    borderRadius: "0.2rem",
+    borderRadius: "var(--radius-control)",
     boxShadow: "none",
     color: textStrong,
     cursor: "pointer",
     display: "inline-flex",
-    height: "1.5rem",
+    height: "2.75rem",
     justifyContent: "center",
     outline: focused ? `2px solid ${borderAccent}` : "none",
-    outlineOffset: "1px",
+    outlineOffset: "3px",
     padding: 0,
     position: "absolute",
     right: 0,
     top: 0,
     transition: "background 120ms ease, border-color 120ms ease, color 120ms ease, outline-color 120ms ease",
-    width: "1.5rem",
+    width: "2.75rem",
   };
 }
 
@@ -213,38 +230,48 @@ export function detailTextStyle(open: boolean, hasDisclosure: boolean): CSSPrope
 }
 
 export const rowStyles = {
-  actionButton(disabled: boolean, lineAligned: boolean): CSSProperties {
+  actionButton(disabled: boolean, lineAligned: boolean, text: boolean): CSSProperties {
     return {
       alignItems: lineAligned ? "flex-start" : "center",
       background: "transparent",
       border: "1px solid transparent",
-      borderRadius: "0.2rem",
+      borderRadius: "var(--radius-control)",
       color: teal,
       cursor: disabled ? "not-allowed" : "pointer",
       display: "inline-flex",
       appearance: "none",
       boxShadow: "none",
+      fontSize: text ? "0.78rem" : undefined,
       fontWeight: 600,
-      height: "1.9rem",
+      gap: text ? "0.3rem" : 0,
+      height: "2.75rem",
       outline: "1px solid transparent",
-      width: "1.9rem",
+      width: text ? "auto" : "2.75rem",
       justifyContent: "center",
-      minHeight: "1.9rem",
-      minWidth: "1.9rem",
+      minHeight: "2.75rem",
+      minWidth: text ? 0 : "2.75rem",
       opacity: disabled ? 0.55 : 1,
-      padding: 0,
+      padding: text ? "0 0.5rem" : 0,
       transition: "background 120ms ease, color 120ms ease, outline-color 120ms ease, border-color 120ms ease",
+      whiteSpace: text ? "nowrap" : undefined,
     };
   },
   actionButtonHover: {
     color: borderAccent,
     background: `${surfaceAccent}`,
   },
-  confirmActionButton: {
-    boxShadow: "none",
-    color: teal,
+  actionProgress: {
+    alignItems: "center",
+    display: "inline-flex",
+    flex: "0 0 auto",
+    height: "2.75rem",
+    justifyContent: "center",
+    minHeight: "2.75rem",
+    minWidth: "2.75rem",
+    width: "2.75rem",
   },
   actionGroup: {
+    alignSelf: "start",
     alignItems: "center",
     display: "flex",
     flex: "0 0 auto",
@@ -255,6 +282,12 @@ export const rowStyles = {
     fontSize: "1rem",
     lineHeight: 1.28,
   },
+  content: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.25rem",
+    minWidth: 0,
+  },
   direct: {
     color: "darkgreen",
   },
@@ -264,12 +297,6 @@ export const rowStyles = {
     background: surfacePanel,
     border: `1px solid ${borderSubtle}`,
     padding: "0.6rem 0.75rem",
-  },
-  header: {
-    alignItems: "flex-start",
-    display: "flex",
-    gap: "0.6rem",
-    justifyContent: "space-between",
   },
   indirect: {
     color: "darkblue",
@@ -284,9 +311,10 @@ export const rowStyles = {
       borderLeft: `0.12rem solid ${borderColor}`,
       boxShadow: "none",
       color: textStrong,
-      display: "flex",
-      flexDirection: "column",
+      alignItems: "start",
+      display: "grid",
       gap: "0.25rem",
+      gridTemplateColumns: "minmax(0, 1fr) auto",
       position: "relative",
       margin: 0,
       padding: "0.45rem 0.72rem",
@@ -294,9 +322,9 @@ export const rowStyles = {
     };
   },
   tooltip: {
-    background: "#0f172a",
-    borderRadius: "0.2rem",
-    color: "#fff",
+    background: "var(--title-ink)",
+    borderRadius: "var(--radius-control)",
+    color: "var(--white)",
     fontSize: "0.75rem",
     padding: "0.35rem 0.5rem",
     zIndex: 60,
@@ -345,44 +373,27 @@ export const rowStyles = {
 } satisfies Record<string, CSSProperties | ((...args: never[]) => CSSProperties)>;
 
 export const segmentStyles = {
-  actionLine(open: boolean): CSSProperties {
-    return {
-      background: open ? segmentSurface : surfacePanel,
-      color: textMuted,
-      display: "flex",
-      fontSize: "0.92rem",
-      fontWeight: 600,
-      justifyContent: "flex-end",
-      margin: 0,
-      padding: "0.36rem 0.82rem 0.26rem",
-      textAlign: "center",
-    };
+  actionGroup: {
+    alignItems: "center",
+    display: "flex",
+    flex: "0 0 auto",
+    gap: "0.25rem",
   },
-  actionDivider: {
-    color: textMuted,
-    fontWeight: 600,
-    lineHeight: 1,
-    padding: "0 0.16rem",
-    userSelect: "none",
-  },
-  actionLink: {
-    background: "transparent",
-    border: 0,
-    boxShadow: "none",
-    color: textStrong,
-    cursor: "pointer",
-    display: "inline",
-    font: "inherit",
-    fontWeight: 700,
-    outline: "none",
-    padding: 0,
-    textDecoration: "underline",
+  actionProgress: {
+    alignItems: "center",
+    display: "inline-flex",
+    flex: "0 0 auto",
+    height: "2.75rem",
+    justifyContent: "center",
+    minHeight: "2.75rem",
+    minWidth: "2.75rem",
+    width: "2.75rem",
   },
   reprocessSpinner: {
     animation: "aurorra-index-spinner 1.35s linear infinite",
     border: "2px solid rgba(0, 139, 163, 0.25)",
     borderRadius: "999px",
-    borderTopColor: "var(--primary-color-light, #008ba3)",
+    borderTopColor: "var(--primary)",
     boxSizing: "border-box",
     display: "inline-block",
     flex: "0 0 auto",
@@ -394,7 +405,7 @@ export const segmentStyles = {
     gap: "0.3rem",
     gridTemplateColumns: "minmax(0, 1fr)",
     margin: 0,
-    padding: "0.72rem 0 0.82rem 0.24rem",
+    padding: "0.72rem 0 0.82rem",
   },
   contentShell: {
     background: surfacePanel,
@@ -403,13 +414,33 @@ export const segmentStyles = {
     margin: 0,
     padding: 0,
   },
-  count(open: boolean): CSSProperties {
+  header(open: boolean): CSSProperties {
+    return {
+      alignItems: "center",
+      background: open ? segmentSurface : "transparent",
+      boxSizing: "border-box",
+      color: textStrong,
+      display: "flex",
+      gap: "0.65rem",
+      justifyContent: "flex-start",
+      letterSpacing: 0,
+      minHeight: "2.85rem",
+      padding: "0.424rem 0 0.442rem",
+      textAlign: "left",
+      width: "100%",
+    };
+  },
+  headerHover: {
+    background: surfaceRaised,
+  },
+  count(): CSSProperties {
     return {
       alignItems: "center",
       background: surfacePanel,
+      border: `1px solid ${borderSubtle}`,
       borderRadius: "999px",
       boxSizing: "border-box",
-      color: open ? accentText : textMuted,
+      color: textMuted,
       display: "inline-flex",
       flex: "0 0 auto",
       fontSize: "0.82rem",
@@ -431,31 +462,26 @@ export const segmentStyles = {
     overflow: "hidden",
     width: "100%",
   },
-  trigger(open: boolean): CSSProperties {
-    return {
-      alignItems: "center",
-      background: open ? segmentSurface : "transparent",
-      border: "none",
-      boxSizing: "border-box",
-      color: textStrong,
-      cursor: "pointer",
-      display: "flex",
-      font: "inherit",
-      fontWeight: 700,
-      gap: "0.65rem",
-      height: "auto",
-      justifyContent: "flex-start",
-      letterSpacing: 0,
-      minHeight: "2.85rem",
-      padding: "0.424rem 0.88rem 0.442rem",
-      textAlign: "left",
-      textDecoration: "none",
-      transition: "none",
-      transform: "none",
-      width: "100%",
-    };
-  },
-  triggerHover: {
-    background: surfaceRaised,
+  trigger: {
+    alignSelf: "stretch",
+    appearance: "none",
+    background: "transparent",
+    border: "none",
+    borderRadius: 0,
+    boxSizing: "border-box",
+    boxShadow: "none",
+    color: textStrong,
+    cursor: "pointer",
+    display: "flex",
+    flex: "1 1 auto",
+    font: "inherit",
+    fontWeight: 700,
+    justifyContent: "flex-start",
+    minWidth: 0,
+    padding: 0,
+    textAlign: "left",
+    textDecoration: "none",
+    transition: "none",
+    transform: "none",
   },
 } satisfies Record<string, CSSProperties | ((...args: never[]) => CSSProperties)>;

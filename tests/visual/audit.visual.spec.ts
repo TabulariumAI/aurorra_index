@@ -3,10 +3,18 @@ import { expect, test } from "@playwright/test";
 test("Audit panel renders report, filters, sorting, and message expansion", async ({ page }) => {
   await page.goto("/?scenario=audit");
 
-  await expect(page.getByText("Audit report")).toHaveCount(0);
+  const title = page.getByRole("heading", { name: "Audit Report" });
+  const titleRow = page.locator("[data-audit-header-row='title']");
+  const controlsRow = page.locator("[data-audit-header-row='controls']");
+  const close = page.getByRole("button", { name: "Close preview" });
+  await expect(title).toBeVisible();
+  await expect(titleRow).toBeVisible();
+  await expect(controlsRow).toBeVisible();
+  await expect(close).toBeVisible();
   await expect(page.getByText("Out of 3")).toBeVisible();
   await expect(page.getByText("Change type", { exact: true })).toBeVisible();
   await expect(page.getByText("Process", { exact: true })).toBeVisible();
+  await expect(page.getByText("Audit gaps", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Newest addition message")).toBeVisible();
   await expect(page.getByText("Old remove message")).toBeVisible();
 
@@ -19,16 +27,26 @@ test("Audit panel renders report, filters, sorting, and message expansion", asyn
   const processBox = await process.boundingBox();
   const badgeBox = await badgeLabel.boundingBox();
   const costsBox = await costs.boundingBox();
+  const titleBox = await title.boundingBox();
+  const titleRowBox = await titleRow.boundingBox();
+  const controlsRowBox = await controlsRow.boundingBox();
+  const closeBox = await close.boundingBox();
 
   expect(changeTypeBox).toBeTruthy();
   expect(processBox).toBeTruthy();
   expect(badgeBox).toBeTruthy();
   expect(costsBox).toBeTruthy();
-  if (!changeTypeBox || !processBox || !badgeBox || !costsBox) throw new Error("Expected audit header layout in view.");
+  expect(titleBox).toBeTruthy();
+  expect(titleRowBox).toBeTruthy();
+  expect(controlsRowBox).toBeTruthy();
+  expect(closeBox).toBeTruthy();
+  if (!changeTypeBox || !processBox || !badgeBox || !costsBox || !titleBox || !titleRowBox || !controlsRowBox || !closeBox) throw new Error("Expected audit layout in view.");
 
-  expect(badgeBox.y).toBeGreaterThan(changeTypeBox.y);
-  expect(costsBox.y).toBeGreaterThan(badgeBox.y);
-  await expect(costs).toHaveCSS("color", "rgb(255, 255, 255)");
+  expect(titleBox.y).toBeGreaterThanOrEqual(titleRowBox.y);
+  expect(closeBox.x + closeBox.width).toBeGreaterThanOrEqual(titleRowBox.x + titleRowBox.width - 1);
+  expect(controlsRowBox.y).toBeGreaterThan(titleRowBox.y);
+  expect(badgeBox.y).toBeGreaterThanOrEqual(changeTypeBox.y);
+  await expect(costs).toHaveCSS("color", "rgb(16, 36, 58)");
 
   const addMessage = await page.getByText("Newest addition message").boundingBox();
   const correction = await page.getByText("This is a long correction message").boundingBox();
@@ -40,6 +58,7 @@ test("Audit panel renders report, filters, sorting, and message expansion", asyn
 
   expect(addMessage.y).toBeLessThan(correction.y);
   expect(correction.y).toBeLessThan(removeMessage.y);
+  expect(costsBox.y).toBeGreaterThan(removeMessage.y);
 
   await expect(page.getByText("[Show more]")).toBeVisible();
   await page.getByText("[Show more]").first().click();
@@ -49,33 +68,39 @@ test("Audit panel renders report, filters, sorting, and message expansion", asyn
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("Audit panel keeps the close action in the primary row at narrow width", async ({ page }) => {
+test("Audit panel keeps the title action and controls in their rows at narrow width", async ({ page }) => {
   await page.setViewportSize({ width: 440, height: 900 });
   await page.goto("/?scenario=audit");
 
-  const primaryRow = page.locator("[data-audit-header-row='primary']");
+  const titleRow = page.locator("[data-audit-header-row='title']");
+  const controlsRow = page.locator("[data-audit-header-row='controls']");
+  const title = page.getByRole("heading", { name: "Audit Report" });
   const close = page.getByRole("button", { name: "Close preview" });
   const summary = page.getByText("Out of 3");
-  await expect(primaryRow).toBeVisible();
+  await expect(titleRow).toBeVisible();
+  await expect(controlsRow).toBeVisible();
+  await expect(title).toBeVisible();
   await expect(close).toBeVisible();
   await expect(summary).toBeVisible();
 
-  const primaryRowBox = await primaryRow.boundingBox();
+  const titleRowBox = await titleRow.boundingBox();
+  const controlsRowBox = await controlsRow.boundingBox();
+  const titleBox = await title.boundingBox();
   const closeBox = await close.boundingBox();
   const summaryBox = await summary.boundingBox();
-  expect(primaryRowBox).toBeTruthy();
+  expect(titleRowBox).toBeTruthy();
+  expect(controlsRowBox).toBeTruthy();
+  expect(titleBox).toBeTruthy();
   expect(closeBox).toBeTruthy();
   expect(summaryBox).toBeTruthy();
-  if (!primaryRowBox || !closeBox || !summaryBox) throw new Error("Expected narrow audit header layout in view.");
+  if (!titleRowBox || !controlsRowBox || !titleBox || !closeBox || !summaryBox) throw new Error("Expected narrow audit header layout in view.");
 
-  expect(closeBox.y).toBeGreaterThanOrEqual(primaryRowBox.y);
-  expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(
-    primaryRowBox.y + primaryRowBox.height,
-  );
-  expect(closeBox.x + closeBox.width).toBeGreaterThanOrEqual(
-    primaryRowBox.x + primaryRowBox.width - 1,
-  );
-  expect(summaryBox.y).toBeGreaterThan(closeBox.y);
+  expect(titleBox.y).toBeGreaterThanOrEqual(titleRowBox.y);
+  expect(closeBox.y).toBeGreaterThanOrEqual(titleRowBox.y);
+  expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(titleRowBox.y + titleRowBox.height);
+  expect(closeBox.x + closeBox.width).toBeGreaterThanOrEqual(titleRowBox.x + titleRowBox.width - 1);
+  expect(controlsRowBox.y).toBeGreaterThan(titleRowBox.y);
+  expect(summaryBox.y).toBeGreaterThanOrEqual(controlsRowBox.y);
   await expect(page).toHaveScreenshot("audit-narrow-close-row.png", { fullPage: true });
 });
 

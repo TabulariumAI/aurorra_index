@@ -2,16 +2,27 @@ import { ConfButton } from "aurorra-ui";
 import { useEffect, useId, useMemo, useState, type JSX } from "react";
 import { formatSelection } from "../data/addIndexData";
 import { addIndexStyles } from "../style/addIndexStyles";
-import type { AddIndexPanelProps, AddIndexWorkerError } from "../type/addIndex.types";
+import type { AddIndexPanelProps, AddIndexResponse, AddIndexWorkerClient, AddIndexWorkerError } from "../type/addIndex.types";
 import { createAddIndexWorkerClient } from "../worker/addIndexWorkerClient";
+
+async function waitForPatch(client: AddIndexWorkerClient, authToken: string, session: string, intervalMs: number, result: AddIndexResponse): Promise<void> {
+  let patch = result;
+  while (patch.status === "pending" || patch.status === "processing") {
+    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+    patch = await client.patchStatus(authToken, session, patch.version);
+  }
+  if (patch.status === "error") throw new Error(patch.data || "The refinement patch failed.");
+}
 
 export function AddIndexPanel({
   apiGatewayUrl,
   authToken,
+  intervalMs,
   onClose,
   onComplete,
   onError,
   onReadyChange,
+  segment,
   selection,
   session,
   workerClient,
@@ -45,12 +56,15 @@ export function AddIndexPanel({
   const submit = async () => {
     const request = {
       aspect: fields.type.trim(),
-      source: `P ${fields.page.trim()}  ${fields.source}`,
+      explanation: `P ${fields.page.trim()}  ${fields.source}`,
+      label: fields.type.trim(),
+      segment,
       value: fields.index,
     };
     onClose();
     try {
-      await client.addIndex(authToken, session, request);
+      const result = await client.addIndex(authToken, session, request);
+      await waitForPatch(client, authToken, session, intervalMs, result);
       onComplete({ ...request, session });
     } catch (submitError) {
       const failure = submitError as Error & {
@@ -70,7 +84,6 @@ export function AddIndexPanel({
 
   return (
     <section aria-label="Add selected index form" style={addIndexStyles.root}>
-      <h2 style={addIndexStyles.title}>Add selected index</h2>
       <div style={addIndexStyles.fields}>
         <div data-testid="add-index-field" style={addIndexStyles.field}>
           <label htmlFor={indexInputId} style={addIndexStyles.label}>Index</label>

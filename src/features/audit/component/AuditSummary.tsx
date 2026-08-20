@@ -4,10 +4,9 @@ import { auditStyles } from "../style/auditStyles";
 type AuditSummaryProps = {
   filtered: number;
   total: number;
-  costs: string[];
 };
 
-export function AuditSummary({ filtered, total, costs }: AuditSummaryProps): JSX.Element {
+export function AuditSummary({ filtered, total }: AuditSummaryProps): JSX.Element {
   return (
     <div style={auditStyles.summary}>
       <div style={auditStyles.summaryRow}>
@@ -16,11 +15,6 @@ export function AuditSummary({ filtered, total, costs }: AuditSummaryProps): JSX
           <span style={auditStyles.summaryBadgeLabel}>Out of {total}</span>
         </div>
       </div>
-      {costs.length > 0 ? (
-        <div style={auditStyles.summaryCosts}>
-          {costs.join(" ")}
-        </div>
-      ) : null}
     </div>
   );
 }

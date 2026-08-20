@@ -8,7 +8,7 @@ import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 const loadingLabel = "Retrieving metadata...";
 
 export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
-  const { callbacks, children, segments, session } = props;
+  const { batch, callbacks, children, segments, session } = props;
   const metadata = useMetadata(props);
   const ready = metadata.store.status === "success" || metadata.store.status === "error";
   const loading = metadata.store.status === "loading";
@@ -49,6 +49,7 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
           refine: true,
           reprocess: true,
         }}
+        batch={batch}
         callbacks={panelCallbacks}
         children={children}
         sections={{

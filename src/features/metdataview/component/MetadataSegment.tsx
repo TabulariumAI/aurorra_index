@@ -3,7 +3,7 @@ import { useState, type JSX, type ReactNode } from "react";
 import { segmentStyles } from "../style/metadataViewStyles";
 
 export function MetadataSegment({
-  action,
+  headerAction,
   children,
   count,
   shortcutKey,
@@ -11,7 +11,7 @@ export function MetadataSegment({
   open,
   title,
 }: {
-  action?: ReactNode;
+  headerAction?: ReactNode;
   children: ReactNode;
   count: number;
   shortcutKey?: string | null;
@@ -33,20 +33,20 @@ export function MetadataSegment({
 
   return (
     <Collapsible.Root onOpenChange={onOpenChange} open={open} style={segmentStyles.root}>
-      <Collapsible.Trigger asChild>
-        <button
-          onBlur={() => setHovered(false)}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={hovered && !open ? { ...segmentStyles.trigger(open), ...segmentStyles.triggerHover } : segmentStyles.trigger(open)}
-          type="button"
-        >
-          <span style={{ flex: "1 1 auto", minWidth: 0 }}>{titleNode}</span>
-          <span style={segmentStyles.count(open)}>{count}</span>
-        </button>
-      </Collapsible.Trigger>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={hovered && !open ? { ...segmentStyles.header(open), ...segmentStyles.headerHover } : segmentStyles.header(open)}
+      >
+        <Collapsible.Trigger asChild>
+          <button style={segmentStyles.trigger} type="button">
+            <span style={{ flex: "1 1 auto", minWidth: 0 }}>{titleNode}</span>
+          </button>
+        </Collapsible.Trigger>
+        {headerAction}
+        <span style={segmentStyles.count()}>{count}</span>
+      </div>
       <Collapsible.Content style={segmentStyles.contentShell}>
-        {action ? <div style={segmentStyles.actionLine(open)}>{action}</div> : null}
         <div style={segmentStyles.content}>{children}</div>
       </Collapsible.Content>
     </Collapsible.Root>

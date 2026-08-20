@@ -26,13 +26,6 @@ function normalizeText(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-function normalizePage(value: unknown): number | string {
-  if (value === null || value === undefined) return "";
-  const maybeNumber = Number(value);
-  if (Number.isFinite(maybeNumber)) return maybeNumber;
-  return normalizeText(value);
-}
-
 function normalizeDateRank(raw: string): number {
   const parsed = Date.parse(raw);
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
@@ -63,30 +56,30 @@ function normalizeUsage(value: unknown): { usage?: { costs: string[] } } {
 }
 
 function toAuditGap(raw: unknown): AuditGap | null {
-  if (Array.isArray(raw)) {
-    const [aspect, message, page, process, date, changeHint] = raw;
-    const normalized = {
-      aspect: normalizeText(aspect),
-      message: normalizeText(message),
-      page: normalizePage(page),
-      process: normalizeText(process),
-      date: normalizeText(date),
-      changeType: normalizeChangeType(changeHint || aspect),
-    };
-    return normalized.aspect || normalized.message ? normalized : null;
-  }
-
   if (!isObject(raw)) return null;
   const source = raw as Record<string, unknown>;
+  if (
+    typeof source.solution !== "string" ||
+    typeof source.explanation !== "string" ||
+    typeof source.page !== "string" ||
+    typeof source.owner !== "string" ||
+    typeof source.timestamp !== "string" ||
+    (typeof source.segment !== "string" && source.segment !== null)
+  ) return null;
+
+  const solution = normalizeText(source.solution);
+  const explanation = normalizeText(source.explanation);
+  if (!solution && !explanation) return null;
+
   const normalized = {
-    aspect: normalizeText(source.aspect),
-    message: normalizeText(source.message),
-    page: normalizePage(source.page),
-    process: normalizeText(source.process),
-    date: normalizeText(source.date),
-    changeType: normalizeChangeType(source.changeType ?? source.type ?? source.aspect),
+    solution: normalizeChangeType(solution),
+    explanation,
+    page: normalizeText(source.page),
+    owner: normalizeProcess(source.owner),
+    timestamp: normalizeText(source.timestamp),
+    segment: source.segment === null ? null : normalizeText(source.segment),
   };
-  return normalized.aspect || normalized.message ? normalized : null;
+  return normalized;
 }
 
 function changeTypeCounts(type: string): "add" | "correction" | "other" | "remove" {
@@ -146,16 +139,16 @@ function formatDate(value: string): string {
 
 function toGapView(gap: AuditGap): AuditGapView {
   return {
-    aspect: gap.aspect,
-    aspectLabel: aspectLabel(gap.changeType),
-    changeType: gap.changeType,
-    changeTypeLabel: changeTypeLabel(gap.changeType),
-    date: gap.date,
-    dateLabel: formatDate(gap.date),
-    message: gap.message,
+    aspect: gap.solution,
+    aspectLabel: aspectLabel(gap.solution),
+    changeType: gap.solution,
+    changeTypeLabel: changeTypeLabel(gap.solution),
+    date: gap.timestamp,
+    dateLabel: formatDate(gap.timestamp),
+    message: gap.explanation,
     page: gap.page,
-    process: gap.process,
-    processLabel: processLabel(gap.process),
+    process: gap.owner,
+    processLabel: processLabel(gap.owner),
   };
 }
 
@@ -166,19 +159,14 @@ function normalizeIncoming(report: unknown): AuditGap[] {
   const normalized = rawGaps
     .map(toAuditGap)
     .filter((entry): entry is AuditGap => entry !== null)
-    .map((entry) => ({
-      ...entry,
-      changeType: normalizeChangeType(entry.changeType),
-      process: normalizeProcess(entry.process),
-    }));
 
   return normalized
-    .map((entry) => ({ entry, rawDate: normalizeDateRank(entry.date) }))
+    .map((entry) => ({ entry, rawDate: normalizeDateRank(entry.timestamp) }))
     .sort((left, right) => {
       const byDate = right.rawDate - left.rawDate;
       if (byDate !== 0) return byDate;
-      const byAspect = left.entry.aspect.localeCompare(right.entry.aspect);
-      if (byAspect !== 0) return byAspect;
+      const bySolution = left.entry.solution.localeCompare(right.entry.solution);
+      if (bySolution !== 0) return bySolution;
       return String(left.entry.page).localeCompare(String(right.entry.page));
     })
     .map((entry) => entry.entry);
@@ -220,15 +208,15 @@ export function prepareAuditReport(raw: unknown, filters: AuditFilters): AuditRe
   };
 
   const filtered = report.gaps.filter((entry) => {
-    const passProcess = !hasProcessFilter || entry.process === selectedProcess;
-    const passChange = !hasChangeFilter || entry.changeType === selectedChangeType;
+    const passProcess = !hasProcessFilter || entry.owner === selectedProcess;
+    const passChange = !hasChangeFilter || entry.solution === selectedChangeType;
 
     if (passProcess) {
-      const key = changeTypeCounts(entry.changeType);
+      const key = changeTypeCounts(entry.solution);
       changeCounts[key] += 1;
     }
     if (passChange) {
-      const key = getProcessCountKey(entry.process);
+      const key = getProcessCountKey(entry.owner);
       processCounts[key] += 1;
     }
     return passProcess && passChange;

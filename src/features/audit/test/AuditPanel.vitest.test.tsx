@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auditStoreApi } from "../store/auditStore";
 import { AuditPanel } from "../component/AuditPanel";
@@ -7,28 +7,28 @@ import type { AuditReport, AuditWorkerClient } from "../type/audit.types";
 const report: AuditReport = {
   gaps: [
     {
-      aspect: "file",
-      changeType: "ADD",
-      date: "2026-01-03T12:00:00Z",
-      message: "Newest addition message",
-      page: 3,
-      process: "verification",
+      solution: "ADD",
+      explanation: "Newest addition message",
+      page: "3",
+      owner: "verification",
+      timestamp: "2026-01-03T12:00:00Z",
+      segment: "reference",
     },
     {
-      aspect: "cost",
-      changeType: "CORRECTION",
-      date: "2026-01-02T12:00:00Z",
-      message: `First half of a very long message that will be truncated when rendered because it is intentionally verbose and exceeds two hundred characters to exercise the show more and show less behavior used in the audit details panel with additional words added for length. It should be clearly longer than two hundred characters for reliable detection.`,
-      page: 2,
-      process: "enrichment",
+      solution: "CORRECTION",
+      explanation: `First half of a very long message that will be truncated when rendered because it is intentionally verbose and exceeds two hundred characters to exercise the show more and show less behavior used in the audit details panel with additional words added for length. It should be clearly longer than two hundred characters for reliable detection.`,
+      page: "2",
+      owner: "enrichment",
+      timestamp: "2026-01-02T12:00:00Z",
+      segment: null,
     },
     {
-      aspect: "remove",
-      changeType: "REMOVE",
-      date: "2026-01-01T12:00:00Z",
-      message: "Old remove message",
-      page: 1,
-      process: "user",
+      solution: "REMOVE",
+      explanation: "Old remove message",
+      page: "1",
+      owner: "user",
+      timestamp: "2026-01-01T12:00:00Z",
+      segment: "party",
     },
   ],
   usage: {
@@ -70,7 +70,7 @@ describe("AuditPanel", () => {
     expect(screen.queryByRole("button", { name: "Close preview" })).not.toBeInTheDocument();
   });
 
-  it("renders a fixed audit header with a separately scrolling report body", async () => {
+  it("renders the approved audit header, scrolling report body, and bottom usage cost", async () => {
     render(
       <AuditPanel
         apiGatewayUrl="https://api"
@@ -85,25 +85,33 @@ describe("AuditPanel", () => {
 
     await screen.findByText("Newest addition message");
     expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
-    expect(screen.queryByText("Audit report")).not.toBeInTheDocument();
+    const title = screen.getByRole("heading", { name: "Audit Report" });
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Out of 3")).toBeInTheDocument();
-    expect(screen.getByText("$1.66")).toHaveStyle({ color: "var(--background-main, #ffffff)" });
+    const costs = screen.getByText("$1.66");
+    expect(costs).toHaveStyle({ color: "var(--title-ink)" });
     expect(screen.getByText("Change type")).toBeInTheDocument();
     expect(screen.getByText("Process")).toBeInTheDocument();
+    expect(screen.queryByText("Audit gaps", { exact: true })).not.toBeInTheDocument();
     const header = document.querySelector("[data-audit-header]");
     const body = screen.getByRole("region", { name: "Audit report body" });
-    expect(header).toHaveStyle({ flex: "0 0 auto" });
+    expect(header).toHaveStyle({
+      background: "var(--white)",
+      flex: "0 0 auto",
+    });
     expect(body).toHaveStyle({
       flex: "1 1 auto",
       minHeight: "0",
       overflowY: "auto",
     });
     expect(header?.contains(body)).toBe(false);
-    const primaryRow = screen.getByRole("button", { name: "Close preview" }).closest("[data-audit-header-row='primary']");
-    expect(primaryRow).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Close preview" }).parentElement).toHaveStyle({ flex: "0 0 auto" });
-    expect(screen.getByText("Out of 3").closest("[data-audit-header-row='primary']")).toBeNull();
+    const titleRow = title.closest("[data-audit-header-row='title']");
+    const controlsRow = screen.getByLabelText("Change type").closest("[data-audit-header-row='controls']");
+    expect(titleRow).toBeTruthy();
+    expect(controlsRow).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Close preview" }).closest("[data-audit-header-row='title']")).toBe(titleRow);
+    expect(screen.getByText("Out of 3").closest("[data-audit-header-row='controls']")).toBe(controlsRow);
+    expect(body.lastElementChild).toBe(costs);
     expect(screen.getByText("Newest addition message")).toBeInTheDocument();
     expect(screen.getByText("Old remove message")).toBeInTheDocument();
     expect(screen.getByText("Addition (1)")).toBeInTheDocument();
@@ -132,5 +140,49 @@ describe("AuditPanel", () => {
     const showLess = screen.getByText("[Show less]");
     await showLess.click();
     expect(screen.getByText("[Show more]")).toBeInTheDocument();
+  });
+
+  it("keeps the approved header and omits the bottom cost when no usage cost exists", async () => {
+    render(
+      <AuditPanel
+        apiGatewayUrl="https://api"
+        authToken="token"
+        callbacks={{}}
+        onReadyChange={vi.fn()}
+        previewAction={previewAction}
+        session="session-1"
+        workerClient={client(vi.fn(async () => ({ gaps: [], usage: { costs: [] } })))}
+      />,
+    );
+
+    await screen.findByText("No gaps found.");
+    expect(screen.getByRole("heading", { name: "Audit Report" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
+    expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
+  });
+
+  it("filters GapEntry solution and owner through the existing controls", async () => {
+    render(
+      <AuditPanel
+        apiGatewayUrl="https://api"
+        authToken="token"
+        callbacks={{}}
+        onReadyChange={vi.fn()}
+        previewAction={previewAction}
+        session="session-1"
+        workerClient={client()}
+      />,
+    );
+
+    await screen.findByText("Newest addition message");
+    fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "REMOVE" } });
+    expect(screen.getByText("Old remove message")).toBeInTheDocument();
+    expect(screen.queryByText("Newest addition message")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Process"), { target: { value: "USER" } });
+    expect(screen.getByText("Old remove message")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Process"), { target: { value: "VERIFICATION" } });
+    expect(screen.getByText("No gaps found.")).toBeInTheDocument();
   });
 });

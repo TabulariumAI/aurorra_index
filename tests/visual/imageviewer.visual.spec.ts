@@ -106,7 +106,7 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   await expect(exitSelectMode).toHaveAttribute("aria-pressed", "true");
   await expect(exitSelectMode).toHaveAttribute("data-variant", "primary");
   await page.mouse.move(0, 0);
-  await expect(exitSelectMode).toHaveCSS("background-color", "rgb(6, 148, 148)");
+  await expect(exitSelectMode).toHaveCSS("background-color", "rgb(0, 139, 163)");
   await exitSelectMode.click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-draw-mode", "false");
   await expect(page.getByRole("button", { exact: true, name: "Select" })).toHaveAttribute("aria-pressed", "false");

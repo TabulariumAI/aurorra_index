@@ -7,12 +7,12 @@ import type { AuditReport, AuditWorkerClient, AuditWorkerError } from "../type/a
 const report: AuditReport = {
   gaps: [
     {
-      aspect: "ADD",
-      changeType: "ADD",
-      date: "2026-01-03T12:00:00Z",
-      message: "added row",
-      page: 1,
-      process: "VERIFICATION",
+      solution: "ADD",
+      explanation: "added row",
+      page: "1",
+      owner: "VERIFICATION",
+      timestamp: "2026-01-03T12:00:00Z",
+      segment: "party",
     },
   ],
 };

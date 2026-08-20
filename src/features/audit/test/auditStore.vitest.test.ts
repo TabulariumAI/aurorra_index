@@ -5,12 +5,12 @@ import type { AuditReport } from "../type/audit.types";
 const report: AuditReport = {
   gaps: [
     {
-      aspect: "file",
-      changeType: "ADD",
-      date: "2026-01-01",
-      message: "added",
-      page: 1,
-      process: "VERIFICATION",
+      solution: "ADD",
+      explanation: "added",
+      page: "1",
+      owner: "VERIFICATION",
+      timestamp: "2026-01-01",
+      segment: null,
     },
   ],
 };

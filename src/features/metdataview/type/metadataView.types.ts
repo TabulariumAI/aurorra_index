@@ -353,6 +353,7 @@ export type MetdataStoreState = {
 export type MetdataMetadataProps = {
   authToken: string | null;
   apiGatewayUrl: string;
+  batch: string;
   callbacks: MetdataMetadataCallbacks;
   choices: unknown;
   children?: ReactNode;

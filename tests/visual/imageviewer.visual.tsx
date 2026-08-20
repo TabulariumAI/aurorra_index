@@ -109,6 +109,7 @@ function VisualImageViewer() {
           <AddIndexPanel
             apiGatewayUrl={hostInput.apiGatewayUrl}
             authToken={hostInput.authToken}
+            intervalMs={0}
             onClose={() => addIndexStoreApi.getState().close()}
             onComplete={() => {
               stage.dataset.addIndexComplete = "true";
@@ -119,6 +120,7 @@ function VisualImageViewer() {
             onReadyChange={(ready) => {
               stage.dataset.addIndexReady = String(ready);
             }}
+            segment="party"
             selection={selection}
             session={hostInput.session}
           />

@@ -33,6 +33,7 @@ function renderPanel(status: "error" | "success") {
   return render(
     <MetadataPanel
       actions={{ confirm: false, drop: false, refine: false, reprocess: false }}
+      batch="Pending"
       callbacks={{}}
       choices={[{ level: 1, service: "PartyClauseIndexing" }]}
       confirmedCodes={new Set()}

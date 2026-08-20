@@ -61,6 +61,7 @@ describe("MetadataPanel capability mode", () => {
           refine: false,
           reprocess: false,
         }}
+        batch="Pending"
         callbacks={{ onPageClick }}
         choices={null}
         confirmedCodes={new Set()}
@@ -83,8 +84,8 @@ describe("MetadataPanel capability mode", () => {
     );
 
     expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Reprocess" })).not.toBeInTheDocument();
-    expect(screen.queryByText("Refine or Chat")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reprocess" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open AI chat" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fee Factors/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Fees/i })).not.toBeInTheDocument();
@@ -112,6 +113,7 @@ describe("MetadataPanel capability mode", () => {
           refine: false,
           reprocess: false,
         }}
+        batch="Pending"
         callbacks={{}}
         choices={null}
         confirmedCodes={new Set()}

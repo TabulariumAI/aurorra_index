@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
 
 export type AuditGap = {
-  aspect: string;
-  changeType: string;
-  date: string;
-  message: string;
-  page: number | string;
-  process: string;
+  solution: string;
+  explanation: string;
+  page: string;
+  owner: string;
+  timestamp: string;
+  segment: string | null;
 };
 
 export type AuditUsage = {

@@ -1,3 +1,5 @@
+import "../../../document_web/assets/root.css";
+
 const scenario = new URLSearchParams(window.location.search).get("scenario");
 
 if (scenario === "legal-gap") {

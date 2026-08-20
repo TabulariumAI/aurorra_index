@@ -7,7 +7,9 @@ export type AddIndexSelection = {
 
 export type AddIndexRequest = {
   aspect: string;
-  source: string;
+  explanation: string;
+  label: string;
+  segment: string;
   value: string;
 };
 
@@ -16,8 +18,9 @@ export type AddIndexComplete = AddIndexRequest & {
 };
 
 export type AddIndexResponse = {
-  accepted: true;
-  description: string;
+  data: string;
+  status: "completed" | "error" | "pending" | "processing";
+  version: number;
 };
 
 export type AddIndexWorkerError = {
@@ -31,15 +34,19 @@ export type AddIndexWorkerResult<T> =
   | { ok: true; data: T }
   | ({ ok: false } & AddIndexWorkerError);
 
-export type AddIndexWorkerCommand = AddIndexRequest & {
+type AddIndexWorkerBase = {
   apiBaseUrl: string;
   session: string;
   token: string;
-  type: "addIndex";
 };
+
+export type AddIndexWorkerCommand =
+  | (AddIndexWorkerBase & AddIndexRequest & { type: "addIndex" })
+  | (AddIndexWorkerBase & { type: "patchStatus"; version: number });
 
 export type AddIndexWorkerClient = {
   addIndex(token: string, session: string, request: AddIndexRequest): Promise<AddIndexResponse>;
+  patchStatus(token: string, session: string, version: number): Promise<AddIndexResponse>;
 };
 
 export type AddIndexWorkerConfig = {
@@ -59,6 +66,8 @@ export type AddIndexPanelProps = {
   onComplete(event: AddIndexComplete): void;
   onError(error: AddIndexWorkerError): void;
   onReadyChange(ready: boolean): void;
+  intervalMs: number;
+  segment: string;
   selection: AddIndexSelection;
   session: string;
   workerClient?: AddIndexWorkerClient;
