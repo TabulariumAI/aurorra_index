@@ -32,6 +32,8 @@ export function useMetadata({
   deferredState,
   intervalMs,
   refresh,
+  retryIntervalMs,
+  retryLimit,
   segments,
   session,
   workerClient,
@@ -47,7 +49,7 @@ export function useMetadata({
   const [confirmedCodes, setConfirmedCodes] = useState<Set<string>>(() => new Set());
   const [reprocessingSegment, setReprocessingSegment] = useState<string | null>(null);
   const refreshIdRef = useRef<number | null>(null);
-  const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
+  const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => indexStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
 
   useEffect(() => {
     callbacksRef.current = callbacks;
@@ -192,6 +194,7 @@ export function useMetadata({
     openSegment,
     reprocessingSegment,
     removedCodes,
+    retryAttempt: store.retryAttempt,
     selectedIndex,
     setSectionOpen,
     store,

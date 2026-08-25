@@ -102,7 +102,6 @@ function VisualImageViewer() {
         onReadyChange={(ready) => {
           stage.dataset.imageReady = String(ready);
         }}
-        previewAction={<button aria-label="Close preview" type="button">X</button>}
       />
       {selection ? (
         <div data-testid="add-index-host">

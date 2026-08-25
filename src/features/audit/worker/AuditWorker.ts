@@ -11,15 +11,26 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function reportFromPayload(payload: unknown): AuditWorkerResult<AuditReport> {
+async function reportFromPayload(payload: unknown): Promise<AuditWorkerResult<AuditReport>> {
   if (isObject(payload) && payload.status === "error") {
     return { ok: false, code: "audit_error", details: payload, error: String(payload.data || payload.error || "error") };
   }
-  if (isObject(payload) && typeof payload.data === "string") {
+  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
+    let response: Response;
     try {
-      return { ok: true, data: normalizeAuditReport(JSON.parse(payload.data)) };
+      response = await fetch(payload.data);
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+    if (!response.ok) {
+      const parsed = await parseResponse(response);
+      if (!parsed.ok) return parsed;
+      return parseError(parsed.data);
+    }
+    try {
+      return { ok: true, data: normalizeAuditReport(await response.json()) };
     } catch {
-      return { ok: false, code: "invalid_json", error: "Response data JSON could not be parsed." };
+      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
     }
   }
   if (isObject(payload) && isObject(payload.data)) {
@@ -107,7 +118,7 @@ export class AuditWorker {
     if (!parsed.ok) return parsed;
     if (!response.ok) return parseError(parsed.data);
 
-    return reportFromPayload(parsed.data.payload);
+    return await reportFromPayload(parsed.data.payload);
   }
 }
 

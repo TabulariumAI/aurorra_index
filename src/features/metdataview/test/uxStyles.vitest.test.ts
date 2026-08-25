@@ -148,10 +148,6 @@ describe("index styles", () => {
       border: "1px solid var(--border-card)",
       borderRadius: "var(--radius-card)",
     });
-    expect(auditStyles.header).toMatchObject({
-      background: "var(--white)",
-      borderBottom: "1px solid var(--border-card)",
-    });
     expect(auditStyles.body).toMatchObject({
       padding: "0 var(--panel-content-padding) 0.85rem",
       scrollbarColor: "#efefef transparent",

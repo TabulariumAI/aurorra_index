@@ -42,7 +42,6 @@ function client(loadReport = vi.fn(async () => report)): AuditWorkerClient {
   };
 }
 
-const previewAction = <button type="button">Close preview</button>;
 
 describe("AuditPanel", () => {
   beforeEach(() => {
@@ -58,16 +57,16 @@ describe("AuditPanel", () => {
         callbacks={{}}
         onLoaderChange={onLoaderChange}
         onReadyChange={vi.fn()}
-        previewAction={previewAction}
+        retryLimit={5}
+        retryIntervalMs={0}
         session="session-1"
         workerClient={client(vi.fn(() => new Promise(() => undefined)))}
       />,
     );
 
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving audit report..."]);
+    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving audit report...", "Attempt 1 of 5"]);
     expect(screen.queryByText("No gaps found.")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Close preview" })).not.toBeInTheDocument();
   });
 
   it("renders the approved audit header, scrolling report body, and bottom usage cost", async () => {
@@ -77,15 +76,14 @@ describe("AuditPanel", () => {
         authToken="token"
         callbacks={{}}
         onReadyChange={vi.fn()}
-        previewAction={previewAction}
+        retryLimit={5}
+        retryIntervalMs={0}
         session="session-1"
         workerClient={client()}
       />,
     );
 
     await screen.findByText("Newest addition message");
-    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
-    const title = screen.getByRole("heading", { name: "Audit Report" });
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Out of 3")).toBeInTheDocument();
     const costs = screen.getByText("$1.66");
@@ -93,24 +91,15 @@ describe("AuditPanel", () => {
     expect(screen.getByText("Change type")).toBeInTheDocument();
     expect(screen.getByText("Process")).toBeInTheDocument();
     expect(screen.queryByText("Audit gaps", { exact: true })).not.toBeInTheDocument();
-    const header = document.querySelector("[data-audit-header]");
     const body = screen.getByRole("region", { name: "Audit report body" });
-    expect(header).toHaveStyle({
-      background: "var(--white)",
-      flex: "0 0 auto",
-    });
     expect(body).toHaveStyle({
       flex: "1 1 auto",
       minHeight: "0",
       overflowY: "auto",
     });
-    expect(header?.contains(body)).toBe(false);
-    const titleRow = title.closest("[data-audit-header-row='title']");
-    const controlsRow = screen.getByLabelText("Change type").closest("[data-audit-header-row='controls']");
-    expect(titleRow).toBeTruthy();
-    expect(controlsRow).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Close preview" }).closest("[data-audit-header-row='title']")).toBe(titleRow);
-    expect(screen.getByText("Out of 3").closest("[data-audit-header-row='controls']")).toBe(controlsRow);
+    const controls = screen.getByLabelText("Change type").closest("[data-audit-controls]");
+    expect(controls).toBeTruthy();
+    expect(screen.getByText("Out of 3").closest("[data-audit-controls]")).toBe(controls);
     expect(body.lastElementChild).toBe(costs);
     expect(screen.getByText("Newest addition message")).toBeInTheDocument();
     expect(screen.getByText("Old remove message")).toBeInTheDocument();
@@ -126,7 +115,8 @@ describe("AuditPanel", () => {
         authToken="token"
         callbacks={{}}
         onReadyChange={vi.fn()}
-        previewAction={previewAction}
+        retryLimit={5}
+        retryIntervalMs={0}
         session="session-1"
         workerClient={client()}
       />,
@@ -149,15 +139,14 @@ describe("AuditPanel", () => {
         authToken="token"
         callbacks={{}}
         onReadyChange={vi.fn()}
-        previewAction={previewAction}
+        retryLimit={5}
+        retryIntervalMs={0}
         session="session-1"
         workerClient={client(vi.fn(async () => ({ gaps: [], usage: { costs: [] } })))}
       />,
     );
 
     await screen.findByText("No gaps found.");
-    expect(screen.getByRole("heading", { name: "Audit Report" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
   });
 
@@ -168,7 +157,8 @@ describe("AuditPanel", () => {
         authToken="token"
         callbacks={{}}
         onReadyChange={vi.fn()}
-        previewAction={previewAction}
+        retryLimit={5}
+        retryIntervalMs={0}
         session="session-1"
         workerClient={client()}
       />,

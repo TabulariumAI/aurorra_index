@@ -29,7 +29,6 @@ function client(loadReport = vi.fn(async () => report)): IqWorkerClient {
   };
 }
 
-const previewAction = <button type="button">Close preview</button>;
 
 describe("IqPanel", () => {
   beforeEach(() => {
@@ -39,21 +38,19 @@ describe("IqPanel", () => {
   it("reports loading to the host without package loading presentation", () => {
     const onLoaderChange = vi.fn();
     const onReadyChange = vi.fn();
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} previewAction={previewAction} session="session-1" workerClient={client(vi.fn(() => new Promise(() => undefined)))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(() => new Promise(() => undefined)))} />);
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(onReadyChange).toHaveBeenCalledWith(false);
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving IQ report..."]);
+    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving IQ report...", "Attempt 1 of 5"]);
     expect(screen.queryByText("No IQ report found.")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Close preview" })).not.toBeInTheDocument();
   });
 
   it("renders report summary, segment table, explanations, notes, and no dialog role", async () => {
     const onReadyChange = vi.fn();
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={onReadyChange} previewAction={previewAction} session="session-1" workerClient={client()} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={onReadyChange} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
 
     await waitFor(() => expect(screen.getByText("Indexing Quality (IQ)")).toBeInTheDocument());
     expect(onReadyChange).toHaveBeenLastCalledWith(true);
-    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByText("90%")).toBeInTheDocument();
     expect(screen.getByText("Indexing Segments (1)")).toBeInTheDocument();
     expect(screen.getByText("Segment")).toBeInTheDocument();
@@ -68,7 +65,7 @@ describe("IqPanel", () => {
 
   it("renders notes only when present", async () => {
     const noNotes = { ...report, explanation: [] };
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={vi.fn()} previewAction={previewAction} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={vi.fn()} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
 
     await waitFor(() => expect(screen.getByText("Indexing Quality (IQ)")).toBeInTheDocument());
     expect(screen.queryByText("Notes")).not.toBeInTheDocument();

@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
 export type IqUiStatus = "success" | "fail" | "warning" | "info";
 export type IqDecision = "Pass" | "Review" | "Reject";
@@ -84,6 +82,9 @@ export type IqWorkerCommand =
 
 export type IqWorkerConfig = {
   apiBaseUrl: string;
+  onRetry?(attempt: number): void;
+  retryIntervalMs: number;
+  retryLimit: number;
 };
 
 export type IqStartResult = {
@@ -112,8 +113,10 @@ export type IqWorkerClient = {
 export type LoadIqInput = {
   apiGatewayUrl: string;
   authToken: string;
+  retryIntervalMs: number;
   onError(error: IqWorkerError): void;
   pollIntervalMs?: number;
+  retryLimit: number;
   restart?: boolean;
   session: string;
   workerClient?: IqWorkerClient;
@@ -134,7 +137,8 @@ export type IqPanelProps = {
   callbacks: IqCallbacks;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
-  previewAction: ReactNode;
+  retryLimit: number;
+  retryIntervalMs: number;
   session: string;
   workerClient?: IqWorkerClient;
 };
@@ -144,6 +148,7 @@ export type IqStoreState = {
   ackingCodes: ReadonlySet<string>;
   error: IqWorkerError | null;
   report: IqReport | null;
+  retryAttempt: number;
   status: IqStatus;
   ackStart(code: string): void;
   ackSuccess(code: string): void;
@@ -151,5 +156,6 @@ export type IqStoreState = {
   setError(error: IqWorkerError): void;
   setLoaded(session: string, report: IqReport): void;
   setLoading(session: string): void;
+  setRetryAttempt(attempt: number): void;
   setRefreshing(session: string): void;
 };

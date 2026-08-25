@@ -6,8 +6,9 @@ const initialState = {
   ackingCodes: new Set<string>(),
   error: null,
   report: null,
+  retryAttempt: 0,
   status: "idle",
-} satisfies Pick<IqStoreState, "activeSession" | "ackingCodes" | "error" | "report" | "status">;
+} satisfies Pick<IqStoreState, "activeSession" | "ackingCodes" | "error" | "report" | "retryAttempt" | "status">;
 
 export const useIqStore = create<IqStoreState>()((set) => ({
   ...initialState,
@@ -38,16 +39,19 @@ export const useIqStore = create<IqStoreState>()((set) => ({
     });
   },
   setError(error) {
-    set({ error, status: "error" });
+    set({ error, retryAttempt: 0, status: "error" });
   },
   setLoaded(session, report) {
-    set({ activeSession: session, error: null, report, status: "success" });
+    set({ activeSession: session, error: null, report, retryAttempt: 0, status: "success" });
   },
   setLoading(session) {
-    set({ activeSession: session, error: null, status: "loading" });
+    set({ activeSession: session, error: null, retryAttempt: 1, status: "loading" });
   },
   setRefreshing(session) {
-    set({ activeSession: session, error: null, status: "refreshing" });
+    set({ activeSession: session, error: null, retryAttempt: 1, status: "refreshing" });
+  },
+  setRetryAttempt(retryAttempt) {
+    set({ retryAttempt });
   },
 }));
 

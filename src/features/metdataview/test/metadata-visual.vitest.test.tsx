@@ -202,18 +202,17 @@ describe("metadata visual surface", () => {
     expect(onDrop).toHaveBeenCalledOnce();
     expect(screen.queryByRole("button", { name: /^Confirm$/ })).not.toBeInTheDocument();
     expect(container.querySelector("[aria-label='Metadata']")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Deed" })).toBeInTheDocument();
-    const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
-    expect(header).toBeTruthy();
-    if (header) {
-      expect(header.parentElement).toHaveStyle({ display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: "0px", overflow: "hidden" });
-      expect(header).toHaveStyle({ flex: "0 0 auto", position: "static" });
-      expect(header).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
-      expect(header.children).toHaveLength(2);
-      expect(header.firstElementChild).toBe(screen.getByRole("heading", { level: 2, name: "Deed" }));
-      expect(header.lastElementChild).toHaveTextContent("Property Intake");
-      expect(header.lastElementChild).toHaveTextContent("session-1");
-      expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
+    const context = container.querySelector("[data-metadata-context='true']");
+    expect(context).toBeTruthy();
+    if (context) {
+      expect(context.parentElement).toHaveStyle({ display: "flex", flex: "1 1 auto", flexDirection: "column", minHeight: "0px", overflow: "hidden" });
+      expect(context).toHaveStyle({ flex: "0 0 auto", position: "static" });
+      expect(context).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
+      expect(context.children).toHaveLength(2);
+      expect(context.firstElementChild).toHaveTextContent("Deed");
+      expect(context.lastElementChild).toHaveTextContent("Property Intake");
+      expect(context.lastElementChild).toHaveTextContent("session-1");
+      expect(context.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
     }
 
     expect(screen.getByText("Property Intake")).toHaveStyle({ fontWeight: "700" });
@@ -224,7 +223,7 @@ describe("metadata visual surface", () => {
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     });
-    const title = screen.getByRole("heading", { level: 2, name: "Deed" });
+    const title = screen.getByText("Deed");
     expect(title).toHaveStyle({
       fontSize: "calc(var(--panel-title-size) * 1.15)",
       fontWeight: "var(--panel-title-weight)",

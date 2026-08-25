@@ -5,6 +5,7 @@ import type {
   MetdataWorkerConfig,
   MetadataPayload,
 } from "../type/metadataView.types";
+import { retryWorker } from "../../../shared/worker/retryWorker";
 
 type WorkerError = Error & {
   code?: string;
@@ -23,7 +24,7 @@ function resolveError(message: string, payload: unknown): WorkerError {
   return error;
 }
 
-async function runWorker<T>(command: unknown): Promise<T> {
+async function runWorkerOnce<T>(command: unknown): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const worker = new Worker(new URL("./metdataWorker.ts", import.meta.url), { type: "module" });
     let settled = false;
@@ -56,22 +57,23 @@ async function runWorker<T>(command: unknown): Promise<T> {
 }
 
 export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWorkerClient {
-  const { apiBaseUrl } = config;
+  const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
+  const runReadWorker = <T>(command: unknown) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
   return {
     confirmIndex(token, session, code) {
-      return runWorker<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "confirmIndex" });
+      return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "confirmIndex" });
     },
     dropIndex(token, session, code) {
-      return runWorker<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "dropIndex" });
+      return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "dropIndex" });
     },
     indexData(token, session) {
-      return runWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData" });
+      return runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData" });
     },
     patchStatus(token, session, version) {
-      return runWorker<MetdataPatchResult>({ apiBaseUrl, session, token, type: "patchStatus", version });
+      return runReadWorker<MetdataPatchResult>({ apiBaseUrl, session, token, type: "patchStatus", version });
     },
     reprocessSegment(token, session, segment) {
-      return runWorker<MetdataReprocessResult>({ apiBaseUrl, segment, session, token, type: "reprocessSegment" });
+      return runWorkerOnce<MetdataReprocessResult>({ apiBaseUrl, segment, session, token, type: "reprocessSegment" });
     },
   };
 }

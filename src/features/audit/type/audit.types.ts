@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
 
 export type AuditGap = {
@@ -74,6 +72,9 @@ export type AuditWorkerCommand =
 
 export type AuditWorkerConfig = {
   apiBaseUrl: string;
+  onRetry?(attempt: number): void;
+  retryIntervalMs: number;
+  retryLimit: number;
 };
 
 export type AuditWorkerClient = {
@@ -92,7 +93,8 @@ export type AuditPanelProps = {
   callbacks: AuditCallbacks;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
-  previewAction: ReactNode;
+  retryLimit: number;
+  retryIntervalMs: number;
   session: string;
   workerClient?: AuditWorkerClient;
 };
@@ -103,11 +105,13 @@ export type AuditStoreState = {
   report: AuditReport | null;
   refresh: { id: number; session: string } | null;
   refreshId: number;
+  retryAttempt: number;
   status: AuditStatus;
   refreshAudit(session: string): void;
   resetAudit(): void;
   setError(error: AuditWorkerError): void;
   setLoaded(session: string, report: AuditReport): void;
   setLoading(session: string): void;
+  setRetryAttempt(attempt: number): void;
   setRefreshing(session: string): void;
 };

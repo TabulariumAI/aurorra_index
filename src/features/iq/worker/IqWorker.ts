@@ -17,21 +17,32 @@ function validateReport(value: unknown): IqWorkerResult<IqReport> {
   return { ok: true, data: value as IqReport };
 }
 
-function reportFromPayload(payload: unknown): IqWorkerResult<IqReport> {
+async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqReport>> {
   if (isObject(payload) && payload.status === "error") {
     return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
   }
-  if (isObject(payload) && typeof payload.data === "string") {
+  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
+    let response: Response;
     try {
-      return validateReport(JSON.parse(payload.data));
+      response = await fetch(payload.data);
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+    if (!response.ok) {
+      const parsed = await parseResponse(response);
+      if (!parsed.ok) return parsed;
+      return httpError(parsed.data);
+    }
+    try {
+      return validateReport(await response.json());
     } catch {
-      return { ok: false, code: "invalid_json", error: "Response data JSON could not be parsed." };
+      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
     }
   }
-  return validateReport(payload);
+  return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
 }
 
-function pollFromPayload(payload: unknown): IqWorkerResult<IqPollResult> {
+async function pollFromPayload(payload: unknown): Promise<IqWorkerResult<IqPollResult>> {
   if (!isObject(payload)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid IQ status." };
   }
@@ -44,7 +55,7 @@ function pollFromPayload(payload: unknown): IqWorkerResult<IqPollResult> {
   if (payload.status !== "completed") {
     return { ok: false, code: "validation_error", error: "Response is not a valid IQ status." };
   }
-  const report = reportFromPayload(payload);
+  const report = await reportFromPayload(payload);
   if (!report.ok) return report;
   return { ok: true, data: { data: report.data, isComplete: true, status: "completed" } };
 }
@@ -156,8 +167,8 @@ export class IqWorker {
     if (!response.ok) return httpError(parsed.data);
     if (command.type === "iqStart") return { ok: true, data: startFromPayload(parsed.data.payload) };
     if (command.type === "iqAck") return { ok: true, data: ackFromPayload(parsed.data.payload) };
-    if (command.type === "iqPoll") return pollFromPayload(parsed.data.payload);
-    return reportFromPayload(parsed.data.payload);
+    if (command.type === "iqPoll") return await pollFromPayload(parsed.data.payload);
+    return await reportFromPayload(parsed.data.payload);
   }
 }
 

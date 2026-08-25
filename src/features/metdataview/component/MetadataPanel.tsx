@@ -70,7 +70,6 @@ export type MetadataPanelProps = {
   segments: MetdataSegmentValues;
   session: string;
   setSectionOpen: (segment: string, open: boolean) => void;
-  showHeader?: boolean;
   shortcuts: ReadonlyMap<string, string> | null;
   status: MetadataStatus;
   panelData: MetadataPanelData | null;
@@ -134,7 +133,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     selectedIndex,
     session,
     setSectionOpen,
-    showHeader,
     shortcuts,
     status,
     panelData,
@@ -241,15 +239,13 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     <Tooltip.Provider delayDuration={250}>
       <section aria-label="Metadata" style={metadataStyles.root}>
         <style>{metadataSpinnerCss}</style>
-        {showHeader !== false ? (
-          <header style={metadataStyles.header}>
-            <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
-            <div style={metadataStyles.headerInfo}>
-              <strong style={metadataStyles.batch}>{batch}</strong>
-              <span style={metadataStyles.session}>{session}</span>
-            </div>
-          </header>
-        ) : null}
+        <header data-metadata-context="true" style={metadataStyles.header}>
+          <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
+          <div style={metadataStyles.headerInfo}>
+            <strong style={metadataStyles.batch}>{batch}</strong>
+            <span style={metadataStyles.session}>{session}</span>
+          </div>
+        </header>
         <div aria-label="Metadata accordion" role="region" style={metadataStyles.accordion}>
         {isVisible(segments.PAGE) ? renderSegment(
           segments.PAGE,
@@ -306,10 +302,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {choiceVisible(segments.ENDORSEMENT, "endorsement") ? renderSegment(segments.ENDORSEMENT, "Record Endorsements", panelData.endorsements.length, rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.")) : null}
         {choiceVisible(segments.PARTY, "party") ? renderSegment(segments.PARTY, "Parties(Party Clause)", panelData.parties.length, rows(panelData.parties, segments.PARTY, "No parties found.")) : null}
         {choiceVisible(segments.REFERENCE, "reference") ? renderSegment(segments.REFERENCE, "References(Recital)", panelData.references.length, rows(panelData.references, segments.REFERENCE, "No references found.")) : null}
-        {choiceVisible(segments.PROPERTY, "property") ? renderSegment(segments.PROPERTY, "Property Terms(Exhibits)", panelData.properties.length, rows(panelData.properties, segments.PROPERTY, "No property Info found.")) : null}
+        {choiceVisible(segments.PROPERTY, "property") ? renderSegment(segments.PROPERTY, "Property(Exhibit)", panelData.properties.length, rows(panelData.properties, segments.PROPERTY, "No property Info found.")) : null}
         {choiceVisible(segments.LEGAL, "legal") ? renderSegment(
           segments.LEGAL,
-          "Legal Description",
+          "Legal Descriptions",
           legalGroups.length,
           <div>
             {metadata.legals?.summary ? <p style={legalSummaryStyle()}>{metadata.legals.summary}</p> : null}
@@ -366,7 +362,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             ) : <EmptyRow message="No legal descriptions found." />}
           </div>,
         ) : null}
-        {choiceVisible(segments.MONETARY, "monetary") ? renderSegment(segments.MONETARY, "Monetary Terms", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
+        {choiceVisible(segments.MONETARY, "monetary") ? renderSegment(segments.MONETARY, "Monetary", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
         {choiceVisible(segments.ACKNOWLEDGMENT, "acknowledgment") ? renderSegment(segments.ACKNOWLEDGMENT, "Notarial Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
         {choiceVisible(segments.TRANSACTION, "transaction") ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
         {choiceVisible(segments.VITAL, "vital") ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}

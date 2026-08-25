@@ -18,7 +18,7 @@ function lensProgressLabel(status: string): string {
   return "Loading...";
 }
 
-export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyChange, previewAction }: PanelProps): JSX.Element {
+export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyChange }: PanelProps): JSX.Element {
   useLayoutEffect(() => {
     if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
   }, [hostInput]);
@@ -101,7 +101,6 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
             if (action === "zoomOut") viewer.zoomOut();
           }}
           onSearchText={(value) => imageViewerStoreApi.getState().setSearchText(value)}
-          previewAction={previewAction}
           searchText={searchText}
           zoom={viewer.zoom}
         />

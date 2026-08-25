@@ -51,6 +51,8 @@ describe("PageSegmentsPanel", () => {
       />,
     );
 
+    expect(screen.getByRole("heading", { name: "Blank" })).toBeInTheDocument();
+    expect(screen.queryByText("Blank page")).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Referance(Rectal)" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Record Endorsements" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Submit" })).not.toBeInTheDocument();
@@ -100,7 +102,7 @@ describe("PageSegmentsPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Property(Exhibit)" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith({
@@ -113,13 +115,13 @@ describe("PageSegmentsPanel", () => {
       pageCode: "missing-page",
       session: "session-1",
     }));
-    expect(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Property(Exhibit)" })).toBeChecked();
     expect(screen.getByText("Page segment changes could not be saved. Please try again.")).toBeInTheDocument();
     expect(screen.queryByText(/Missing page/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByRole("checkbox", { name: "Referance(Rectal)" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Property(Exhibit)" })).not.toBeChecked();
   });
 
   it("fails without completion when the metadata cache update fails", async () => {
@@ -146,7 +148,7 @@ describe("PageSegmentsPanel", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Property(Exhibit)" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith({
@@ -226,7 +228,7 @@ describe("PageSegmentsPanel", () => {
     storeApi.getState().setJSON("session-1", splitMetadataJSON(metadata));
     render(<Harness />);
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Property Terms(Exhibit)" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Property(Exhibit)" }));
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => expect(screen.getByText("Page segment changes could not be saved. Please try again.")).toBeInTheDocument());

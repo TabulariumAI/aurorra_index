@@ -141,6 +141,26 @@ describe("AuditWorker", () => {
     });
   });
 
+  it("normalizes an object audit data envelope", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: auditFixture, status: "completed" })));
+
+    expect(await new AuditWorker().run({
+      apiBaseUrl: "x",
+      session: "session-1",
+      token: "token",
+      type: "auditData",
+    })).toEqual({
+      ok: true,
+      data: {
+        gaps: [
+          { solution: "REMOVE", explanation: "Remove index", page: "4", owner: "ENRICHMENT", timestamp: "2026-01-04T12:00:00Z", segment: "party" },
+          { solution: "ADD", explanation: "Add index", page: "1", owner: "VERIFICATION", timestamp: "2026-01-03T12:00:00Z", segment: null },
+        ],
+        usage: { costs: ["$0.9480"] },
+      },
+    });
+  });
+
   it("normalizes the complete GapEntry contract from a raw report response", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(auditFixture)));
 
@@ -163,11 +183,12 @@ describe("AuditWorker", () => {
     });
   });
 
-  it("unwraps completed audit data envelopes before normalization", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
-      data: JSON.stringify(auditFixture),
-      status: "completed",
-    })));
+  it("downloads and normalizes the audit Blob from the completed SAS URL", async () => {
+    const sasUrl = "https://storage.test/subscription/session/audit.json?sig=token";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse(auditFixture));
+    vi.stubGlobal("fetch", fetchMock);
 
     const result = await new AuditWorker().run({
       apiBaseUrl: "x",
@@ -180,9 +201,58 @@ describe("AuditWorker", () => {
     if (!result.ok) throw new Error(result.error);
     expect(result.data.gaps).toHaveLength(2);
     expect(result.data.usage).toEqual({ costs: ["$0.9480"] });
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "x/v1/index/session-1/audit", {
+      body: null,
+      headers: { Authorization: "Bearer token" },
+      method: "GET",
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, sasUrl);
   });
 
-  it("returns audit envelope errors and invalid data JSON failures", async () => {
+  it("returns the Blob download failure without normalizing it as an empty report", async () => {
+    const sasUrl = "https://storage.test/subscription/session/audit.json?sig=token";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ error: "SAS denied" }, { status: 403 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await new AuditWorker().run({
+      apiBaseUrl: "x",
+      session: "session-1",
+      token: "token",
+      type: "auditData",
+    })).toEqual({
+      ok: false,
+      details: { error: "SAS denied" },
+      error: "SAS denied",
+      status: 403,
+    });
+  });
+
+  it("returns invalid JSON from the audit Blob as a retrieval failure", async () => {
+    const sasUrl = "https://storage.test/subscription/session/audit.json?sig=token";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(new Response("{", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await new AuditWorker().run({
+      apiBaseUrl: "x",
+      session: "session-1",
+      token: "token",
+      type: "auditData",
+    })).toEqual({
+      ok: false,
+      code: "invalid_json",
+      error: "Response JSON could not be parsed.",
+      status: 200,
+    });
+  });
+
+  it("returns audit envelope errors", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
       data: "backend audit failure",
       status: "error",
@@ -199,19 +269,5 @@ describe("AuditWorker", () => {
       error: "backend audit failure",
     });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
-      data: "{",
-      status: "completed",
-    })));
-    expect(await new AuditWorker().run({
-      apiBaseUrl: "x",
-      session: "session-1",
-      token: "token",
-      type: "auditData",
-    })).toEqual({
-      ok: false,
-      code: "invalid_json",
-      error: "Response data JSON could not be parsed.",
-    });
   });
 });

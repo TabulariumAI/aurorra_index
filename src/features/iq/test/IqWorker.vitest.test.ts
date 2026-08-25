@@ -28,16 +28,20 @@ describe("IqWorker", () => {
   });
 
   it("sends bearer auth and expected request bodies", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ iq_doc: 97 }));
+    const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ iq_doc: 97, decision: "Pass", gates: [], segments: [], explanation: [] }));
     vi.stubGlobal("fetch", fetchMock);
 
     await new IqWorker().run({ apiBaseUrl: "https://doc.example.com", session: "session-1", token: "token", type: "iqData" });
 
-    expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/iq/session-1/data", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://doc.example.com/v1/iq/session-1/data", {
       body: null,
       headers: { Authorization: "Bearer token" },
       method: "GET",
     });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, sasUrl);
 
     fetchMock.mockResolvedValueOnce(jsonResponse({ status: "processing", data: "" }));
     await new IqWorker().run({ apiBaseUrl: "https://doc.example.com", session: "session-1", token: "token", type: "iqStart" });
@@ -79,7 +83,7 @@ describe("IqWorker", () => {
     });
   });
 
-  it("parses IQ data envelopes and IQ errors", async () => {
+  it("returns IQ data envelope errors", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ status: "error", data: "iq failed" })));
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData" })).toEqual({
       ok: false,
@@ -87,11 +91,45 @@ describe("IqWorker", () => {
       details: { status: "error", data: "iq failed" },
       error: "iq failed",
     });
+  });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ status: "completed", data: "{\"iq_doc\":97,\"decision\":\"Pass\",\"gates\":[],\"segments\":[],\"explanation\":[]}" })));
+  it("returns the IQ Blob download failure", async () => {
+    const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ error: "SAS denied" }, { status: 403 })));
+
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData" })).toEqual({
-      ok: true,
-      data: { iq_doc: 97, decision: "Pass", gates: [], segments: [], explanation: [] },
+      ok: false,
+      details: { error: "SAS denied" },
+      error: "SAS denied",
+      status: 403,
+    });
+  });
+
+  it("returns the IQ Blob network failure", async () => {
+    const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockRejectedValueOnce(new Error("Blob unavailable")));
+
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData" })).toEqual({
+      ok: false,
+      error: "Blob unavailable",
+    });
+  });
+
+  it("returns invalid JSON from the IQ Blob", async () => {
+    const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(new Response("{", { status: 200, headers: { "content-type": "application/json" } })));
+
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData" })).toEqual({
+      ok: false,
+      code: "invalid_json",
+      error: "Response JSON could not be parsed.",
+      status: 200,
     });
   });
 
@@ -110,7 +148,9 @@ describe("IqWorker", () => {
       data: { status: "processing", data: null, isComplete: false },
     });
 
-    fetchMock.mockResolvedValueOnce(jsonResponse({ status: "completed", data: "{\"iq_doc\":97,\"decision\":\"Pass\",\"gates\":[],\"segments\":[],\"explanation\":[]}" }));
+    const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ iq_doc: 97, decision: "Pass", gates: [], segments: [], explanation: [] }));
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqPoll" })).toEqual({
       ok: true,
       data: {
@@ -119,5 +159,6 @@ describe("IqWorker", () => {
         isComplete: true,
       },
     });
+    expect(fetchMock).toHaveBeenNthCalledWith(4, sasUrl);
   });
 });

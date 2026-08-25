@@ -7,6 +7,7 @@ export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
   error: null,
   refresh: null,
   refreshId: 0,
+  retryAttempt: 0,
   status: "idle",
   invalidateSession(session) {
     storeApi.getState().removeJSON(session);
@@ -27,6 +28,7 @@ export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
       error: null,
       refresh: null,
       refreshId: 0,
+      retryAttempt: 0,
       status: "idle",
     });
   },
@@ -40,13 +42,16 @@ export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
     });
   },
   setError(error) {
-    set({ error, status: "error" });
+    set({ error, retryAttempt: 0, status: "error" });
   },
   setLoaded(session) {
-    set({ activeSession: session, error: null, status: "success" });
+    set({ activeSession: session, error: null, retryAttempt: 0, status: "success" });
   },
   setLoading(session) {
-    set({ activeSession: session, error: null, status: "loading" });
+    set({ activeSession: session, error: null, retryAttempt: 1, status: "loading" });
+  },
+  setRetryAttempt(retryAttempt) {
+    set({ retryAttempt });
   },
 }));
 

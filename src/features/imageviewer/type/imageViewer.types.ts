@@ -1,5 +1,4 @@
 import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
-import type { ReactNode } from "react";
 import type { MetdataSelected } from "../../metdataview/type/metadataView.types";
 
 export type PageRequest = {
@@ -48,7 +47,6 @@ export type PanelProps = {
   hostInput?: HostInput;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
-  previewAction: ReactNode;
 };
 
 export type Status = "idle" | "packaging" | "polling" | "downloading" | "ready" | "error";

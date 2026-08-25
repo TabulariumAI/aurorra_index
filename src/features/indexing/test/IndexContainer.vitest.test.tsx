@@ -105,6 +105,8 @@ describe("IndexContainer", () => {
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
         intervalMs={0}
+        retryLimit={5}
+        retryIntervalMs={0}
         onLoaderChange={onLoaderChange}
         onReadyChange={onReadyChange}
         refresh={null}
@@ -126,7 +128,7 @@ describe("IndexContainer", () => {
     }
 
     expect(screen.queryByRole("progressbar", { name: "Metadata progress" })).not.toBeInTheDocument();
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving metadata..."]);
+    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving metadata...", "Attempt 1 of 5"]);
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
     expect(onReadyChange).toHaveBeenCalledWith(false);
     expect(onReadyChange).toHaveBeenLastCalledWith(true);
@@ -137,10 +139,10 @@ describe("IndexContainer", () => {
     expect(screen.getByRole("button", { name: /Record Endorsements/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Parties\(Party Clause\)/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /References\(Recital\)/i })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Property Terms\(Exhibits\)/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Property(Exhibit)" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Notarial Acknowledgment/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Transactional/i })).toBeVisible();
-    expect(screen.queryByRole("button", { name: /Monetary Terms/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Monetary/i })).not.toBeInTheDocument();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     if (header) {
@@ -238,6 +240,8 @@ describe("IndexContainer", () => {
         choices={choices}
         deferredState={createDeferredState()}
         intervalMs={0}
+        retryLimit={5}
+        retryIntervalMs={0}
         onReadyChange={vi.fn()}
         refresh={null}
         segments={segments}
@@ -288,6 +292,8 @@ describe("IndexContainer", () => {
       choices,
       deferredState: createDeferredState(),
       intervalMs: 0,
+      retryLimit: 5,
+      retryIntervalMs: 0,
       onReadyChange: vi.fn(),
       segments,
       session: "session-1",
@@ -323,6 +329,8 @@ describe("IndexContainer", () => {
         choices={choices}
         deferredState={createDeferredState()}
         intervalMs={0}
+        retryLimit={5}
+        retryIntervalMs={0}
         onReadyChange={vi.fn()}
         refresh={null}
         segments={segments}

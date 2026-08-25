@@ -1,4 +1,5 @@
 import type { AuditWorkerClient, AuditWorkerConfig, AuditWorkerResult } from "../type/audit.types";
+import { retryWorker } from "../../../shared/worker/retryWorker";
 
 type WorkerError = Error & {
   code?: string;
@@ -17,7 +18,7 @@ function resolveError(message: string, payload: unknown): WorkerError {
   return error;
 }
 
-function runWorker<T>(command: unknown): Promise<T> {
+function runWorkerOnce<T>(command: unknown): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const worker = new Worker(new URL("./AuditWorker.ts", import.meta.url), { type: "module" });
     let settled = false;
@@ -50,10 +51,11 @@ function runWorker<T>(command: unknown): Promise<T> {
 }
 
 export function createAuditWorkerClient(config: AuditWorkerConfig): AuditWorkerClient {
-  const { apiBaseUrl } = config;
+  const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
+  const runReadWorker = <T>(command: unknown) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
   return {
     loadReport(token, session) {
-      return runWorker({
+      return runReadWorker({
         apiBaseUrl,
         session,
         token,

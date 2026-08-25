@@ -23,7 +23,6 @@ function createClient(): AuditWorkerClient {
   };
 }
 
-const previewAction = <button type="button">Close preview</button>;
 
 describe("useAuditReport", () => {
   beforeEach(() => {
@@ -40,7 +39,8 @@ describe("useAuditReport", () => {
         authToken: "token",
         callbacks,
         onReadyChange: vi.fn(),
-        previewAction,
+        retryLimit: 5,
+        retryIntervalMs: 0,
         session: "session-1",
         workerClient: client,
       }),
@@ -64,7 +64,8 @@ describe("useAuditReport", () => {
         authToken: "token",
         callbacks,
         onReadyChange: vi.fn(),
-        previewAction,
+        retryLimit: 5,
+        retryIntervalMs: 0,
         session: "session-1",
         workerClient: client,
       }),
@@ -84,7 +85,8 @@ describe("useAuditReport", () => {
         authToken: "token",
         callbacks,
         onReadyChange: vi.fn(),
-        previewAction,
+        retryLimit: 5,
+        retryIntervalMs: 0,
         session: "session-1",
         workerClient: client,
       }),

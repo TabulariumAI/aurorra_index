@@ -4,7 +4,7 @@ test("page segments panel renders choices, updates actions, and shows success st
   await page.goto("/?scenario=pagesegments");
 
   const reference = page.getByRole("checkbox", { name: "Referance(Rectal)" });
-  const property = page.getByRole("checkbox", { name: "Property Terms(Exhibit)" });
+  const property = page.getByRole("checkbox", { name: "Property(Exhibit)" });
   const secrets = page.getByRole("checkbox", { name: "Confidential" });
   const endorsement = page.getByRole("checkbox", { name: "Record Endorsements" });
   const party = page.getByRole("checkbox", { name: "Party (Party Clause)" });
@@ -35,7 +35,7 @@ test("page segments panel surfaces update failure and keeps action state", async
   await page.goto("/?scenario=pagesegments-fail");
 
   const reference = page.getByRole("checkbox", { name: "Referance(Rectal)" });
-  const property = page.getByRole("checkbox", { name: "Property Terms(Exhibit)" });
+  const property = page.getByRole("checkbox", { name: "Property(Exhibit)" });
 
   await expect(reference).toBeChecked();
   await expect(property).toBeEnabled();

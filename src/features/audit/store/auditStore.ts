@@ -7,8 +7,9 @@ const initialState = {
   refresh: null,
   refreshId: 0,
   report: null,
+  retryAttempt: 0,
   status: "idle",
-} satisfies Pick<AuditStoreState, "activeSession" | "error" | "refresh" | "refreshId" | "report" | "status">;
+} satisfies Pick<AuditStoreState, "activeSession" | "error" | "refresh" | "refreshId" | "report" | "retryAttempt" | "status">;
 
 export const useAuditStore = create<AuditStoreState>()((set) => ({
   ...initialState,
@@ -28,20 +29,22 @@ export const useAuditStore = create<AuditStoreState>()((set) => ({
       refresh: null,
       refreshId: 0,
       report: null,
+      retryAttempt: 0,
       status: "idle",
     });
   },
   setError(error) {
-    set({ error, status: "error" });
+    set({ error, retryAttempt: 0, status: "error" });
   },
   setLoaded(session, report) {
-    set({ activeSession: session, error: null, report, status: "success" });
+    set({ activeSession: session, error: null, report, retryAttempt: 0, status: "success" });
   },
   setLoading(session) {
     set((state) => ({
       activeSession: session,
       error: null,
       report: state.report,
+      retryAttempt: 1,
       status: "loading",
     }));
   },
@@ -50,8 +53,12 @@ export const useAuditStore = create<AuditStoreState>()((set) => ({
       activeSession: session,
       error: null,
       report: state.report,
+      retryAttempt: 1,
       status: "refreshing",
     }));
+  },
+  setRetryAttempt(retryAttempt) {
+    set({ retryAttempt });
   },
 }));
 

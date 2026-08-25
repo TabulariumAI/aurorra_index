@@ -153,10 +153,7 @@ test("compact image viewer keeps the toolbar grid and image mode", async ({ page
   await expect(toolbar).toHaveCSS("padding-top", "8.8px");
   await expect(toolbar).toHaveCSS("padding-bottom", "8.8px");
   const primaryRow = toolbar.locator("[data-image-viewer-toolbar-row='primary']");
-  const close = page.getByRole("button", { name: "Close preview" });
   await expect(primaryRow).toBeVisible();
-  await expect(close).toBeVisible();
-  expect((await close.boundingBox())?.x).toBeGreaterThan((await primaryRow.boundingBox())?.x ?? 0);
   const lens = page.locator("[data-document-lens-host='true']");
   await expect(lens).toHaveAttribute("data-current-page", "2");
   await expect(page.locator("[aria-label='Image viewer footer toolbar']")).toBeVisible();
@@ -173,17 +170,11 @@ test("image viewer toolbar wraps without horizontal overflow", async ({ page }) 
   const toolbar = page.locator("[aria-label='Image viewer top toolbar']");
   const controls = page.locator("[aria-label='Image view controls']");
   const search = page.locator("[aria-label='Image text search']");
-  const close = page.getByRole("button", { name: "Close preview" });
   await expect(toolbar).toBeVisible();
   await expect(controls).toBeVisible();
   await expect(search).toBeVisible();
-  await expect(close).toBeVisible();
   expect(await toolbar.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   const controlsBox = await controls.boundingBox();
-  const closeBox = await close.boundingBox();
   const searchBox = await search.boundingBox();
-  expect(closeBox?.y).toBeGreaterThanOrEqual(controlsBox?.y ?? 0);
-  expect((closeBox?.y ?? 0) + (closeBox?.height ?? 0)).toBeLessThanOrEqual((controlsBox?.y ?? 0) + (controlsBox?.height ?? 0));
-  expect(closeBox?.x).toBeGreaterThan((controlsBox?.x ?? 0) + (controlsBox?.width ?? 0));
   expect(searchBox?.y).toBeGreaterThan((controlsBox?.y ?? 0));
 });

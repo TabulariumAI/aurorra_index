@@ -23,18 +23,6 @@ export const auditStyles = {
     textAlign: "left",
     width: "100%",
   } as CSSProperties,
-  header: {
-    background: "var(--white)",
-    borderBottom: "1px solid var(--border-card)",
-    boxSizing: "border-box",
-    display: "flex",
-    flex: "0 0 auto",
-    minHeight: "var(--panel-header-height)",
-    padding: "var(--panel-header-padding)",
-    position: "relative",
-    textAlign: "left",
-    width: "100%",
-  } as CSSProperties,
   body: {
     boxSizing: "border-box",
     flex: "1 1 auto",
@@ -89,30 +77,6 @@ export const auditStyles = {
     fontSize: "0.75rem",
     fontWeight: 300,
     opacity: "0.8",
-  } as CSSProperties,
-  panelHeader: {
-    display: "grid",
-    gap: "0.75rem",
-    width: "100%",
-  } as CSSProperties,
-  titleRow: {
-    alignItems: "center",
-    display: "flex",
-    gap: "0.75rem",
-    justifyContent: "space-between",
-    minWidth: 0,
-    width: "100%",
-  } as CSSProperties,
-  title: {
-    color: gapMetaPalette.header,
-    fontSize: "var(--panel-title-size)",
-    fontWeight: "var(--panel-title-weight)",
-    letterSpacing: "var(--panel-title-tracking)",
-    lineHeight: "var(--panel-title-line-height)",
-    margin: 0,
-  } as CSSProperties,
-  headerClose: {
-    flex: "0 0 auto",
   } as CSSProperties,
   controlsRow: {
     alignItems: "end",
@@ -208,7 +172,4 @@ export const auditStyles = {
     cursor: "pointer",
     textDecoration: "underline",
   } as CSSProperties,
-  noDialog: {
-    boxShadow: "none",
-  },
 } satisfies Record<string, CSSProperties | ((...args: AuditGapView[]) => CSSProperties)>;

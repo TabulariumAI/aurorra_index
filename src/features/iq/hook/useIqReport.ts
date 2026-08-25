@@ -8,12 +8,14 @@ export function useIqReport({
   apiGatewayUrl,
   authToken,
   callbacks,
+  retryLimit,
+  retryIntervalMs,
   session,
   workerClient,
 }: IqPanelProps) {
   const callbacksRef = useRef(callbacks);
   const store = useIqStore();
-  const client = useMemo(() => workerClient || createIqWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
+  const client = useMemo(() => workerClient || createIqWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => iqStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
   const report = store.report;
 
   useEffect(() => {
@@ -76,6 +78,7 @@ export function useIqReport({
     error: store.error,
     loadReport,
     report,
+    retryAttempt: store.retryAttempt,
     startReport,
     ackGate,
     status: store.status,

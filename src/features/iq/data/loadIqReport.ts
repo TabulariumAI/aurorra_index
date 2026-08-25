@@ -7,7 +7,7 @@ const DEFAULT_POLL_INTERVAL_MS = 1500;
 const activeLoads = new Map<string, Promise<void>>();
 
 async function runIqReport(input: LoadIqInput): Promise<void> {
-  const client = input.workerClient || createIqWorkerClient({ apiBaseUrl: input.apiGatewayUrl });
+  const client = input.workerClient || createIqWorkerClient({ apiBaseUrl: input.apiGatewayUrl, onRetry: (attempt) => iqStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs: input.retryIntervalMs, retryLimit: input.retryLimit });
   iqStoreApi.getState().setLoading(input.session);
   try {
     await client.startReport(input.authToken, input.session);

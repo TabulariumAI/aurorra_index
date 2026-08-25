@@ -69,7 +69,6 @@ import { ImageViewerPanel } from "../component/ImageViewerPanel";
 
 const directPackageRaw = readFileSync(path.join(process.cwd(), "src", "test", "package", "image-package.json"), "utf8");
 const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: string };
-const previewAction = <button type="button">Close preview</button>;
 const onReadyChange = vi.fn();
 
 describe("ImageViewerPanel", () => {
@@ -114,12 +113,11 @@ describe("ImageViewerPanel", () => {
       workerClient,
     });
 
-    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
 
     expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
     expect(onReadyChange).toHaveBeenCalledWith(false);
     await waitFor(() => expect(onLoaderChange).toHaveBeenCalledWith(["Backend is generating the image package"]));
-    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Image viewer" })).not.toHaveStyle({ border: "1px solid rgba(15, 23, 42, 0.18)" });
     expect(screen.getByRole("button", { name: /^Select$/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Export" })).toBeEnabled();
@@ -136,20 +134,20 @@ describe("ImageViewerPanel", () => {
   });
 
   it("keeps image mode when preview becomes compact", () => {
-    const view = render(<ImageViewerPanel compact onReadyChange={onReadyChange} previewAction={previewAction} />);
+    const view = render(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
 
     expect(screen.getByLabelText("Image viewer footer toolbar")).toBeVisible();
     expect(showThumbnails).not.toHaveBeenCalled();
 
-    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} previewAction={previewAction} />);
+    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
     expect(showThumbnails).not.toHaveBeenCalled();
 
     viewerPage = 3;
-    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} previewAction={previewAction} />);
+    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
     expect(showThumbnails).not.toHaveBeenCalled();
 
-    view.rerender(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
-    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} previewAction={previewAction} />);
+    view.rerender(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
     expect(showThumbnails).not.toHaveBeenCalled();
   });
 
@@ -166,7 +164,7 @@ describe("ImageViewerPanel", () => {
       session: "session-1",
     });
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     fireEvent.click(screen.getByRole("button", { name: /^Select$/ }));
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
@@ -204,12 +202,12 @@ describe("ImageViewerPanel", () => {
       workerClient,
     });
 
-    const view = render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    const view = render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
     view.unmount();
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument());
     expect(workerClient.packageImage).toHaveBeenCalledTimes(1);
@@ -242,7 +240,7 @@ describe("ImageViewerPanel", () => {
     });
     imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" });
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
     expect(workerClient.imageData).toHaveBeenCalledTimes(1);
@@ -270,7 +268,7 @@ describe("ImageViewerPanel", () => {
       workerClient,
     });
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
     expect(workerClient.imageStatus).not.toHaveBeenCalled();
@@ -299,7 +297,7 @@ describe("ImageViewerPanel", () => {
       workerClient,
     });
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
     expect(workerClient.imageStatus).not.toHaveBeenCalled();
@@ -332,7 +330,7 @@ describe("ImageViewerPanel", () => {
     } as unknown as ViewerState);
     imageViewerStoreApi.getState().setReady();
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
     expect(workerClient.imageStatus).not.toHaveBeenCalled();
@@ -364,7 +362,7 @@ describe("ImageViewerPanel", () => {
     });
     imageViewerStoreApi.getState().setStatus("ready");
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
     expect(workerClient.imageData).toHaveBeenCalledTimes(1);
@@ -395,7 +393,7 @@ describe("ImageViewerPanel", () => {
       workerClient,
     });
 
-    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({
       code: "invalid_image_package",
@@ -410,7 +408,7 @@ describe("ImageViewerPanel", () => {
     imageViewerStoreApi.setState({ viewerStatus: "loadingPage" });
     const onLoaderChange = vi.fn();
 
-    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
 
     expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
     expect(document.querySelector("[data-document-lens-host='true']")).toBeInTheDocument();
@@ -422,7 +420,7 @@ describe("ImageViewerPanel", () => {
     imageViewerStoreApi.setState({ viewerStatus: "loadingPage" });
     const onLoaderChange = vi.fn();
 
-    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
 
     expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
     expect(onLoaderChange).toHaveBeenLastCalledWith(["Decoding document page..."]);
@@ -433,7 +431,7 @@ describe("ImageViewerPanel", () => {
     imageViewerStoreApi.setState({ viewerStatus: "copyingSelection" });
     const onLoaderChange = vi.fn();
 
-    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} previewAction={previewAction} />);
+    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
 
     expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
     expect(onLoaderChange).toHaveBeenLastCalledWith(["Copying selection..."]);

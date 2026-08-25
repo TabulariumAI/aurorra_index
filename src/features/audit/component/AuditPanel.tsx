@@ -8,10 +8,12 @@ import { AuditSummary } from "./AuditSummary";
 import { auditStyles } from "../style/auditStyles";
 
 const initialFilters: AuditFiltersState = { changeType: "", process: "" };
-const loadingLabel = "Retrieving audit report...";
+function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
+  return ["Retrieving audit report...", `Attempt ${attempt} of ${retryLimit}`];
+}
 
 export function AuditPanel(props: AuditPanelProps): JSX.Element {
-  const { report, status, error } = useAuditReport(props);
+  const { report, retryAttempt, status, error } = useAuditReport(props);
   const [filters, setFilters] = useState(initialFilters);
   const loading = status === "loading" || status === "refreshing";
   const view = report ? prepareAuditReport(report, filters) : null;
@@ -21,29 +23,21 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
   }, [loading, props.onReadyChange, status]);
 
   useEffect(() => {
-    props.onLoaderChange?.(loading ? [loadingLabel] : null);
-  }, [loading, props.onLoaderChange]);
+    props.onLoaderChange?.(loading ? loadingLabel(retryAttempt, props.retryLimit) : null);
+  }, [loading, props.onLoaderChange, props.retryLimit, retryAttempt]);
 
   return (
     <section aria-label="Audit panel" style={auditStyles.root}>
-      {!loading ? <header data-audit-header style={auditStyles.header}>
-        <div style={auditStyles.panelHeader}>
-          <div data-audit-header-row="title" style={auditStyles.titleRow}>
-            <h2 style={auditStyles.title}>Audit Report</h2>
-            <div style={auditStyles.headerClose}>{props.previewAction}</div>
-          </div>
-          {view ? <div data-audit-header-row="controls" style={auditStyles.controlsRow}>
+      {!loading ? <div aria-label="Audit report body" role="region" style={auditStyles.body}>
+        {view ? <>
+          <div data-audit-controls style={auditStyles.controlsRow}>
             <AuditFilters
               filters={filters}
               onFiltersChange={setFilters}
               report={view}
             />
             <AuditSummary filtered={view.filtered} total={view.total} />
-          </div> : null}
-        </div>
-      </header> : null}
-      {!loading ? <div aria-label="Audit report body" role="region" style={auditStyles.body}>
-        {view ? <>
+          </div>
           {view.gaps.length > 0 ? (
             <AuditGaps gaps={view.gaps} />
           ) : (

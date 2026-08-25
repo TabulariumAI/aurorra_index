@@ -21,7 +21,6 @@ function createClient(): IqWorkerClient {
   };
 }
 
-const previewAction = <button type="button">Close preview</button>;
 
 describe("useIqReport", () => {
   beforeEach(() => {
@@ -32,7 +31,7 @@ describe("useIqReport", () => {
     const client = createClient();
     const callbacks = { onIqLoaded: vi.fn() };
 
-    renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), previewAction, session: "session-1", workerClient: client }));
+    renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1"));
     expect(iqStoreApi.getState().report).toEqual(report);
@@ -42,7 +41,7 @@ describe("useIqReport", () => {
   it("refreshes and starts reports", async () => {
     const client = createClient();
     const callbacks = { onIqRefresh: vi.fn(), onIqStarted: vi.fn() };
-    const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), previewAction, session: "session-1", workerClient: client }));
+    const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(client.loadReport).toHaveBeenCalledTimes(1));
     await act(async () => {
@@ -57,7 +56,7 @@ describe("useIqReport", () => {
   it("acks a gate, removes it from store, and calls onIqAck", async () => {
     const client = createClient();
     const callbacks = { onIqAck: vi.fn() };
-    const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), previewAction, session: "session-1", workerClient: client }));
+    const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(iqStoreApi.getState().report).toEqual(report));
     await act(async () => {
@@ -73,7 +72,7 @@ describe("useIqReport", () => {
     const client = createClient();
     vi.mocked(client.loadReport).mockRejectedValueOnce(Object.assign(new Error("load failed"), { code: "load_error", status: 500 }));
     const callbacks = { onIqError: vi.fn(), onIqCanceled: vi.fn() };
-    const { unmount } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), previewAction, session: "session-1", workerClient: client }));
+    const { unmount } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(callbacks.onIqError).toHaveBeenCalledWith({ code: "load_error", details: undefined, error: "load failed", status: 500 }));
     unmount();

@@ -1,7 +1,7 @@
 import { ConfButton } from "aurorra-ui";
 import * as Popover from "@radix-ui/react-popover";
 import { useState } from "react";
-import type { FormEvent, JSX, ReactNode } from "react";
+import type { FormEvent, JSX } from "react";
 import { imageViewerStyles } from "../style/imageViewerStyles";
 
 type TopAction = "actualSize" | "clearSearch" | "export" | "fitHeight" | "fitPage" | "fitWidth" | "search" | "select" | "zoomIn" | "zoomOut";
@@ -22,7 +22,6 @@ type TopProps = {
   selecting: boolean;
   onAction(action: TopAction): void;
   onSearchText(value: string): void;
-  previewAction: ReactNode;
   searchText: string;
   zoom: number | undefined;
 };
@@ -104,7 +103,6 @@ export function ImageViewerTopToolbar({
   selecting,
   onAction,
   onSearchText,
-  previewAction,
   searchText,
   zoom,
 }: TopProps): JSX.Element {
@@ -205,14 +203,11 @@ export function ImageViewerTopToolbar({
         }} />
     </form>
   );
-  const closeAction = <div style={imageViewerStyles.previewAction}>{previewAction}</div>;
-
   if (compact) {
     return (
       <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbarCompact}>
         <div data-image-viewer-toolbar-row="primary" style={imageViewerStyles.compactTopRow}>
           {viewControls}
-          {closeAction}
         </div>
         {searchControls}
       </div>
@@ -223,7 +218,6 @@ export function ImageViewerTopToolbar({
     <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbar}>
       {viewControls}
       {searchControls}
-      {closeAction}
     </div>
   );
 }

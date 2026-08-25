@@ -41,8 +41,10 @@ describe("loadIqReport", () => {
     await loadIqReport({
       apiGatewayUrl: "https://api",
       authToken: "token",
+      retryIntervalMs: 0,
       onError: vi.fn(),
       pollIntervalMs: 0,
+      retryLimit: 5,
       session: "session-1",
       workerClient: client,
     });
@@ -59,8 +61,10 @@ describe("loadIqReport", () => {
     const input = {
       apiGatewayUrl: "https://api",
       authToken: "token",
+      retryIntervalMs: 0,
       onError: vi.fn(),
       pollIntervalMs: 0,
+      retryLimit: 5,
       session: "session-1",
       workerClient: client,
     };
@@ -79,8 +83,10 @@ describe("loadIqReport", () => {
     const input = {
       apiGatewayUrl: "https://api",
       authToken: "token",
+      retryIntervalMs: 0,
       onError: vi.fn(),
       pollIntervalMs: 0,
+      retryLimit: 5,
       session: "session-1",
       workerClient: client,
     };
@@ -100,8 +106,10 @@ describe("loadIqReport", () => {
     const input = {
       apiGatewayUrl: "https://api",
       authToken: "token",
+      retryIntervalMs: 0,
       onError: vi.fn(),
       pollIntervalMs: 0,
+      retryLimit: 5,
       session: "session-1",
       workerClient: client,
     };
@@ -125,7 +133,9 @@ describe("loadIqReport", () => {
     await loadIqReport({
       apiGatewayUrl: "https://api",
       authToken: "token",
+      retryIntervalMs: 0,
       onError,
+      retryLimit: 5,
       session: "session-1",
       workerClient: client,
     });

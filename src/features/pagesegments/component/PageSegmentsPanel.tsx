@@ -103,7 +103,7 @@ export function PageSegmentsPanel({
 
   return (
     <section aria-label="Page Segments" style={pageSegmentsStyles.root}>
-      <h2 id="pageSegmentsTitle" style={pageSegmentsStyles.title}>{formatLabel(pageClass)} page</h2>
+      <h2 id="pageSegmentsTitle" style={pageSegmentsStyles.title}>{formatLabel(pageClass)}</h2>
       <label htmlFor="pageBlankToggle" style={pageSegmentsStyles.blankRow}>
         <Checkbox.Root
           checked={blankChecked}

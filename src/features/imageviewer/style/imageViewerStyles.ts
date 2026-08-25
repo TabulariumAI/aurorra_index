@@ -94,12 +94,6 @@ export const imageViewerStyles = {
     paddingLeft: "0.5rem",
     borderLeft: "1px solid var(--border-subtle)",
   },
-  previewAction: {
-    alignItems: "center",
-    display: "flex",
-    flex: "0 0 auto",
-    justifyContent: "flex-end",
-  },
   footerToolbar: {
     display: "flex",
     alignItems: "center",

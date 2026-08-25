@@ -24,6 +24,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   const quoteButton = page.getByRole("button", { name: "Expand quote" });
   const value = row.getByRole("link");
   const valueButton = row.getByRole("button", { name: "Expand index value" });
+  const propertyTrigger = accordion.getByRole("button", { name: "Property(Exhibit)" });
   const segmentTrigger = accordion.getByRole("button", { name: /Parties\(Party Clause\)/i });
   const segmentHeader = segmentTrigger.locator("..");
   const reprocessButton = segmentHeader.getByRole("button", { name: "Reprocess" });
@@ -35,6 +36,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
 
   await expect(header).toHaveCSS("position", "static");
   await expect(accordion).toHaveCSS("overflow-y", "auto");
+  await expect(propertyTrigger).toBeVisible();
   await expect(footer).toHaveCSS("height", "0px");
   await expect(footer).toHaveCSS("overflow", "hidden");
   await expect(row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Explanation:" })).toBeVisible();

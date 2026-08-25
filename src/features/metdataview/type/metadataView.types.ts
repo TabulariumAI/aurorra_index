@@ -331,6 +331,9 @@ export type MetdataWorkerClient = {
 
 export type MetdataWorkerConfig = {
   apiBaseUrl: string;
+  onRetry?(attempt: number): void;
+  retryIntervalMs: number;
+  retryLimit: number;
 };
 
 export type MetadataStatus = "idle" | "loading" | "success" | "error";
@@ -340,11 +343,13 @@ export type MetdataStoreState = {
   error: MetdataWorkerError | null;
   refresh: MetdataMetadataRefresh | null;
   refreshId: number;
+  retryAttempt: number;
   status: MetadataStatus;
   refreshMetadata(session: string, segment: string): void;
   setError(error: MetdataWorkerError): void;
   setLoaded(session: string): void;
   setLoading(session: string): void;
+  setRetryAttempt(attempt: number): void;
   resetMetadata(): void;
   resetView(): void;
   invalidateSession(session: string): void;
@@ -362,6 +367,8 @@ export type MetdataMetadataProps = {
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
   refresh: MetdataMetadataRefresh | null;
+  retryLimit: number;
+  retryIntervalMs: number;
   segments: MetdataSegmentValues;
   session: string;
   workerClient?: MetdataWorkerClient;

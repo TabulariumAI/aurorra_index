@@ -5,7 +5,9 @@ import type { MetdataActionPayload, MetdataMetadataProps } from "../../metdatavi
 import { metadataStyles } from "../../metdataview/style/metadataViewStyles";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 
-const loadingLabel = "Retrieving metadata...";
+function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
+  return ["Retrieving metadata...", `Attempt ${attempt} of ${retryLimit}`];
+}
 
 export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
   const { batch, callbacks, children, segments, session } = props;
@@ -18,8 +20,8 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
   }, [props.onReadyChange, ready]);
 
   useEffect(() => {
-    props.onLoaderChange?.(loading ? [loadingLabel] : null);
-  }, [loading, props.onLoaderChange]);
+    props.onLoaderChange?.(loading ? loadingLabel(metadata.retryAttempt, props.retryLimit) : null);
+  }, [loading, metadata.retryAttempt, props.onLoaderChange, props.retryLimit]);
   const panelCallbacks = {
     ...callbacks,
     onPageClick: callbacks.onPageClick
@@ -60,7 +62,6 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
         segments={segments}
         session={session}
         shortcuts={null}
-        showHeader
         status={metadata.store.status}
         {...metadata}
       />

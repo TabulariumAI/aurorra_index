@@ -1,4 +1,5 @@
 import type { IqWorkerClient, IqWorkerConfig } from "../type/iq.types";
+import { retryWorker } from "../../../shared/worker/retryWorker";
 
 type WorkerError = Error & {
   code?: string;
@@ -17,7 +18,7 @@ function resolveError(message: string, payload: unknown): WorkerError {
   return error;
 }
 
-async function runWorker<T>(command: unknown): Promise<T> {
+async function runWorkerOnce<T>(command: unknown): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const worker = new Worker(new URL("./IqWorker.ts", import.meta.url), { type: "module" });
     let settled = false;
@@ -50,19 +51,20 @@ async function runWorker<T>(command: unknown): Promise<T> {
 }
 
 export function createIqWorkerClient(config: IqWorkerConfig): IqWorkerClient {
-  const { apiBaseUrl } = config;
+  const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
+  const runReadWorker = <T>(command: unknown) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
   return {
     ackGate(token, session, code) {
-      return runWorker({ apiBaseUrl, code, session, token, type: "iqAck" });
+      return runWorkerOnce({ apiBaseUrl, code, session, token, type: "iqAck" });
     },
     loadReport(token, session) {
-      return runWorker({ apiBaseUrl, session, token, type: "iqData" });
+      return runReadWorker({ apiBaseUrl, session, token, type: "iqData" });
     },
     pollReport(token, session) {
-      return runWorker({ apiBaseUrl, session, token, type: "iqPoll" });
+      return runReadWorker({ apiBaseUrl, session, token, type: "iqPoll" });
     },
     startReport(token, session) {
-      return runWorker({ apiBaseUrl, session, token, type: "iqStart" });
+      return runWorkerOnce({ apiBaseUrl, session, token, type: "iqStart" });
     },
   };
 }

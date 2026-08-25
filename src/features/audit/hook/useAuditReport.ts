@@ -28,11 +28,13 @@ export function useAuditReport({
   apiGatewayUrl,
   authToken,
   callbacks,
+  retryLimit,
+  retryIntervalMs,
   session,
   workerClient,
 }: AuditPanelProps) {
   const callbacksRef = useRef(callbacks);
-  const client = useMemo(() => workerClient || createAuditWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
+  const client = useMemo(() => workerClient || createAuditWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => auditStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
   const store = useAuditStore();
 
   useEffect(() => {
@@ -61,6 +63,7 @@ export function useAuditReport({
   return {
     error: store.error,
     report: store.report,
+    retryAttempt: store.retryAttempt,
     status: store.status,
   };
 }

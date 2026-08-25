@@ -29,7 +29,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={onAction}
         onSearchText={vi.fn()}
-        previewAction={<button type="button">Close preview</button>}
         searchText="Cedar"
         zoom={1}
       />,
@@ -39,20 +38,16 @@ describe("ImageViewerToolbar", () => {
     expect(screen.getByLabelText("Image view controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Scale controls")).toBeInTheDocument();
     expect(screen.getByLabelText("Current scale")).toHaveTextContent("100%");
-    expect(screen.getByRole("button", { name: "Close preview" })).toBeInTheDocument();
     expect(screen.getByRole("searchbox", { name: "Search image text" })).toHaveAttribute("placeholder", "Search image text");
     const toolbar = screen.getByLabelText("Image viewer top toolbar");
-    const close = screen.getByRole("button", { name: "Close preview" });
     const searchForm = screen.getByLabelText("Image text search");
     expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto" });
     expect(searchForm).toHaveStyle({ maxWidth: "none", minWidth: "0", width: "100%" });
     expect(screen.getByLabelText("Image view controls").parentElement).toBe(toolbar);
     expect(searchForm.parentElement).toBe(toolbar);
-    expect(close.parentElement?.parentElement).toBe(toolbar);
     expect(
       screen.getByLabelText("Image view controls").compareDocumentPosition(searchForm),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(searchForm.compareDocumentPosition(close)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     const searchBox = screen.getByRole("searchbox", { name: "Search image text" });
     const search = screen.getByRole("button", { name: "Search" });
     const select = screen.getByRole("button", { name: /^Select$/ });
@@ -120,7 +115,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={vi.fn()}
         onSearchText={vi.fn()}
-        previewAction={<button type="button">Close preview</button>}
         searchText=""
         zoom={1}
       />,
@@ -131,7 +125,6 @@ describe("ImageViewerToolbar", () => {
     expect(toolbar).toHaveStyle({ display: "grid" });
     expect(primaryRow).toHaveStyle({ display: "flex", justifyContent: "space-between" });
     expect(screen.getByLabelText("Image view controls").parentElement).toBe(primaryRow);
-    expect(screen.getByRole("button", { name: "Close preview" }).parentElement?.parentElement).toBe(primaryRow);
     expect(screen.getByLabelText("Image text search").parentElement).toBe(toolbar);
   });
 
@@ -154,7 +147,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={onAction}
         onSearchText={onSearchText}
-        previewAction={null}
         searchText="Cedar"
         zoom={1}
       />,
@@ -190,7 +182,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={vi.fn()}
         onSearchText={vi.fn()}
-        previewAction={null}
         searchText=""
         zoom={0.5}
       />,
@@ -219,7 +210,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={vi.fn()}
         onSearchText={vi.fn()}
-        previewAction={null}
         searchText=""
         zoom={1}
       />,
@@ -247,7 +237,6 @@ describe("ImageViewerToolbar", () => {
         selecting
         onAction={onAction}
         onSearchText={vi.fn()}
-        previewAction={null}
         searchText=""
         zoom={1}
       />,
@@ -282,7 +271,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={onAction}
         onSearchText={vi.fn()}
-        previewAction={null}
         searchText="  "
         zoom={1}
       />,
@@ -316,7 +304,6 @@ describe("ImageViewerToolbar", () => {
         selecting={false}
         onAction={onAction}
         onSearchText={vi.fn()}
-        previewAction={null}
         searchText="Cedar"
         zoom={1}
       />,

@@ -26,7 +26,6 @@ export const indexSegments = Object.freeze({
   TRANSACTION: "transaction",
   VITAL: "vital",
   COURT: "court",
-  NULL: null,
 });
 
 export const indexAspects = Object.freeze({
@@ -176,7 +175,7 @@ export function getPanelData(data: MetadataPayload): MetadataPanelData {
     parties: Array.isArray(source.parties) ? source.parties : getSegmentItems(source.indexes, [indexSegments.PARTY]),
     properties: getSegmentItems(source.indexes, [indexSegments.PROPERTY]),
     references: getSegmentItems(source.indexes, [indexSegments.REFERENCE]),
-    transactions: getSegmentItems(source.indexes, [indexSegments.TRANSACTION, indexSegments.NULL]),
+    transactions: getSegmentItems(source.indexes, [indexSegments.TRANSACTION]),
     vitals: getSegmentItems(source.indexes, [indexSegments.VITAL]),
   };
 }
