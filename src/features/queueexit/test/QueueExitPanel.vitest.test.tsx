@@ -12,7 +12,14 @@ it("approves immediately when no tasks remain", async () => {
 });
 
 it.each([false, true])("lists unfinished tasks and resolves approval=%s before logout", async (accept) => {
-  queueStoreApi.setState({ tasks: [{ id: "task", session: "document-one", segment: "property", batch: null, cursor: 0, status: "failed", result: null, error: "Error", changes: [{ action: "patch", code: "index", index: { aspect: "parcel_id", value: "Parcel value" }, patch: { action: "add" } }], runtime: {} }] as never });
+  queueStoreApi.setState({ tasks: [{
+    id: "task", session: "document-one", segment: "property", batch: null, cursor: 0, status: "failed", result: null, error: "Error",
+    changes: [{ action: "confirm", code: "index", index: { aspect: "parcel_id", value: "Parcel value" }, patch: null }],
+    runtime: { authToken: "token", intervalMs: 0, client: {
+      patchIndex: vi.fn(), patchStatus: vi.fn(), indexData: vi.fn(), confirmIndex: vi.fn(),
+      dropIndex: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+    } },
+  }] });
   const done = vi.fn();
   let approval!: Promise<boolean>;
   act(() => { approval = useQueueExitStore.getState().request(); });

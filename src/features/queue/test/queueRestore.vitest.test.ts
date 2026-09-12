@@ -78,3 +78,62 @@ it("keeps queues isolated by owner and clears the approved owner's durable queue
   restored.queueStoreApi.getState().restore("one", runtime());
   expect(restored.queueStoreApi.getState().tasks).toHaveLength(0);
 });
+
+it("resumes unsent tasks but leaves the interrupted request failed", async () => {
+  const first = await load();
+  const config = runtime();
+  vi.mocked(config.client.confirmIndex).mockReturnValue(new Promise<never>(() => {}));
+  first.queueStoreApi.getState().restore("one", config);
+  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [
+    { code: "first", value: "First" }, { code: "second", value: "Second" },
+  ] }));
+  for (const code of ["first", "second"]) {
+    await first.queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "property", action: "confirm", code }, config);
+  }
+  vi.resetModules();
+  const restored = await load();
+  const next = runtime();
+  vi.mocked(next.client.confirmIndex).mockReturnValue(new Promise<never>(() => {}));
+  restored.queueStoreApi.getState().restore("one", next);
+  expect(next.client.confirmIndex).toHaveBeenCalledExactlyOnceWith("private-token", "session", "second");
+  expect(restored.queueStoreApi.getState().tasks.map((task) => task.status)).toEqual(["failed", "processing"]);
+});
+
+it("refreshes metadata without repeating acknowledged changes and removes completed baselines", async () => {
+  const first = await load();
+  const config = runtime();
+  vi.mocked(config.client.confirmIndex).mockResolvedValue({ status: "completed", data: "", version: 7 });
+  vi.mocked(config.client.indexData).mockReturnValue(new Promise<never>(() => {}));
+  first.queueStoreApi.getState().restore("one", config);
+  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [{ code: "index", value: "Parcel" }] }));
+  await first.queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "property", action: "confirm", code: "index" }, config);
+  await waitFor(() => expect(config.client.indexData).toHaveBeenCalledOnce());
+  vi.resetModules();
+  const restored = await load();
+  const next = runtime();
+  restored.queueStoreApi.getState().restore("one", next);
+  await waitFor(() => expect(restored.queueStoreApi.getState().tasks).toHaveLength(0));
+  expect(next.client.indexData).toHaveBeenCalledOnce();
+  expect(next.client.confirmIndex).not.toHaveBeenCalled();
+  expect(next.client.patchStatus).not.toHaveBeenCalled();
+  expect(restored.queueStoreApi.getState().snapshots.one.bases).toEqual({});
+});
+
+it("persists refreshed baselines and ignores responses after approved cancellation", async () => {
+  const { queueStoreApi, storeApi } = await load();
+  const config = runtime();
+  let respond!: (value: { status: "completed"; data: string; version: number }) => void;
+  vi.mocked(config.client.confirmIndex).mockReturnValue(new Promise((resolve) => { respond = resolve; }));
+  queueStoreApi.getState().restore("one", config);
+  storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [{ code: "index", value: "Old" }] }));
+  await queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "property", action: "confirm", code: "index" }, config);
+  const metadata = { indexes: [{ code: "index", value: "Fresh" }] };
+  queueStoreApi.getState().setMetadata("session", metadata);
+  expect(queueStoreApi.getState().snapshots.one.bases.session).toEqual(metadata);
+  queueStoreApi.getState().reset();
+  respond({ status: "completed", data: "", version: 7 });
+  await Promise.resolve();
+  expect(config.client.indexData).not.toHaveBeenCalled();
+  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {} });
+  expect(JSON.stringify(storeApi.getState().getJSON("session"))).toContain("Fresh");
+});

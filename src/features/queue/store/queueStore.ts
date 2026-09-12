@@ -99,8 +99,8 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
           bases.set(task.session, data);
           set((state) => ({ tasks: state.tasks.filter((item) => item.id !== task!.id) }));
           project(task.session);
-          notify(task);
           if (!get().tasks.some((item) => item.session === task!.session)) bases.delete(task.session);
+          notify(task);
         } catch (error) {
           if (started !== generation) return;
           task.status = "failed";
@@ -176,8 +176,8 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         set((state) => ({ tasks: state.tasks.filter((item) => item.id !== id) }));
       }
       project(task.session);
-      notify();
       if (!get().tasks.some((item) => item.session === task.session)) bases.delete(task.session);
+      notify();
     },
     setMetadata(session, metadata) {
       if (get().tasks.some((task) => task.session === session)) {
@@ -192,4 +192,11 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       generation += 1;
       running = false;
       for (const [session, metadata] of bases) storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
-      bases.
+      bases.clear();
+      set({ tasks: [], queues: [] });
+      notify();
+    },
+  };
+}, { name: "aurorra-index:queue", partialize: (state) => ({ snapshots: state.snapshots }) }));
+
+export const queueStoreApi = useQueueStore;
