@@ -9,7 +9,6 @@ export {
 } from "./data/pageSegmentsData";
 export { pageSegmentsStoreApi, usePageSegmentsStore } from "./store/pageSegmentsStore";
 export type {
-  PageSegmentsComplete,
   PageSegmentsFailure,
   PageSegmentsPanelProps,
   PageSegmentsRequest,

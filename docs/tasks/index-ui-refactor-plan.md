@@ -40,7 +40,7 @@ Remove nested scrollbars from the `aurorra_index` metadata UI, keep the host she
 
 ## Implementation contract
 - `document_web/src/app/shell/style/AppShell.styles.ts` remains the host scroll owner for the metadata experience.
-- `aurorra_index/src/features/metdataview/style/metadataViewStyles.ts` must not define a competing vertical scroll container for `rootShell`.
+- `aurora_core/src/features/metadata/style/metadataStyles.ts` must not define a competing vertical scroll container for `rootShell`.
 - `rootShell` must be a flow container only: no `overflow: auto`, no `height` lock, no `minHeight` lock, no box shadow, no border radius, and no internal scrollbar styling.
 - The package surface must keep its current component tree: `IndexContainer` -> `MetadataProgress` -> `MetadataView`; no new wrapper layers.
 - The session string remains raw text, but it must wrap cleanly and never overflow the header area.
@@ -125,7 +125,7 @@ Remove nested scrollbars from the `aurorra_index` metadata UI, keep the host she
 
 ## Files to update
 ### Production
-- `aurorra_index/src/features/metdataview/style/metadataViewStyles.ts`
+- `aurora_core/src/features/metadata/style/metadataStyles.ts`
 - `aurorra_index/src/features/metdataview/component/MetadataView.tsx`
 - `aurorra_index/src/features/metdataview/component/MetadataSection.tsx`
 - `aurorra_index/src/features/metdataview/component/MetadataRows.tsx`

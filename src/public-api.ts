@@ -1,4 +1,6 @@
 import { lazy } from "react";
+export { QueueExitPanel } from "./features/queueexit/component/QueueExitPanel";
+export { useQueueExitStore } from "./features/queueexit/store/queueExitStore";
 
 export const ImageViewerPanel = lazy(async () => {
   const module = await import("./features/imageviewer/component/ImageViewerPanel");
@@ -6,24 +8,7 @@ export const ImageViewerPanel = lazy(async () => {
 });
 
 export { IndexContainer, IndexContainer as IndexMetadata } from "./features/indexing/component/IndexContainer";
-export { MetadataPanel } from "./features/metdataview/component/MetadataPanel";
-export type { MetadataPanelProps } from "./features/metdataview/component/MetadataPanel";
-export { EmptyRow, MetadataRow } from "./features/metdataview/component/MetadataRows";
-export type { MetadataDetail, MetadataRowProps } from "./features/metdataview/component/MetadataRows";
-export { MetadataSegment } from "./features/metdataview/component/MetadataSegment";
-export {
-  asIndexArray,
-  composeMetadataJSON,
-  getIndexedValue,
-  getParcelOptions,
-  getSegmentItems,
-  getPanelData,
-  indexAspects,
-  indexSegments,
-  isAmbiguous,
-  isValidIndex,
-  splitMetadataJSON,
-} from "./features/metdataview/data/metadataData";
+
 export {
   formatLocation,
   getElements,
@@ -76,7 +61,6 @@ export {
 export {
   AddIndexPanel,
   addIndexStoreApi,
-  createAddIndexWorkerClient,
   useAddIndexStore,
 } from "./features/addindex";
 export {
@@ -90,70 +74,27 @@ export type {
   PageRequest,
 } from "./features/imageviewer/type/imageViewer.types";
 export type {
-  AddIndexComplete,
   AddIndexPanelProps,
-  AddIndexRequest,
-  AddIndexResponse,
   AddIndexSelection,
   AddIndexStoreState,
-  AddIndexWorkerClient,
-  AddIndexWorkerCommand,
-  AddIndexWorkerConfig,
-  AddIndexWorkerError,
-  AddIndexWorkerResult,
 } from "./features/addindex";
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";
 export type {
   MetdataMetadataProps,
-  MetdataActionPayload,
   MetdataChoice,
   MetdataDeferredState,
-  MetdataMetadataCallbacks,
   MetdataMetadataRefresh,
-  MetdataSegmentValues,
-  MetdataSelected,
   MetdataPatchResult,
   MetdataStoreState,
   MetdataWorkerClient,
   MetdataWorkerCommand,
   MetdataWorkerConfig,
-  MetdataWorkerError,
   MetdataWorkerResult,
   MetdataReprocessResult,
-  LegalElement,
-  LegalGroup,
-  LegalPayload,
-  MetadataHeading,
-  MetadataChainId,
-  MetadataChainRecord,
-  MetadataConveyance,
-  MetadataEncumbrance,
-  MetadataFeeFactor,
-  MetadataFeeItem,
-  MetadataHistory,
-  MetadataIndex,
-  MetadataMortgage,
-  MetadataPage,
-  MetadataPayload,
-  MetadataHeadingJSON,
-  MetadataIndexJSON,
-  MetadataChainJSON,
-  MetadataFinancialJSON,
-  MetadataLegalJSON,
-  MetadataPagesJSON,
-  MetadataSecretsJSON,
-  MetadataJSONParts,
-  MetadataStatus,
-  MetadataPanelData,
-  MetadataPanelActions,
-  MetadataPanelSections,
-  MetadataAction,
-  MetadataActionFailure,
 } from "./features/metdataview/type/metadataView.types";
 export type {
-  PageSegmentsComplete,
   PageSegmentsFailure,
   PageSegmentsPanelProps,
   PageSegmentsWorkerClient,
@@ -204,3 +145,6 @@ export type {
   AuditWorkerError,
   AuditWorkerResult,
 } from "./features/audit";
+
+export { queueStoreApi, useQueueStore } from "./features/queue/store/queueStore";
+export type { QueueRequest, QueueRuntime } from "./features/queue/type/queue.types";

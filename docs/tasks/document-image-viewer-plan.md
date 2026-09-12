@@ -5,7 +5,7 @@ The document image viewer is owned by `aurorra_index/src/features/imageviewer`.
 
 `document_web` owns only app event handling and placement:
 - Studio mode portals the viewer into `#preview-container`.
-- Tablet and kiosk modes render the viewer inside the existing `aurorra-ui` dialog.
+- Tablet and kiosk modes render the viewer inside the existing `aurora-core` dialog.
 - Viewer errors are bubbled through the host alert path.
 
 ## Active Flow

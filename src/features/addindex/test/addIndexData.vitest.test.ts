@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSelection } from "../data/addIndexData";
+import { aspectGroups, formatSelection } from "../data/addIndexData";
 import type { AddIndexSelection } from "../type/addIndex.types";
 
 describe("formatSelection", () => {
@@ -34,5 +34,21 @@ describe("formatSelection", () => {
       context: "Paragraph context",
       values: "",
     });
+  });
+
+  it("returns all segment aspect groups", () => {
+    expect(aspectGroups({
+      aspects: {
+        party: ["grantor", "grantee"],
+        property: ["parcel_id"],
+      },
+    })).toEqual({
+      party: ["grantor", "grantee"],
+      property: ["parcel_id"],
+    });
+  });
+
+  it("rejects an invalid aspects resource", () => {
+    expect(() => aspectGroups({ aspects: { party: ["grantor", 1] } })).toThrow("Aspects resource is invalid.");
   });
 });

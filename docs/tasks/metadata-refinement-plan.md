@@ -9,7 +9,7 @@ Chat/refine is explicitly out of scope. Do not move or change the chat dialog, c
 ## Current Code Reality
 
 - `src/features/metdataview/component/MetadataPanel.tsx` and `MetadataRows.tsx` render metadata actions through host callbacks.
-- `src/features/metdataview/hook/useMetadata.ts` owns loaded metadata JSON, confirmed codes, removed codes, and `GET /v1/index/{session}/data`.
+- `src/features/metdataview/hook/useMetadata.ts` loads metadata JSON through `GET /v1/index/{session}/data`.
 - `src/features/metdataview/worker/metdataWorker.ts` and `metadataWorkerClient.ts` are the package worker/client pattern for authenticated metadata requests.
 - `document_web/src/features/metadata/legacy/metadataRuntime.ts` currently performs reprocess, confirm, and drop through the legacy worker path.
 - `document_web/src/domains/refine/svc/refine_service.js` opens the legacy `PageSegmentsDialog` after `EVENTS.reFinePage`.
@@ -60,7 +60,7 @@ Extend the existing metadata worker/client contract in `src/features/metdataview
 | Action | Method and URL | Body | Success state |
 |---|---|---|---|
 | Reprocess | `POST /v1/reprocess/{session}/{segment}` | `{}` | Reload metadata, preserve the requested open segment, then notify the host. |
-| Confirm | `POST /v1/reprocess/{session}/confirm/{code}` | no body | Mark the code confirmed, then notify the host. |
+| Confirm | `POST /v1/reprocess/{session}/confirm/{code}` | no body | Queue the confirmation and apply it locally before background processing. |
 | Drop | `POST /v1/reprocess/{session}/drop/{code}` | no body | Remove the code from the rendered metadata, clear matching selection, then notify the host. |
 
 All requests use `apiGatewayUrl` and `authToken` already supplied to `IndexMetadata`. They send `Authorization: Bearer <token>` and preserve the existing typed worker error shape.
@@ -79,7 +79,7 @@ Use these exact response rules:
 
 - Reprocess succeeds only for HTTP `200` JSON shaped as `{ "status": "completed", "data": "string" }`. A valid body with any other status returns `reprocess_not_completed`.
 - Confirm and drop succeed only for HTTP `200` JSON shaped as `{ "applied": true, "patches": number }`. A valid body with `applied: false` returns `index_not_applied`.
-- For all non-`2xx` responses, parse the backend `{ "code": "string", "message": "string" }` error into `MetdataWorkerError`.
+- For all non-`2xx` responses, parse the backend `{ "code": "string", "message": "string" }` error into `MetadataError`.
 - A malformed success body is a typed `validation_error`; do not infer success from HTTP status alone for reprocess, confirm, or drop.
 
 ### Page-Segment Panel
@@ -94,13 +94,17 @@ export type PageSegmentsPanelProps = {
   authToken: string;
   choices: MetdataChoice[] | string | null;
   onClose: () => void;
-  onComplete: (event: PageSegmentsComplete) => void;
+  batchCode: string | null;
+  intervalMs: number;
+  retryIntervalMs: number;
+  retryLimit: number;
+  onReadyChange(ready: boolean): void;
   onError: (event: PageSegmentsFailure) => void;
   pageClass: string;
   pageCode: string;
   segments: string[];
   session: string;
-  workerClient?: PageSegmentsWorkerClient;
+  workerClient?: MetdataWorkerClient;
 };
 ```
 
@@ -116,19 +120,13 @@ Content-Type: application/json
 { "segments": ["..."] }
 ```
 
-On a successful update, the panel updates the same package-owned metadata cache for that page with the submitted segment list, then calls `onComplete`. It does not call the single-segment reprocess route.
+Submit enqueues a page change in the shared index queue, projects its segments into the package metadata cache, and calls `onClose` after acceptance. The queue uses the existing page worker, then reloads metadata after success. It does not call the single-segment reprocess route.
 
-Use the exact page-segment worker command `type: "updatePageSegments"` and client method `updatePageSegments(token, session, pageCode, segments)`. A page-segment update succeeds only for HTTP `200` with an empty body. A non-empty HTTP `200` body returns `validation_error`. Parse non-`2xx` backend `{ code, message }` responses into `PageSegmentsWorkerError`; `404 page_segments_page_not_found` remains an error and must not update package state.
+Use the exact page-segment worker command `type: "updatePageSegments"` and client method `updatePageSegments(token, session, pageCode, segments)`. A page-segment update succeeds only for HTTP `200` with an empty body. A non-empty HTTP `200` body returns `validation_error`. Parse non-`2xx` backend `{ code, message }` responses into `PageSegmentsWorkerError`; `404 page_segments_page_not_found` leaves a failed task available for retry or cancellation. Cancellation restores the committed page segments.
 
 Export these exact page-segment types:
 
 ```ts
-export type PageSegmentsComplete = {
-  pageCode: string;
-  session: string;
-  segments: string[];
-};
-
 export type PageSegmentsFailure = {
   error: PageSegmentsWorkerError;
   pageCode: string;
@@ -136,12 +134,12 @@ export type PageSegmentsFailure = {
 };
 ```
 
-`PageSegmentsPanelProps.onComplete` receives `PageSegmentsComplete`. `PageSegmentsPanelProps.onError` receives `PageSegmentsFailure`. `onClose` receives no arguments.
+`PageSegmentsPanelProps.onError` receives `PageSegmentsFailure` for acceptance errors. Background failures appear on the affected metadata item with `QueueActions`. `onClose` receives no arguments.
 
 Use this exact Zustand state contract in `pageSegmentsStore.ts`:
 
 ```ts
-export type PageSegmentsStatus = "idle" | "saving" | "success" | "error";
+export type PageSegmentsStatus = "idle" | "saving" | "error";
 
 export type PageSegmentsStore = {
   committed: string[];
@@ -151,17 +149,16 @@ export type PageSegmentsStore = {
   reset: (segments: string[]) => void;
   restore: () => void;
   setError: (error: PageSegmentsWorkerError) => void;
-  setSaved: (segments: string[]) => void;
   setSelected: (segments: string[]) => void;
   setSaving: () => void;
 };
 ```
 
-`reset(segments)` initializes `committed` and `selected` from the panel input with `status: "idle"` and `error: null`. `restore()` copies `committed` to `selected` and clears status/error. `setSaved(segments)` commits the submitted list and sets `status: "success"`. The panel resets the store from props when `pageCode` or input `segments` changes and resets it on unmount.
+`reset(segments)` initializes `committed` and `selected` from the panel input with `status: "idle"` and `error: null`. `restore()` copies `committed` to `selected` and clears status/error. The panel resets the store from props when `pageCode` or input `segments` changes and resets it on unmount.
 
 ### Package-to-Host Events
 
-Extend `MetdataMetadataCallbacks` with these exact types and callback names:
+Extend `MetadataCallbacks` with these exact types and callback names:
 
 ```ts
 export type MetadataAction =
@@ -171,10 +168,10 @@ export type MetadataAction =
 
 export type MetadataActionFailure = {
   action: MetadataAction;
-  error: MetdataWorkerError;
+  error: MetadataError;
 };
 
-export type MetdataMetadataCallbacks = {
+export type MetadataCallbacks = {
   // Existing non-mutation callbacks remain unchanged.
   onActionComplete?: (event: MetadataAction) => void;
   onActionError?: (event: MetadataActionFailure) => void;
@@ -186,7 +183,7 @@ Remove `onConfirmIndex`, `onDropIndex`, `onReprocessSegment`, and `onReprocessCo
 The package calls completion only after its own state has been updated:
 
 - after reprocess metadata reload completes;
-- after confirm/drop local metadata state is updated;
+- confirm/drop use queue notifications instead of completion callbacks;
 - after page-segment update updates the package metadata cache.
 
 The package never displays host alerts, opens host dialogs, or emits global events.
@@ -211,9 +208,9 @@ Required changes:
 - Build the exact `user_svc` routes, URL-encode session, segment, and code, and send the exact required bodies.
 - Keep `IndexWorker` as the metadata feature's single typed worker boundary. Do not add a legacy adapter or direct `fetch` call in a component or hook.
 - Move the three action requests from host callbacks into `useMetadata`.
-- Preserve the current confirmed/removed behavior after confirm/drop.
+- Queue confirm/drop, update the shared metadata cache immediately, and disable affected rows using gray styling and the change-specific left border.
 - After reprocess, reload metadata through the existing worker and re-open the reprocessed segment.
-- Call `onActionComplete` only after package state is final; call `onActionError` once on worker or post-action metadata reload failure and do not call completion for that action.
+- Reprocess calls `onActionComplete` after its metadata reload; reprocess failures call `onActionError` once. Index queue failures expose Retry/Cancel directly on their metadata items.
 - Keep page edit as a typed host callback. It opens the host-owned `PageSegmentsHost`; it does not open a dialog in `aurorra_index`.
 
 ### 2. Page-Segment Feature
@@ -236,17 +233,17 @@ Required behavior:
 - Preserve the existing supported segment values, ordering, labels, and `choices` filtering.
 - Initialize checkbox state from the metadata page payload passed by the host.
 - Submit the selected list to the page-segment route exactly once per Submit action.
-- Close calls `onClose`. Cancel calls `restore()` and keeps the panel open. After successful Submit, keep the panel open with its success state until the user closes it.
+- Close calls `onClose`. Cancel calls `restore()` and keeps the panel open. Submit closes the panel after queue acceptance.
 - Do not add a page-level reprocess action because the single-segment endpoint is not a page-segment update API.
-- Call `onComplete` with `PageSegmentsComplete` only after the package cache update succeeds.
-- Call `onError` with `PageSegmentsFailure` once for a worker or cache-update failure; preserve the submitted selection and keep the panel usable.
+- Project submitted segments immediately and disable the page row with a light green left border while its task remains unfinished.
+- Call `onError` with `PageSegmentsFailure` for an acceptance failure; background worker failures remain on the disabled page item.
 - Do not fetch metadata, read globals, use `EventBus`, or decide dialog placement.
 
 ### 3. Metadata Cache Update
 
 Add a metadata data helper and tests that locate a page by its code in either `pages.recordables` or `pages.nonrecordables` and replace only that page's `segments` value. It must update the package's existing `jsonBySession` state without changing unrelated metadata sections.
 
-This helper is the only page-segment panel dependency on metadata state. Keep it feature-internal; do not export it from `src/public-api.ts`.
+The queue reuses the shared core metadata split, page replacement, and compose functions. The form owns checkbox state; the queue owns metadata projection, processing, retry, and cancellation.
 
 ### 4. Legacy Removal Boundary
 
@@ -266,7 +263,7 @@ Add or update Vitest coverage for:
 - metadata reprocess reload and requested segment preservation;
 - confirm state update, drop state update, and selection clearing;
 - package completion and failure callback payloads;
-- page-segment initialization, ordering, choices filtering, submit body, success state, failure state, close, and cancel;
+- page-segment initialization, ordering, choices filtering, submit body, immediate closure, queue failure recovery, close, and cancel;
 - metadata cache replacement for both recordable and nonrecordable pages;
 - no page metadata GET occurs when the page-segment panel opens;
 - reprocess, confirm, and drop rows call their exact package-owned client methods; page edit calls only `onEditPage`;
@@ -299,3 +296,15 @@ Expected results:
 - Gate 1 has no matches.
 - Gate 2 has no active page-segment legacy path matches.
 - Gate 3 has no matches.
+
+## Index Change Queue
+
+Add, edit, delete, and confirm use `queueStoreApi.enqueue`. Generated chat changes arrive as an opaque JSON string via the host. The queue validates the complete request, applies it to the shared local metadata cache, and returns `{ status: "accepted" }`. One worker processes tasks and their changes sequentially. Metadata reloads preserve outstanding local changes.
+
+The queue retains failed tasks for retry or cancel. Failure removes one task from the open count without recording a completion; retry reopens it. Cancel removes the unprocessed local change. Completed operations are retained when retrying a partially processed task.
+
+The exported `QueueNotice[]` carries generic queue ID, session, batch, pending count, failed count, and completed count. The host checks each panel's `queueAware` configuration. Enabled headers show a pending-content tooltip for relevant open tasks. Successful completion changes the refresh button color; reports refresh on user request. Title reports match the report's batch; session panels match their current session.
+
+The queue header indicator is a non-clickable stopwatch, shown only while relevant tasks remain open. Its tooltip explains pending content and the refresh highlight after success. Failed items show their error and Retry/Cancel directly; the queue dialog is removed. Successful completion highlights refresh button backgrounds and supplies a refresh explanation tooltip.
+
+Pending add, edit, page, and confirm rows remain visible and disabled with a light green left border. Pending deletions remain visible and disabled with a red left border until success. Shared core `ConfButton` requires a second click for row confirm/delete and shows an armed outline and an expiring progress bar without numeric seconds. Pending item content and ordinary controls are gray and inert; recovery controls remain interactive. No pending-text badge is rendered. Cancel removes an uncommitted addition, retains an uncommitted deletion, restores the ambiguity flag for an uncommitted confirmation, and restores prior values for an uncommitted edit. Cancellation targets the selected item within a task.

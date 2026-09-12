@@ -12,7 +12,7 @@ export const imageViewerStyles = {
   },
   topToolbar: {
     display: "grid",
-    gridTemplateColumns: "auto minmax(12rem, 1fr) auto",
+    gridTemplateColumns: "auto minmax(0, 1fr)",
     alignItems: "center",
     gap: "0.6rem",
     flex: "0 0 auto",
@@ -22,23 +22,7 @@ export const imageViewerStyles = {
     background: "var(--gray-50)",
     boxSizing: "border-box",
   },
-  topToolbarCompact: {
-    display: "grid",
-    gap: "0.3rem",
-    flex: "0 0 auto",
-    minHeight: "var(--panel-header-height)",
-    padding: "var(--panel-header-padding)",
-    borderBottom: "1px solid var(--border-card)",
-    background: "var(--gray-50)",
-    boxSizing: "border-box",
-  },
-  compactTopRow: {
-    alignItems: "center",
-    display: "flex",
-    gap: "0.6rem",
-    justifyContent: "space-between",
-    minWidth: 0,
-  },
+  topToolbarCompact: { gap: "0.3rem" },
   viewGroup: {
     display: "flex",
     alignItems: "center",

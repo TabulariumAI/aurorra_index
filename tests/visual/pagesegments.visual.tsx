@@ -1,9 +1,11 @@
+import { QueueActions } from "../../src/features/queue/component/QueueActions";
 import { createRoot } from "react-dom/client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { PageSegmentsPanel, type PageSegmentsPanelProps } from "../../src/features/pagesegments";
-import { splitMetadataJSON } from "../../src/features/metdataview/data/metadataData";
+import { composeMetadataJSON, replaceMetadataPageSegments, splitMetadataJSON } from "aurora-core";
+import { createIndexWorkerClient, useQueueStore } from "../../src/public-api";
 import { storeApi } from "../../src/store/state/store";
-import type { MetadataPayload } from "../../src/features/metdataview/type/metadataView.types";
+import type { MetadataPayload } from "aurora-core";
 
 const metadata: MetadataPayload = {
   fees: [],
@@ -57,51 +59,39 @@ const scenario = new URLSearchParams(window.location.search).get("scenario");
 const forceFailure = scenario === "pagesegments-fail";
 storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
 
+let saved = metadata;
 const workerClient: PageSegmentsPanelProps["workerClient"] = {
-  async updatePageSegments(token, currentSession, pageCode, pageSegments) {
-    if (forceFailure) {
-      void token;
-      void currentSession;
-      void pageCode;
-      void pageSegments;
-      throw buildError("Could not save page segments.");
-    }
-    await Promise.resolve();
+  ...createIndexWorkerClient({ apiBaseUrl: "https://doc.example.com", retryIntervalMs: 0, retryLimit: 0 }),
+  async updatePageSegments(_token, _session, pageCode, segments) {
+    if (forceFailure) throw buildError("Could not save page segments.");
+    saved = composeMetadataJSON(replaceMetadataPageSegments(splitMetadataJSON(saved), pageCode, segments))!;
   },
+  async indexData() { return saved; },
 };
 
 function PageSegmentsVisualHarness() {
-  const [completeMessage, setCompleteMessage] = useState("");
-
-  const onComplete = (event: { pageCode: string; session: string; segments: string[] }) => {
-    setCompleteMessage(`Updated ${event.pageCode} in ${event.session} to ${event.segments.join(",")}`);
-  };
-
-  const onError = (event: { error: { error: string }; pageCode: string; session: string }) => {
-    setCompleteMessage(`Failed ${event.pageCode} in ${event.session}: ${event.error.error}`);
-  };
-
-  const onClose = () => setCompleteMessage("closed");
-
-  const authToken = useMemo(() => "token", []);
-
+  const [closed, setClosed] = useState(false);
+  const tasks = useQueueStore((state) => state.tasks);
   return (
     <>
-      <PageSegmentsPanel
+      {!closed ? <PageSegmentsPanel
         apiGatewayUrl="https://doc.example.com"
-        authToken={authToken}
+        authToken="token"
+        batchCode={null}
+        intervalMs={0}
+        retryIntervalMs={0}
+        retryLimit={0}
         choices={choices}
-        onClose={onClose}
-        onComplete={onComplete}
-        onError={onError}
+        onClose={() => setClosed(true)}
+        onError={() => undefined}
         onReadyChange={() => undefined}
         pageClass="blank"
         pageCode="page-1"
         segments={["reference", "party"]}
         session={session}
         workerClient={workerClient}
-      />
-      <div data-testid="completion-message">{completeMessage}</div>
+      /> : null}
+      {tasks.map((task) => <div data-testid="pending-item" key={task.id}><QueueActions id={task.id} code={task.changes[0].code} /></div>)}
     </>
   );
 }

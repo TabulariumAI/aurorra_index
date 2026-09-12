@@ -1,11 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
-import { MetadataPanel } from "../component/MetadataPanel";
-import { getPanelData } from "../data/metadataData";
-import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView.types";
+import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
 
-const segments: MetdataSegmentValues = {
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   COURT: "court",
   ENDORSEMENT: "endorsement",
@@ -75,6 +73,7 @@ describe("MetadataPanel capability mode", () => {
           showEmpty: true,
         }}
         selectedIndex={null}
+        showContext={false}
         segments={segments}
         session="session-capability"
         setSectionOpen={vi.fn()}
@@ -84,9 +83,10 @@ describe("MetadataPanel capability mode", () => {
     );
 
     expect(screen.getByText("Alice")).toBeInTheDocument();
+    expect(document.querySelector("[data-metadata-context='true']")).toBeNull();
     expect(screen.queryByRole("button", { name: "Reprocess" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open AI chat" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete index" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fee Factors/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Fees/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Funds/i })).not.toBeInTheDocument();
@@ -127,6 +127,7 @@ describe("MetadataPanel capability mode", () => {
           showEmpty: true,
         }}
         selectedIndex={null}
+        showContext
         segments={segments}
         session="session-capability"
         setSectionOpen={vi.fn()}

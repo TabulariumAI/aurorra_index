@@ -5,7 +5,7 @@ import { imageViewerStyles } from "../../imageviewer/style/imageViewerStyles";
 import { iqStyles } from "../../iq/style/iqStyles";
 import { legalMapStyles } from "../../legalmap/style/legalMapStyles";
 import { pageSegmentsStyles } from "../../pagesegments/style/pageSegmentsStyles";
-import { disclosureButtonStyle, metadataStyles, rowStyles, segmentStyles } from "../style/metadataViewStyles";
+import { disclosureButtonStyle, metadataStyles, rowStyles, segmentStyles } from "aurora-core";
 
 describe("index styles", () => {
   it("uses the target typography and accordion rhythm", () => {
@@ -59,7 +59,7 @@ describe("index styles", () => {
       minHeight: "var(--panel-header-height)",
       padding: "var(--panel-header-padding)",
     });
-    expect(imageViewerStyles.topToolbarCompact).toMatchObject({
+    expect({ ...imageViewerStyles.topToolbar, ...imageViewerStyles.topToolbarCompact }).toMatchObject({
       borderBottom: "1px solid var(--border-card)",
       minHeight: "var(--panel-header-height)",
       padding: "var(--panel-header-padding)",
@@ -67,7 +67,7 @@ describe("index styles", () => {
     expect(metadataStyles.accordion).toMatchObject({
       boxSizing: "border-box",
       gap: "0.75rem",
-      padding: "0 1.2rem var(--panel-content-padding)",
+      padding: "0 var(--panel-content-padding) var(--panel-content-padding)",
     });
     expect(metadataStyles.legalElement).toMatchObject({ borderTop: "1px solid var(--border-card)" });
     expect(disclosureButtonStyle(false, true)).toMatchObject({
@@ -150,7 +150,7 @@ describe("index styles", () => {
     });
     expect(auditStyles.body).toMatchObject({
       padding: "0 var(--panel-content-padding) 0.85rem",
-      scrollbarColor: "#efefef transparent",
     });
+    expect(auditStyles.body).not.toHaveProperty("scrollbarColor");
   });
 });

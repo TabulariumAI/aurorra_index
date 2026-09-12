@@ -1,4 +1,5 @@
 import type { IqAckResult, IqPollResult, IqReport, IqStartResult, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
+import { fetchJson } from "../../../shared/worker/fetchJson";
 
 type ParsedResponse = {
   contentType: string;
@@ -22,22 +23,9 @@ async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqRep
     return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
   }
   if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
-    let response: Response;
-    try {
-      response = await fetch(payload.data);
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
-    }
-    if (!response.ok) {
-      const parsed = await parseResponse(response);
-      if (!parsed.ok) return parsed;
-      return httpError(parsed.data);
-    }
-    try {
-      return validateReport(await response.json());
-    } catch {
-      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
-    }
+    const result = await fetchJson(payload.data);
+    if (!result.ok) return result;
+    return validateReport(result.data);
   }
   return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
 }
@@ -167,8 +155,8 @@ export class IqWorker {
     if (!response.ok) return httpError(parsed.data);
     if (command.type === "iqStart") return { ok: true, data: startFromPayload(parsed.data.payload) };
     if (command.type === "iqAck") return { ok: true, data: ackFromPayload(parsed.data.payload) };
-    if (command.type === "iqPoll") return await pollFromPayload(parsed.data.payload);
-    return await reportFromPayload(parsed.data.payload);
+    if (command.type === "iqPoll") return pollFromPayload(parsed.data.payload);
+    return reportFromPayload(parsed.data.payload);
   }
 }
 

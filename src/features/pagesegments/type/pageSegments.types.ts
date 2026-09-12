@@ -1,3 +1,4 @@
+import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
 export type PageSegmentsWorkerError = {
   code?: string;
   details?: unknown;
@@ -26,12 +27,6 @@ export type PageSegmentsWorkerConfig = {
   apiBaseUrl: string;
 };
 
-export type PageSegmentsComplete = {
-  pageCode: string;
-  session: string;
-  segments: string[];
-};
-
 export type PageSegmentsRequest = {
   code: string;
   pageClass: string;
@@ -45,16 +40,19 @@ export type PageSegmentsFailure = {
 };
 
 export type PageSegmentsPanelProps = {
+  batchCode: string | null;
+  intervalMs: number;
+  retryIntervalMs: number;
+  retryLimit: number;
   apiGatewayUrl: string;
   authToken: string;
   choices: unknown;
   onClose: () => void;
-  onComplete: (event: PageSegmentsComplete) => void;
   onError: (event: PageSegmentsFailure) => void;
   onReadyChange(ready: boolean): void;
   pageClass: string;
   pageCode: string;
   segments: string[];
   session: string;
-  workerClient?: PageSegmentsWorkerClient;
+  workerClient?: MetdataWorkerClient;
 };

@@ -1,191 +1,233 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { composeMetadataJSON, getPanelData, splitMetadataJSON } from "aurora-core";
+import { storeApi } from "../../../store/state/store";
+import { queueStoreApi } from "../../queue/store/queueStore";
 import { AddIndexPanel } from "../component/AddIndexPanel";
-import type {
-  AddIndexPanelProps,
-  AddIndexSelection,
-  AddIndexWorkerClient,
-} from "../type/addIndex.types";
-
-const firstContext = "JOHN SMITH, RESIDING AT 69-55 62ND STREET, RIDGEWOOD, NEW YORK 11385 PARTY OF THE FIRST PART, AND";
-const secondContext = "JOHN M. SMITH, RESIDING AT 69-55 62ND STREET, RIDGEWOOD, NEW YORK 11385, AS TRUSTEE OF THE JOHN M. SMITH LIVING TRUST, DATED JUNE 9, 2025";
-const selection: AddIndexSelection = {
-  groups: [
-    { value: { context: [firstContext], kind: ["BODY"], token: ["JOHN", "SMITH,"] } },
-    { value: { context: [firstContext], kind: ["BODY"], token: ["JOHN SMITH"] } },
-    { value: { context: ["JOHN SMITH"], kind: ["BODY"], token: ["JOHN SMITH"] } },
-    { value: { context: [secondContext], kind: ["BODY"], token: ["JOHN M. SMITH"] } },
-  ],
-  pageNumber: 3,
-};
+import type { AddIndexPanelProps } from "../type/addIndex.types";
 
 function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps {
   return {
-    apiGatewayUrl: "https://gateway.example.com",
-    authToken: "token-1",
-    onClose: vi.fn(),
-    onComplete: vi.fn(),
-    onError: vi.fn(),
-    onReadyChange: vi.fn(),
-    intervalMs: 0,
-    segment: "party",
-    selection,
-    session: "session-1",
+    apiGatewayUrl: "https://gateway.example.com", authToken: "token-1", intervalMs: 0,
+    batchCode: "batch-1", retryIntervalMs: 0, retryLimit: 0, segment: "party", session: "session-1",
+    selection: { groups: [{ value: { context: ["Selected source"], kind: ["BODY"], token: ["Selected value"] } }], pageNumber: 3 },
+    onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
+    onResource: vi.fn(async () => ({ aspects: { party: ["grantor", "grantee"], property: ["parcel_id"] } })),
     workerClient: {
-      addIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 })),
-      patchStatus: vi.fn(),
+      updatePageSegments: vi.fn(), patchIndex: vi.fn(() => new Promise<never>(() => undefined)),
+      confirmIndex: vi.fn(), dropIndex: vi.fn(), indexData: vi.fn(async () => ({ indexes: [] })),
+      reprocessSegment: vi.fn(), patchStatus: vi.fn(),
     },
     ...overrides,
   };
 }
 
+beforeEach(() => {
+  queueStoreApi.getState().reset();
+  storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [] }));
+});
+
 describe("AddIndexPanel", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
+  it("keeps suggestions closed until focus and supports keyboard selection and Escape", async () => {
+    render(<AddIndexPanel {...props()} />);
+    const input = screen.getByRole("combobox", { name: "Type" });
+    expect(input).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    fireEvent.focus(input);
+    await screen.findByRole("option", { name: "Grantor" });
+    fireEvent.change(input, { target: { value: "parcel" } });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    const option = screen.getByRole("option", { name: "Parcel Id" });
+    expect(input).toHaveAttribute("aria-activedescendant", option.id);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(screen.getByRole("button", { name: "Remove Parcel Id (Property)" })).toBeVisible();
+    expect(input).toHaveValue("");
+    expect(screen.queryByRole("option", { name: "Parcel Id" })).toBeNull();
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    fireEvent.click(input);
+    fireEvent.click(screen.getByRole("textbox", { name: "Index" }));
+    expect(screen.queryByRole("listbox")).toBeNull();
   });
 
-  it("renders editable Add Index content with one Quote group", () => {
+  it("keeps query text when removing a chip and does not remove chips with nonempty Backspace", async () => {
     render(<AddIndexPanel {...props()} />);
+    const input = screen.getByRole("combobox", { name: "Type" });
+    fireEvent.focus(input);
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.change(input, { target: { value: "parcel" } });
+    fireEvent.keyDown(input, { key: "Backspace" });
+    expect(screen.getByRole("button", { name: "Remove Grantor (Party)" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Grantor (Party)" }));
+    expect(input).toHaveValue("parcel");
+  });
 
-    const form = screen.getByRole("region", { name: "Add selected index form" });
-    expect(form).toHaveStyle({ gap: "1rem" });
-    expect(form.style.margin).toBe("");
-    expect(form.style.maxWidth).toBe("");
-    expect(form.style.padding).toBe("");
-    expect(form.style.overflowY).toBe("");
-    expect(form.querySelector("h2")).toBeNull();
-    const indexField = screen.getByTestId("add-index-field");
-    const quoteField = screen.getByTestId("add-quote-field");
-    const typeField = screen.getByTestId("add-type-field");
-    expect(indexField).toHaveStyle({
-      background: "var(--white)",
-      borderRadius: "var(--radius-card)",
-      padding: "0.6rem 0.75rem",
-    });
-    expect(quoteField).toHaveStyle({
-      background: "var(--white)",
-      borderRadius: "var(--radius-card)",
-      padding: "0.6rem 0.75rem",
-    });
-    expect(typeField).toHaveStyle({
-      background: "var(--white)",
-      borderRadius: "var(--radius-card)",
-      padding: "0.6rem 0.75rem",
-    });
-    expect(indexField.compareDocumentPosition(quoteField)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(quoteField.compareDocumentPosition(typeField)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(screen.getByRole("group", { name: "Quote" })).toBe(quoteField);
-
-    const indexInput = screen.getByRole("textbox", { name: "Index" });
-    const pageInput = screen.getByRole("textbox", { name: "Page Number" });
-    const sourceInput = screen.getByRole("textbox", { name: "Source" });
-    const typeInput = screen.getByRole("textbox", { name: "Type" });
-    expect(indexInput).toHaveAttribute("type", "text");
-    expect(indexInput).toHaveValue("JOHN SMITH JOHN M. SMITH");
-    expect(pageInput).toHaveValue("3");
-    expect(sourceInput).toHaveValue(`${firstContext}\n\n${secondContext}`);
-    expect(typeInput).toBeRequired();
-    expect(typeInput).toHaveValue("");
+  it("shows human names and searches all types without a Segment field", async () => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    await screen.findByRole("option", { name: "Parcel Id" });
+    expect(config.onResource).toHaveBeenCalledWith({ resource: "aspects" });
+    expect(screen.queryByLabelText("Segment")).toBeNull();
+    expect(screen.getByRole("group", { name: "Party" })).toBeVisible();
+    fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "PARCEL id" } });
+    expect(screen.getByRole("option", { name: "Parcel Id" })).toBeVisible();
+    expect(screen.queryByRole("option", { name: "Grantor" })).toBeNull();
     expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
   });
 
-  it("closes before posting the edited service request and emits host job events", async () => {
-    const onClose = vi.fn();
-    const onComplete = vi.fn();
-    const onError = vi.fn();
-    const addIndex = vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 }));
-    const workerClient: AddIndexWorkerClient = {
-      addIndex,
-      patchStatus: vi.fn(),
-    };
-    render(<AddIndexPanel {...props({ onClose, onComplete, onError, workerClient })} />);
+  it("prioritizes context without hiding choices for page context", async () => {
+    const config = props({ segment: "property" });
+    const { rerender } = render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    await screen.findByRole("option", { name: "Parcel Id" });
+    expect(within(screen.getByRole("listbox", { name: "Type suggestions" })).getAllByRole("group")[0]).toHaveAccessibleName("Property");
+    rerender(<AddIndexPanel {...config} segment="page" />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+    expect(config.onError).not.toHaveBeenCalled();
+  });
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Edited Index" } });
+  it("finds a type among 80 choices and reports no matches", async () => {
+    render(<AddIndexPanel {...props({ onResource: vi.fn(async () => ({ aspects: { party: Array.from({ length: 80 }, (_, i) => `aspect_${i + 1}`) } })) })} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    await screen.findByRole("option", { name: "Aspect 80" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "aspect_80" } });
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "missing" } });
+    expect(screen.getByRole("status")).toHaveTextContent("No matching types");
+  });
+
+  it("retains selections through search and removes them individually", async () => {
+    render(<AddIndexPanel {...props()} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "parcel" } });
+    fireEvent.click(screen.getByRole("option", { name: "Parcel Id" }));
+    expect(screen.queryByText(/Selected types/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Remove Grantor (Party)" }).compareDocumentPosition(screen.getByRole("combobox", { name: "Type" }))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Grantor (Party)" }));
+    expect(screen.queryByRole("button", { name: "Remove Grantor (Party)" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Parcel Id (Property)" }));
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+  });
+
+  it("removes the last selection with Backspace from empty search", async () => {
+    render(<AddIndexPanel {...props()} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.click(screen.getByRole("option", { name: "Parcel Id" }));
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Type" }), { key: "Backspace" });
+    expect(screen.queryByRole("button", { name: "Remove Parcel Id (Property)" })).toBeNull();
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Type" }), { key: "Backspace" });
+    expect(screen.queryByRole("button", { name: "Remove Grantor (Party)" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+  });
+
+  it("queues multiple raw aspects across groups with the same edited fields", async () => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.click(screen.getByRole("option", { name: "Grantee" }));
+    fireEvent.click(screen.getByRole("option", { name: "Parcel Id" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Edited value" } });
+    fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: " Custom label " } });
     fireEvent.change(screen.getByRole("textbox", { name: "Page Number" }), { target: { value: "7" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Source" }), { target: { value: "Edited source" } });
-    fireEvent.change(screen.getByRole("textbox", { name: "Type" }), { target: { value: "  Party  " } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(screen.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-
-    await waitFor(() => expect(workerClient.addIndex).toHaveBeenCalledWith("token-1", "session-1", {
-      aspect: "Party",
-      explanation: "P 7  Edited source",
-      label: "Party",
-      segment: "party",
-      value: "Edited Index",
-    }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(addIndex.mock.invocationCallOrder[0]);
-    expect(onComplete).toHaveBeenCalledWith({
-      aspect: "Party",
-      explanation: "P 7  Edited source",
-      label: "Party",
-      session: "session-1",
-      segment: "party",
-      value: "Edited Index",
-    });
-    expect(onError).not.toHaveBeenCalled();
+    await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
+    const tasks = queueStoreApi.getState().tasks;
+    expect(tasks.map((task) => task.segment)).toEqual(["party", "property"]);
+    expect(tasks.flatMap((task) => task.changes.map((change) => change.patch))).toEqual(
+      ["grantor", "grantee", "parcel_id"].map((aspect) => expect.objectContaining({ new_index_aspect: aspect, new_index_label: "Custom label", new_index_value: "Edited value", explanation: "P 7  Edited source" })),
+    );
+    expect(config.onError).not.toHaveBeenCalled();
   });
 
-  it("closes before a rejected service response and emits failure to the host", async () => {
-    const onClose = vi.fn();
-    const onComplete = vi.fn();
-    const onError = vi.fn();
-    const serviceError = Object.assign(new Error("Index already exists."), {
-      code: "index_not_added",
-      details: { accepted: false, description: "Index already exists." },
-      status: 200,
-    });
-    const workerClient: AddIndexWorkerClient = {
-      addIndex: vi.fn(async () => {
-        throw serviceError;
-      }),
-      patchStatus: vi.fn(),
-    };
-    render(<AddIndexPanel {...props({ onClose, onComplete, onError, workerClient })} />);
-
-    fireEvent.change(screen.getByRole("textbox", { name: "Type" }), { target: { value: "Party" } });
+  it("distinguishes identical types across groups and keeps Label optional", async () => {
+    const config = props({ onResource: vi.fn(async () => ({ aspects: { party: ["name"], property: ["name"] } })) });
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    await screen.findAllByRole("option", { name: "Name" });
+    fireEvent.click(within(screen.getByRole("group", { name: "Property" })).getByRole("option"));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-
-    await waitFor(() => expect(onError).toHaveBeenCalledWith({
-      code: "index_not_added",
-      details: { accepted: false, description: "Index already exists." },
-      error: "Index already exists.",
-      status: 200,
-    }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(onComplete).not.toHaveBeenCalled();
+    await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
+    expect(config.workerClient!.patchIndex).toHaveBeenCalledWith("token-1", "session-1", "property", expect.objectContaining({ new_index_aspect: "name", new_index_label: "Name" }));
   });
 
-  it("waits for the patch to complete before emitting completion", async () => {
-    const onComplete = vi.fn();
-    const workerClient: AddIndexWorkerClient = {
-      addIndex: vi.fn(async () => ({ data: "", status: "processing" as const, version: 3 })),
-      patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 })),
-    };
-    render(<AddIndexPanel {...props({ intervalMs: 0, onComplete, workerClient })} />);
-
-    fireEvent.change(screen.getByRole("textbox", { name: "Type" }), { target: { value: "Party" } });
+  it.each(["", "   "])("uses human Type labels for empty Label %j without changing raw aspects or values", async (label) => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Parcel Id" }));
+    fireEvent.click(screen.getByRole("option", { name: "Grantor" }));
+    fireEvent.click(screen.getByRole("button", { name: "Advanced" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: label } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-
-    await waitFor(() => expect(workerClient.patchStatus).toHaveBeenCalledWith("token-1", "session-1", 3));
-    expect(onComplete).toHaveBeenCalledOnce();
+    await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
+    const tasks = queueStoreApi.getState().tasks;
+    expect(tasks.flatMap((task) => task.changes.map((change) => change.patch))).toEqual([
+      expect.objectContaining({ new_index_aspect: "grantor", new_index_label: "Grantor", new_index_value: "Selected value" }),
+      expect.objectContaining({ new_index_aspect: "parcel_id", new_index_label: "Parcel Id", new_index_value: "Selected value" }),
+    ]);
+    const panel = getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session-1"))!);
+    expect(panel.properties).toContainEqual(expect.objectContaining({ aspect: "parcel_id", label: "Parcel Id", value: "Selected value" }));
+    expect(panel.parties).toContainEqual(expect.objectContaining({ aspect: "grantor", label: "Grantor" }));
   });
 
-  it("closes without submitting", () => {
-    const onClose = vi.fn();
-    const workerClient: AddIndexWorkerClient = {
-      addIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 3 })),
-      patchStatus: vi.fn(),
-    };
-    render(<AddIndexPanel {...props({ onClose, workerClient })} />);
+  it("expands compact Advanced fields without losing selection", async () => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    const advanced = screen.getByRole("button", { name: "Advanced" });
+    expect(advanced).toHaveAttribute("data-state", "closed");
+    expect(screen.queryByRole("textbox", { name: "Label" })).toBeNull();
+    fireEvent.click(advanced);
+    expect(advanced).toHaveAttribute("data-state", "open");
+    expect(screen.getByRole("textbox", { name: "Label" })).not.toBeRequired();
+    expect(screen.getByRole("textbox", { name: "Page Number" })).toHaveValue("3");
+    expect(screen.getByRole("textbox", { name: "Source" })).toHaveValue("Selected source");
+    expect(screen.getByRole("textbox", { name: "Source" })).toHaveAttribute("rows", "3");
+    expect(screen.getByRole("textbox", { name: "Label" }).parentElement?.parentElement).toBe(screen.getByRole("textbox", { name: "Page Number" }).parentElement?.parentElement);
+    fireEvent.click(advanced);
+    expect(advanced).toHaveAttribute("data-state", "closed");
+    expect(screen.getByRole("button", { name: "Remove Grantor (Party)" })).toBeVisible();
+  });
 
+  it("reports resource errors and prevents submission", async () => {
+    const config = props({ onResource: vi.fn(async () => { throw new Error("Aspects unavailable"); }) });
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    await waitFor(() => expect(config.onError).toHaveBeenCalledWith(expect.objectContaining({ error: "Aspects unavailable" })));
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+  });
+
+  it("keeps service failures in the queue after closing", async () => {
+    const config = props();
+    vi.mocked(config.workerClient!.patchIndex).mockRejectedValueOnce(new Error("Index already exists"));
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed" }));
+    expect(config.onClose).toHaveBeenCalledOnce();
+    expect(config.onError).not.toHaveBeenCalled();
+  });
+
+  it("cancels without queuing", () => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(workerClient.addIndex).not.toHaveBeenCalled();
+    expect(config.onClose).toHaveBeenCalledOnce();
+    expect(queueStoreApi.getState().tasks).toEqual([]);
   });
 });

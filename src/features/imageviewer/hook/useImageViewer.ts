@@ -84,6 +84,7 @@ export function useImageViewer() {
   const tiffBytes = useImageViewerStore((state) => state.tiffBytes);
   const tiffType = useImageViewerStore((state) => state.tiffType);
   const viewerState = useImageViewerStore((state) => state.viewerState);
+  const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
   const status = useImageViewerStore((state) => state.status);
   const pageReady = Boolean(loaded && viewerState?.status === "ready" && viewerState.pageIndex >= 0);
   const metadataReady = Boolean(pageReady && viewerState?.pageInfo);
@@ -130,6 +131,11 @@ export function useImageViewer() {
 
     void createLens();
     return () => {
+      console.info("imageviewer lens close", {
+        decodedPackageVersion: decodedPackageVersionRef.current,
+        decodedSession: decodedSessionRef.current,
+        session,
+      });
       canceled = true;
       createdLens?.close();
       imageViewerStoreApi.getState().resetLens();
@@ -209,6 +215,8 @@ export function useImageViewer() {
         console.info("imageviewer lens decode start", {
           page: activeRequest.page,
           packageVersion: activePackageVersion,
+          previousDecodedPackageVersion: decodedPackageVersionRef.current,
+          previousDecodedSession: decodedSessionRef.current,
           session: activeRequest.session,
           tiffBytes: activeTiffBytes.byteLength,
           tiffType: activeTiffType,
@@ -261,6 +269,14 @@ export function useImageViewer() {
     if (retryVersionRef.current !== requestVersion) {
       retryVersionRef.current = requestVersion;
       retryPackageRef.current = decodedVersion;
+      console.info("imageviewer lens package reload requested", {
+        decodedVersion,
+        packageVersion,
+        page: request.page,
+        requestVersion,
+        session: request.session,
+        viewerPageIndex: viewerState.pageIndex,
+      });
       setReloadId(requestVersion);
       return;
     }
@@ -425,6 +441,7 @@ export function useImageViewer() {
     fitPage,
     fitWidth,
     isLoading: Boolean(!pageReady && request && packageMetadata && tiffBytes && tiffType !== null),
+    isNavigating: loaded && (viewerStatus === "loadingPage" || viewerState?.status === "loadingPage"),
     isRestoredSession: restoredSession,
     isRestoring: Boolean(session && (!lensReady || !restoreDone)),
     isThumbs: viewerState?.viewMode === "thumbnails",

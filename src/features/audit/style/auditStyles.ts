@@ -31,7 +31,6 @@ export const auditStyles = {
     overflowY: "auto",
     padding: "0 var(--panel-content-padding) 0.85rem",
     position: "relative",
-    scrollbarColor: "#efefef transparent",
     textAlign: "left",
     width: "100%",
   } as CSSProperties,

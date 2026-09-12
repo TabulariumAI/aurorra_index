@@ -2,12 +2,9 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
-import { MetadataPanel } from "../component/MetadataPanel";
-import { IndexValue, copyIndexValue } from "../component/MetadataRows";
-import { getPanelData } from "../data/metadataData";
-import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView.types";
+import { MetadataPanel, IndexValue, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
 
-const segments: MetdataSegmentValues = {
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   COURT: "court",
   ENDORSEMENT: "endorsement",
@@ -39,6 +36,7 @@ const panelDefaults = {
     hiddenSegments: new Set<string>(),
     showEmpty: false,
   },
+  showContext: true,
   shortcuts: null,
   status: "success" as const,
 };
@@ -151,7 +149,7 @@ describe("metadata visual surface", () => {
     expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(2);
   });
 
-  it("renders the package metadata surface with standard one-click index actions", async () => {
+  it("renders the package metadata surface with shared armed index actions", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -189,7 +187,7 @@ describe("metadata visual surface", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    const popButton = screen.getByRole("button", { name: "Pop the index" });
+    const popButton = screen.getByRole("button", { name: "Delete index" });
     const copyButton = screen.getByRole("button", { name: "Copy value Alice" });
     const confirmButton = screen.getByRole("button", { name: "Confirm index and remove ambiguity" });
     expect(popButton).toHaveClass("metadata-row-action");
@@ -197,7 +195,11 @@ describe("metadata visual surface", () => {
     expect(popButton).toHaveStyle({ boxShadow: "none" });
     expect(copyButton).toHaveStyle({ color: "var(--primary)" });
     fireEvent.click(confirmButton);
+    expect(onConfirm).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     fireEvent.click(popButton);
+    expect(onDrop).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     expect(onConfirm).toHaveBeenCalledOnce();
     expect(onDrop).toHaveBeenCalledOnce();
     expect(screen.queryByRole("button", { name: /^Confirm$/ })).not.toBeInTheDocument();
@@ -213,6 +215,7 @@ describe("metadata visual surface", () => {
       expect(context.lastElementChild).toHaveTextContent("Property Intake");
       expect(context.lastElementChild).toHaveTextContent("session-1");
       expect(context.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
+      expect(context.nextElementSibling).toHaveAttribute("data-panel-scroll", "true");
     }
 
     expect(screen.getByText("Property Intake")).toHaveStyle({ fontWeight: "700" });
@@ -399,7 +402,7 @@ describe("metadata visual surface", () => {
     expect(expandButton.textContent).toBe("");
     expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
     expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "var(--title-ink)", height: "2.75rem", width: "2.75rem" });
+    expect(expandButton).toHaveStyle({ alignItems: "center", boxShadow: "none", color: "var(--title-ink)", height: "1.25rem", width: "1.25rem" });
     expect(explanation.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     fireEvent.focus(expandButton);
     expect(expandButton).toHaveStyle({
@@ -418,7 +421,7 @@ describe("metadata visual surface", () => {
     expect(quoteButton.textContent).toBe("");
     expect(quoteButton.querySelector("svg rect")).toBeInTheDocument();
     expect(quoteButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(quoteButton).toHaveStyle({ alignItems: "flex-start", boxShadow: "none", color: "var(--title-ink)", height: "2.75rem", width: "2.75rem" });
+    expect(quoteButton).toHaveStyle({ alignItems: "center", boxShadow: "none", color: "var(--title-ink)", height: "1.25rem", width: "1.25rem" });
     expect(quote.parentElement).toHaveStyle({ minHeight: "1.5rem" });
     expect(quote).toHaveStyle({
       display: "block",
@@ -469,7 +472,7 @@ describe("metadata visual surface", () => {
     expect(expandButton.textContent).toBe("");
     expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
     expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "flex-start", height: "2.75rem", width: "2.75rem" });
+    expect(expandButton).toHaveStyle({ alignItems: "center", height: "1.25rem", width: "1.25rem" });
     expect(value).toHaveStyle({ minHeight: "1.5rem" });
     expect(value).toHaveStyle({
       overflow: "hidden",
@@ -660,7 +663,7 @@ describe("metadata visual surface", () => {
       padding: "0.45rem 0.72rem",
     });
     expect(pageRow).not.toHaveTextContent("Quote:");
-    expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete index" })).not.toBeInTheDocument();
     const footer = document.querySelector<HTMLElement>("[data-metadata-footer]");
     expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
     expect(footer).toBeEmptyDOMElement();
@@ -762,7 +765,8 @@ describe("metadata visual surface", () => {
     const copyButton = screen.getByRole("button", { name: "Copy value Lot Block" });
     expect(copyButton).toHaveStyle({ alignItems: "center" });
     legalActionButtons.forEach((button) => {
-      expect(button).toHaveStyle({ alignItems: "flex-start", width: "2.75rem", height: "2.75rem", padding: "0" });
+      expect(button).toHaveTextContent("Show plat");
+      expect(button).toHaveStyle({ alignItems: "flex-start", width: "auto", height: "2rem", minHeight: "2rem", padding: "0 0.5rem" });
     });
     expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "underline" });
     fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));
@@ -815,15 +819,6 @@ describe("metadata visual surface", () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("Alice"));
   });
 
-  it("propagates clipboard write failures", async () => {
-    const error = new Error("Clipboard access denied.");
-    Object.defineProperty(navigator, "clipboard", {
-      configurable: true,
-      value: { writeText: vi.fn(() => Promise.reject(error)) },
-    });
-
-    await expect(copyIndexValue("Alice")).rejects.toBe(error);
-  });
 
   it("spaces legal cards apart", async () => {
     const metadata: MetadataPayload = {

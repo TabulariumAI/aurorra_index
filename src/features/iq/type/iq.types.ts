@@ -148,10 +148,13 @@ export type IqStoreState = {
   ackingCodes: ReadonlySet<string>;
   error: IqWorkerError | null;
   report: IqReport | null;
+  refresh: { id: number; session: string } | null;
+  refreshId: number;
   retryAttempt: number;
   status: IqStatus;
   ackStart(code: string): void;
   ackSuccess(code: string): void;
+  refreshIq(session: string): void;
   resetIq(): void;
   setError(error: IqWorkerError): void;
   setLoaded(session: string, report: IqReport): void;

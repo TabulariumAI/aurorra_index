@@ -1,11 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { MetadataPanel } from "../component/MetadataPanel";
-import { getPanelData } from "../data/metadataData";
-import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView.types";
+import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
 
-const segments: MetdataSegmentValues = {
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   COURT: "court",
   ENDORSEMENT: "endorsement",
@@ -37,6 +35,7 @@ const panelDefaults = {
     hiddenSegments: new Set<string>(),
     showEmpty: false,
   },
+  showContext: true,
   shortcuts: null,
   status: "success" as const,
 };
@@ -96,7 +95,8 @@ describe("MetadataPanel address map integration", () => {
     const value = screen.getByText("123 Main Street, Austin, TX 78701");
     expect(openButton.parentElement?.firstElementChild).toBe(openButton);
     expect(openButton.parentElement?.lastElementChild).toBe(value);
-    expect(openButton).toHaveStyle({ alignItems: "flex-start" });
+    expect(openButton).toHaveTextContent("Show map");
+    expect(openButton).toHaveStyle({ alignItems: "flex-start", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
 
     await waitFor(() => expect(screen.getByTestId("address-clicked").textContent).toBe("123 Main Street, Austin, TX 78701"));

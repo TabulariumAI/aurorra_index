@@ -1,4 +1,4 @@
-import type { MetadataJSONParts } from "../../features/metdataview/type/metadataView.types";
+import type { MetadataJSONParts } from "aurora-core";
 
 export type StoreValues = {
   jsonBySession: Record<string, MetadataJSONParts>;

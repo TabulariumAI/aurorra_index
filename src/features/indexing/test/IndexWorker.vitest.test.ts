@@ -22,16 +22,38 @@ function plainResponse(text = "plain", status = 200) {
   return new Response(text, { status });
 }
 
-function indexData(data: unknown, status = "completed") {
-  return { data: JSON.stringify(data), status };
-}
-
 describe("IndexWorker", () => {
+  it.each(["add", "update", "remove"] as const)("sends queued %s changes through the existing patch route", async (action) => {
+    const change = {
+      action,
+      explanation: "User change",
+      new_index_label: "person",
+      new_index_aspect: "grantor",
+      new_index_value: "Bob",
+      new_index_ambiguous: "NO",
+      old_index_label: "person",
+      old_index_aspect: "grantor",
+      old_index_value: "Alice",
+    };
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing", version: 5 })));
+    const result = await new IndexWorker().run({ apiBaseUrl: "https://gateway/", token: "token", session: "session/1", segment: "party", change, type: "patchIndex" });
+    expect(result).toEqual({ ok: true, data: { data: "", status: "processing", version: 5 } });
+    expect(fetch).toHaveBeenCalledOnce();
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe(`https://gateway/v1/refine/session%2F1/patch/${action === "remove" ? "drop" : action}`);
+    expect(init).toMatchObject({ method: "POST", headers: { Authorization: "Bearer token", "Content-Type": "application/json" } });
+    const body = JSON.parse(String(init?.body));
+    expect(body).toMatchObject({ segment: "party", explanation: "User change" });
+    if (action !== "remove") expect(body.new_index_value).toBe("Bob");
+    if (action !== "add") expect(body.old_index_value).toBe("Alice");
+    expect(body).not.toHaveProperty("action");
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("builds the required index route", () => {
+  it("builds the required metadata route", () => {
     const request = new IndexWorker().buildRequest({
       apiBaseUrl: "https://doc.example.com/",
       session: "session/1",
@@ -42,7 +64,7 @@ describe("IndexWorker", () => {
     expect(request).toEqual({
       body: null,
       method: "GET",
-      url: "https://doc.example.com/v1/index/session%2F1/data",
+      url: "https://doc.example.com/v1/metadata/session%2F1/data",
     });
   });
 
@@ -95,8 +117,11 @@ describe("IndexWorker", () => {
     });
   });
 
-  it("executes index load with bearer auth header", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(indexData(metadata)));
+  it("downloads metadata from the completed SAS URL", async () => {
+    const sasUrl = "https://storage.test/subscription/session/mdata.json?sig=token";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse(metadata));
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await new IndexWorker().run({
@@ -107,10 +132,80 @@ describe("IndexWorker", () => {
     });
 
     expect(result).toEqual({ ok: true, data: metadata });
-    expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/index/session-1/data", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://doc.example.com/v1/metadata/session-1/data", {
       body: null,
       headers: { Authorization: "Bearer token-1" },
       method: "GET",
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, sasUrl);
+  });
+
+  it("returns the metadata Blob HTTP failure", async () => {
+    const sasUrl = "https://storage.test/subscription/session/mdata.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ error: "SAS denied" }, { status: 403 })));
+
+    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
+      details: { error: "SAS denied" },
+      error: "SAS denied",
+      ok: false,
+      status: 403,
+    });
+  });
+
+  it("returns the metadata Blob network failure", async () => {
+    const sasUrl = "https://storage.test/subscription/session/mdata.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockRejectedValueOnce(new Error("Blob unavailable")));
+
+    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
+      error: "Blob unavailable",
+      ok: false,
+    });
+  });
+
+  it("returns invalid JSON from the metadata Blob", async () => {
+    const sasUrl = "https://storage.test/subscription/session/mdata.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(new Response("{", { headers: { "content-type": "application/json" }, status: 200 })));
+
+    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
+      code: "invalid_json",
+      error: "Response JSON could not be parsed.",
+      ok: false,
+      status: 200,
+    });
+  });
+
+  it("validates metadata downloaded from the Blob", async () => {
+    const sasUrl = "https://storage.test/subscription/session/mdata.json?sig=token";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ heading: {} })));
+
+    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
+      code: "validation_error",
+      error: "Missing required key: secrets",
+      ok: false,
+    });
+  });
+
+  it("rejects error and incomplete metadata envelopes", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "metadata failed", status: "error" })));
+    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
+      code: "index_error",
+      error: "metadata failed",
+      ok: false,
+    });
+
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing" })));
+    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
+      code: "index_not_completed",
+      error: "processing",
+      ok: false,
     });
   });
 
@@ -125,7 +220,7 @@ describe("IndexWorker", () => {
       if (url.endsWith("/v1/refine/session-1/drop/idx%2F1")) {
         return jsonResponse({ data: "", status: "processing", version: 2 });
       }
-      return jsonResponse(indexData(metadata));
+      return jsonResponse({ data: "https://storage.test/mdata.json?sig=token", status: "completed" });
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -252,7 +347,9 @@ describe("IndexWorker", () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: 1, status: "error", version: 1 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", code: "idx-1", type: "dropIndex" })).resolves.toMatchObject({ code: "validation_error", ok: false });
 
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(indexData({ heading: {} }))));
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: "https://storage.test/mdata.json?sig=token", status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ heading: {} })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({ code: "validation_error", ok: false });
   });
 });

@@ -4,7 +4,9 @@ import { useMetadata } from "../hook/useMetadata";
 import { indexStoreApi } from "../store/metadataStore";
 import { createDeferredState } from "../../indexing/data/deferredState";
 import { storeApi } from "../../../store/state/store";
-import type { MetdataActionPayload, MetdataMetadataProps, MetdataMetadataRefresh, MetdataWorkerClient, MetadataPayload } from "../type/metadataView.types";
+import { queueStoreApi } from "../../queue/store/queueStore";
+import type { MetdataMetadataProps, MetdataMetadataRefresh, MetdataWorkerClient } from "../type/metadataView.types";
+import { splitMetadataJSON, type MetadataActionPayload, type MetadataPayload } from "aurora-core";
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",
@@ -35,10 +37,13 @@ const baseMetadata: MetadataPayload = {
 };
 
 function createClient(): MetdataWorkerClient {
+  let data = structuredClone(baseMetadata);
   return {
-    confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-    dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-    indexData: vi.fn(async () => baseMetadata),
+    updatePageSegments: vi.fn(),
+      patchIndex: vi.fn(),
+    confirmIndex: vi.fn(async () => { data = { ...data, indexes: data.indexes?.map((index) => ({ ...index, ambiguous: "NO" })) }; return { data: "", status: "completed" as const, version: 1 }; }),
+    dropIndex: vi.fn(async () => { data = { ...data, indexes: [] }; return { data: "", status: "completed" as const, version: 1 }; }),
+    indexData: vi.fn(async () => data),
     patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
     reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
   };
@@ -46,7 +51,7 @@ function createClient(): MetdataWorkerClient {
 
 const choices = [{ level: 1, service: "PartyClauseIndexing" }];
 
-const rowPayload: MetdataActionPayload = {
+const rowPayload: MetadataActionPayload = {
   code: "idx-1",
   highlightOptions: { scroll: false },
   metadataIndex: null,
@@ -62,6 +67,7 @@ const rowPayload: MetdataActionPayload = {
 
 describe("useMetadata", () => {
   beforeEach(() => {
+    queueStoreApi.getState().reset();
     indexStoreApi.getState().resetMetadata();
     storeApi.getState().resetAllState();
   });
@@ -78,6 +84,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onActionComplete, onActionError },
       choices,
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
@@ -118,6 +125,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: {},
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -159,6 +167,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onMetadataLoaded },
       choices: null,
       deferredState: createDeferredState(),
@@ -188,6 +197,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: {
         onMetadataError,
         onMetadataLoaded: () => {
@@ -215,12 +225,14 @@ describe("useMetadata", () => {
     expect(onMetadataError).toHaveBeenCalledWith(expect.objectContaining({ error: "Required choices are missing." }));
   });
 
-  it("clears prior view actions when switching to cached metadata", async () => {
+  it("keeps queued changes scoped when switching to cached metadata", async () => {
     const client = createClient();
+    vi.mocked(client.confirmIndex).mockReturnValue(new Promise(() => undefined));
     const props: Omit<MetdataMetadataProps, "session"> = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: {},
       choices,
       deferredState: createDeferredState(),
@@ -241,8 +253,8 @@ describe("useMetadata", () => {
     await act(async () => {
       await result.current.onConfirm(rowPayload);
     });
-    expect(result.current.confirmedCodes.has("idx-1")).toBe(true);
-    const cached = storeApi.getState().getJSON("session-1");
+    expect(result.current.metadata?.indexes?.find((item) => item.code === "idx-1")?.ambiguous).toBe("NO");
+    const cached = splitMetadataJSON(baseMetadata);
     if (!cached) throw new Error("Metadata cache was not populated.");
     storeApi.getState().setJSON("session-2", cached);
 
@@ -250,7 +262,7 @@ describe("useMetadata", () => {
 
     await waitFor(() => expect(indexStoreApi.getState().activeSession).toBe("session-2"));
     expect(client.indexData).toHaveBeenCalledTimes(1);
-    expect(result.current.confirmedCodes).toEqual(new Set());
+    expect(result.current.metadata?.indexes?.[0].ambiguous).toBeUndefined();
   });
 
   it("reloads metadata once for each matching host refresh event", async () => {
@@ -260,6 +272,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onSegmentExpand },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -294,13 +307,14 @@ describe("useMetadata", () => {
     expect(client.indexData).toHaveBeenCalledTimes(2);
   });
 
-  it("marks confirm code state and emits a completion event", async () => {
+  it("marks confirm code state without emitting the old completion callback", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onActionComplete },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -322,22 +336,26 @@ describe("useMetadata", () => {
     });
 
     expect(client.confirmIndex).toHaveBeenCalledWith("token", "session-1", "idx-1");
-    expect(result.current.confirmedCodes.has("idx-1")).toBe(true);
-    expect(onActionComplete).toHaveBeenCalledWith({ action: "confirm", code: "idx-1", session: "session-1" });
+    expect(result.current.metadata?.indexes?.find((item) => item.code === "idx-1")?.ambiguous).toBe("NO");
+    expect(onActionComplete).not.toHaveBeenCalled();
   });
 
-  it("waits for the patch status before applying confirm and drop state", async () => {
+  it("applies confirm and drop locally before their serialized background requests complete", async () => {
     const client = createClient();
     vi.mocked(client.confirmIndex).mockResolvedValueOnce({ data: "", status: "processing", version: 3 });
     vi.mocked(client.dropIndex).mockResolvedValueOnce({ data: "", status: "processing", version: 4 });
+    let completeConfirm!: () => void;
     vi.mocked(client.patchStatus)
-      .mockResolvedValueOnce({ data: "", status: "completed", version: 3 })
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        completeConfirm = () => resolve({ data: "", status: "completed", version: 3 });
+      }))
       .mockResolvedValueOnce({ data: "", status: "completed", version: 4 });
     const onActionComplete = vi.fn();
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onActionComplete },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
@@ -354,19 +372,21 @@ describe("useMetadata", () => {
     const { result } = renderHook(() => useMetadata(props));
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(1));
 
-    await act(async () => {
-      await result.current.onConfirm(rowPayload);
-      await result.current.onDrop(rowPayload);
-    });
+    act(() => { void result.current.onConfirm(rowPayload); });
+    expect(result.current.metadata?.indexes?.find((item) => item.code === "idx-1")?.ambiguous).toBe("NO");
+    await waitFor(() => expect(client.patchStatus).toHaveBeenCalledWith("token", "session-1", 3));
+    act(() => { void result.current.onDrop(rowPayload); });
+    expect(result.current.metadata?.indexes).toEqual([expect.objectContaining({ code: "idx-1", value: "Alice" })]);
+    expect(client.dropIndex).not.toHaveBeenCalled();
+    expect(onActionComplete).not.toHaveBeenCalled();
 
-    expect(client.patchStatus).toHaveBeenNthCalledWith(1, "token", "session-1", 3);
-    expect(client.patchStatus).toHaveBeenNthCalledWith(2, "token", "session-1", 4);
-    expect(result.current.confirmedCodes.has("idx-1")).toBe(true);
-    expect(result.current.removedCodes.has("idx-1")).toBe(true);
-    expect(onActionComplete).toHaveBeenCalledTimes(2);
+    act(() => completeConfirm());
+    await waitFor(() => expect(client.patchStatus).toHaveBeenNthCalledWith(2, "token", "session-1", 4));
+    await waitFor(() => expect(queueStoreApi.getState().queues[0]).toMatchObject({ pending: 0, completed: 2 }));
+    expect(onActionComplete).not.toHaveBeenCalled();
   });
 
-  it("clears matching selection on drop and emits completion", async () => {
+  it("clears matching selection on local drop without emitting the old completion callback", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const onIndexFocus = vi.fn();
@@ -374,6 +394,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onActionComplete, onIndexFocus },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
@@ -397,11 +418,11 @@ describe("useMetadata", () => {
     expect(client.dropIndex).toHaveBeenCalledWith("token", "session-1", "idx-1");
     await waitFor(() => expect(result.current.selectedIndex).toBeNull());
     expect(onIndexFocus).toHaveBeenCalledWith(null);
-    expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" });
-    expect(result.current.removedCodes.has("idx-1")).toBe(true);
+    expect(onActionComplete).not.toHaveBeenCalled();
+    expect(result.current.metadata?.indexes).toEqual([]);
   });
 
-  it("emits action failures for mutation route errors", async () => {
+  it("keeps queued failures in metadata tasks and preserves the reprocess error callback", async () => {
     const client = createClient();
     vi.mocked(client.confirmIndex).mockRejectedValueOnce(Object.assign(new Error("Confirm failed"), { code: "index_confirm_failed", status: 500 }));
     vi.mocked(client.dropIndex).mockRejectedValueOnce(Object.assign(new Error("Drop failed"), { code: "index_drop_failed", status: 500 }));
@@ -413,6 +434,7 @@ describe("useMetadata", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: { onActionComplete, onActionError },
       choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
@@ -432,21 +454,13 @@ describe("useMetadata", () => {
     await act(async () => {
       await result.current.onConfirm(rowPayload);
     });
-    expect(onActionError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: { action: "confirm", code: "idx-1", session: "session-1" },
-        error: expect.objectContaining({ code: "index_confirm_failed", error: "Confirm failed", status: 500 }),
-      }),
-    );
+    await waitFor(() => expect(queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed", error: "Confirm failed" }));
+    expect(onActionError).not.toHaveBeenCalled();
     await act(async () => {
       await result.current.onDrop(rowPayload);
     });
-    expect(onActionError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: { action: "drop", code: "idx-1", session: "session-1" },
-        error: expect.objectContaining({ code: "index_drop_failed", error: "Drop failed", status: 500 }),
-      }),
-    );
+    await waitFor(() => expect(queueStoreApi.getState().tasks[1]).toMatchObject({ status: "failed", error: "Drop failed" }));
+    expect(onActionError).not.toHaveBeenCalled();
 
     await act(async () => {
       await result.current.onReprocess("party");

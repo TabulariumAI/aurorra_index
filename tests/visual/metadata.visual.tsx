@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
-import { MetadataPanel } from "../../src/features/metdataview/component/MetadataPanel";
-import { getPanelData } from "../../src/features/metdataview/data/metadataData";
-import type { MetdataSegmentValues, MetadataPayload } from "../../src/features/metdataview/type/metadataView.types";
+import { MetadataPanel } from "aurora-core";
+import { getPanelData } from "aurora-core";
+import type { MetadataSegments, MetadataPayload } from "aurora-core";
 
-const segments: MetdataSegmentValues = {
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
   COURT: "court",
@@ -112,6 +112,7 @@ createRoot(stage).render(
     removedCodes={new Set()}
     sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
     selectedIndex={null}
+    showContext
     segments={segments}
     session="visual-session-metadata"
     setSectionOpen={noOp}

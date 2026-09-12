@@ -4,11 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { storeApi } from "../../../store/state/store";
-import { MetadataPanel } from "../component/MetadataPanel";
-import { getPanelData } from "../data/metadataData";
-import type { MetdataSegmentValues, MetadataPayload } from "../type/metadataView.types";
+import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
 
-const segments: MetdataSegmentValues = {
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   COURT: "court",
   ENDORSEMENT: "endorsement",
@@ -40,6 +38,7 @@ const panelDefaults = {
     hiddenSegments: new Set<string>(),
     showEmpty: false,
   },
+  showContext: true,
   shortcuts: null,
   status: "success" as const,
 };
@@ -98,6 +97,8 @@ describe("MetadataPanel legal map trigger", () => {
     const value = screen.getByText("Lot Block");
     expect(openButton.parentElement?.firstElementChild).toBe(openButton);
     expect(openButton.parentElement?.lastElementChild).toBe(value);
+    expect(openButton).toHaveTextContent("Show plat");
+    expect(openButton).toHaveStyle({ alignItems: "flex-start", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
 
     await waitFor(() => expect(onLegalView).toHaveBeenCalledWith(expect.objectContaining({

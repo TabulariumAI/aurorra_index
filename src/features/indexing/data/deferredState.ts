@@ -1,9 +1,10 @@
-import type { MetdataDeferredState, MetdataSelected } from "../../metdataview/type/metadataView.types";
+import type { MetdataDeferredState } from "../../metdataview/type/metadataView.types";
+import type { MetadataSelected } from "aurora-core";
 
 export function createDeferredState(input: {
   pageMap?: Iterable<readonly [string, string]>;
   segment?: string | null;
-  selectedIndex?: MetdataSelected | null;
+  selectedIndex?: MetadataSelected | null;
 } = {}): MetdataDeferredState {
   return {
     pageMap: new Map(input.pageMap || []),

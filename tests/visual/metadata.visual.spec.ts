@@ -69,7 +69,7 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   expect(segmentTriggerBox!.x + segmentTriggerBox!.width).toBeLessThanOrEqual(actionGroupBox!.x);
   expect(actionGroupBox!.x + actionGroupBox!.width).toBeLessThanOrEqual(segmentCountBox!.x);
   await expect(dropButton).toBeVisible();
-  await expect(dropButton).toHaveAttribute("aria-label", "Pop the index");
+  await expect(dropButton).toHaveAttribute("aria-label", "Delete index");
   await expect(copyButton).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(dropButton).toHaveCSS("box-shadow", "none");
@@ -80,11 +80,11 @@ test("metadata explanation row collapses and expands inline", async ({ page }) =
   await dropButton.hover();
   await page.waitForTimeout(350);
   await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
-  await expect(page.getByRole("tooltip", { name: "Pop the index" })).toBeVisible();
+  await expect(dropButton).toHaveAttribute("title", "Delete index");
   await dropButton.click();
-  await expect(dropButton).toHaveAttribute("aria-label", "Pop the index");
-  await expect(dropButton).not.toHaveAttribute("data-armed", "true");
-  await expect(dropButton.locator("[data-confirm-progress='true']")).toHaveCount(0);
+  await expect(dropButton).toHaveAttribute("aria-label", "Confirm");
+  await expect(dropButton).toHaveAttribute("data-armed", "true");
+  await expect(dropButton.locator("[data-confirm-progress='true']")).toHaveCount(1);
   await expect(dropButton).toHaveCSS("width", "44px");
   await expect(dropButton).toHaveCSS("height", "44px");
   await expect(page.locator("[data-radix-popper-content-wrapper]")).toHaveCount(0);
@@ -300,7 +300,7 @@ test("metadata reprocess stays in the segment header", async ({ page }) => {
   const segmentTrigger = accordion.getByRole("button", { name: /Parties\(Party Clause\)/i });
   const segmentHeader = segmentTrigger.locator("..");
   const progress = segmentHeader.getByRole("status", { name: "Reprocessing party" });
-  const spinner = progress.locator(".aurorra-index-progress-spinner");
+  const spinner = progress.locator(".metadata-progress-spinner");
   const chat = segmentHeader.getByRole("button", { name: "Open AI chat" });
   const segmentCount = segmentHeader.locator(":scope > span");
 
@@ -312,7 +312,7 @@ test("metadata reprocess stays in the segment header", async ({ page }) => {
   await expect(progress).toHaveCSS("height", "44px");
   await expect(progress).toHaveCSS("width", "44px");
   await expect(spinner).toHaveCSS("border-radius", "999px");
-  await expect(spinner).toHaveCSS("animation-name", "aurorra-index-spinner");
+  await expect(spinner).toHaveCSS("animation-name", "metadata-spinner");
   const [progressBox, actionBox, chatBox, segmentTriggerBox, segmentCountBox] = await Promise.all([
     spinner.boundingBox(),
     progress.locator("..").boundingBox(),

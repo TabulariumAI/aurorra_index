@@ -33,21 +33,21 @@ describe("AuditWorker", () => {
       session: "session-1",
       token: "token",
       type: "auditData",
-    }).url).toBe("https://doc.example.com/v1/index/session-1/audit");
+    }).url).toBe("https://doc.example.com/v1/metadata/session-1/audit");
     expect(worker.buildRequest({
       apiBaseUrl: "https://doc.example.com",
       session: "session 1",
       token: "token",
       type: "auditData",
-    }).url).toBe("https://doc.example.com/v1/index/session%201/audit");
+    }).url).toBe("https://doc.example.com/v1/metadata/session%201/audit");
   });
 
   it("sends bearer auth and expected request body", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ gaps: [] }));
+    const fetchMock = vi.fn(async () => jsonResponse({ data: "test", status: "error" }));
     vi.stubGlobal("fetch", fetchMock);
 
     await new AuditWorker().run({ apiBaseUrl: "https://doc.example.com", session: "session-1", token: "token", type: "auditData" });
-    expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/index/session-1/audit", {
+    expect(fetchMock).toHaveBeenCalledWith("https://doc.example.com/v1/metadata/session-1/audit", {
       body: null,
       headers: { Authorization: "Bearer token" },
       method: "GET",
@@ -117,7 +117,7 @@ describe("AuditWorker", () => {
     });
   });
 
-  it("returns normalized audit report on success", async () => {
+  it("rejects a raw audit report response", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
       gaps: [
         { solution: "ADD", explanation: "alpha", page: "2", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: "reference" },
@@ -132,16 +132,10 @@ describe("AuditWorker", () => {
       session: "session-1",
       token: "token",
       type: "auditData",
-    })).toEqual({
-      ok: true,
-      data: {
-        gaps: [{ solution: "ADD", explanation: "alpha", page: "2", owner: "VERIFICATION", timestamp: "2026-01-03T12:00:00Z", segment: "reference" }],
-        usage: { costs: ["1", "2"] },
-      },
-    });
+    })).toEqual({ ok: false, code: "validation_error", error: "Response is not a valid audit envelope." });
   });
 
-  it("normalizes an object audit data envelope", async () => {
+  it("rejects an inline object audit envelope", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: auditFixture, status: "completed" })));
 
     expect(await new AuditWorker().run({
@@ -149,38 +143,7 @@ describe("AuditWorker", () => {
       session: "session-1",
       token: "token",
       type: "auditData",
-    })).toEqual({
-      ok: true,
-      data: {
-        gaps: [
-          { solution: "REMOVE", explanation: "Remove index", page: "4", owner: "ENRICHMENT", timestamp: "2026-01-04T12:00:00Z", segment: "party" },
-          { solution: "ADD", explanation: "Add index", page: "1", owner: "VERIFICATION", timestamp: "2026-01-03T12:00:00Z", segment: null },
-        ],
-        usage: { costs: ["$0.9480"] },
-      },
-    });
-  });
-
-  it("normalizes the complete GapEntry contract from a raw report response", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(auditFixture)));
-
-    const result = await new AuditWorker().run({
-      apiBaseUrl: "x",
-      session: "session-1",
-      token: "token",
-      type: "auditData",
-    });
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) throw new Error(result.error);
-    expect(result.data.gaps).toHaveLength(2);
-    expect(result.data.usage).toEqual({ costs: ["$0.9480"] });
-    expect(result.data.gaps[0]).toMatchObject({
-      solution: "REMOVE",
-      explanation: "Remove index",
-      owner: "ENRICHMENT",
-      segment: "party",
-    });
+    })).toEqual({ ok: false, code: "validation_error", error: "Response is not a valid audit envelope." });
   });
 
   it("downloads and normalizes the audit Blob from the completed SAS URL", async () => {
@@ -201,7 +164,7 @@ describe("AuditWorker", () => {
     if (!result.ok) throw new Error(result.error);
     expect(result.data.gaps).toHaveLength(2);
     expect(result.data.usage).toEqual({ costs: ["$0.9480"] });
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "x/v1/index/session-1/audit", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "x/v1/metadata/session-1/audit", {
       body: null,
       headers: { Authorization: "Bearer token" },
       method: "GET",
@@ -227,6 +190,21 @@ describe("AuditWorker", () => {
       error: "SAS denied",
       status: 403,
     });
+  });
+
+  it("returns the audit Blob network failure", async () => {
+    const sasUrl = "https://storage.test/subscription/session/audit.json?sig=token";
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockRejectedValueOnce(new Error("Blob unavailable"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await new AuditWorker().run({
+      apiBaseUrl: "x",
+      session: "session-1",
+      token: "token",
+      type: "auditData",
+    })).toEqual({ ok: false, error: "Blob unavailable" });
   });
 
   it("returns invalid JSON from the audit Blob as a retrieval failure", async () => {
@@ -268,6 +246,21 @@ describe("AuditWorker", () => {
       details: { data: "backend audit failure", status: "error" },
       error: "backend audit failure",
     });
+  });
 
+  it("returns incomplete audit status", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing" })));
+
+    expect(await new AuditWorker().run({
+      apiBaseUrl: "x",
+      session: "session-1",
+      token: "token",
+      type: "auditData",
+    })).toEqual({
+      ok: false,
+      code: "audit_not_completed",
+      details: { data: "", status: "processing" },
+      error: "processing",
+    });
   });
 });

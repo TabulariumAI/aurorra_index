@@ -1,5 +1,5 @@
 import { useEffect, type JSX } from "react";
-import type { LegalPayload } from "../../metdataview/type/metadataView.types";
+import type { LegalPayload } from "aurora-core";
 import { isBlank, normalizeLegalData, type PlatBlock, type PlatLot, type PlatPhase } from "../data/legalData";
 import {
   blockLabelStyle,

@@ -1,5 +1,6 @@
 import { normalizeAuditReport } from "../data/auditData";
 import type { AuditReport, AuditWorkerCommand, AuditWorkerResult } from "../type/audit.types";
+import { fetchJson } from "../../../shared/worker/fetchJson";
 
 type ParsedResponse = {
   contentType: string;
@@ -7,36 +8,35 @@ type ParsedResponse = {
   response: Response;
 };
 
+type AuditEnvelope = {
+  data: string;
+  status: string;
+};
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function validateEnvelope(payload: unknown): AuditWorkerResult<AuditEnvelope> {
+  if (!isObject(payload) || typeof payload.status !== "string" || typeof payload.data !== "string") {
+    return { ok: false, code: "validation_error", error: "Response is not a valid audit envelope." };
+  }
+  return { ok: true, data: payload as AuditEnvelope };
+}
+
 async function reportFromPayload(payload: unknown): Promise<AuditWorkerResult<AuditReport>> {
-  if (isObject(payload) && payload.status === "error") {
-    return { ok: false, code: "audit_error", details: payload, error: String(payload.data || payload.error || "error") };
+  const result = validateEnvelope(payload);
+  if (!result.ok) return result;
+  const envelope = result.data;
+  if (envelope.status === "error") {
+    return { ok: false, code: "audit_error", details: envelope, error: envelope.data };
   }
-  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
-    let response: Response;
-    try {
-      response = await fetch(payload.data);
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
-    }
-    if (!response.ok) {
-      const parsed = await parseResponse(response);
-      if (!parsed.ok) return parsed;
-      return parseError(parsed.data);
-    }
-    try {
-      return { ok: true, data: normalizeAuditReport(await response.json()) };
-    } catch {
-      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
-    }
+  if (envelope.status !== "completed") {
+    return { ok: false, code: "audit_not_completed", details: envelope, error: envelope.status };
   }
-  if (isObject(payload) && isObject(payload.data)) {
-    return { ok: true, data: normalizeAuditReport(payload.data) };
-  }
-  return { ok: true, data: normalizeAuditReport(payload) };
+  const report = await fetchJson(envelope.data);
+  if (!report.ok) return report;
+  return { ok: true, data: normalizeAuditReport(report.data) };
 }
 
 async function parseResponse(response: Response): Promise<AuditWorkerResult<ParsedResponse>> {
@@ -83,7 +83,7 @@ export class AuditWorker {
   buildRequest(command: AuditWorkerCommand): { body: null; method: "GET"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
-    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/index/${session}/audit` };
+    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/metadata/${session}/audit` };
   }
 
   async run(command: AuditWorkerCommand): Promise<AuditWorkerResult<AuditReport>> {
@@ -118,7 +118,7 @@ export class AuditWorker {
     if (!parsed.ok) return parsed;
     if (!response.ok) return parseError(parsed.data);
 
-    return await reportFromPayload(parsed.data.payload);
+    return reportFromPayload(parsed.data.payload);
   }
 }
 

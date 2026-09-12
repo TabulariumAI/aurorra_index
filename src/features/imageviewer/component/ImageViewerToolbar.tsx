@@ -1,4 +1,4 @@
-import { ConfButton } from "aurorra-ui";
+import { ConfButton } from "aurora-core";
 import * as Popover from "@radix-ui/react-popover";
 import { useState } from "react";
 import type { FormEvent, JSX } from "react";
@@ -203,19 +203,8 @@ export function ImageViewerTopToolbar({
         }} />
     </form>
   );
-  if (compact) {
-    return (
-      <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbarCompact}>
-        <div data-image-viewer-toolbar-row="primary" style={imageViewerStyles.compactTopRow}>
-          {viewControls}
-        </div>
-        {searchControls}
-      </div>
-    );
-  }
-
   return (
-    <div aria-label="Image viewer top toolbar" style={imageViewerStyles.topToolbar}>
+    <div aria-label="Image viewer top toolbar" style={{ ...imageViewerStyles.topToolbar, ...(compact ? imageViewerStyles.topToolbarCompact : {}) }}>
       {viewControls}
       {searchControls}
     </div>

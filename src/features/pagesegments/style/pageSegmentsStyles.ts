@@ -81,16 +81,14 @@ export const pageSegmentsStyles = {
       fontSize: "0.92rem",
     };
   },
-  message(variant: "error" | "success"): CSSProperties {
-    return {
-      background: variant === "error" ? "#FEF2F2" : "#ECFDF3",
-      borderRadius: "var(--radius-card)",
-      color: variant === "error" ? "#991B1B" : "#14532D",
-      display: "block",
-      font: "500 0.875rem/1.45 var(--font-ui)",
-      padding: "0.625rem 0.75rem",
-      textAlign: "left",
-    };
+  message: {
+    background: "#FEF2F2",
+    borderRadius: "var(--radius-card)",
+    color: "#991B1B",
+    display: "block",
+    font: "500 0.875rem/1.45 var(--font-ui)",
+    padding: "0.625rem 0.75rem",
+    textAlign: "left",
   },
   footer: {
     alignItems: "center",

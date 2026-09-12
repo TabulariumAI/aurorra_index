@@ -389,7 +389,7 @@ Create `IqPanel.tsx`.
 
 Component tree:
 - Root: `<section aria-label="Indexing Quality" style={iqStyles.root}>`
-- Loading overlay: use `aurorra-ui/ProgressBar` through the existing package dependency when `status` is `"loading"` or `"refreshing"`.
+- Loading overlay: use `aurora-core/ProgressBar` through the existing package dependency when `status` is `"loading"` or `"refreshing"`.
 - If status is `"error"` and `report` is null, render `null`.
 - If `view` is null, render a package empty message: `No IQ report found.`
 - Render `IqSummary`.
@@ -440,7 +440,7 @@ Create `IqGates.tsx`.
   - info: bg `#94a3b8`, border `#475569`
   - fail: bg `#ef4444`, border `#991b1b`
 - Render clear action only for `fail` and `warning`.
-- Use `ConfButton` from `aurorra-ui` for the clear action because current package rows already use `ConfButton` for confirmation behavior.
+- Use `ConfButton` from `aurora-core` for the clear action because current package rows already use `ConfButton` for confirmation behavior.
 - Use Radix Tooltip around the clear action with text `Clear gate`.
 - Clear action label must be `Clear gate`.
 - Clear action calls `onAck(gate.code)`.
@@ -573,7 +573,7 @@ Create exactly these package tests:
 
 ## Live Code Delta Notes
 The repo state after implementation is not identical to the original contract. Keep these deltas in view when revising or validating the work:
-- `document_web\src\features\iq\component\IqHost.tsx` still owns tablet and kiosk presentation with `aurorra-ui/Dialog`, a custom header, and `resetParam("layout_type")`.
+- `document_web\src\features\iq\component\IqHost.tsx` still owns tablet and kiosk presentation with `aurora-core/Dialog`, a custom header, and `resetParam("layout_type")`.
 - `document_web\src\app\shell\component\AppShell.tsx` still renders `<dialog id="dialog-container" ... />` without the `open={...}` expression described later in this contract.
 - `document_web\src\domains\workflow\svc\orchestrator.js` no longer contains `await IQController.showReport(layoutMode);`; current IQ routing only sets `layout_type` to `IQREPORT`.
 - `document_web\src\features\iq\legacy\iqRuntime.ts` still uses `EventBus`, `EVENTS`, `ENV`, and `AlertHelper` for the adapter error path.
@@ -597,7 +597,7 @@ Exact visual entry update:
 Exact visual Vite update:
 - Add alias key `"@radix-ui/react-tooltip": path.resolve(rootDir, "node_modules/@radix-ui/react-tooltip")`.
 - Add `"@radix-ui/react-tooltip"` to `dedupe`.
-- Keep existing aliases for React, ReactDOM, Radix dialog, Radix progress, and `aurorra-ui`.
+- Keep existing aliases for React, ReactDOM, Radix dialog, Radix progress, and `aurora-core`.
 
 Exact visual spec navigation:
 - `iq.visual.spec.ts` must use `await page.goto("/?scenario=iq");`.

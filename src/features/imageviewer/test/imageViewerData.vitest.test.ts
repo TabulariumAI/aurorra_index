@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { parsePackageMetadata, parsePackageUrls, resolveSelectedIndex, toPageRequest, toPositivePage } from "../data/imageViewerData";
 import type { PageRequest } from "../type/imageViewer.types";
-import type { MetadataPayload } from "../../metdataview/type/metadataView.types";
+import type { MetadataPayload } from "aurora-core";
 
 const packageRoot = path.join(process.cwd(), "src", "test", "package");
 const directPackage = JSON.parse(readFileSync(path.join(packageRoot, "image-package.json"), "utf8")) as { data: string; tiff: string };

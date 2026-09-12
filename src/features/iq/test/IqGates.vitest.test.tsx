@@ -48,7 +48,9 @@ describe("IqGates", () => {
 
     const clear = screen.getAllByRole("button", { name: "Clear gate" })[0];
     fireEvent.click(clear);
-    fireEvent.click(clear);
+    expect(clear).toHaveAccessibleName("Confirm");
+    expect(clear).toHaveTextContent("Clear gate");
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     expect(onAck).toHaveBeenCalledWith("fail");
   });

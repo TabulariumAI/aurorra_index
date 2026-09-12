@@ -21,6 +21,7 @@ const viewerHasMetadata = vi.hoisted(() => ({ value: true }));
 const viewerCanSelect = vi.hoisted(() => ({ value: true }));
 const viewerCanSearch = vi.hoisted(() => ({ value: true }));
 const decodeDocError = vi.hoisted(() => ({ value: null as Error | null }));
+const decodeWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
 const auroraLensCtor = vi.hoisted(() =>
   vi.fn(function AuroraLensMock(
     this: unknown,
@@ -66,6 +67,7 @@ const auroraLensCtor = vi.hoisted(() =>
       decodeDoc: vi.fn(async () => {
         if (decodeDocError.value) throw decodeDocError.value;
         emitState("loadingPage");
+        await decodeWait.promise;
         emitState("ready");
       }),
       firstPage: vi.fn(),
@@ -136,6 +138,7 @@ function Harness() {
       <button disabled={!viewer.canZoomOut} onClick={viewer.zoomOut} type="button">zoom out</button>
       <span data-testid="restored-session">{viewer.isRestoredSession ? "restored" : "not-restored"}</span>
       <span data-testid="restore-state">{viewer.isRestoring ? "restoring" : "ready"}</span>
+      <span data-testid="navigating">{String(viewer.isNavigating)}</span>
       <span data-testid="exported-page">{exportedPage}</span>
       <span data-testid="reload-id">{viewer.reloadId}</span>
       <span data-testid="zoom">{viewer.zoom}</span>
@@ -199,6 +202,7 @@ describe("useImageViewer", () => {
     lensInstances.length = 0;
     exportSelectionError.value = null;
     decodeDocError.value = null;
+    decodeWait.promise = null;
     restoreSessionWait.promise = null;
     restoreSessionResult.value = false;
     viewerCanExport.value = true;
@@ -208,6 +212,54 @@ describe("useImageViewer", () => {
     vi.unstubAllGlobals();
     vi.clearAllMocks();
     vi.restoreAllMocks();
+  });
+
+  it("does not treat initial decoding as navigation", async () => {
+    let finish!: () => void;
+    decodeWait.promise = new Promise<void>((resolve) => { finish = resolve; });
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.decodeDoc).toHaveBeenCalled());
+    expect(imageViewerStoreApi.getState().viewerStatus).toBe("loadingPage");
+    expect(screen.getByTestId("navigating")).toHaveTextContent("false");
+    expect(screen.getByRole("button", { name: "next page" })).toBeDisabled();
+    await act(async () => finish());
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    expect(screen.getByTestId("navigating")).toHaveTextContent("false");
+  });
+
+  it.each([false, true])("identifies navigation and blocks actions after decode or restore (restored=%s)", async (restored) => {
+    restoreSessionResult.value = restored;
+    if (restored) setHost();
+    else seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    const ready = imageViewerStoreApi.getState().viewerState!;
+    for (const name of ["next page", "previous page"]) {
+      fireEvent.click(screen.getByRole("button", { name }));
+      act(() => imageViewerStoreApi.getState().setViewerStatus("loadingPage"));
+      expect(screen.getByTestId("navigating")).toHaveTextContent("true");
+      act(() => imageViewerStoreApi.getState().setViewerState({ ...ready, status: "loadingPage" }));
+      for (const action of ["next page", "previous page", "first page", "last page", "zoom in", "zoom out", "select", "export"]) {
+        expect(screen.getByRole("button", { name: action })).toBeDisabled();
+      }
+      act(() => imageViewerStoreApi.getState().setViewerStatus("ready"));
+      expect(screen.getByTestId("navigating")).toHaveTextContent("true");
+      act(() => imageViewerStoreApi.getState().setViewerState(ready));
+      expect(screen.getByTestId("navigating")).toHaveTextContent("false");
+      expect(screen.getByRole("button", { name })).toBeEnabled();
+    }
+    expect(lensInstances[0].nextPage).toHaveBeenCalledTimes(1);
+    expect(lensInstances[0].previousPage).toHaveBeenCalledTimes(1);
+    for (const status of ["copyingSelection", "addingPages", "error"] as const) {
+      act(() => imageViewerStoreApi.getState().setViewerStatus(status));
+      expect(screen.getByTestId("navigating")).toHaveTextContent("false");
+    }
+    act(() => imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
+      pageCount: 2, pageMap: new Map(), request: null, selectedIndex: null, session: "session-2",
+    }));
+    expect(screen.getByTestId("navigating")).toHaveTextContent("false");
   });
 
   it("creates read-only lens and decodes completed TIFF package", async () => {
@@ -253,6 +305,8 @@ describe("useImageViewer", () => {
     expect(console.info).toHaveBeenCalledWith("imageviewer lens decode start", {
       page: 2,
       packageVersion: 1,
+      previousDecodedPackageVersion: 0,
+      previousDecodedSession: null,
       session: "session-1",
       tiffBytes: 4,
       tiffType: "image/tiff",
@@ -345,6 +399,14 @@ describe("useImageViewer", () => {
     });
 
     await waitFor(() => expect(screen.getByTestId("reload-id")).toHaveTextContent("1"));
+    expect(console.info).toHaveBeenCalledWith("imageviewer lens package reload requested", {
+      decodedVersion: 1,
+      packageVersion: 1,
+      page: 2,
+      requestVersion: 1,
+      session: "session-1",
+      viewerPageIndex: 1,
+    });
     expect(screen.getByRole("button", { name: "search" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "select" })).toBeDisabled();
 

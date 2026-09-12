@@ -1,5 +1,3 @@
-import { replaceMetadataPageSegments } from "../../metdataview/data/metadataData";
-import { storeApi } from "../../../store/state/store";
 
 export const PAGE_SEGMENT_CHOICES = Object.freeze({
   reference: "RecitalIndexing",
@@ -30,7 +28,7 @@ export const PAGE_SEGMENT_ORDER = Object.freeze([
 ]) as readonly PageSegmentValue[];
 
 export const PAGE_SEGMENT_LABELS = Object.freeze({
-  reference: "Referance(Rectal)",
+  reference: "Reference (Recital)",
   property: "Property(Exhibit)",
   endorsement: "Record Endorsements",
   transaction: "Transaction",
@@ -71,12 +69,4 @@ export function normalizePageSegments(segments: string[]): string[] {
       .filter(isPageSegmentValue),
   );
   return PAGE_SEGMENT_ORDER.filter((segment) => selected.has(segment));
-}
-
-export function updateCachedPageSegments(session: string, pageCode: string, segments: string[]): void {
-  const current = storeApi.getState().getJSON(session);
-  if (!current) {
-    throw new Error("Metadata cache is not available.");
-  }
-  storeApi.getState().setJSON(session, replaceMetadataPageSegments(current, pageCode, segments));
 }

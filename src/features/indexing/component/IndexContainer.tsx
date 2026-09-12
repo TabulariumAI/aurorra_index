@@ -1,9 +1,12 @@
+import { QueueActions } from "../../queue/component/QueueActions";
+import { useQueueStore } from "../../queue/store/queueStore";
 import { useEffect, type JSX } from "react";
 import { useMetadata } from "../../metdataview/hook/useMetadata";
-import { MetadataPanel } from "../../metdataview/component/MetadataPanel";
-import type { MetdataActionPayload, MetdataMetadataProps } from "../../metdataview/type/metadataView.types";
-import { metadataStyles } from "../../metdataview/style/metadataViewStyles";
+import { MetadataPanel, type MetadataActionPayload, metadataStyles } from "aurora-core";
+import type { MetdataMetadataProps } from "../../metdataview/type/metadataView.types";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
+
+const emptyCodes = new Set<string>();
 
 function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
   return ["Retrieving metadata...", `Attempt ${attempt} of ${retryLimit}`];
@@ -12,6 +15,8 @@ function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
 export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
   const { batch, callbacks, children, segments, session } = props;
   const metadata = useMetadata(props);
+  const tasks = useQueueStore((state) => state.tasks);
+  const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
   const ready = metadata.store.status === "success" || metadata.store.status === "error";
   const loading = metadata.store.status === "loading";
 
@@ -25,7 +30,7 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
   const panelCallbacks = {
     ...callbacks,
     onPageClick: callbacks.onPageClick
-      ? (payload: MetdataActionPayload) => {
+      ? (payload: MetadataActionPayload) => {
           imageViewerStoreApi.getState().setRequest({
             code: payload.code,
             highlightOptions: { scroll: false },
@@ -54,11 +59,16 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
         batch={batch}
         callbacks={panelCallbacks}
         children={children}
+        headerActions={props.headerActions}
+        confirmedCodes={emptyCodes}
+        removedCodes={emptyCodes}
+        pendingChanges={pendingChanges}
         sections={{
           filterByChoices: true,
           hiddenSegments: new Set(),
           showEmpty: false,
         }}
+        showContext
         segments={segments}
         session={session}
         shortcuts={null}

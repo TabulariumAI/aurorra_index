@@ -61,6 +61,7 @@ describe("IqPanel", () => {
     expect(screen.getByText("Segment explanation")).toBeInTheDocument();
     expect(screen.getByText("Notes")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Indexing Quality" }).querySelector("[data-panel-scroll='true']")).toBeTruthy();
   });
 
   it("renders notes only when present", async () => {

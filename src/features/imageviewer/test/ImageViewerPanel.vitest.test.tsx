@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ViewerState } from "@tabulariumai/aurora-lens";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
@@ -11,6 +11,8 @@ let viewerPage = 2;
 let viewerReloadId = 0;
 let viewerRestoring = false;
 let viewerRestoredSession = false;
+let viewerNavigating = false;
+let viewerThumbs = false;
 const exportSelection = vi.hoisted(() => vi.fn(async () => ({
   groups: [
     { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },
@@ -44,7 +46,8 @@ vi.mock("../hook/useImageViewer", () => ({
     fitHeight: vi.fn(),
     fitPage: vi.fn(),
     fitWidth: vi.fn(),
-    isThumbs: false,
+    isThumbs: viewerThumbs,
+    isNavigating: viewerNavigating,
     lastPage: vi.fn(),
     lensHostRef: { current: null },
     nextPage: vi.fn(),
@@ -80,6 +83,8 @@ describe("ImageViewerPanel", () => {
     viewerReloadId = 0;
     viewerRestoring = false;
     viewerRestoredSession = false;
+    viewerNavigating = false;
+    viewerThumbs = false;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     exportSelection.mockClear();
@@ -217,6 +222,7 @@ describe("ImageViewerPanel", () => {
 
   it("re-downloads a cached package when Lens requests a reload", async () => {
     viewerReloadId = 1;
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const workerClient = {
       packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
       imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
@@ -245,6 +251,15 @@ describe("ImageViewerPanel", () => {
     await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
     expect(workerClient.imageData).toHaveBeenCalledTimes(1);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+    expect(consoleInfo).toHaveBeenCalledWith("imageviewer package load start", {
+      hasPackage: true,
+      page: null,
+      reason: "lens_page_metadata_missing",
+      reloadId: 1,
+      requestVersion: 0,
+      session: "session-1",
+      status: "ready",
+    });
   });
 
   it("does not start package flow while lens restore is pending", () => {
@@ -416,15 +431,41 @@ describe("ImageViewerPanel", () => {
     expect(onReadyChange).toHaveBeenLastCalledWith(false);
   });
 
-  it("reports lens progress during page navigation", () => {
-    imageViewerStoreApi.setState({ viewerStatus: "loadingPage" });
+  it.each([false, true])("keeps both toolbars mounted during navigation (compact=%s)", (compact) => {
+    viewerPageCount = 4;
+    imageViewerStoreApi.getState().setReady();
     const onLoaderChange = vi.fn();
+    const view = render(<ImageViewerPanel compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+    const top = screen.getByLabelText("Image viewer top toolbar");
+    const footer = screen.getByLabelText("Image viewer footer toolbar");
+    for (const page of [3, 2]) {
+      viewerNavigating = true;
+      act(() => imageViewerStoreApi.getState().setViewerStatus("loadingPage"));
+      expect(screen.getByLabelText("Image viewer top toolbar")).toBe(top);
+      expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+      expect(onReadyChange).toHaveBeenLastCalledWith(true);
+      expect(onLoaderChange).toHaveBeenLastCalledWith(null);
+      viewerPage = page;
+      viewerNavigating = false;
+      act(() => imageViewerStoreApi.getState().setViewerStatus("ready"));
+      view.rerender(<ImageViewerPanel compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+      expect(screen.getByText(`Page ${page} of 4`)).toBeVisible();
+      expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+    }
+  });
 
-    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+  it.each([false, true])("preserves thumbnail toolbar visibility (compact=%s)", (compact) => {
+    viewerThumbs = true;
+    render(<ImageViewerPanel compact={compact} onReadyChange={onReadyChange} />);
+    expect(screen.queryByLabelText("Image viewer footer toolbar")).not.toBeInTheDocument();
+    expect(Boolean(screen.queryByLabelText("Image viewer top toolbar"))).toBe(compact);
+  });
 
-    expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Decoding document page..."]);
+  it.each(["addingPages", "copyingSelection"] as const)("keeps %s blocking after a page has loaded", (status) => {
+    imageViewerStoreApi.setState({ status: "ready", viewerStatus: status });
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
     expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByLabelText("Image viewer footer toolbar")).not.toBeInTheDocument();
   });
 
   it("reports lens progress while copying a selection", () => {

@@ -28,7 +28,7 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
 
   return (
     <section aria-label="Audit panel" style={auditStyles.root}>
-      {!loading ? <div aria-label="Audit report body" role="region" style={auditStyles.body}>
+      {!loading ? <div aria-label="Audit report body" data-panel-scroll="true" role="region" style={auditStyles.body}>
         {view ? <>
           <div data-audit-controls style={auditStyles.controlsRow}>
             <AuditFilters

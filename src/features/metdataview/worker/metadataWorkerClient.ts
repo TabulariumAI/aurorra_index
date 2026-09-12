@@ -1,10 +1,6 @@
-import type {
-  MetdataPatchResult,
-  MetdataReprocessResult,
-  MetdataWorkerClient,
-  MetdataWorkerConfig,
-  MetadataPayload,
-} from "../type/metadataView.types";
+import { createPageSegmentsWorkerClient } from "../../pagesegments/worker/pageSegmentsWorkerClient";
+import type { MetdataPatchResult, MetdataReprocessResult, MetdataWorkerClient, MetdataWorkerConfig } from "../type/metadataView.types";
+import type { MetadataPayload } from "aurora-core";
 import { retryWorker } from "../../../shared/worker/retryWorker";
 
 type WorkerError = Error & {
@@ -60,6 +56,10 @@ export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWor
   const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
   const runReadWorker = <T>(command: unknown) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
   return {
+    updatePageSegments: createPageSegmentsWorkerClient({ apiBaseUrl }).updatePageSegments,
+    patchIndex(token, session, segment, change) {
+      return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, change, segment, session, token, type: "patchIndex" });
+    },
     confirmIndex(token, session, code) {
       return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "confirmIndex" });
     },

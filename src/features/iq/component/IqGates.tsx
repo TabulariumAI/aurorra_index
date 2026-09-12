@@ -1,5 +1,5 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ConfButton } from "aurorra-ui";
+import { ConfButton } from "aurora-core";
 import type { JSX } from "react";
 import { UI_FAIL, UI_PASS, UI_WARNING } from "../data/iqData";
 import { iqStyles } from "../style/iqStyles";
@@ -57,8 +57,6 @@ export function IqGates({
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
                       <ConfButton
-                        confirmDetail="Clear gate"
-                        confirmLabel="Click again to clear gate"
                         disabled={ackingCodes.has(gate.code)}
                         label="Clear gate"
                         onConfirm={() => onAck(gate.code)}

@@ -1,9 +1,9 @@
 import { useMemo, useState, type JSX } from "react";
 import { createRoot } from "react-dom/client";
-import { MetadataPanel } from "../../src/features/metdataview/component/MetadataPanel";
+import { MetadataPanel } from "aurora-core";
 import { buildAddressMapEmbedUrl } from "../../src/features/addressmap/data/addressMap";
-import { getPanelData } from "../../src/features/metdataview/data/metadataData";
-import type { MetdataSegmentValues, MetadataPayload } from "../../src/features/metdataview/type/metadataView.types";
+import { getPanelData } from "aurora-core";
+import type { MetadataSegments, MetadataPayload } from "aurora-core";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) {
@@ -17,7 +17,7 @@ stage.style.padding = "0 1rem 1rem";
 stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 
-const segments: MetdataSegmentValues = {
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
   COURT: "court",
@@ -87,6 +87,7 @@ function AddressMapVisualHarness(): JSX.Element {
         removedCodes={new Set()}
         sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
         selectedIndex={null}
+        showContext
         segments={segments}
         session="visual-session-addressmap"
         setSectionOpen={() => undefined}

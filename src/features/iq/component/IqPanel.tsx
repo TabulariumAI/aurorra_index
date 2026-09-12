@@ -28,7 +28,7 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
 
   return (
     <section aria-label="Indexing Quality" style={iqStyles.root}>
-      {!loading ? <div style={iqStyles.content}>
+      {!loading ? <div data-panel-scroll="true" style={iqStyles.content}>
         {view === null ? (
           <div style={iqStyles.empty}>No IQ report found.</div>
         ) : (

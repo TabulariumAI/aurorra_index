@@ -15,7 +15,7 @@ Move the metadata feature out of `document_pwa` into `aurorra_index` as a pure R
 ## Implementation Rules
 - Before implementation, restate the exact solution in three bullets and wait for `YES`.
 - Do not change code before explicit implementation approval.
-- Reuse or copy code from the current projects first: `document_pwa`, `aurorra_index`, `aurorra_intake`, and `aurorra_ui`.
+- Reuse or copy code from the current projects first: `document_pwa`, `aurorra_index`, `aurorra_intake`, and `aurora_core`.
 - Use external sources only when the required pattern cannot be found in the current projects.
 - Implement only the explicitly described solution.
 - If any design, flow, orchestration, ownership, layering, UI, behavior, or architecture detail is missing, stop and ask a practical blocking question tied to exact files/functions.
@@ -143,7 +143,7 @@ Callbacks/events to model with typed package callbacks and test doubles for now:
 ## UI Support
 - Use Radix UI primitives as the default UI foundation for metadata feature composition wherever possible.
 - Add required Radix dependencies to `aurorra_index` explicitly.
-- Add `aurorra-ui` to `aurorra_index` and use it for the progress bar implementation.
+- Add `aurora-core` to `aurorra_index` and use it for the progress bar implementation.
 - Keep custom styling thin and composable on top of Radix UI and existing package conventions.
 - Prefer package-owned UI wrappers over direct legacy DOM widgets.
 - No legacy DOM widgets may be used for core metadata rendering.
@@ -179,7 +179,7 @@ Callbacks/events to model with typed package callbacks and test doubles for now:
 ### Phase 2: Pure React metadata rendering with typed deferred interactions
 - Build React metadata components for sections currently covered by `segmentrenderer.js`, `metadataviewer.js`, and legal rendering.
 - Use Radix primitives where applicable for collapsible/disclosure, dialogs, tooltips, and actions.
-- Use `aurorra-ui` progress bar for loading/refresh state.
+- Use `aurora-core` progress bar for loading/refresh state.
 - Implement typed callback seams with test doubles for deferred package-internal features.
 - Implement section visibility from `choices` passed by the adapter.
 - Implement typed test-double behavior for segment expand and index focus.
@@ -208,7 +208,7 @@ Callbacks/events to model with typed package callbacks and test doubles for now:
 - `src/features/indexing/data/*` for normalization helpers.
 - `src/features/indexing/type/*` for package contracts.
 - Tests for metadata normalization, worker route handling, metadata data/refresh state, React rendering, callbacks, visual checks, and boundary validation.
-- Package dependency updates for Radix UI and `aurorra-ui`.
+- Package dependency updates for Radix UI and `aurora-core`.
 
 ### `document_pwa`
 - `src/features/index/*` adapter layer.

@@ -1,10 +1,7 @@
-import type {
-  MetdataPatchResult,
-  MetdataReprocessResult,
-  MetdataWorkerCommand,
-  MetdataWorkerResult,
-  MetadataPayload,
-} from "../type/metadataView.types";
+import { validateChange } from "../../queue/data/indexChange";
+import type { MetdataPatchResult, MetdataReprocessResult, MetdataWorkerCommand, MetdataWorkerResult } from "../type/metadataView.types";
+import type { MetadataPayload } from "aurora-core";
+import { fetchJson } from "../../../shared/worker/fetchJson";
 
 type IndexDataEnvelope = {
   data: string;
@@ -46,17 +43,7 @@ function validateIndexDataEnvelope(data: unknown): MetdataWorkerResult<IndexData
   return { ok: true, data: data as IndexDataEnvelope };
 }
 
-function parseMetadataData(data: string): MetdataWorkerResult<MetadataPayload> {
-  let payload: unknown;
-  try {
-    payload = JSON.parse(data);
-  } catch {
-    return { ok: false, code: "invalid_json", error: "Response data JSON could not be parsed." };
-  }
-  return validateMetadataPayload(payload);
-}
-
-function resolveIndexData(payload: unknown): MetdataWorkerResult<MetadataPayload> {
+async function resolveIndexData(payload: unknown): Promise<MetdataWorkerResult<MetadataPayload>> {
   const envelope = validateIndexDataEnvelope(payload);
   if (!envelope.ok) return envelope;
   if (envelope.data.status === "error") {
@@ -65,7 +52,9 @@ function resolveIndexData(payload: unknown): MetdataWorkerResult<MetadataPayload
   if (envelope.data.status !== "completed") {
     return { ok: false, code: "index_not_completed", details: envelope.data, error: envelope.data.status };
   }
-  return parseMetadataData(envelope.data.data);
+  const result = await fetchJson(envelope.data.data);
+  if (!result.ok) return result;
+  return validateMetadataPayload(result.data);
 }
 
 function resolveReprocess(payload: unknown): MetdataWorkerResult<MetdataReprocessResult> {
@@ -145,6 +134,15 @@ export class IndexWorker {
   buildRequest(command: MetdataWorkerCommand): { body: string | null; method: "GET" | "POST"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
+    if (command.type === "patchIndex") {
+      const { action, ...change } = command.change;
+      const body = { segment: command.segment, explanation: change.explanation,
+        ...(action !== "remove" ? { new_index_label: change.new_index_label, new_index_aspect: change.new_index_aspect, new_index_value: change.new_index_value } : {}),
+        ...(action === "update" ? { new_index_ambiguous: change.new_index_ambiguous } : {}),
+        ...(action !== "add" ? { old_index_label: change.old_index_label, old_index_aspect: change.old_index_aspect, old_index_value: change.old_index_value } : {}),
+      };
+      return { body: JSON.stringify(body), method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/patch/${action === "remove" ? "drop" : action}` };
+    }
     if (command.type === "reprocessSegment") {
       return { body: JSON.stringify({}), method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/reprocess/${encodeURIComponent(command.segment)}` };
     }
@@ -155,7 +153,7 @@ export class IndexWorker {
       return { body: null, method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/drop/${encodeURIComponent(command.code)}` };
     }
     if (command.type === "patchStatus") return { body: null, method: "GET", url: `${apiBaseUrl}/v1/refine/${session}/patch/status/${command.version}` };
-    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/index/${session}/data` };
+    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/metadata/${session}/data` };
   }
 
   async run(command: MetdataWorkerCommand): Promise<MetdataWorkerResult<MetadataPayload | MetdataReprocessResult | MetdataPatchResult>> {
@@ -171,16 +169,22 @@ export class IndexWorker {
     if ((command.type === "confirmIndex" || command.type === "dropIndex") && (typeof command.code !== "string" || !command.code.trim())) {
       return { ok: false, code: "invalid_index_code", error: "Index code is missing or invalid." };
     }
-    if (command.type === "reprocessSegment" && (typeof command.segment !== "string" || !command.segment.trim())) {
+    if ((command.type === "reprocessSegment" || command.type === "patchIndex") && (typeof command.segment !== "string" || !command.segment.trim())) {
       return { ok: false, code: "invalid_segment", error: "Segment is missing or invalid." };
     }
     if (command.type === "patchStatus" && (!Number.isInteger(command.version) || command.version < 0)) {
       return { ok: false, code: "invalid_patch_version", error: "Patch version is missing or invalid." };
     }
-    if (command.type !== "indexData" && command.type !== "reprocessSegment" && command.type !== "confirmIndex" && command.type !== "dropIndex" && command.type !== "patchStatus") {
+    if (command.type !== "patchIndex" && command.type !== "indexData" && command.type !== "reprocessSegment" && command.type !== "confirmIndex" && command.type !== "dropIndex" && command.type !== "patchStatus") {
       return { ok: false, code: "invalid_command", error: "Unknown index worker command." };
     }
 
+    if (command.type === "patchIndex") {
+      try { validateChange(command.change); } catch (error) {
+        const failure = error as Error & { code: string };
+        return { ok: false, code: failure.code, error: failure.message };
+      }
+    }
     const request = this.buildRequest(command);
     let response: Response;
     try {
@@ -220,7 +224,7 @@ export class IndexWorker {
       };
     }
     if (command.type === "reprocessSegment") return resolveReprocess(parsed.data.payload);
-    if (command.type === "confirmIndex" || command.type === "dropIndex" || command.type === "patchStatus") return resolvePatch(parsed.data.payload);
+    if (command.type === "patchIndex" || command.type === "confirmIndex" || command.type === "dropIndex" || command.type === "patchStatus") return resolvePatch(parsed.data.payload);
     return resolveIndexData(parsed.data.payload);
   }
 }

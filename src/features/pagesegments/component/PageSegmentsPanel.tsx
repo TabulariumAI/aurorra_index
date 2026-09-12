@@ -6,12 +6,12 @@ import {
   PAGE_SEGMENT_CHOICES,
   PAGE_SEGMENT_LABELS,
   PAGE_SEGMENT_ORDER,
-  updateCachedPageSegments,
 } from "../data/pageSegmentsData";
 import { pageSegmentsStyles } from "../style/pageSegmentsStyles";
 import { pageSegmentsStoreApi, usePageSegmentsStore } from "../store/pageSegmentsStore";
 import type { PageSegmentsPanelProps, PageSegmentsWorkerError } from "../type/pageSegments.types";
-import { createPageSegmentsWorkerClient } from "../worker/pageSegmentsWorkerClient";
+import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
+import { queueStoreApi } from "../../queue/store/queueStore";
 
 function formatLabel(value: string): string {
   return value
@@ -49,7 +49,10 @@ export function PageSegmentsPanel({
   authToken,
   choices,
   onClose,
-  onComplete,
+  batchCode,
+  intervalMs,
+  retryIntervalMs,
+  retryLimit,
   onError,
   onReadyChange,
   pageClass,
@@ -62,7 +65,7 @@ export function PageSegmentsPanel({
   const error = usePageSegmentsStore((state) => state.error);
   const selected = usePageSegmentsStore((state) => state.selected);
   const status = usePageSegmentsStore((state) => state.status);
-  const client = useMemo(() => workerClient ?? createPageSegmentsWorkerClient({ apiBaseUrl: apiGatewayUrl }), [apiGatewayUrl, workerClient]);
+  const client = useMemo(() => workerClient ?? createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
   const normalizedInputKey = normalizePageSegments(segments).join("|");
   const isDirty = !sameSegments(committed, selected);
   const blankChecked = pageClass === "blank" && selected.length === 0;
@@ -86,13 +89,12 @@ export function PageSegmentsPanel({
   };
 
   const submit = async () => {
+    if (status === "saving") return;
     const submitted = [...selected];
     pageSegmentsStoreApi.getState().setSaving();
     try {
-      await client.updatePageSegments(authToken, session, pageCode, submitted);
-      updateCachedPageSegments(session, pageCode, submitted);
-      pageSegmentsStoreApi.getState().setSaved(submitted);
-      onComplete({ pageCode, segments: submitted, session });
+      await queueStoreApi.getState().enqueue({ action: "page", code: pageCode, segments: submitted, session, batch: batchCode, segment: "page" }, { authToken, client, intervalMs });
+      onClose();
     } catch (submitError) {
       const workerError = toWorkerError(submitError);
       pageSegmentsStoreApi.getState().setError(workerError);
@@ -140,11 +142,8 @@ export function PageSegmentsPanel({
           );
         })}
       </div>
-      {status === "success" ? (
-        <div id="pageSegmentsMessage" style={pageSegmentsStyles.message("success")}>Page segment changes saved.</div>
-      ) : null}
       {status === "error" && error ? (
-        <div id="pageSegmentsMessage" style={pageSegmentsStyles.message("error")}>Page segment changes could not be saved. Please try again.</div>
+        <div id="pageSegmentsMessage" style={pageSegmentsStyles.message}>Page segment changes could not be saved. Please try again.</div>
       ) : null}
       <footer id="pageSegmentsFooter" style={pageSegmentsStyles.footer}>
         {isDirty || status === "error" ? (
@@ -152,7 +151,7 @@ export function PageSegmentsPanel({
             Submit
           </button>
         ) : null}
-        {status === "idle" || status === "success" ? (
+        {status === "idle" ? (
           <button id="pageSegmentsCloseBtn" onClick={onClose} style={pageSegmentsStyles.button("secondary")} type="button">
             Close
           </button>

@@ -35,6 +35,16 @@ describe("iqStore", () => {
     expect(iqStoreApi.getState()).toMatchObject({ error: { code: "x", error: "failed", status: 500 }, report, status: "error" });
   });
 
+  it("queues refreshes for the requested session", () => {
+    iqStoreApi.getState().refreshIq("session-1");
+    iqStoreApi.getState().refreshIq("session-2");
+
+    expect(iqStoreApi.getState()).toMatchObject({
+      refresh: { id: 2, session: "session-2" },
+      refreshId: 2,
+    });
+  });
+
   it("tracks acking gates and removes acknowledged gates", () => {
     iqStoreApi.getState().setLoaded("session-1", report);
     iqStoreApi.getState().ackStart("gate-1");
@@ -52,6 +62,8 @@ describe("iqStore", () => {
     expect(iqStoreApi.getState()).toMatchObject({
       activeSession: null,
       error: null,
+      refresh: null,
+      refreshId: 0,
       report: null,
       status: "idle",
     });

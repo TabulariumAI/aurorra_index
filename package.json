@@ -25,7 +25,7 @@
     "@radix-ui/react-popover": "^1.1.17",
     "@radix-ui/react-tooltip": "^1.2.10",
     "@tabulariumai/aurora-lens": "^0.2.1",
-    "aurorra-ui": "file:../aurorra_ui",
+    "aurora-core": "file:../aurora_core",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zustand": "^5.0.14"

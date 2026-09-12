@@ -1,3 +1,5 @@
+import { QueueActions } from "../../src/features/queue/component/QueueActions";
+import { useQueueStore } from "../../src/features/queue/store/queueStore";
 import { createRoot } from "react-dom/client";
 import { AddIndexPanel, addIndexStoreApi, useAddIndexStore } from "../../src/features/addindex";
 import { ImageViewerPanel } from "../../src/features/imageviewer";
@@ -80,6 +82,9 @@ const hostInput = {
 };
 
 function VisualImageViewer() {
+  const tasks = useQueueStore((state) => state.tasks);
+  const completed = useQueueStore((state) => state.queues.some((queue) => queue.completed > 0));
+  stage.dataset.addIndexComplete = String(completed);
   const selection = useAddIndexStore((state) => state.selection);
 
   return (
@@ -109,22 +114,24 @@ function VisualImageViewer() {
             apiGatewayUrl={hostInput.apiGatewayUrl}
             authToken={hostInput.authToken}
             intervalMs={0}
+            retryIntervalMs={0}
+            retryLimit={0}
+            batchCode={null}
             onClose={() => addIndexStoreApi.getState().close()}
-            onComplete={() => {
-              stage.dataset.addIndexComplete = "true";
-            }}
             onError={(error) => {
               stage.dataset.error = error.error;
             }}
             onReadyChange={(ready) => {
               stage.dataset.addIndexReady = String(ready);
             }}
+            onResource={async () => ({ aspects: { party: ["grantor", "grantee"] } })}
             segment="party"
             selection={selection}
             session={hostInput.session}
           />
         </div>
       ) : null}
+      {tasks.map((task) => <div data-testid="pending-item" key={task.id}><QueueActions id={task.id} code={task.changes[0].code} /></div>)}
     </>
   );
 }

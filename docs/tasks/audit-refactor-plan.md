@@ -14,7 +14,7 @@ Move `document_web\src\domains\audit` into `aurorra_index` as a full package-own
 `document_web` owns:
 - App shell placement only.
 - Mounting the exported `AuditPanel` into the existing preview host for desktop.
-- Rendering the exported `AuditPanel` inside the existing `aurorra-ui` `Dialog` pattern for tablet and kiosk.
+- Rendering the exported `AuditPanel` inside the existing `aurora-core` `Dialog` pattern for tablet and kiosk.
 - App alert display from package callbacks.
 - Existing layout type updates.
 

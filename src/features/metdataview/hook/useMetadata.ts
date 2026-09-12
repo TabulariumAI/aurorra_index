@@ -1,11 +1,18 @@
+import { queueStoreApi } from "../../queue/store/queueStore";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { composeMetadataJSON, getPanelData, splitMetadataJSON } from "../data/metadataData";
+import {
+  composeMetadataJSON,
+  getPanelData,
+  type MetadataActionPayload,
+  type MetadataError,
+  type MetadataAction,
+} from "aurora-core";
 import { indexStoreApi, useIndexStore } from "../store/metadataStore";
 import { storeApi, useStore } from "../../../store/state/store";
-import type { MetdataActionPayload, MetdataMetadataProps, MetdataPatchResult, MetdataWorkerClient, MetdataWorkerError, MetadataAction } from "../type/metadataView.types";
+import type { MetdataMetadataProps } from "../type/metadataView.types";
 import { createIndexWorkerClient } from "../worker/metadataWorkerClient";
 
-function toWorkerError(error: unknown, fallback = "Metadata request failed."): MetdataWorkerError {
+function toWorkerError(error: unknown, fallback = "Metadata request failed."): MetadataError {
   const candidate = error as { code?: string; details?: unknown; error?: string; message?: string; status?: number };
   return {
     code: candidate.code,
@@ -15,17 +22,9 @@ function toWorkerError(error: unknown, fallback = "Metadata request failed."): M
   };
 }
 
-async function waitForPatch(client: MetdataWorkerClient, token: string, session: string, intervalMs: number, result: MetdataPatchResult): Promise<void> {
-  let patch = result;
-  while (patch.status === "pending" || patch.status === "processing") {
-    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
-    patch = await client.patchStatus(token, session, patch.version);
-  }
-  if (patch.status === "error") throw new Error(patch.data || "The refinement patch failed.");
-}
-
 export function useMetadata({
   authToken,
+  batchCode,
   apiGatewayUrl,
   callbacks,
   choices,
@@ -45,8 +44,6 @@ export function useMetadata({
   const panelData = useMemo(() => (metadata ? getPanelData(metadata) : null), [metadata]);
   const [openSegment, setOpenSegment] = useState<string | null>(deferredState.segment || segments.PAGE);
   const [selectedIndex, setSelectedIndex] = useState(deferredState.selectedIndex);
-  const [removedCodes, setRemovedCodes] = useState<Set<string>>(() => new Set());
-  const [confirmedCodes, setConfirmedCodes] = useState<Set<string>>(() => new Set());
   const [reprocessingSegment, setReprocessingSegment] = useState<string | null>(null);
   const refreshIdRef = useRef<number | null>(null);
   const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => indexStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
@@ -62,8 +59,6 @@ export function useMetadata({
       const cached = refresh ? null : composeMetadataJSON(storeApi.getState().getJSON(session));
       if (cached) {
         indexStoreApi.getState().setLoaded(session);
-        setRemovedCodes(new Set());
-        setConfirmedCodes(new Set());
         callbacks.onView?.(cached);
         callbacks.onMetadataLoaded?.(cached);
         return cached;
@@ -72,10 +67,8 @@ export function useMetadata({
       callbacks.onViewStarted?.();
       try {
         const data = await client.indexData(authToken ?? "", session);
-        storeApi.getState().setJSON(session, splitMetadataJSON(data));
+        queueStoreApi.getState().setMetadata(session, data);
         indexStoreApi.getState().setLoaded(session);
-        setRemovedCodes(new Set());
-        setConfirmedCodes(new Set());
         callbacks.onView?.(data);
         callbacks.onMetadataLoaded?.(data);
         if (refresh) callbacks.onRefresh?.(data);
@@ -120,41 +113,19 @@ export function useMetadata({
     [callbacks],
   );
 
-  const onDrop = useCallback(
-    async (payload: MetdataActionPayload) => {
-      const action: MetadataAction = { action: "drop", code: payload.code, session };
-      try {
-        const result = await client.dropIndex(authToken ?? "", session, payload.code);
-        await waitForPatch(client, authToken ?? "", session, intervalMs, result);
-        setRemovedCodes((current) => new Set([...current, payload.code]));
-        if (selectedIndex?.code === payload.code) {
-          setSelectedIndex(null);
-          callbacks.onIndexFocus?.(null);
-        }
-        callbacks.onActionComplete?.(action);
-      } catch (error) {
-        const workerError = toWorkerError(error, "Drop index request failed.");
-        callbacks.onActionError?.({ action, error: workerError });
-      }
-    },
-    [authToken, callbacks, client, intervalMs, selectedIndex?.code, session],
-  );
+  const onDrop = useCallback(async (payload: MetadataActionPayload) => {
+    await queueStoreApi.getState().enqueue({ action: "drop", code: payload.code, session, segment: payload.segment!, batch: batchCode },
+      { authToken: authToken!, client, intervalMs });
+    if (selectedIndex?.code === payload.code) {
+      setSelectedIndex(null);
+      callbacks.onIndexFocus?.(null);
+    }
+  }, [authToken, batchCode, callbacks, client, intervalMs, selectedIndex?.code, session]);
 
-  const onConfirm = useCallback(
-    async (payload: MetdataActionPayload) => {
-      const action: MetadataAction = { action: "confirm", code: payload.code, session };
-      try {
-        const result = await client.confirmIndex(authToken ?? "", session, payload.code);
-        await waitForPatch(client, authToken ?? "", session, intervalMs, result);
-        setConfirmedCodes((current) => new Set([...current, payload.code]));
-        callbacks.onActionComplete?.(action);
-      } catch (error) {
-        const workerError = toWorkerError(error, "Confirm index request failed.");
-        callbacks.onActionError?.({ action, error: workerError });
-      }
-    },
-    [authToken, callbacks, client, intervalMs, session],
-  );
+  const onConfirm = useCallback(async (payload: MetadataActionPayload) => {
+    await queueStoreApi.getState().enqueue({ action: "confirm", code: payload.code, session, segment: payload.segment!, batch: batchCode },
+      { authToken: authToken!, client, intervalMs });
+  }, [authToken, batchCode, client, intervalMs, session]);
 
   const onReprocess = useCallback(
     async (segment: string) => {
@@ -184,7 +155,6 @@ export function useMetadata({
   );
 
   return {
-    confirmedCodes,
     choices,
     loadMetadata,
     metadata,
@@ -193,7 +163,6 @@ export function useMetadata({
     onReprocess,
     openSegment,
     reprocessingSegment,
-    removedCodes,
     retryAttempt: store.retryAttempt,
     selectedIndex,
     setSectionOpen,

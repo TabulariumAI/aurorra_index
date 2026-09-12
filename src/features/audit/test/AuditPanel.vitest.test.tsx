@@ -97,6 +97,7 @@ describe("AuditPanel", () => {
       minHeight: "0",
       overflowY: "auto",
     });
+    expect(body).toHaveAttribute("data-panel-scroll", "true");
     const controls = screen.getByLabelText("Change type").closest("[data-audit-controls]");
     expect(controls).toBeTruthy();
     expect(screen.getByText("Out of 3").closest("[data-audit-controls]")).toBe(controls);

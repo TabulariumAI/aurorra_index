@@ -2,11 +2,14 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
 import { indexStoreApi } from "../../metdataview/store/metadataStore";
+import { queueStoreApi } from "../../queue/store/queueStore";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { createDeferredState } from "../data/deferredState";
-import type { MetdataSegmentValues, MetadataPayload } from "../../metdataview/type/metadataView.types";
+import type { MetadataSegments, MetadataPayload } from "aurora-core";
 
-const segments: MetdataSegmentValues = {
+vi.hoisted(() => { Object.defineProperty(window, "AnimationEvent", { value: Event, configurable: true }); });
+
+const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   COURT: "court",
   ENDORSEMENT: "endorsement",
@@ -67,6 +70,7 @@ const metadata: MetadataPayload = {
 
 describe("IndexContainer", () => {
   afterEach(() => {
+    queueStoreApi.getState().reset();
     act(() => {
       indexStoreApi.getState().resetMetadata();
       imageViewerStoreApi.getState().resetViewer();
@@ -82,14 +86,17 @@ describe("IndexContainer", () => {
     const onViewStarted = vi.fn();
     const onLoaderChange = vi.fn();
     const onReadyChange = vi.fn();
+    let remote = structuredClone(metadata);
     let completeDrop: (() => void) | undefined;
     let completeReprocess: (() => void) | undefined;
     const workerClient = {
+      updatePageSegments: vi.fn(),
+      patchIndex: vi.fn(),
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(() => new Promise<{ data: string; status: "completed"; version: number }>((resolve) => {
-        completeDrop = () => resolve({ data: "", status: "completed", version: 1 });
+        completeDrop = () => { remote = { ...remote, indexes: remote.indexes?.filter((item) => item.code !== "idx-1") }; resolve({ data: "", status: "completed", version: 1 }); }
       })),
-      indexData: vi.fn(async () => metadata),
+      indexData: vi.fn(async () => remote),
       patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       reprocessSegment: vi.fn(() => new Promise<{ data: string; status: "completed" }>((resolve) => {
         completeReprocess = () => resolve({ data: "", status: "completed" });
@@ -101,6 +108,7 @@ describe("IndexContainer", () => {
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batch="Pending"
+        batchCode={null}
         callbacks={{ onActionComplete, onEditPage, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
         deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
@@ -152,8 +160,9 @@ describe("IndexContainer", () => {
     }
 
     fireEvent.click(screen.getByLabelText("Confirm index and remove ambiguity"));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(workerClient.confirmIndex).toHaveBeenCalledWith("token", "session-1", "idx-1"));
-    expect(onActionComplete).toHaveBeenCalledWith({ action: "confirm", code: "idx-1", session: "session-1" });
+    expect(onActionComplete).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("link", { name: "Alice" }));
     expect(onPageClick).toHaveBeenCalled();
@@ -179,7 +188,7 @@ describe("IndexContainer", () => {
     const footer = view.container.querySelector<HTMLElement>("[data-metadata-footer]");
     expect(footer).toBeTruthy();
     if (!footer) throw new Error("Metadata footer is missing.");
-    expect(screen.queryByRole("button", { name: "Pop the index" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete index" })).not.toBeInTheDocument();
     fireEvent.click(editButton);
     expect(onEditPage).toHaveBeenCalledTimes(1);
     expect(onEditPage).toHaveBeenCalledWith(
@@ -214,17 +223,21 @@ describe("IndexContainer", () => {
     await waitFor(() => expect(partyActions.getByRole("button", { name: "Reprocess" })).toBeVisible());
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
 
-    const dropButton = screen.getByLabelText("Pop the index");
+    const dropButton = screen.getByLabelText("Delete index");
     fireEvent.click(dropButton);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(workerClient.dropIndex).toHaveBeenCalledWith("token", "session-1", "idx-1"));
-    expect(screen.getByRole("status", { name: "Dropping index" })).toBeVisible();
-    expect(screen.queryByLabelText("Pop the index")).not.toBeInTheDocument();
+    expect(screen.getByText("Alice")).toBeVisible();
+    expect(screen.queryByText("Not completed", { exact: true })).toBeNull();
+    expect(screen.getByLabelText("Delete index")).toBeDisabled();
     await act(async () => {
       completeDrop?.();
       await Promise.resolve();
     });
-    await waitFor(() => expect(onActionComplete).toHaveBeenCalledWith({ action: "drop", code: "idx-1", session: "session-1" }));
-    await waitFor(() => expect(screen.queryByText("Alice")).not.toBeInTheDocument());
+    await waitFor(() => expect(queueStoreApi.getState().tasks).toEqual([]));
+    await waitFor(() => expect(screen.getByText("Alice").closest("article")).toHaveAttribute("data-removing", "true"));
+    fireEvent.animationEnd(screen.getByText("Alice").closest("article")!);
+    expect(screen.queryByText("Alice")).not.toBeInTheDocument();
   }, 10_000);
 
   it("renders worker errors through callbacks only", async () => {
@@ -236,6 +249,7 @@ describe("IndexContainer", () => {
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batch="Pending"
+        batchCode={null}
         callbacks={{ onMetadataError, onViewError }}
         choices={choices}
         deferredState={createDeferredState()}
@@ -247,6 +261,8 @@ describe("IndexContainer", () => {
         segments={segments}
         session="session-1"
         workerClient={{
+          updatePageSegments: vi.fn(),
+      patchIndex: vi.fn(),
           confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
           dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
           indexData: vi.fn(async () => { throw new Error("broken"); }),
@@ -274,6 +290,8 @@ describe("IndexContainer", () => {
   it("retains visible metadata while a refresh is loading", async () => {
     let resolveRefresh: ((value: MetadataPayload) => void) | undefined;
     const workerClient = {
+      updatePageSegments: vi.fn(),
+      patchIndex: vi.fn(),
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       indexData: vi.fn()
@@ -288,6 +306,7 @@ describe("IndexContainer", () => {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batch: "Pending",
+      batchCode: null,
       callbacks: {},
       choices,
       deferredState: createDeferredState(),
@@ -314,6 +333,8 @@ describe("IndexContainer", () => {
   it("emits view canceled on unmount", () => {
     const onViewCanceled = vi.fn();
     const workerClient = {
+      updatePageSegments: vi.fn(),
+      patchIndex: vi.fn(),
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       indexData: vi.fn(async () => metadata),
@@ -325,6 +346,7 @@ describe("IndexContainer", () => {
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batch="Pending"
+        batchCode={null}
         callbacks={{ onViewCanceled }}
         choices={choices}
         deferredState={createDeferredState()}

@@ -9,8 +9,9 @@ import {
   isAmbiguous,
   replaceMetadataPageSegments,
   splitMetadataJSON,
-} from "../../metdataview/data/metadataData";
-import type { MetadataJSONParts, MetadataPayload } from "../../metdataview/type/metadataView.types";
+  type MetadataJSONParts,
+  type MetadataPayload,
+} from "aurora-core";
 
 const metadataFixturePath = join(process.cwd(), "src", "test", "metadata#v1.json");
 

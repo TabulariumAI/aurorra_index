@@ -7,9 +7,9 @@ Ready for implementation after this plan and `document_web/docs/task/addressmap-
 Remove dialog and display ownership from `aurorra_index/src/features/legalmap`. The package must expose legal map content and data helpers only. `document_web` owns open state, dialog chrome, close behavior, and placement.
 
 ## Current code reality
-- `aurorra_index/src/features/legalmap/component/LegalMapDialog.tsx` wraps `LegalMapContent` in `aurorra-ui/Dialog`.
+- `aurorra_index/src/features/legalmap/component/LegalMapDialog.tsx` wraps `LegalMapContent` in `aurora-core/Dialog`.
 - `aurorra_index/src/features/metdataview/hook/useMetadata.ts` owns `legalOpen` state for the package dialog.
-- `aurorra_index/src/features/metdataview/component/MetadataPanel.tsx` imports and renders `LegalMapDialog`.
+- `aurora_core/src/features/metadata/component/MetadataPanel.tsx` imports and renders `LegalMapDialog`.
 - The legal row action already calls `callbacks.onLegalView?.(payload)` before opening the package-owned dialog.
 - `document_web/src/features/metadata/legacy/metadataRuntime.ts` already defines `metadataCallbacks.onLegalView`, but it currently returns `undefined`.
 
@@ -25,7 +25,7 @@ Remove dialog and display ownership from `aurorra_index/src/features/legalmap`. 
 1. Delete `aurorra_index/src/features/legalmap/component/LegalMapDialog.tsx`.
 2. Delete `aurorra_index/src/features/legalmap/style/legalMapDialogStyles.ts`.
 3. Update `aurorra_index/src/features/metdataview/hook/useMetadata.ts` to remove `legalOpen` and `setLegalOpen`.
-4. Update `aurorra_index/src/features/metdataview/component/MetadataPanel.tsx` to remove `LegalMapDialog`, `legalOpen`, `setLegalOpen`, and the package-local `legalPayload` lookup used only by the dialog.
+4. Update `aurora_core/src/features/metadata/component/MetadataPanel.tsx` to remove `LegalMapDialog`, `legalOpen`, `setLegalOpen`, and the package-local `legalPayload` lookup used only by the dialog.
 5. Update the legal row action in `MetadataPanel` so `lot_block` click calls `callbacks.onLegalView?.(payload)` only.
 6. Update `aurorra_index/src/public-api.ts` to export `LegalMapContent` and to avoid exporting any legal dialog symbol.
 7. Keep `LegalMapContent` rendering unchanged: empty state, subdivision, phase, block, lot, condominium unit, legend, and location label.

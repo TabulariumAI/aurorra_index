@@ -41,7 +41,7 @@ describe("ImageViewerToolbar", () => {
     expect(screen.getByRole("searchbox", { name: "Search image text" })).toHaveAttribute("placeholder", "Search image text");
     const toolbar = screen.getByLabelText("Image viewer top toolbar");
     const searchForm = screen.getByLabelText("Image text search");
-    expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto" });
+    expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)" });
     expect(searchForm).toHaveStyle({ maxWidth: "none", minWidth: "0", width: "100%" });
     expect(screen.getByLabelText("Image view controls").parentElement).toBe(toolbar);
     expect(searchForm.parentElement).toBe(toolbar);
@@ -98,7 +98,7 @@ describe("ImageViewerToolbar", () => {
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });
 
-  it("keeps the close action in the first row in compact mode", () => {
+  it("keeps view and search controls in one row in compact mode", () => {
     render(
       <ImageViewerTopToolbar
         canActualSize
@@ -121,10 +121,10 @@ describe("ImageViewerToolbar", () => {
     );
 
     const toolbar = screen.getByLabelText("Image viewer top toolbar");
-    const primaryRow = toolbar.querySelector("[data-image-viewer-toolbar-row='primary']");
-    expect(toolbar).toHaveStyle({ display: "grid" });
-    expect(primaryRow).toHaveStyle({ display: "flex", justifyContent: "space-between" });
-    expect(screen.getByLabelText("Image view controls").parentElement).toBe(primaryRow);
+
+    expect(toolbar).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)" });
+
+    expect(screen.getByLabelText("Image view controls").parentElement).toBe(toolbar);
     expect(screen.getByLabelText("Image text search").parentElement).toBe(toolbar);
   });
 
@@ -215,7 +215,7 @@ describe("ImageViewerToolbar", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Image viewer top toolbar")).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(12rem, 1fr) auto" });
+    expect(screen.getByLabelText("Image viewer top toolbar")).toHaveStyle({ display: "grid", gridTemplateColumns: "auto minmax(0, 1fr)" });
     expect(screen.getByLabelText("Image text search")).toHaveStyle({ maxWidth: "none", minWidth: "0", width: "100%" });
   });
 

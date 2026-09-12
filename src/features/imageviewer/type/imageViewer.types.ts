@@ -1,5 +1,5 @@
 import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
-import type { MetdataSelected } from "../../metdataview/type/metadataView.types";
+import type { MetadataSelected } from "aurora-core";
 
 export type PageRequest = {
   code: string;
@@ -38,7 +38,7 @@ export type HostInput = {
   packagePollIntervalMs?: number;
   request: PageRequest | null;
   session: string;
-  selectedIndex: MetdataSelected | null;
+  selectedIndex: MetadataSelected | null;
   workerClient?: WorkerClient;
 };
 
@@ -120,7 +120,7 @@ export type StoreState = {
   request: PageRequest | null;
   requestVersion: number;
   searchText: string;
-  selectedIndex: MetdataSelected | null;
+  selectedIndex: MetadataSelected | null;
   session: string | null;
   status: Status;
   tiffBytes: ArrayBuffer | null;

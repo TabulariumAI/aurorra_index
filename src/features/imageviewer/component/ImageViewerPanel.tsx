@@ -45,6 +45,15 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
     if (!restart && viewer.isRestoredSession) return;
     if (!restart && ((state.status === "ready" && hasPackage) || restoredLensReady)) return;
     if (restart) reloadRef.current = viewer.reloadId;
+    console.info("imageviewer package load start", {
+      hasPackage,
+      page: state.request?.page ?? null,
+      reason: restart ? "lens_page_metadata_missing" : "initial_or_missing_package",
+      reloadId: viewer.reloadId,
+      requestVersion,
+      session,
+      status: state.status,
+    });
     void loadImagePackage({
       apiGatewayUrl,
       authToken,
@@ -57,7 +66,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
   }, [apiGatewayUrl, authToken, requestVersion, session, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
-  const lensLoading = viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage";
+  const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage");
   const progress = loading || lensLoading;
 
   useEffect(() => {

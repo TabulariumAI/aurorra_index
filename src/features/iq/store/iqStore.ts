@@ -6,9 +6,11 @@ const initialState = {
   ackingCodes: new Set<string>(),
   error: null,
   report: null,
+  refresh: null,
+  refreshId: 0,
   retryAttempt: 0,
   status: "idle",
-} satisfies Pick<IqStoreState, "activeSession" | "ackingCodes" | "error" | "report" | "retryAttempt" | "status">;
+} satisfies Pick<IqStoreState, "activeSession" | "ackingCodes" | "error" | "refresh" | "refreshId" | "report" | "retryAttempt" | "status">;
 
 export const useIqStore = create<IqStoreState>()((set) => ({
   ...initialState,
@@ -29,6 +31,15 @@ export const useIqStore = create<IqStoreState>()((set) => ({
             gates: state.report.gates.filter((gate) => gate.code !== code),
           }
           : state.report,
+      };
+    });
+  },
+  refreshIq(session) {
+    set((state) => {
+      const id = state.refreshId + 1;
+      return {
+        refresh: { id, session },
+        refreshId: id,
       };
     });
   },

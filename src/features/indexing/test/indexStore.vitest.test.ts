@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { indexStoreApi } from "../../metdataview/store/metadataStore";
-import { composeMetadataJSON, splitMetadataJSON } from "../../metdataview/data/metadataData";
-import type { MetadataPayload } from "../../metdataview/type/metadataView.types";
+import { composeMetadataJSON, splitMetadataJSON, type MetadataPayload } from "aurora-core";
 import { storeApi } from "../../../store/state/store";
 
 describe("index store", () => {

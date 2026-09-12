@@ -1,4 +1,4 @@
-import type { LegalElement, LegalGroup, LegalPayload } from "../../metdataview/type/metadataView.types";
+import type { LegalElement, LegalGroup, LegalPayload } from "aurora-core";
 
 const stateAbbr: Record<string, string> = {
   AL: "Alabama",
