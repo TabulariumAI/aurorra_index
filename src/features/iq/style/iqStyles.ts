@@ -65,6 +65,7 @@ export const iqStyles = {
     width: "100%",
   },
   metricNumber: {
+    fontVariantNumeric: "tabular-nums",
     fontSize: "2.85rem",
     fontWeight: 800,
     letterSpacing: 0,
@@ -84,7 +85,7 @@ export const iqStyles = {
   metricTrack: {
     background: "var(--gray-100)",
     border: "1px solid var(--border-card)",
-    borderRadius: "9999rem",
+    borderRadius: "var(--radius-pill)",
     height: "0.625rem",
     overflow: "hidden",
   },
@@ -121,7 +122,7 @@ export const iqStyles = {
       borderBottom: "1px solid var(--border-subtle)",
       color: "var(--title-ink)",
       fontWeight: 700,
-      padding: "0.5rem 0.625rem",
+      padding: "0.65rem 0.7rem",
       position: "sticky",
       textAlign: align,
       top: 0,
@@ -132,7 +133,7 @@ export const iqStyles = {
       borderBottom: "1px solid var(--border-subtle)",
       color: strong ? "var(--title-ink)" : "var(--body-ink)",
       fontWeight: strong ? 700 : 400,
-      padding: "0.5rem 0.625rem",
+      padding: "0.65rem 0.7rem",
       textAlign: align,
     };
   },
@@ -186,7 +187,7 @@ export const iqStyles = {
   gateText: {
     color: "var(--title-ink)",
     fontSize: "0.92rem",
-    lineHeight: 1.3,
+    lineHeight: 1.45,
     wordBreak: "break-word",
   },
   gateAction: {

@@ -75,9 +75,12 @@ export type {
 } from "./features/imageviewer/type/imageViewer.types";
 export type {
   AddIndexPanelProps,
+  AddIndexRequest,
   AddIndexSelection,
   AddIndexStoreState,
 } from "./features/addindex";
+export { EditIndexPanel, editIndexStoreApi, useEditIndexStore } from "./features/editindex";
+export type { EditIndexPanelProps, EditIndexRequest, EditIndexStoreState } from "./features/editindex";
 export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";

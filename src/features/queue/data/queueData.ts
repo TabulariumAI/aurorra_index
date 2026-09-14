@@ -36,7 +36,8 @@ export function readChanges(request: QueueRequest, metadata: MetadataPayload, id
   return data.map((value: unknown, position) => {
     validateChange(value);
     const patch = value;
-    const candidates = [...(projected.indexes ?? []), ...(projected.parties ?? []), ...(projected.secrets ?? []).map((item) => ({ ...item, aspect: item.label }))];
+    const candidates = [...(projected.indexes ?? []), ...(projected.parties ?? []), ...(projected.secrets ?? []).map((item) => ({ ...item, aspect: item.label })),
+      ...(projected.legals?.groups ?? []).flatMap((group) => (group.elements ?? []).map((element) => ({ ...element, code: group.code, label: "legal", segment: "legal", page: group.page })))];
     const found = patch.action === "add" ? undefined : candidates.find((item) => matches(item, patch));
     const index: MetadataIndex = found ?? {
       code: `${id}:${position}`, segment: request.segment,

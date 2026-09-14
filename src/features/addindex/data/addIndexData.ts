@@ -1,17 +1,5 @@
 import type { AddIndexSelection } from "../type/addIndex.types";
 
-function record(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-export function aspectGroups(resource: unknown): Record<string, string[]> {
-  if (!record(resource) || !record(resource.aspects)) throw new Error("Aspects resource is invalid.");
-  if (!Object.values(resource.aspects).every((aspects) => Array.isArray(aspects) && aspects.every((aspect) => typeof aspect === "string"))) {
-    throw new Error("Aspects resource is invalid.");
-  }
-  return resource.aspects as Record<string, string[]>;
-}
-
 function compactText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }

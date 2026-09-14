@@ -95,8 +95,11 @@ describe("MetadataPanel address map integration", () => {
     const value = screen.getByText("123 Main Street, Austin, TX 78701");
     expect(openButton.parentElement?.firstElementChild).toBe(openButton);
     expect(openButton.parentElement?.lastElementChild).toBe(value);
+    expect(openButton).toHaveStyle({ padding: "0px" });
+    expect(openButton.parentElement).toHaveStyle({ display: "block" });
+    expect(value).toHaveStyle({ display: "inline", whiteSpace: "normal", overflowWrap: "anywhere" });
     expect(openButton).toHaveTextContent("Show map");
-    expect(openButton).toHaveStyle({ alignItems: "flex-start", height: "2rem", minHeight: "2rem", width: "auto" });
+    expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
 
     await waitFor(() => expect(screen.getByTestId("address-clicked").textContent).toBe("123 Main Street, Austin, TX 78701"));

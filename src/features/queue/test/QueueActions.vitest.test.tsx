@@ -16,7 +16,7 @@ it("provides recovery only for its item and keeps other sessions unchanged", asy
   const task = queueStoreApi.getState().tasks[0];
   render(<QueueActions id={task.id} code="session-1" />);
   expect(screen.getByRole("alert")).toHaveTextContent("Confirm failed");
-  expect(screen.getByRole("button", { name: "Retry change" })).toHaveStyle({ height: "1.75rem" });
+  expect(screen.getByRole("button", { name: "Retry change" })).toHaveStyle({ height: "2.75rem" });
   expect(screen.queryByText("Confirm: session-2")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Retry change" }));
   await waitFor(() => expect(client.confirmIndex).toHaveBeenCalledTimes(3));

@@ -7,10 +7,12 @@ export type AddIndexSelection = {
   pageNumber: number;
 };
 
+export type AddIndexRequest = AddIndexSelection | { segment: string };
+
 export type AddIndexStoreState = {
-  selection: AddIndexSelection | null;
+  request: AddIndexRequest | null;
   close(): void;
-  open(selection: AddIndexSelection): void;
+  open(request: AddIndexRequest): void;
 };
 
 export type AddIndexPanelProps = {
@@ -25,7 +27,7 @@ export type AddIndexPanelProps = {
   retryIntervalMs: number;
   retryLimit: number;
   segment: string;
-  selection: AddIndexSelection;
+  request: AddIndexRequest;
   session: string;
   workerClient?: MetdataWorkerClient;
 };

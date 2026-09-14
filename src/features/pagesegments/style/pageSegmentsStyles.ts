@@ -12,14 +12,6 @@ export const pageSegmentsStyles = {
     justifyContent: "flex-start",
     width: "100%",
   },
-  title: {
-    color: "var(--title-ink)",
-    fontSize: "var(--panel-title-size)",
-    fontWeight: "var(--panel-title-weight)",
-    letterSpacing: "var(--panel-title-tracking)",
-    lineHeight: "var(--panel-title-line-height)",
-    margin: 0,
-  },
   blankRow: {
     alignItems: "center",
     color: "var(--title-ink)",
@@ -40,7 +32,7 @@ export const pageSegmentsStyles = {
       background: disabled ? "var(--gray-100)" : "var(--white)",
       border: "1px solid var(--border-card)",
       borderRadius: "var(--radius-control)",
-      color: "var(--primary)",
+      color: "var(--primary-dark)",
       cursor: disabled ? "not-allowed" : "pointer",
       display: "inline-flex",
       flex: "0 0 auto",
@@ -62,7 +54,7 @@ export const pageSegmentsStyles = {
   grid: {
     display: "grid",
     gap: "0.75rem",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))",
     padding: "0 1rem 1rem",
   },
   item: {
@@ -107,7 +99,7 @@ export const pageSegmentsStyles = {
   button(variant: "primary" | "secondary"): CSSProperties {
     return {
       alignItems: "center",
-      backgroundColor: variant === "secondary" ? "var(--white)" : "var(--primary)",
+      backgroundColor: variant === "secondary" ? "var(--white)" : "var(--primary-dark)",
       border: variant === "secondary" ? "1px solid var(--border-card)" : "1px solid var(--primary)",
       borderRadius: "var(--radius-control)",
       boxShadow: variant === "secondary" ? "none" : "var(--shadow-action)",

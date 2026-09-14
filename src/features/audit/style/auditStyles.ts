@@ -69,13 +69,11 @@ export const auditStyles = {
     fontSize: "1.5rem",
     fontWeight: 700,
     lineHeight: 1,
-    opacity: "0.8",
   } as CSSProperties,
   summaryBadgeLabel: {
     color: gapMetaPalette.muted,
     fontSize: "0.75rem",
-    fontWeight: 300,
-    opacity: "0.8",
+    fontWeight: 500,
   } as CSSProperties,
   controlsRow: {
     alignItems: "end",
@@ -157,7 +155,7 @@ export const auditStyles = {
   gapMessage: {
     color: "var(--body-ink)",
     fontSize: "0.92rem",
-    lineHeight: 1.35,
+    lineHeight: 1.45,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
   } as CSSProperties,

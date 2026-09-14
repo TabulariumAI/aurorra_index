@@ -72,6 +72,8 @@ export type MetdataWorkerConfig = {
 };
 
 export type MetdataStoreState = {
+  openSegment: string | null;
+  getSegment(pageSegment: string): string;
   activeSession: string | null;
   error: MetadataError | null;
   refresh: MetdataMetadataRefresh | null;

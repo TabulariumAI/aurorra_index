@@ -72,6 +72,32 @@ describe("useMetadata", () => {
     storeApi.getState().resetAllState();
   });
 
+  it("exposes the current segment, opens Pages on request, and resets between sessions", async () => {
+    const onSegmentExpand = vi.fn();
+    const props: MetdataMetadataProps = {
+      authToken: "token", apiGatewayUrl: "https://doc.example.com", batch: "Pending", batchCode: null,
+      callbacks: { onSegmentExpand }, choices, deferredState: createDeferredState({ segment: "party" }),
+      intervalMs: 0, retryLimit: 5, retryIntervalMs: 0, onReadyChange: vi.fn(), refresh: null,
+      segments, session: "session-1", workerClient: createClient(),
+    };
+    const view = renderHook((value) => useMetadata(value), { initialProps: props });
+    await waitFor(() => expect(view.result.current.store.status).toBe("success"));
+    expect(indexStoreApi.getState().getSegment(segments.PAGE)).toBe("party");
+    act(() => view.result.current.setSectionOpen("legal", true));
+    expect(indexStoreApi.getState().getSegment(segments.PAGE)).toBe("legal");
+    act(() => view.result.current.setSectionOpen("legal", false));
+    expect(view.result.current.openSegment).toBe("legal");
+    act(() => indexStoreApi.setState({ openSegment: null }));
+    act(() => expect(indexStoreApi.getState().getSegment(segments.PAGE)).toBe("page"));
+    expect(view.result.current.openSegment).toBe("page");
+    expect(onSegmentExpand).toHaveBeenLastCalledWith("page");
+    view.rerender({ ...props, session: "session-2", deferredState: createDeferredState({ segment: "property" }) });
+    await waitFor(() => expect(view.result.current.store.activeSession).toBe("session-2"));
+    expect(indexStoreApi.getState().getSegment(segments.PAGE)).toBe("property");
+    act(() => indexStoreApi.getState().resetView());
+    expect(indexStoreApi.getState().openSegment).toBeNull();
+  });
+
   it("reloads metadata and preserves requested segment during reprocess", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();

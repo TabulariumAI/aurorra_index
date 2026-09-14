@@ -7,7 +7,7 @@ export const typeSelectStyles = {
     borderRadius: "var(--radius-control)",
     minWidth: 0,
   },
-  focused: { borderColor: "var(--primary)", boxShadow: "0 0 0 1px var(--primary)" },
+  focused: { borderColor: "var(--primary-dark)", boxShadow: "0 0 0 1px var(--primary)" },
   chips: { display: "flex", flexWrap: "wrap", gap: "0.35rem", padding: "0.5rem 0.5rem 0" },
   chip: {
     display: "inline-flex", alignItems: "center", gap: "0.25rem", maxWidth: "100%",
@@ -18,7 +18,7 @@ export const typeSelectStyles = {
   remove: {
     background: "transparent", border: 0, boxShadow: "none", color: "var(--title-ink)",
     flex: "0 0 auto", cursor: "pointer", font: "inherit", fontSize: "1.15rem",
-    minWidth: "2rem", minHeight: "2rem", padding: "0.2rem", borderRadius: "var(--radius-control)",
+    minWidth: "2.75rem", minHeight: "2.75rem", padding: "0.2rem", borderRadius: "var(--radius-control)",
   },
   search: {
     background: "transparent", border: 0, outline: "none", boxShadow: "none",
@@ -34,6 +34,6 @@ export const typeSelectStyles = {
     color: "var(--title-ink)", cursor: "pointer", padding: "0.5rem",
     borderRadius: "var(--radius-control)", overflowWrap: "anywhere",
   },
-  active: { background: "var(--primary)", color: "var(--white)" },
+  active: { background: "var(--primary-dark)", color: "var(--white)" },
   empty: { color: "var(--title-ink)", padding: "0.75rem 0.5rem", fontSize: "0.9rem" },
 } satisfies Record<string, CSSProperties>;

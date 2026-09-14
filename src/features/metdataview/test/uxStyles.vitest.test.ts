@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addIndexStyles } from "../../addindex/style/addIndexStyles";
+import { indexStyles } from "../../../shared/style/indexStyles";
 import { auditStyles } from "../../audit/style/auditStyles";
 import { imageViewerStyles } from "../../imageviewer/style/imageViewerStyles";
 import { iqStyles } from "../../iq/style/iqStyles";
@@ -71,8 +71,8 @@ describe("index styles", () => {
     });
     expect(metadataStyles.legalElement).toMatchObject({ borderTop: "1px solid var(--border-card)" });
     expect(disclosureButtonStyle(false, true)).toMatchObject({
-      border: "1px solid var(--primary)",
-      outline: "2px solid var(--primary)",
+      border: 0,
+      outline: "none",
     });
     expect(segmentStyles.root).toMatchObject({
       backgroundColor: "var(--white)",
@@ -104,17 +104,21 @@ describe("index styles", () => {
   });
 
   it("uses aligned cards, fields, and primary controls", () => {
-    expect(addIndexStyles.field).toMatchObject({
-      border: "1px solid var(--border-card)",
-      borderRadius: "var(--radius-card)",
+    expect(indexStyles.field).toMatchObject({
+      display: "grid",
+      gap: "0.55rem",
+      margin: 0,
+      padding: 0,
     });
-    expect(addIndexStyles.input).toMatchObject({
+    expect(indexStyles.field).not.toHaveProperty("border");
+    expect(indexStyles.field).not.toHaveProperty("borderRadius");
+    expect(indexStyles.input).toMatchObject({
       border: "1px solid var(--border-card)",
       borderRadius: "var(--radius-control)",
       minHeight: "2.5rem",
     });
-    expect(addIndexStyles.button("primary")).toMatchObject({
-      backgroundColor: "var(--primary)",
+    expect(indexStyles.button("primary")).toMatchObject({
+      backgroundColor: "var(--primary-dark)",
       borderRadius: "var(--radius-control)",
       height: "2.75rem",
     });
@@ -127,15 +131,15 @@ describe("index styles", () => {
 
   it("uses aligned viewer and data surfaces", () => {
     expect(imageViewerStyles.scaleButton).toMatchObject({
-      border: "1px solid var(--border-card)",
+      border: 0,
       borderRadius: "var(--radius-control)",
-      height: "2.5rem",
-      width: "2.5rem",
+      height: "2rem",
+      width: "2rem",
     });
     expect(imageViewerStyles.searchInput).toMatchObject({
       border: "1px solid var(--border-card)",
       borderRadius: "var(--radius-control)",
-      minHeight: "2.5rem",
+      minHeight: "2.75rem",
     });
     expect(iqStyles.root).toMatchObject({ fontFamily: "var(--font-ui)" });
     expect(iqStyles.content).toMatchObject({ padding: "0.85rem var(--panel-content-padding)" });

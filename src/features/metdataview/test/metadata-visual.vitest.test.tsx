@@ -250,7 +250,7 @@ describe("metadata visual surface", () => {
     expect(segmentButton).toHaveStyle({
       alignSelf: "stretch",
       boxSizing: "border-box",
-      flex: "1 1 auto",
+      flex: "1 1 12rem",
       minWidth: "0px",
       padding: "0px",
     });
@@ -285,18 +285,18 @@ describe("metadata visual surface", () => {
     const reprocessButton = screen.getByRole("button", { name: "Reprocess" });
     const chatButton = screen.getByRole("button", { name: "Open AI chat" });
     expect(reprocessButton).toHaveStyle({
-      background: "transparent",
+      background: "var(--icon-surface)",
       boxShadow: "none",
       color: "var(--primary)",
-      height: "2.75rem",
+      height: "2rem",
     });
     expect(reprocessButton).toHaveTextContent("Reprocess");
     expect(reprocessButton.querySelector("svg")).toBeNull();
     expect(chatButton).toHaveStyle({
-      background: "transparent",
+      background: "var(--icon-surface)",
       boxShadow: "none",
       color: "var(--primary)",
-      height: "2.75rem",
+      height: "2rem",
     });
     expect(chatButton).toHaveTextContent("AI chat");
     expect(chatButton.querySelector("svg")).toBeNull();
@@ -347,7 +347,7 @@ describe("metadata visual surface", () => {
     });
   });
 
-  it("collapses explanation rows to one line and expands inline", async () => {
+  it("toggles explanation and quote together", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -387,128 +387,31 @@ describe("metadata visual surface", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    const explanation = screen.getAllByText(/This explanation is intentionally long/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
-    const explanationLabel = screen.getAllByText("Explanation:").find((node) => node.closest("[aria-hidden='true']") === null) as HTMLElement;
-    const expandButton = screen.getByRole("button", { name: "Expand explanation" });
-    const quote = screen.getAllByText(/full quoted source/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
-    const quoteLabel = screen.getAllByText("Quote:").find((node) => node.closest("[aria-hidden='true']") === null) as HTMLElement;
-    const quoteButton = screen.getByRole("button", { name: "Expand quote" });
-    const row = screen.getByText("Alice").closest("article");
-
-    expect(explanationLabel.parentElement).toBe(explanation);
-    expect(quoteLabel.parentElement).toBe(quote);
-    expect(row).toHaveStyle({ boxShadow: "none" });
-    expect(expandButton).toHaveAttribute("aria-expanded", "false");
-    expect(expandButton.textContent).toBe("");
-    expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
-    expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "center", boxShadow: "none", color: "var(--title-ink)", height: "1.25rem", width: "1.25rem" });
-    expect(explanation.parentElement).toHaveStyle({ minHeight: "1.5rem" });
-    fireEvent.focus(expandButton);
-    expect(expandButton).toHaveStyle({
-      background: "var(--accent-surface)",
-      outline: "2px solid var(--primary)",
-    });
-    fireEvent.blur(expandButton);
-    expect(explanation).toHaveStyle({
-      display: "block",
-      overflow: "hidden",
-      paddingRight: "1.75rem",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    });
-    expect(quoteButton).toHaveAttribute("aria-expanded", "false");
-    expect(quoteButton.textContent).toBe("");
-    expect(quoteButton.querySelector("svg rect")).toBeInTheDocument();
-    expect(quoteButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(quoteButton).toHaveStyle({ alignItems: "center", boxShadow: "none", color: "var(--title-ink)", height: "1.25rem", width: "1.25rem" });
-    expect(quote.parentElement).toHaveStyle({ minHeight: "1.5rem" });
-    expect(quote).toHaveStyle({
-      display: "block",
-      overflow: "hidden",
-      paddingRight: "1.75rem",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    });
-
-    fireEvent.click(expandButton);
-
-    expect(await screen.findByRole("button", { name: "Collapse explanation" })).toBeInTheDocument();
-    const collapseButton = screen.getByRole("button", { name: "Collapse explanation" });
-    expect(collapseButton.textContent).toBe("");
-    expect(collapseButton.querySelector("svg rect")).toBeInTheDocument();
-    expect(collapseButton.querySelectorAll("svg path")).toHaveLength(1);
-    expect(explanation).toHaveStyle({
-      overflow: "visible",
-      textOverflow: "clip",
-      whiteSpace: "normal",
-    });
-
-    fireEvent.click(quoteButton);
-
-    expect(await screen.findByRole("button", { name: "Collapse quote" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Collapse quote" }).textContent).toBe("");
-    expect(quote).toHaveStyle({
-      overflow: "visible",
-      textOverflow: "clip",
-      whiteSpace: "normal",
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Collapse explanation" }));
-    expect(screen.getByRole("button", { name: "Expand explanation" })).toBeInTheDocument();
+    expect(screen.queryByText("Explanation:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Quote:")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Expand details" }));
+    expect(screen.getByText("Explanation:")).toBeVisible();
+    expect(screen.getByText("Quote:")).toBeVisible();
+    expect(screen.getByText(/This explanation is intentionally long/i)).toHaveStyle({ whiteSpace: "normal", paddingRight: "0px" });
+    expect(screen.getByText(/full quoted source/i)).toHaveStyle({ whiteSpace: "normal", paddingRight: "0px" });
+    expect(screen.queryByRole("button", { name: "Expand explanation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand quote" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Collapse details" }));
+    expect(screen.queryByText("Explanation:")).not.toBeInTheDocument();
+    expect(screen.queryByText("Quote:")).not.toBeInTheDocument();
   });
 
-  it("collapses every overflowing index value and keeps short values without disclosure", async () => {
+  it("wraps long and short index values without disclosure and preserves source navigation", () => {
     const onClick = vi.fn();
-    const view = render(
-      <Tooltip.Provider>
-        <IndexValue onClick={onClick} value={longValue} />
-      </Tooltip.Provider>,
-    );
+    const view = render(<IndexValue onClick={onClick} value={longValue} />);
     const value = screen.getByRole("link", { name: longValue });
-    const expandButton = await screen.findByRole("button", { name: "Expand index value" });
-
-    expect(expandButton).toHaveAttribute("aria-expanded", "false");
-    expect(expandButton.textContent).toBe("");
-    expect(expandButton.querySelector("svg rect")).toBeInTheDocument();
-    expect(expandButton.querySelectorAll("svg path")).toHaveLength(2);
-    expect(expandButton).toHaveStyle({ alignItems: "center", height: "1.25rem", width: "1.25rem" });
-    expect(value).toHaveStyle({ minHeight: "1.5rem" });
-    expect(value).toHaveStyle({
-      overflow: "hidden",
-      paddingRight: "1.75rem",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-    });
-
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(value).toHaveStyle({ whiteSpace: "normal", overflowWrap: "anywhere" });
     fireEvent.click(value);
-    expect(onClick).toHaveBeenCalledTimes(1);
-    fireEvent.click(expandButton);
-
-    const collapseButton = screen.getByRole("button", { name: "Collapse index value" });
-    expect(collapseButton.textContent).toBe("");
-    expect(collapseButton.querySelector("svg rect")).toBeInTheDocument();
-    expect(collapseButton.querySelectorAll("svg path")).toHaveLength(1);
-    expect(value).toHaveStyle({
-      overflow: "visible",
-      textOverflow: "clip",
-      whiteSpace: "normal",
-    });
-
-    view.unmount();
-    render(
-      <Tooltip.Provider>
-        <IndexValue value="Alice" />
-      </Tooltip.Provider>,
-    );
-    expect(screen.queryByRole("button", { name: /index value/i })).not.toBeInTheDocument();
-    const shortValue = screen.getByText("Alice");
-    expect(shortValue.style.minHeight).toBe("");
-    expect(shortValue).toHaveStyle({
-      overflow: "visible",
-      textOverflow: "clip",
-      whiteSpace: "normal",
-    });
+    expect(onClick).toHaveBeenCalledOnce();
+    view.rerender(<IndexValue value="Alice" />);
+    expect(screen.getByText("Alice")).toHaveStyle({ whiteSpace: "normal" });
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("forwards metadata index fields without mutating image viewer state", async () => {
@@ -566,7 +469,7 @@ describe("metadata visual surface", () => {
     expect(imageViewerStoreApi.getState().request).toBeNull();
   });
 
-  it("hides disclosure buttons when explanation and quote fit on one line", async () => {
+  it("toggles short explanation and quote regardless of overflow", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -606,6 +509,8 @@ describe("metadata visual surface", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
+    expect(screen.queryByText("Explanation:")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Expand details" }));
     const explanation = screen.getAllByText(/Short explanation/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
     const quote = screen.getAllByText(/Short quote/i).find((node) => node.getAttribute("aria-hidden") !== "true") as HTMLElement;
     expect(screen.queryByRole("button", { name: "Expand explanation" })).not.toBeInTheDocument();
@@ -760,13 +665,13 @@ describe("metadata visual surface", () => {
     const legalCard = screen.getByRole("link", { name: "Lot Block" }).closest("article");
     expect(legalCard).toHaveStyle({ alignItems: "start", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto" });
     expect(legalCard?.firstElementChild).toHaveStyle({ display: "flex", flexDirection: "column", gap: "0.25rem" });
-    expect(legalCard?.firstElementChild?.firstElementChild).toHaveStyle({ alignItems: "flex-start", display: "flex", minWidth: "0px" });
+    expect(legalCard?.firstElementChild?.firstElementChild).toHaveStyle({ display: "block", minWidth: "0px" });
     expect(screen.getByRole("button", { name: "Copy value Lot Block" }).parentElement).toHaveStyle({ alignSelf: "start" });
     const copyButton = screen.getByRole("button", { name: "Copy value Lot Block" });
     expect(copyButton).toHaveStyle({ alignItems: "center" });
     legalActionButtons.forEach((button) => {
       expect(button).toHaveTextContent("Show plat");
-      expect(button).toHaveStyle({ alignItems: "flex-start", width: "auto", height: "2rem", minHeight: "2rem", padding: "0 0.5rem" });
+      expect(button).toHaveStyle({ alignItems: "center", width: "auto", height: "2rem", minHeight: "2rem", padding: "0px" });
     });
     expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "underline" });
     fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));

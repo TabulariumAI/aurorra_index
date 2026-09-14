@@ -176,7 +176,7 @@ describe("ImageViewerPanel", () => {
 
     expect(select).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(exportSelection).toHaveBeenCalledTimes(1));
-    expect(addIndexStoreApi.getState().selection).toEqual({
+    expect(addIndexStoreApi.getState().request).toEqual({
       groups: [
         { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },
       ],

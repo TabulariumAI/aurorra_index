@@ -105,6 +105,7 @@ createRoot(stage).render(
     metadata={activeMetadata}
     onConfirm={noOp}
     onDrop={noOp}
+    onEditIndex={(item) => stage.setAttribute("data-edit-code", String(item.code))}
     onReprocess={noOp}
     openSegment={segments.PARTY}
     panelData={activePanelData}

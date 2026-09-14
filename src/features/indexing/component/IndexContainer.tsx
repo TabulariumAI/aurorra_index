@@ -5,6 +5,8 @@ import { useMetadata } from "../../metdataview/hook/useMetadata";
 import { MetadataPanel, type MetadataActionPayload, metadataStyles } from "aurora-core";
 import type { MetdataMetadataProps } from "../../metdataview/type/metadataView.types";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
+import { addIndexStoreApi } from "../../addindex";
+import { editIndexStoreApi } from "../../editindex";
 
 const emptyCodes = new Set<string>();
 
@@ -50,6 +52,8 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
   return (
     <div style={metadataStyles.rootShell}>
       <MetadataPanel
+        onAddIndex={(segment) => addIndexStoreApi.getState().open({ segment })}
+        onEditIndex={(index, segment) => editIndexStoreApi.getState().open({ index, segment, session })}
         actions={{
           confirm: true,
           drop: true,

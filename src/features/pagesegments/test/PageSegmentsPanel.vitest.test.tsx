@@ -15,17 +15,32 @@ function setup() {
 }
 beforeEach(() => { queueStoreApi.getState().reset(); storeApi.getState().resetAllState(); storeApi.getState().setJSON("session-1", splitMetadataJSON(metadata)); });
 afterEach(() => { cleanup(); queueStoreApi.getState().reset(); pageSegmentsStoreApi.getState().reset([]); });
+it("has no panel close action and disables actions after manual reversion", () => {
+  const { onClose, workerClient } = setup();
+  expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+  const checkbox = screen.getByRole("checkbox", { name: "Confidential" });
+  fireEvent.click(checkbox);
+  expect(screen.getByRole("button", { name: "Update" })).toBeEnabled();
+  fireEvent.click(checkbox);
+  expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
+  fireEvent.click(checkbox);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" }));
+  expect(checkbox).not.toBeChecked();
+  expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+  expect(onClose).not.toHaveBeenCalled();
+  expect(workerClient.updatePageSegments).not.toHaveBeenCalled();
+});
 it("preserves selected segments and permissions without network work on open", () => {
   const { workerClient } = setup();
   expect(screen.getByRole("checkbox", { name: "Reference (Recital)" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Record Endorsements" })).toBeDisabled();
-  expect(screen.queryByRole("button", { name: "Submit" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
   expect(workerClient.updatePageSegments).not.toHaveBeenCalled(); expect(workerClient.indexData).not.toHaveBeenCalled();
 });
 it("closes after queue acceptance and changes the page before processing finishes", async () => {
   const { workerClient, onClose, onError } = setup();
   fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" }));
-  fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  fireEvent.click(screen.getByRole("button", { name: "Update" }));
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   expect(workerClient.updatePageSegments).toHaveBeenCalledWith("token", "session-1", "page-a", ["reference", "secrets"]);
   expect(storeApi.getState().getJSON("session-1")?.pagesJSON.pages?.recordables?.[0].segments).toEqual(["reference", "secrets"]);
@@ -35,23 +50,23 @@ it("closes after queue acceptance and changes the page before processing finishe
 it("keeps background failures in the queue rather than the closed editor", async () => {
   const { workerClient, onClose, onError } = setup();
   workerClient.updatePageSegments.mockRejectedValueOnce(new Error("Page rejected"));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("button", { name: "Update" }));
   await waitFor(() => expect(queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed", error: "Page rejected" }));
   expect(onClose).toHaveBeenCalledOnce(); expect(onError).not.toHaveBeenCalled();
 });
 it("rejects acceptance without metadata and preserves the editor", async () => {
   storeApi.getState().resetAllState(); const { workerClient, onClose, onError } = setup();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("button", { name: "Update" }));
   await waitFor(() => expect(onError).toHaveBeenCalledOnce());
   expect(onClose).not.toHaveBeenCalled(); expect(workerClient.updatePageSegments).not.toHaveBeenCalled();
   expect(queueStoreApi.getState().tasks).toHaveLength(0);
 });
-it("restores canceled selections and accepts blank page segments", async () => {
+it("supports manually reverted selections and accepts blank page segments", async () => {
   const { workerClient, onClose } = setup();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" }));
   expect(screen.getByRole("checkbox", { name: "Reference (Recital)" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Confidential" })).not.toBeChecked();
-  fireEvent.click(screen.getByRole("checkbox", { name: "This page is blank" })); fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "This page is blank" })); fireEvent.click(screen.getByRole("button", { name: "Update" }));
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   expect(workerClient.updatePageSegments).toHaveBeenCalledWith("token", "session-1", "page-a", []);
 });

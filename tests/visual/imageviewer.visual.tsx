@@ -85,7 +85,7 @@ function VisualImageViewer() {
   const tasks = useQueueStore((state) => state.tasks);
   const completed = useQueueStore((state) => state.queues.some((queue) => queue.completed > 0));
   stage.dataset.addIndexComplete = String(completed);
-  const selection = useAddIndexStore((state) => state.selection);
+  const request = useAddIndexStore((state) => state.request);
 
   return (
     <>
@@ -108,7 +108,7 @@ function VisualImageViewer() {
           stage.dataset.imageReady = String(ready);
         }}
       />
-      {selection ? (
+      {request ? (
         <div data-testid="add-index-host">
           <AddIndexPanel
             apiGatewayUrl={hostInput.apiGatewayUrl}
@@ -126,7 +126,7 @@ function VisualImageViewer() {
             }}
             onResource={async () => ({ aspects: { party: ["grantor", "grantee"] } })}
             segment="party"
-            selection={selection}
+            request={request}
             session={hostInput.session}
           />
         </div>

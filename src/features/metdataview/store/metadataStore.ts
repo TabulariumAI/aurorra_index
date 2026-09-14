@@ -4,11 +4,18 @@ import { storeApi } from "../../../store/state/store";
 
 export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
   activeSession: null,
+  openSegment: null,
   error: null,
   refresh: null,
   refreshId: 0,
   retryAttempt: 0,
   status: "idle",
+  getSegment(pageSegment) {
+    const segment = get().openSegment;
+    if (segment) return segment;
+    set({ openSegment: pageSegment });
+    return pageSegment;
+  },
   invalidateSession(session) {
     storeApi.getState().removeJSON(session);
     set((state) => {
@@ -25,6 +32,7 @@ export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
   resetView() {
     set({
       activeSession: null,
+      openSegment: null,
       error: null,
       refresh: null,
       refreshId: 0,

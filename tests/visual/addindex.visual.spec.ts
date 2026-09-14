@@ -63,13 +63,13 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(typeInput).toBeVisible();
   await typeInput.click();
   await expect(page.getByRole("option", { name: "Grantor", exact: true })).toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Confirm" })).toBeDisabled();
-  const advanced = page.getByRole("button", { name: "Advanced" });
-  await expect(advanced).toHaveAttribute("data-state", "closed");
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeDisabled();
+  const details = page.getByRole("button", { name: "Additional details" });
+  await expect(details).toHaveAttribute("data-state", "closed");
   await expect(page.getByRole("group", { name: "Quote" })).toHaveCount(0);
   await expect(indexInput).toHaveValue("JOHN SMITH JOHN M. SMITH");
-  await advanced.click();
-  await expect(advanced).toHaveAttribute("data-state", "open");
+  await details.click();
+  await expect(details).toHaveAttribute("data-state", "open");
   const pageInput = page.getByRole("textbox", { name: "Page Number" });
   const sourceInput = page.getByRole("textbox", { name: "Source" });
   const labelInput = page.getByRole("textbox", { name: "Label" });
@@ -103,7 +103,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(page.getByTestId("add-quote-field")).toHaveCSS("border-width", "0px");
   await expect(page.getByTestId("add-type-field")).toHaveCSS("border-width", "0px");
   const actionsBox = await page.getByTestId("add-index-actions").boundingBox();
-  const confirmBox = await page.getByRole("button", { name: "Confirm" }).boundingBox();
+  const confirmBox = await page.getByRole("button", { name: "Add", exact: true }).boundingBox();
   const cancelBox = await page.getByRole("button", { name: "Cancel" }).boundingBox();
   expect(actionsBox).not.toBeNull();
   expect(confirmBox).not.toBeNull();
@@ -122,8 +122,8 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await labelInput.fill("Party label");
   await page.getByRole("combobox", { name: "Type" }).click();
   await page.getByRole("option", { name: "Grantor" }).click();
-  await expect(page.getByRole("button", { name: "Confirm" })).toBeEnabled();
-  await page.getByRole("button", { name: "Confirm" }).click();
+  await expect(page.getByRole("button", { name: "Add", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
   await expect(host).toBeVisible();
   await page.getByRole("button", { name: "Confirm" }).click();
@@ -169,7 +169,7 @@ test("Add Index closes and retains a recoverable task when the service rejects t
   await expect(host).toBeVisible();
   await page.getByRole("combobox", { name: "Type" }).click();
   await page.getByRole("option", { name: "Grantor" }).click();
-  await page.getByRole("button", { name: "Confirm" }).click();
+  await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");
   await page.getByRole("button", { name: "Confirm" }).click();
 

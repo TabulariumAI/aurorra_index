@@ -85,6 +85,7 @@ describe("MetadataPanel capability mode", () => {
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(document.querySelector("[data-metadata-context='true']")).toBeNull();
     expect(screen.queryByRole("button", { name: "Reprocess" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add Index" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open AI chat" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete index" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Fee Factors/i })).not.toBeInTheDocument();

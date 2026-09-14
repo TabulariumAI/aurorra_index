@@ -2,12 +2,12 @@ import { create } from "zustand";
 import type { AddIndexStoreState } from "../type/addIndex.types";
 
 export const useAddIndexStore = create<AddIndexStoreState>()((set) => ({
-  selection: null,
+  request: null,
   close() {
-    set({ selection: null });
+    set({ request: null });
   },
-  open(selection) {
-    set({ selection });
+  open(request) {
+    set({ request });
   },
 }));
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { aspectGroups, formatSelection } from "../data/addIndexData";
+import { formatSelection } from "../data/addIndexData";
+import { aspectGroups } from "../../../shared/data/aspectGroups";
 import type { AddIndexSelection } from "../type/addIndex.types";
 
 describe("formatSelection", () => {

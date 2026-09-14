@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
+import { addIndexStoreApi } from "../../addindex";
+import { editIndexStoreApi } from "../../editindex";
 import { indexStoreApi } from "../../metdataview/store/metadataStore";
 import { queueStoreApi } from "../../queue/store/queueStore";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
@@ -70,6 +72,8 @@ const metadata: MetadataPayload = {
 
 describe("IndexContainer", () => {
   afterEach(() => {
+    addIndexStoreApi.getState().close();
+    editIndexStoreApi.getState().close();
     queueStoreApi.getState().reset();
     act(() => {
       indexStoreApi.getState().resetMetadata();
@@ -181,7 +185,10 @@ describe("IndexContainer", () => {
       value: "Alice",
     });
     expect(screen.queryByLabelText("Open page image 1")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit index" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
+    expect(editIndexStoreApi.getState().request).toEqual({ index: expect.objectContaining(metadata.indexes![0]), segment: "party", session: "session-1" });
+    expect(onEditPage).not.toHaveBeenCalled();
+    editIndexStoreApi.getState().close();
 
     fireEvent.click(screen.getByRole("button", { name: /Pages/i }));
     const editButton = await screen.findByRole("button", { name: "Edit index" });
@@ -210,6 +217,14 @@ describe("IndexContainer", () => {
     if (!partyHeader) throw new Error("Party header is missing.");
     const partyActions = within(partyHeader);
     const reprocess = await partyActions.findByRole("button", { name: "Reprocess" });
+    const addIndex = partyActions.getByRole("button", { name: "Add Index" });
+    expect(addIndex.nextElementSibling).toBe(reprocess);
+    expect(partyTrigger).not.toContainElement(addIndex);
+    fireEvent.click(addIndex);
+    expect(addIndexStoreApi.getState().request).toEqual({ segment: "party" });
+    expect(partyTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(workerClient.reprocessSegment).not.toHaveBeenCalled();
+    addIndexStoreApi.getState().close();
     expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
     expect(footer).toBeEmptyDOMElement();
     expect(reprocess.parentElement?.parentElement).toBe(partyTrigger.parentElement);
@@ -222,6 +237,12 @@ describe("IndexContainer", () => {
     act(() => completeReprocess?.());
     await waitFor(() => expect(partyActions.getByRole("button", { name: "Reprocess" })).toBeVisible());
     expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Legal Descriptions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
+    expect(editIndexStoreApi.getState().request).toEqual({ session: "session-1", segment: "legal", index: { aspect: "subdivision", value: "Riverside", label: "legal", page: "3" } });
+    editIndexStoreApi.getState().close();
+    fireEvent.click(partyTrigger);
 
     const dropButton = screen.getByLabelText("Delete index");
     fireEvent.click(dropButton);

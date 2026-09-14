@@ -1,4 +1,5 @@
 import * as Checkbox from "@radix-ui/react-checkbox";
+import { ConfButton } from "aurora-core";
 import { useEffect, useMemo, type JSX } from "react";
 import {
   getChoiceLevel,
@@ -12,13 +13,6 @@ import { pageSegmentsStoreApi, usePageSegmentsStore } from "../store/pageSegment
 import type { PageSegmentsPanelProps, PageSegmentsWorkerError } from "../type/pageSegments.types";
 import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
-
-function formatLabel(value: string): string {
-  return value
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
 
 function toWorkerError(error: unknown): PageSegmentsWorkerError {
   const candidate = error as { code?: string; details?: unknown; error?: string; message?: string; status?: number };
@@ -89,7 +83,7 @@ export function PageSegmentsPanel({
   };
 
   const submit = async () => {
-    if (status === "saving") return;
+    if (pageSegmentsStoreApi.getState().status === "saving" || !isDirty) return;
     const submitted = [...selected];
     pageSegmentsStoreApi.getState().setSaving();
     try {
@@ -105,10 +99,10 @@ export function PageSegmentsPanel({
 
   return (
     <section aria-label="Page Segments" style={pageSegmentsStyles.root}>
-      <h2 id="pageSegmentsTitle" style={pageSegmentsStyles.title}>{formatLabel(pageClass)}</h2>
       <label htmlFor="pageBlankToggle" style={pageSegmentsStyles.blankRow}>
         <Checkbox.Root
           checked={blankChecked}
+          disabled={status === "saving"}
           id="pageBlankToggle"
           onCheckedChange={(checked) => {
             if (checked === true) {
@@ -129,7 +123,7 @@ export function PageSegmentsPanel({
             <label htmlFor={`segment-${segment}`} key={segment} style={pageSegmentsStyles.item}>
               <Checkbox.Root
                 checked={selected.includes(segment)}
-                disabled={disabled}
+                disabled={disabled || status === "saving"}
                 id={`segment-${segment}`}
                 onCheckedChange={(checked) => setSegmentChecked(segment, checked === true)}
                 style={pageSegmentsStyles.checkboxRoot(disabled)}
@@ -146,21 +140,7 @@ export function PageSegmentsPanel({
         <div id="pageSegmentsMessage" style={pageSegmentsStyles.message}>Page segment changes could not be saved. Please try again.</div>
       ) : null}
       <footer id="pageSegmentsFooter" style={pageSegmentsStyles.footer}>
-        {isDirty || status === "error" ? (
-          <button disabled={status === "saving"} id="pageSegmentsSubmitBtn" onClick={() => void submit()} style={pageSegmentsStyles.button("primary")} type="button">
-            Submit
-          </button>
-        ) : null}
-        {status === "idle" ? (
-          <button id="pageSegmentsCloseBtn" onClick={onClose} style={pageSegmentsStyles.button("secondary")} type="button">
-            Close
-          </button>
-        ) : null}
-        {isDirty || status === "error" ? (
-          <button id="pageSegmentsCancelBtn" onClick={() => pageSegmentsStoreApi.getState().restore()} style={pageSegmentsStyles.button("secondary")} type="button">
-            Cancel
-          </button>
-        ) : null}
+        <ConfButton disabled={!isDirty || status === "saving"} id="pageSegmentsSubmitBtn" label="Update" onConfirm={() => void submit()} requireConfirmation={false} style={pageSegmentsStyles.button("primary")} variant="primary" />
       </footer>
     </section>
   );

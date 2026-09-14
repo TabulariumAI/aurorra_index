@@ -1,12 +1,13 @@
 import { ConfButton, formatLabel } from "aurora-core";
-import * as Collapsible from "@radix-ui/react-collapsible";
-import { useEffect, useId, useMemo, useState, type JSX } from "react";
-import { aspectGroups, formatSelection } from "../data/addIndexData";
-import { addIndexStyles } from "../style/addIndexStyles";
+import { useEffect, useMemo, useRef, useState, type JSX } from "react";
+import { formatSelection } from "../data/addIndexData";
+import { indexStyles } from "../../../shared/style/indexStyles";
 import type { AddIndexPanelProps } from "../type/addIndex.types";
 import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
-import { TypeSelect } from "./TypeSelect";
+import { IndexInput } from "../../../shared/component/IndexInput";
+import { IndexDetails } from "../../../shared/component/IndexDetails";
+import { useAspects } from "../../../shared/hook/useAspects";
 
 export function AddIndexPanel({
   apiGatewayUrl,
@@ -20,16 +21,11 @@ export function AddIndexPanel({
   onReadyChange,
   onResource,
   segment,
-  selection,
+  request,
   session,
   workerClient,
 }: AddIndexPanelProps): JSX.Element {
-  const indexInputId = useId();
-  const pageInputId = useId();
-  const sourceInputId = useId();
-  const labelInputId = useId();
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [aspects, setAspects] = useState<Record<string, string[]>>({});
+  const { aspects, ready } = useAspects(request, onResource, onReadyChange, onError);
   const [selected, setSelected] = useState<string[]>([]);
   const [fields, setFields] = useState({
     index: "",
@@ -42,36 +38,28 @@ export function AddIndexPanel({
     [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient],
   );
 
+  const pending = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+  const initial = useMemo(() => {
+    if ("groups" in request) {
+      const summary = formatSelection(request);
+      return { index: summary.values, label: "", page: String(request.pageNumber), source: summary.context };
+    } else {
+      return { index: "", label: "", page: "", source: "" };
+    }
+  }, [request]);
+
   useEffect(() => {
-    let active = true;
-    const summary = formatSelection(selection);
-    setFields({
-      index: summary.values,
-      label: "",
-      page: String(selection.pageNumber),
-      source: summary.context,
-    });
+    pending.current = false;
+    setSubmitting(false);
+    setFields(initial);
     setSelected([]);
-    onReadyChange(false);
-    void onResource({ resource: "aspects" })
-      .then((resource) => {
-        if (!active) return;
-        const groups = aspectGroups(resource);
-        setAspects(groups);
-        onReadyChange(true);
-      })
-      .catch((resourceError) => {
-        if (!active) return;
-        const failure = resourceError as Error & { code?: string; details?: unknown; status?: number };
-        onError({ code: failure.code, details: failure.details, error: failure.message, status: failure.status });
-        onReadyChange(true);
-      });
-    return () => {
-      active = false;
-    };
-  }, [onError, onReadyChange, onResource, selection]);
+  }, [initial]);
 
   const submit = async () => {
+    if (!ready || !selected.length || !fields.index.trim() || pending.current) return;
+    pending.current = true;
+    setSubmitting(true);
     try {
       for (const group of Object.keys(aspects)) {
         const types = aspects[group].filter((type) => selected.includes(JSON.stringify([group, type])));
@@ -96,83 +84,25 @@ export function AddIndexPanel({
         status: failure.status,
       };
       onError(workerError);
+    } finally {
+      pending.current = false;
+      setSubmitting(false);
     }
   };
 
   return (
-    <section aria-label="Add selected index form" style={addIndexStyles.root}>
-      <div style={addIndexStyles.fields}>
-        <div data-testid="add-index-field" style={addIndexStyles.field}>
-          <label htmlFor={indexInputId} style={addIndexStyles.label}>Index</label>
-          <input
-            id={indexInputId}
-            onChange={(event) => setFields({ ...fields, index: event.target.value })}
-            style={addIndexStyles.input}
-            type="text"
-            value={fields.index}
-          />
-        </div>
-        <TypeSelect key={session} aspects={aspects} segment={segment} selected={selected} onChange={setSelected} />
-        <Collapsible.Root onOpenChange={setAdvancedOpen} open={advancedOpen} style={addIndexStyles.advanced}>
-          <Collapsible.Trigger asChild>
-            <button aria-label="Advanced" style={addIndexStyles.advancedTrigger} type="button">
-              <span>Advanced</span>
-              <span aria-hidden="true">{advancedOpen ? "▴" : "▾"}</span>
-            </button>
-          </Collapsible.Trigger>
-          <Collapsible.Content style={advancedOpen ? addIndexStyles.advancedContent : undefined}>
-              <div style={addIndexStyles.advancedRow}>
-                <label htmlFor={labelInputId} style={addIndexStyles.control}>
-                  <span style={addIndexStyles.label}>Label</span>
-                  <input
-                    id={labelInputId}
-                    onChange={(event) => setFields({ ...fields, label: event.target.value })}
-                    style={addIndexStyles.input}
-                    type="text"
-                    value={fields.label}
-                  />
-                </label>
-                <label htmlFor={pageInputId} style={addIndexStyles.control}>
-                  <span style={addIndexStyles.label}>Page Number</span>
-                  <input
-                    id={pageInputId}
-                    onChange={(event) => setFields({ ...fields, page: event.target.value })}
-                    style={addIndexStyles.input}
-                    type="text"
-                    value={fields.page}
-                  />
-                </label>
-              </div>
-              <fieldset aria-label="Quote" data-testid="add-quote-field" style={addIndexStyles.quoteField}>
-                <label htmlFor={sourceInputId} style={addIndexStyles.control}>
-                  <span style={addIndexStyles.label}>Source</span>
-                  <textarea
-                    id={sourceInputId}
-                    onChange={(event) => setFields({ ...fields, source: event.target.value })}
-                    rows={3}
-                    style={addIndexStyles.textArea}
-                    value={fields.source}
-                  />
-                </label>
-              </fieldset>
-          </Collapsible.Content>
-        </Collapsible.Root>
+    <section aria-label="Add selected index form" style={indexStyles.root}>
+      <div inert={submitting} style={indexStyles.fields}>
+        <IndexInput key={session} value={fields.index} aspects={aspects} segment={segment} selected={selected} onChange={(index) => setFields({ ...fields, index })} onSelect={setSelected} />
+        <IndexDetails fields={fields} onChange={setFields} />
       </div>
-      <div data-testid="add-index-actions" style={addIndexStyles.actions}>
+      <div data-testid="add-index-actions" style={indexStyles.actions}>
         <ConfButton
-          disabled={!selected.length}
-          label="Confirm"
+          disabled={submitting || !ready || !selected.length || !fields.index.trim()}
+          label="Add"
           onConfirm={() => void submit()}
-          style={addIndexStyles.button("primary")}
+          style={indexStyles.button("primary")}
           variant="primary"
-        />
-        <ConfButton
-          label="Cancel"
-          onConfirm={onClose}
-          requireConfirmation={false}
-          showPrompt={false}
-          style={addIndexStyles.button("secondary")}
-          variant="secondary"
         />
       </div>
     </section>

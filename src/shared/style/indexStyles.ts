@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-export const addIndexStyles = {
+export const indexStyles = {
   root: {
     alignItems: "stretch",
     boxSizing: "border-box",
@@ -35,49 +35,6 @@ export const addIndexStyles = {
     margin: 0,
     padding: 0,
   },
-  advanced: {
-    background: "var(--white)",
-    borderTop: "1px solid var(--border-card)",
-    boxSizing: "border-box",
-    overflow: "visible",
-  },
-  advancedTrigger: {
-    alignItems: "center",
-    background: "transparent",
-    border: 0,
-    color: "var(--title-ink)",
-    cursor: "pointer",
-    display: "grid",
-    font: "inherit",
-    fontWeight: 700,
-    gridTemplateColumns: "1fr auto",
-    minHeight: "2.75rem",
-    padding: "0.5rem 0",
-    textAlign: "left",
-    width: "100%",
-  },
-  advancedContent: {
-    display: "grid",
-    gap: "0.5rem",
-    padding: "0.35rem",
-  },
-  quoteField: {
-    background: "var(--white)",
-    border: 0,
-    boxSizing: "border-box",
-    display: "grid",
-    gap: "0.55rem",
-    margin: 0,
-    minInlineSize: 0,
-    padding: 0,
-  },
-  advancedRow: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 7rem)",
-    gap: "0.65rem",
-    margin: 0,
-    padding: 0,
-  },
   control: {
     display: "grid",
     minWidth: 0,
@@ -102,19 +59,6 @@ export const addIndexStyles = {
     padding: "0 0.5rem",
     width: "100%",
   },
-  textArea: {
-    background: "var(--white)",
-    border: "1px solid var(--border-card)",
-    borderRadius: "var(--radius-control)",
-    boxSizing: "border-box",
-    color: "var(--title-ink)",
-    lineHeight: 1.4,
-    minHeight: "3.6rem",
-    minWidth: 0,
-    padding: "0.5rem",
-    resize: "vertical",
-    width: "100%",
-  },
   actions: {
     alignItems: "center",
     background: "var(--white)",
@@ -132,7 +76,7 @@ export const addIndexStyles = {
   button(variant: "primary" | "secondary"): CSSProperties {
     return {
       alignItems: "center",
-      backgroundColor: variant === "secondary" ? "var(--white)" : "var(--primary)",
+      backgroundColor: variant === "secondary" ? "var(--white)" : "var(--primary-dark)",
       border: variant === "secondary" ? "1px solid var(--border-card)" : "1px solid var(--primary)",
       borderRadius: "var(--radius-control)",
       boxShadow: variant === "secondary" ? "none" : "var(--shadow-action)",

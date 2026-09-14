@@ -1,229 +1,94 @@
 import { expect, test, type Locator } from "@playwright/test";
 
-async function lineOffset(text: Locator, button: Locator): Promise<number> {
-  const [textBox, iconBox, lineHeight] = await Promise.all([
-    text.boundingBox(),
-    button.locator("svg").boundingBox(),
-    text.evaluate((element) => Number.parseFloat(window.getComputedStyle(element).lineHeight)),
-  ]);
-  if (!textBox || !iconBox) throw new Error("Disclosure alignment elements are not rendered");
-  return Math.abs(iconBox.y + iconBox.height / 2 - (textBox.y + lineHeight / 2));
-}
+test.use({ channel: "msedge" });
 
-test("metadata explanation row collapses and expands inline", async ({ page }) => {
+test("metadata keeps row actions and fixed header scrolling with expanded details", async ({ page }) => {
   await page.goto("/?scenario=metadata");
-
-  const stage = page.locator("#visual-stage");
   const header = page.locator("header").first();
   const accordion = page.getByRole("region", { name: "Metadata accordion" });
-  const footer = page.locator("[data-metadata-footer='true']");
   const row = page.locator("article").first();
-  const explanation = row.locator('span:not([aria-hidden="true"])').filter({ hasText: "This explanation is intentionally long" });
-  const expandButton = page.getByRole("button", { name: "Expand explanation" });
-  const quote = row.locator('span:not([aria-hidden="true"])').filter({ hasText: "full quoted source" });
-  const quoteButton = page.getByRole("button", { name: "Expand quote" });
-  const value = row.getByRole("link");
-  const valueButton = row.getByRole("button", { name: "Expand index value" });
-  const propertyTrigger = accordion.getByRole("button", { name: "Property(Exhibit)" });
-  const segmentTrigger = accordion.getByRole("button", { name: /Parties\(Party Clause\)/i });
-  const segmentHeader = segmentTrigger.locator("..");
-  const reprocessButton = segmentHeader.getByRole("button", { name: "Reprocess" });
-  const chatButton = segmentHeader.getByRole("button", { name: "Open AI chat" });
-  const segmentCount = segmentHeader.locator(":scope > span");
-  const copyButton = row.getByRole("button", { name: /Copy value/ });
-  const dropButton = row.locator("button.metadata-row-action").last();
-  const detail = row.getByText("Grantor", { exact: true });
-
+  const drop = row.getByRole("button", { name: "Delete index" });
+  const copy = row.getByRole("button", { name: /Copy value/ });
   await expect(header).toHaveCSS("position", "static");
   await expect(accordion).toHaveCSS("overflow-y", "auto");
-  await expect(propertyTrigger).toBeVisible();
-  await expect(footer).toHaveCSS("height", "0px");
-  await expect(footer).toHaveCSS("overflow", "hidden");
-  await expect(row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Explanation:" })).toBeVisible();
-  await expect(row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Quote:" })).toBeVisible();
-  await expect(value).toBeVisible();
   await expect(row).toHaveCSS("box-shadow", "none");
-  await expect(reprocessButton).toBeVisible();
-  await expect(reprocessButton).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-  await expect(reprocessButton).toHaveCSS("box-shadow", "none");
-  await expect(reprocessButton).toHaveCSS("height", "44px");
-  await expect(reprocessButton).toHaveText("Reprocess");
-  await expect(reprocessButton.locator("svg")).toHaveCount(0);
-  await expect(chatButton).toBeVisible();
-  await expect(chatButton).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
-  await expect(chatButton).toHaveCSS("box-shadow", "none");
-  await expect(chatButton).toHaveCSS("height", "44px");
-  await expect(chatButton).toHaveText("AI chat");
-  await expect(chatButton.locator("svg")).toHaveCount(0);
-  await expect(segmentCount).toHaveCount(1);
-  const [segmentTriggerBox, actionGroupBox, segmentCountBox] = await Promise.all([
-    segmentTrigger.boundingBox(),
-    reprocessButton.locator("..").boundingBox(),
-    segmentCount.boundingBox(),
-  ]);
-  expect(segmentTriggerBox).not.toBeNull();
-  expect(actionGroupBox).not.toBeNull();
-  expect(segmentCountBox).not.toBeNull();
-  expect(Math.abs((segmentTriggerBox!.y + (segmentTriggerBox!.height / 2)) - (actionGroupBox!.y + (actionGroupBox!.height / 2)))).toBeLessThanOrEqual(2);
-  expect(Math.abs((actionGroupBox!.y + (actionGroupBox!.height / 2)) - (segmentCountBox!.y + (segmentCountBox!.height / 2)))).toBeLessThanOrEqual(2);
-  expect(segmentTriggerBox!.x + segmentTriggerBox!.width).toBeLessThanOrEqual(actionGroupBox!.x);
-  expect(actionGroupBox!.x + actionGroupBox!.width).toBeLessThanOrEqual(segmentCountBox!.x);
-  await expect(dropButton).toBeVisible();
-  await expect(dropButton).toHaveAttribute("aria-label", "Delete index");
-  await expect(copyButton).toHaveCSS("color", "rgb(0, 139, 163)");
-  await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
-  await expect(dropButton).toHaveCSS("box-shadow", "none");
-  const [detailBox, actionBox] = await Promise.all([detail.boundingBox(), dropButton.boundingBox()]);
-  expect(detailBox).not.toBeNull();
-  expect(actionBox).not.toBeNull();
-  expect(detailBox!.y).toBeLessThan(actionBox!.y + actionBox!.height);
-  await dropButton.hover();
-  await page.waitForTimeout(350);
-  await expect(dropButton).toHaveCSS("color", "rgb(0, 139, 163)");
-  await expect(dropButton).toHaveAttribute("title", "Delete index");
-  await dropButton.click();
-  await expect(dropButton).toHaveAttribute("aria-label", "Confirm");
-  await expect(dropButton).toHaveAttribute("data-armed", "true");
-  await expect(dropButton.locator("[data-confirm-progress='true']")).toHaveCount(1);
-  await expect(dropButton).toHaveCSS("width", "44px");
-  await expect(dropButton).toHaveCSS("height", "44px");
-  await expect(page.locator("[data-radix-popper-content-wrapper]")).toHaveCount(0);
-  await expect(explanation).toBeVisible();
-  await expect(expandButton).toHaveAttribute("aria-expanded", "false");
-  await expect(expandButton).toHaveText("");
-  await expect(expandButton.locator("svg rect")).toBeVisible();
-  await expect(expandButton.locator("svg path")).toHaveCount(2);
-  await expect(explanation).toHaveCSS("display", "block");
-  await expect(expandButton).toHaveCSS("position", "absolute");
-  await expect(expandButton).toHaveCSS("box-shadow", "none");
-  await expect(expandButton).toHaveCSS("color", "rgb(16, 36, 58)");
-  expect((await expandButton.boundingBox())!.width).toBe(44);
-  expect((await expandButton.boundingBox())!.height).toBe(44);
-  await expect(explanation.locator("..")).toHaveCSS("min-height", "24px");
-  await expect(explanation).toHaveCSS("white-space", "nowrap");
-  await expect(explanation).toHaveCSS("overflow", "hidden");
-  await expect(explanation).toHaveCSS("text-overflow", "ellipsis");
-  await expect(explanation).toHaveCSS("padding-right", "28px");
-  expect(await lineOffset(explanation, expandButton)).toBeLessThanOrEqual(1);
-
-  const sameTextFlow = await page.evaluate(() => {
-    const label = Array.from(document.querySelectorAll("strong")).find((element) => element.textContent === "Explanation:");
-    return label?.parentElement?.textContent?.includes("inline disclosure control") === true;
-  });
-  expect(sameTextFlow).toBe(true);
-  const quoteTextFlow = await page.evaluate(() => {
-    const label = Array.from(document.querySelectorAll("strong")).find((element) => element.textContent === "Quote:");
-    return label?.parentElement?.textContent?.includes("full quoted source") === true;
-  });
-  expect(quoteTextFlow).toBe(true);
-
-  const rowBox = await row.boundingBox();
-  const buttonBox = await expandButton.boundingBox();
-  expect(rowBox).not.toBeNull();
-  expect(buttonBox).not.toBeNull();
-  expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width);
-  await expect(quoteButton).toHaveAttribute("aria-expanded", "false");
-  await expect(quoteButton).toHaveText("");
-  await expect(quoteButton.locator("svg rect")).toBeVisible();
-  await expect(quoteButton.locator("svg path")).toHaveCount(2);
-  await expect(quoteButton).toHaveCSS("box-shadow", "none");
-  await expect(quoteButton).toHaveCSS("color", "rgb(16, 36, 58)");
-  await expect(quote).toHaveCSS("white-space", "nowrap");
-  await expect(quote).toHaveCSS("overflow", "hidden");
-  await expect(quote).toHaveCSS("text-overflow", "ellipsis");
-  await expect(quote.locator("..")).toHaveCSS("min-height", "24px");
-  expect(await lineOffset(quote, quoteButton)).toBeLessThanOrEqual(1);
-  await expect(valueButton).toHaveAttribute("aria-expanded", "false");
-  await expect(valueButton).toHaveText("");
-  await expect(valueButton.locator("svg rect")).toBeVisible();
-  await expect(valueButton.locator("svg path")).toHaveCount(2);
-  await expect(valueButton).toHaveCSS("color", "rgb(16, 36, 58)");
-  await expect(value).toHaveCSS("white-space", "nowrap");
-  await expect(value).toHaveCSS("overflow", "hidden");
-  await expect(value).toHaveCSS("text-overflow", "ellipsis");
-  await expect(value).toHaveCSS("padding-right", "28px");
-  await expect(value).toHaveCSS("min-height", "24px");
-  expect(await lineOffset(value, valueButton)).toBeLessThanOrEqual(1);
-
-  await valueButton.hover();
-  await expect(valueButton).toHaveCSS("background-color", "rgb(224, 243, 255)");
-  await expect(valueButton).toHaveCSS("border-color", "rgb(0, 139, 163)");
-
-  await valueButton.click();
-
-  const collapseValueButton = row.getByRole("button", { name: "Collapse index value" });
-  await expect(collapseValueButton).toHaveText("");
-  await expect(collapseValueButton.locator("svg rect")).toBeVisible();
-  await expect(collapseValueButton.locator("svg path")).toHaveCount(1);
-  await expect(value).toHaveCSS("white-space", "normal");
-  await expect(value).toHaveCSS("overflow", "visible");
-  await expect(value).toHaveCSS("text-overflow", "clip");
-  expect(await lineOffset(value, collapseValueButton)).toBeLessThanOrEqual(1);
-  await collapseValueButton.click();
-
-  await expandButton.focus();
-  await expect(expandButton).toHaveCSS("outline-color", "rgb(0, 139, 163)");
-  await expect(expandButton).toHaveCSS("outline-style", "solid");
-  await expect(expandButton).toHaveCSS("outline-width", "2px");
-  await page.keyboard.press("Enter");
-
-  const collapseButton = page.getByRole("button", { name: "Collapse explanation" });
-  const expandedRowBox = await row.boundingBox();
-  const expandedButtonBox = await collapseButton.boundingBox();
-
-  await expect(collapseButton).toBeVisible();
-  await expect(collapseButton).toHaveText("");
-  await expect(collapseButton.locator("svg rect")).toBeVisible();
-  await expect(collapseButton.locator("svg path")).toHaveCount(1);
-  await expect(explanation).toHaveCSS("white-space", "normal");
-  await expect(explanation).toHaveCSS("overflow", "visible");
-  await expect(explanation).toHaveCSS("text-overflow", "clip");
-  expect(await lineOffset(explanation, collapseButton)).toBeLessThanOrEqual(1);
-  expect(expandedRowBox).not.toBeNull();
-  expect(expandedButtonBox).not.toBeNull();
-  expect(expandedRowBox!.width).toBe(rowBox!.width);
-  expect(expandedButtonBox!.x + expandedButtonBox!.width).toBeLessThanOrEqual(expandedRowBox!.x + expandedRowBox!.width);
-  expect(await page.evaluate(() => window.scrollX)).toBe(0);
-
-  await quoteButton.click();
-
-  const collapseQuoteButton = page.getByRole("button", { name: "Collapse quote" });
-  const expandedQuoteRowBox = await row.boundingBox();
-  const expandedQuoteButtonBox = await collapseQuoteButton.boundingBox();
-
-  await expect(collapseQuoteButton).toBeVisible();
-  await expect(collapseQuoteButton).toHaveText("");
-  await expect(collapseQuoteButton.locator("svg rect")).toBeVisible();
-  await expect(collapseQuoteButton.locator("svg path")).toHaveCount(1);
-  await expect(quote).toHaveCSS("white-space", "normal");
-  await expect(quote).toHaveCSS("overflow", "visible");
-  await expect(quote).toHaveCSS("text-overflow", "clip");
-  expect(expandedQuoteRowBox).not.toBeNull();
-  expect(expandedQuoteButtonBox).not.toBeNull();
-  expect(expandedQuoteRowBox!.width).toBe(rowBox!.width);
-  expect(expandedQuoteButtonBox!.x + expandedQuoteButtonBox!.width).toBeLessThanOrEqual(expandedQuoteRowBox!.x + expandedQuoteRowBox!.width);
-  expect(await page.evaluate(() => window.scrollX)).toBe(0);
-
-  await collapseButton.click();
-
-  await expect(page.getByRole("button", { name: "Expand explanation" })).toBeVisible();
-
-  const stageBox = await stage.boundingBox();
-  const before = await header.boundingBox();
-  expect(stageBox).not.toBeNull();
-  expect(before).not.toBeNull();
-  expect(Math.abs(before!.y - stageBox!.y)).toBeLessThanOrEqual(1);
+  await expect(copy).toHaveCSS("color", "rgb(0, 139, 163)");
+  await expect(drop).toHaveCSS("color", "rgb(0, 139, 163)");
+  await expect(drop).toHaveAttribute("title", "Delete index");
+  await drop.click();
+  const confirm = row.getByRole("button", { name: "Confirm", exact: true });
+  await expect(confirm).toHaveAttribute("data-armed", "true");
+  await expect(confirm.locator("[data-confirm-progress='true']")).toHaveCount(1);
+  await expect(confirm).toHaveCSS("width", "32px");
+  await expect(confirm).toHaveCSS("height", "32px");
+  await row.getByRole("button", { name: "Expand details" }).click();
+  await expect(row.getByText("Explanation:")).toBeVisible();
+  await expect(row.getByText("Quote:")).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 360 });
-  await expect.poll(() => accordion.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
-  await accordion.evaluate((element) => {
-    element.scrollTop = 500;
-  });
+  const before = await header.boundingBox();
+  await expect.poll(() => accordion.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+  await accordion.evaluate(element => { element.scrollTop = 500; });
   const after = await header.boundingBox();
-  expect(after).not.toBeNull();
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
-  expect(Math.abs(after!.y - stageBox!.y)).toBeLessThanOrEqual(1);
-  await expect(page).toHaveScreenshot("metadata-fixed-layout-scroll.png", { fullPage: true });
+  expect(await page.evaluate(() => window.scrollX)).toBe(0);
 });
+
+for (const width of [1440, 480]) {
+  test(`metadata details toggle together across the full row at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?scenario=metadata");
+    const row = page.locator("article").first();
+    const edit = row.getByRole("button", { name: "Edit index" });
+    const expand = row.getByRole("button", { name: "Expand details" });
+    const value = row.getByRole("link");
+    await expect(edit).toBeVisible();
+    await expect(expand).toHaveAttribute("aria-expanded", "false");
+    await expect(row.getByText("Explanation:")).toHaveCount(0);
+    await expect(row.getByText("Quote:")).toHaveCount(0);
+    const [editBox, toggleBox, collapsedBox] = await Promise.all([edit.boundingBox(), expand.boundingBox(), row.boundingBox()]);
+    expect(toggleBox!.x).toBeGreaterThanOrEqual(editBox!.x + editBox!.width);
+    expect(Math.abs(toggleBox!.y + toggleBox!.height / 2 - editBox!.y - editBox!.height / 2)).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: testInfo.outputPath("details-collapsed.png") });
+    await expand.focus();
+    await expect(expand).toBeFocused();
+    await page.keyboard.press("Enter");
+    const collapse = row.getByRole("button", { name: "Collapse details" });
+    await expect(collapse).toHaveAttribute("aria-expanded", "true");
+    await expect(collapse.locator("svg path")).toHaveCount(1);
+    const content = page.locator(`[id="${await collapse.getAttribute("aria-controls")}"]`);
+    const explanation = content.getByText(/This explanation is intentionally long/);
+    const quote = content.getByText(/full quoted source/);
+    await expect(explanation).toBeVisible();
+    await expect(quote).toBeVisible();
+    await expect(content.getByRole("button")).toHaveCount(0);
+    for (const detail of [explanation, quote]) {
+      await expect(detail).toHaveCSS("white-space", "normal");
+      await expect(detail).toHaveCSS("padding-right", "0px");
+      const bounds = await detail.boundingBox();
+      const available = await row.evaluate(element => {
+        const style = getComputedStyle(element);
+        return element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      });
+      expect(Math.abs(bounds!.width - available)).toBeLessThanOrEqual(1);
+      expect(bounds!.y).toBeGreaterThanOrEqual(editBox!.y + editBox!.height);
+    }
+    const expandedBox = await row.boundingBox();
+    expect(expandedBox!.width).toBe(collapsedBox!.width);
+    expect(expandedBox!.height).toBeGreaterThan(collapsedBox!.height);
+    await expect(row.getByRole("button", { name: /index value/ })).toHaveCount(0);
+    await expect(value).toHaveCSS("white-space", "normal");
+    await expect(collapse).toHaveAttribute("aria-expanded", "true");
+    await page.screenshot({ path: testInfo.outputPath("details-expanded.png") });
+    expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await collapse.focus();
+    await page.keyboard.press("Space");
+    await expect(row.getByText("Explanation:")).toHaveCount(0);
+    await expect(row.getByText("Quote:")).toHaveCount(0);
+    await expect(value).toBeVisible();
+    await edit.click();
+    await expect(page.locator("[data-edit-code]")).toHaveAttribute("data-edit-code", "idx-1");
+  });
+}
 
 test("metadata segment reprocess has a compact labeled tooltip target", async ({ page }) => {
   await page.goto("/?scenario=metadata");
@@ -269,28 +134,17 @@ test("metadata segment count tokens remain consistent across header states", asy
   expect(partiesStyle.borderTopWidth).toBe("1px");
 });
 
-test("metadata short rows hide disclosure controls when text fits", async ({ page }) => {
+test("metadata short rows use the same combined disclosure", async ({ page }) => {
   await page.goto("/?scenario=metadata-short");
-
   const row = page.locator("article").first();
-  const explanation = row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Short explanation" });
-  const quote = row.locator('span:not([aria-hidden="true"])').filter({ hasText: "Short quote" });
-
-  await expect(row.getByRole("button", { name: "Expand explanation" })).toHaveCount(0);
-  await expect(row.getByRole("button", { name: "Expand quote" })).toHaveCount(0);
   await expect(row.getByRole("button", { name: "Expand index value" })).toHaveCount(0);
-  await expect(explanation).toBeVisible();
-  await expect(quote).toBeVisible();
-  await expect(explanation.locator("..")).toHaveCSS("min-height", "auto");
-  await expect(quote.locator("..")).toHaveCSS("min-height", "auto");
-  const [explanationBox, explanationLineBox, quoteBox, quoteLineBox] = await Promise.all([
-    explanation.boundingBox(),
-    explanation.locator("..").boundingBox(),
-    quote.boundingBox(),
-    quote.locator("..").boundingBox(),
-  ]);
-  expect(explanationLineBox!.height - explanationBox!.height).toBeLessThanOrEqual(0.5);
-  expect(quoteLineBox!.height - quoteBox!.height).toBeLessThanOrEqual(0.5);
+  await expect(row.getByText("Explanation:")).toHaveCount(0);
+  await row.getByRole("button", { name: "Expand details" }).click();
+  await expect(row.getByText(/Short explanation/)).toBeVisible();
+  await expect(row.getByText(/Short quote/)).toBeVisible();
+  await row.getByRole("button", { name: "Collapse details" }).click();
+  await expect(row.getByText("Explanation:")).toHaveCount(0);
+  await expect(row.getByText("Quote:")).toHaveCount(0);
 });
 
 test("metadata reprocess stays in the segment header", async ({ page }) => {

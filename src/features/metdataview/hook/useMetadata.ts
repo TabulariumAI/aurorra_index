@@ -42,7 +42,7 @@ export function useMetadata({
   const json = useStore((state) => state.getJSON(session));
   const metadata = useMemo(() => composeMetadataJSON(json), [json]);
   const panelData = useMemo(() => (metadata ? getPanelData(metadata) : null), [metadata]);
-  const [openSegment, setOpenSegment] = useState<string | null>(deferredState.segment || segments.PAGE);
+  const openSegment = store.openSegment;
   const [selectedIndex, setSelectedIndex] = useState(deferredState.selectedIndex);
   const [reprocessingSegment, setReprocessingSegment] = useState<string | null>(null);
   const refreshIdRef = useRef<number | null>(null);
@@ -93,24 +93,27 @@ export function useMetadata({
     refreshIdRef.current = refresh.id;
     void loadMetadata(true)
       .then(() => {
-        setOpenSegment(refresh.segment);
-        callbacksRef.current.onSegmentExpand?.(refresh.segment);
+        indexStoreApi.setState({ openSegment: refresh.segment });
       })
       .catch(() => undefined);
   }, [loadMetadata, refresh, session]);
 
   useEffect(() => {
-    setOpenSegment(deferredState.segment || segments.PAGE);
+    indexStoreApi.setState({ openSegment: deferredState.segment || segments.PAGE });
     setSelectedIndex(deferredState.selectedIndex);
-  }, [deferredState.segment, deferredState.selectedIndex, segments.PAGE]);
+  }, [deferredState.segment, deferredState.selectedIndex, segments.PAGE, session]);
+
+  useEffect(() => {
+    const segment = indexStoreApi.getState().openSegment;
+    if (segment) callbacksRef.current.onSegmentExpand?.(segment);
+  }, [openSegment, session]);
 
   const setSectionOpen = useCallback(
     (segment: string, open: boolean) => {
       if (!open) return;
-      setOpenSegment(segment);
-      callbacks.onSegmentExpand?.(segment);
+      indexStoreApi.setState({ openSegment: segment });
     },
-    [callbacks],
+    [],
   );
 
   const onDrop = useCallback(async (payload: MetadataActionPayload) => {
@@ -141,8 +144,7 @@ export function useMetadata({
         }
         try {
           await loadMetadata(true);
-          setOpenSegment(segment);
-          callbacks.onSegmentExpand?.(segment);
+          indexStoreApi.setState({ openSegment: segment });
           callbacks.onActionComplete?.(action);
         } catch (error) {
           callbacks.onActionError?.({ action, error: toWorkerError(error, "Metadata refresh failed.") });
