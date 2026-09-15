@@ -13,6 +13,7 @@ export function AddIndexPanel({
   apiGatewayUrl,
   authToken,
   intervalMs,
+  onQueueChange,
   batchCode,
   retryIntervalMs,
   retryLimit,
@@ -68,7 +69,7 @@ export function AddIndexPanel({
           action: "add", explanation: `P ${fields.page.trim()}  ${fields.source}`,
           new_index_label: fields.label.trim() || formatLabel(type), new_index_aspect: type, new_index_value: fields.index,
           new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
-        }))) }, { authToken, client, intervalMs });
+        }))) }, { authToken, client, intervalMs, onChange: onQueueChange });
       }
       onClose();
     } catch (submitError) {

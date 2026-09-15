@@ -150,5 +150,6 @@ export type {
 } from "./features/audit";
 
 export { queueStoreApi, useQueueStore } from "./features/queue/store/queueStore";
-export { auroraIndexQueueHub } from "./features/queue/queueHub";
 export type { QueueRequest, QueueRuntime } from "./features/queue/type/queue.types";
+
+export type { QueueTransition, IndexChange } from "./features/queue/type/queue.types";

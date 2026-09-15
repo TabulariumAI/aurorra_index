@@ -1,3 +1,4 @@
+import type { QueueTransition } from "../../queue/type/queue.types";
 import type { MetadataError, MetadataIndex, ResourceRequest } from "aurora-core";
 import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
 
@@ -8,6 +9,7 @@ export type EditIndexStoreState = {
   close(): void;
 };
 export type EditIndexPanelProps = {
+  onQueueChange(event: QueueTransition): void;
   apiGatewayUrl: string;
   authToken: string;
   batchCode: string | null;

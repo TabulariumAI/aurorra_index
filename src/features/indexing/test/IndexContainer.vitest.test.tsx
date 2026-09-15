@@ -108,7 +108,7 @@ describe("IndexContainer", () => {
     };
 
     const view = render(
-      <IndexContainer
+      <IndexContainer onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batch="Pending"
@@ -266,7 +266,7 @@ describe("IndexContainer", () => {
     const onViewError = vi.fn();
 
     render(
-      <IndexContainer
+      <IndexContainer onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batch="Pending"
@@ -339,10 +339,10 @@ describe("IndexContainer", () => {
       session: "session-1",
       workerClient,
     };
-    const view = render(<IndexContainer {...props} refresh={null} />);
+    const view = render(<IndexContainer onQueueChange={vi.fn()} {...props} refresh={null} />);
 
     await screen.findByRole("heading", { name: "Deed" });
-    view.rerender(<IndexContainer {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
+    view.rerender(<IndexContainer onQueueChange={vi.fn()} {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
 
     await waitFor(() => expect(workerClient.indexData).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("heading", { name: "Deed" })).toBeVisible();
@@ -363,7 +363,7 @@ describe("IndexContainer", () => {
       reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
     const view = render(
-      <IndexContainer
+      <IndexContainer onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batch="Pending"

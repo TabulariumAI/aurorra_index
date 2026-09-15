@@ -1,4 +1,4 @@
-import type { MetadataIndex, MetadataPayload, QueueNotice } from "aurora-core";
+import type { MetadataIndex, MetadataPayload, QueueStatus } from "aurora-core";
 import type { MetdataPatchResult, MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
 
 export type IndexChange = {
@@ -19,7 +19,16 @@ export type QueueRequest = {
   segment: string;
 } & ({ data: string } | { action: "confirm" | "drop"; code: string } | { action: "page"; code: string; segments: string[] });
 
+export type QueueTransition = {
+  session: string;
+  batch: string | null;
+  status: "queued" | "processing" | "completed" | "failed" | "retried" | "canceled";
+  changes: readonly QueueChange[];
+  error: string | null;
+};
+
 export type QueueRuntime = {
+  onChange(event: QueueTransition): void;
   authToken: string;
   intervalMs: number;
   client: MetdataWorkerClient;
@@ -44,9 +53,9 @@ export type QueueTask = {
 };
 
 export type QueueState = {
-  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueNotice[]; bases: Record<string, MetadataPayload> }>;
+  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload> }>;
   tasks: QueueTask[];
-  queues: QueueNotice[];
+  queues: QueueStatus[];
   restore(scope: string, runtime: QueueRuntime): void;
   enqueue(request: QueueRequest, runtime: QueueRuntime): Promise<{ status: "accepted" }>;
   retry(id: string): Promise<{ status: "accepted" }>;

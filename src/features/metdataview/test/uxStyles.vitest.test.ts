@@ -66,7 +66,7 @@ describe("index styles", () => {
     });
     expect(metadataStyles.accordion).toMatchObject({
       boxSizing: "border-box",
-      gap: "0.75rem",
+      gap: 0,
       padding: "0 var(--panel-content-padding) var(--panel-content-padding)",
     });
     expect(metadataStyles.legalElement).toMatchObject({ borderTop: "1px solid var(--border-card)" });
@@ -75,8 +75,8 @@ describe("index styles", () => {
       outline: "none",
     });
     expect(segmentStyles.root).toMatchObject({
-      backgroundColor: "var(--white)",
-      borderTop: "1px solid var(--border-card)",
+      backgroundColor: "transparent",
+      borderBottom: "1px solid var(--border-card)",
       borderRadius: "0",
     });
     expect(segmentStyles).toHaveProperty("header");
@@ -91,8 +91,9 @@ describe("index styles", () => {
       boxShadow: "none",
     });
     expect(segmentStyles.count()).toMatchObject({
-      background: "var(--white)",
-      border: "1px solid var(--border-card)",
+      background: "var(--gray-100)",
+      border: 0,
+      borderRadius: "var(--radius-control)",
       color: "var(--slate-500)",
     });
     expect(segmentStyles).not.toHaveProperty("actionLine");

@@ -15,7 +15,7 @@ it.each([false, true])("lists unfinished tasks and resolves approval=%s before l
   queueStoreApi.setState({ tasks: [{
     id: "task", session: "document-one", segment: "property", batch: null, cursor: 0, status: "failed", result: null, error: "Error",
     changes: [{ action: "confirm", code: "index", index: { aspect: "parcel_id", value: "Parcel value" }, patch: null }],
-    runtime: { authToken: "token", intervalMs: 0, client: {
+    runtime: { onChange: vi.fn(), authToken: "token", intervalMs: 0, client: {
       patchIndex: vi.fn(), patchStatus: vi.fn(), indexData: vi.fn(), confirmIndex: vi.fn(),
       dropIndex: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
     } },

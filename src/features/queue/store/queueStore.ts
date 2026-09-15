@@ -3,7 +3,11 @@ import { persist } from "zustand/middleware";
 import { composeMetadataJSON, splitMetadataJSON, type MetadataPayload } from "aurora-core";
 import { storeApi } from "../../../store/state/store";
 import { applyChange, indexKey, readChanges } from "../data/queueData";
-import type { QueueState, QueueTask } from "../type/queue.types";
+import type { QueueChange, QueueState, QueueTask } from "../type/queue.types";
+
+function reportChange(task: QueueTask, status: "queued" | "processing" | "completed" | "failed" | "retried" | "canceled", changes: readonly QueueChange[]): void {
+  task.runtime.onChange({ session: task.session, batch: task.batch, status, error: task.error, changes: structuredClone(changes) });
+}
 
 export const useQueueStore = create<QueueState>()(persist((set, get) => {
   const bases = new Map<string, MetadataPayload>();
@@ -40,15 +44,19 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       for (let task = get().tasks.find((item) => item.status === "queued"); task; task = get().tasks.find((item) => item.status === "queued")) {
         task.status = "processing";
         task.error = null;
+        const refreshing = task.cursor === task.changes.length;
+        if (refreshing) reportChange(task, "processing", []);
         notify();
         const { authToken, client, intervalMs } = task.runtime;
         try {
           while (task.cursor < task.changes.length) {
             const change = task.changes[task.cursor];
+            reportChange(task, "processing", [change]);
             if (change.action === "page") {
               await client.updatePageSegments(authToken, task.session, change.code, change.segments);
               if (started !== generation) return;
               bases.set(task.session, applyChange(bases.get(task.session)!, change));
+              reportChange(task, "completed", [change]);
               task.cursor += 1;
               notify();
               continue;
@@ -75,6 +83,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
               throw new Error(error);
             }
             bases.set(task.session, applyChange(bases.get(task.session)!, change));
+            reportChange(task, "completed", [change]);
             task.cursor += 1;
             task.result = null;
             notify();
@@ -100,11 +109,13 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
           set((state) => ({ tasks: state.tasks.filter((item) => item.id !== task!.id) }));
           project(task.session);
           if (!get().tasks.some((item) => item.session === task!.session)) bases.delete(task.session);
+          if (refreshing) reportChange(task, "completed", []);
           notify(task);
         } catch (error) {
           if (started !== generation) return;
           task.status = "failed";
           task.error = error instanceof Error ? error.message : String(error);
+          reportChange(task, "failed", task.changes.slice(task.cursor, task.cursor + 1));
           notify();
         }
       }
@@ -134,6 +145,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
             task.status = "failed";
             task.error = "The page closed before this request was acknowledged. Review the metadata before retrying; the server may already have accepted it.";
           } else task.status = "queued";
+          reportChange(task, task.status, task.changes.slice(task.cursor));
         }
         return task;
       });
@@ -153,6 +165,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       set((state) => ({ tasks: [...state.tasks, task], queues: state.queues.some((queue) => queue.session === request.session && queue.batch === request.batch)
         ? state.queues : [...state.queues, { id: "index", batch: request.batch, session: request.session, pending: 0, failed: 0, completed: 0 }] }));
       project(request.session);
+      reportChange(task, "queued", changes);
       notify();
       void process();
       return { status: "accepted" };
@@ -162,6 +175,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       if (!task || task.status !== "failed") throw new Error("This change is not available for retry.");
       task.status = "queued";
       task.error = null;
+      reportChange(task, "retried", task.changes.slice(task.cursor));
       notify();
       void process();
       return { status: "accepted" };
@@ -170,6 +184,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       const task = get().tasks.find((item) => item.id === id);
       if (!task || task.status === "processing") throw new Error("A processing change cannot be canceled.");
       if (!task.changes.slice(task.cursor).some((change) => change.code === code)) throw new Error("A completed change cannot be canceled.");
+      reportChange(task, "canceled", task.changes.slice(task.cursor).filter(change => change.code === code));
       if (task.changes[task.cursor]?.code === code) task.result = null;
       task.changes = task.changes.filter((change, position) => position < task.cursor || change.code !== code);
       if (task.changes.length === task.cursor) {

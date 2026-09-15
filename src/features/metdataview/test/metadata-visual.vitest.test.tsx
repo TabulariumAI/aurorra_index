@@ -254,7 +254,7 @@ describe("metadata visual surface", () => {
       minWidth: "0px",
       padding: "0px",
     });
-    const segmentTitleBox = segmentButton.firstElementChild as HTMLElement | null;
+    const segmentTitleBox = segmentButton.querySelector("span");
     expect(segmentTitleBox).toBeTruthy();
     if (segmentTitleBox) {
       expect(segmentTitleBox).toHaveStyle({ flex: "1 1 auto", minWidth: "0px" });
@@ -320,7 +320,7 @@ describe("metadata visual surface", () => {
       const content = shell.children[0] as HTMLElement | undefined;
       expect(content).toBeTruthy();
       if (content) {
-        expect(content).toHaveStyle({ padding: "0.72rem 0px 0.82rem" });
+        expect(content).toHaveStyle({ padding: "0.25rem 0px 0.82rem 2rem" });
         expect(content).not.toHaveStyle({ borderLeft: "1px solid #d9e1ea" });
       }
     }

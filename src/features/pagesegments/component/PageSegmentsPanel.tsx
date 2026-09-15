@@ -45,6 +45,7 @@ export function PageSegmentsPanel({
   onClose,
   batchCode,
   intervalMs,
+  onQueueChange,
   retryIntervalMs,
   retryLimit,
   onError,
@@ -87,7 +88,7 @@ export function PageSegmentsPanel({
     const submitted = [...selected];
     pageSegmentsStoreApi.getState().setSaving();
     try {
-      await queueStoreApi.getState().enqueue({ action: "page", code: pageCode, segments: submitted, session, batch: batchCode, segment: "page" }, { authToken, client, intervalMs });
+      await queueStoreApi.getState().enqueue({ action: "page", code: pageCode, segments: submitted, session, batch: batchCode, segment: "page" }, { authToken, client, intervalMs, onChange: onQueueChange });
       onClose();
     } catch (submitError) {
       const workerError = toWorkerError(submitError);

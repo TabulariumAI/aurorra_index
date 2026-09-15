@@ -16,6 +16,7 @@ const lensInstances = vi.hoisted(() => [] as LensApi[]);
 const restoreSessionResult = vi.hoisted(() => ({ value: false }));
 const restoreSessionWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
 const exportSelectionError = vi.hoisted(() => ({ value: null as Error | null }));
+const copyWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
 const viewerCanExport = vi.hoisted(() => ({ value: true }));
 const viewerHasMetadata = vi.hoisted(() => ({ value: true }));
 const viewerCanSelect = vi.hoisted(() => ({ value: true }));
@@ -61,7 +62,13 @@ const auroraLensCtor = vi.hoisted(() =>
       clearSelection: vi.fn(),
       close: vi.fn(),
       copySelection: vi.fn(async () => {
+        const ready = imageViewerStoreApi.getState().viewerState!;
+        options.onStatusChange?.("copyingSelection");
+        options.onStateChange?.({ ...ready, status: "copyingSelection", canCopy: false });
+        await copyWait.promise;
         if (exportSelectionError.value) throw exportSelectionError.value;
+        options.onStatusChange?.("ready");
+        options.onStateChange?.(ready);
         return { copied: true, groups: [{ value: { context: ["Mock paragraph"], kind: ["BODY"], token: ["Mock value"] } }], text: "" };
       }),
       decodeDoc: vi.fn(async () => {
@@ -109,6 +116,8 @@ vi.mock("pdfjs-dist/build/pdf.worker.mjs?url", () => ({
 }));
 
 import { useImageViewer } from "../hook/useImageViewer";
+import { ImageViewerPanel } from "../component/ImageViewerPanel";
+import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
 
 function Harness() {
   const viewer = useImageViewer();
@@ -201,6 +210,8 @@ describe("useImageViewer", () => {
     imageViewerStoreApi.getState().resetViewer();
     lensInstances.length = 0;
     exportSelectionError.value = null;
+    copyWait.promise = null;
+    addIndexStoreApi.getState().close();
     decodeDocError.value = null;
     decodeWait.promise = null;
     restoreSessionWait.promise = null;
@@ -260,6 +271,67 @@ describe("useImageViewer", () => {
       pageCount: 2, pageMap: new Map(), request: null, selectedIndex: null, session: "session-2",
     }));
     expect(screen.getByTestId("navigating")).toHaveTextContent("false");
+  });
+
+  it.each([
+    { restored: false, compact: false }, { restored: false, compact: true },
+    { restored: true, compact: false }, { restored: true, compact: true },
+  ])("exports without hiding or reloading the panel (restored=$restored, compact=$compact)", async ({ restored, compact }) => {
+    restoreSessionResult.value = restored;
+    if (restored) setHost();
+    else seedPackage();
+    let finish!: () => void;
+    copyWait.promise = new Promise<void>((resolve) => { finish = resolve; });
+    const onReadyChange = vi.fn();
+    const onLoaderChange = vi.fn();
+    render(<ImageViewerPanel compact={compact} onReadyChange={onReadyChange} onLoaderChange={onLoaderChange} />);
+    const button = screen.getByRole("button", { name: "Export" });
+    await waitFor(() => expect(button).toBeEnabled());
+    const top = screen.getByLabelText("Image viewer top toolbar");
+    const footer = screen.getByLabelText("Image viewer footer toolbar");
+    const host = document.querySelector("[data-document-lens-host='true']");
+    const decodeCount = vi.mocked(lensInstances[0].decodeDoc).mock.calls.length;
+    onReadyChange.mockClear();
+    onLoaderChange.mockClear();
+    fireEvent.click(button);
+    await waitFor(() => expect(button).toBeDisabled());
+    expect(imageViewerStoreApi.getState().viewerStatus).toBe("copyingSelection");
+    expect(onReadyChange).not.toHaveBeenCalledWith(false);
+    expect(onLoaderChange.mock.calls.every(([lines]) => lines === null)).toBe(true);
+    expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+    expect(addIndexStoreApi.getState().request).toBeNull();
+    fireEvent.click(button);
+    expect(lensInstances[0].copySelection).toHaveBeenCalledTimes(1);
+    await act(async () => finish());
+    expect(button).toBeEnabled();
+    expect(screen.getByLabelText("Image viewer top toolbar")).toBe(top);
+    expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+    expect(document.querySelector("[data-document-lens-host='true']")).toBe(host);
+    expect(onReadyChange).not.toHaveBeenCalledWith(false);
+    expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(decodeCount);
+    expect(lensInstances[0].close).not.toHaveBeenCalled();
+    expect(auroraLensCtor).toHaveBeenCalledTimes(1);
+    expect(addIndexStoreApi.getState().request).toEqual({
+      groups: [{ value: { context: ["Mock paragraph"], kind: ["BODY"], token: ["Mock value"] } }],
+      pageNumber: 3,
+    });
+  });
+
+  it("reports export failure without opening Add Index or decoding again", async () => {
+    seedPackage();
+    const onError = vi.fn();
+    imageViewerStoreApi.setState({ onError });
+    exportSelectionError.value = new Error("export failed");
+    const onReadyChange = vi.fn();
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+    const button = screen.getByRole("button", { name: "Export" });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    await waitFor(() => expect(onError).toHaveBeenCalledWith({ error: "export failed" }));
+    expect(addIndexStoreApi.getState().request).toBeNull();
+    expect(imageViewerStoreApi.getState().status).toBe("error");
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(1);
   });
 
   it("creates read-only lens and decodes completed TIFF package", async () => {
@@ -573,6 +645,7 @@ describe("useImageViewer", () => {
     fireEvent.click(screen.getByRole("button", { name: "clear search" }));
     fireEvent.click(screen.getByRole("button", { name: "select" }));
     fireEvent.click(screen.getByRole("button", { name: "export" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "export" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "first page" }));
     fireEvent.click(screen.getByRole("button", { name: "fit height" }));
     fireEvent.click(screen.getByRole("button", { name: "fit page" }));

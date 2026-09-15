@@ -4,7 +4,7 @@ import { splitMetadataJSON } from "aurora-core";
 import type { QueueRuntime } from "../type/queue.types";
 
 function runtime(): QueueRuntime {
-  return { authToken: "private-token", intervalMs: 0, client: {
+  return { onChange: vi.fn(), authToken: "private-token", intervalMs: 0, client: {
     patchIndex: vi.fn(() => new Promise<never>(() => {})),
     patchStatus: vi.fn(() => new Promise<never>(() => {})),
     indexData: vi.fn(async () => ({ indexes: [] })),
@@ -36,6 +36,7 @@ it("restores unacknowledged requests as failed without resending and keeps disab
   const restored = await load();
   const next = runtime();
   restored.queueStoreApi.getState().restore("user-one", next);
+  expect(next.onChange).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", session: "session", batch: "batch", changes: [expect.objectContaining({ index: expect.objectContaining({ value: "Parcel" }) })] }));
   expect(restored.queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed", cursor: 0, result: null });
   expect(restored.queueStoreApi.getState().queues[0]).toMatchObject({ pending: 0, failed: 1 });
   expect(JSON.stringify(restored.storeApi.getState().getJSON("session"))).toContain("Parcel");

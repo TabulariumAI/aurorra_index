@@ -11,7 +11,7 @@ function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps 
     apiGatewayUrl: "https://gateway.example.com", authToken: "token-1", intervalMs: 0,
     batchCode: "batch-1", retryIntervalMs: 0, retryLimit: 0, segment: "party", session: "session-1",
     request: { groups: [{ value: { context: ["Selected source"], kind: ["BODY"], token: ["Selected value"] } }], pageNumber: 3 },
-    onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
+    onQueueChange: vi.fn(), onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
     onResource: vi.fn(async () => ({ aspects: { party: ["grantor", "grantee"], property: ["parcel_id"] } })),
     workerClient: {
       updatePageSegments: vi.fn(), patchIndex: vi.fn(() => new Promise<never>(() => undefined)),

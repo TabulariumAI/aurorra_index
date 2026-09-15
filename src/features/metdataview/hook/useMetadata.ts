@@ -30,6 +30,7 @@ export function useMetadata({
   choices,
   deferredState,
   intervalMs,
+  onQueueChange,
   refresh,
   retryIntervalMs,
   retryLimit,
@@ -118,17 +119,17 @@ export function useMetadata({
 
   const onDrop = useCallback(async (payload: MetadataActionPayload) => {
     await queueStoreApi.getState().enqueue({ action: "drop", code: payload.code, session, segment: payload.segment!, batch: batchCode },
-      { authToken: authToken!, client, intervalMs });
+      { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
     if (selectedIndex?.code === payload.code) {
       setSelectedIndex(null);
       callbacks.onIndexFocus?.(null);
     }
-  }, [authToken, batchCode, callbacks, client, intervalMs, selectedIndex?.code, session]);
+  }, [onQueueChange, authToken, batchCode, callbacks, client, intervalMs, selectedIndex?.code, session]);
 
   const onConfirm = useCallback(async (payload: MetadataActionPayload) => {
     await queueStoreApi.getState().enqueue({ action: "confirm", code: payload.code, session, segment: payload.segment!, batch: batchCode },
-      { authToken: authToken!, client, intervalMs });
-  }, [authToken, batchCode, client, intervalMs, session]);
+      { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
+  }, [onQueueChange, authToken, batchCode, client, intervalMs, session]);
 
   const onReprocess = useCallback(
     async (segment: string) => {

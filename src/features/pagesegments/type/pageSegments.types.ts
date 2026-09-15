@@ -1,3 +1,4 @@
+import type { QueueTransition } from "../../queue/type/queue.types";
 import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
 export type PageSegmentsWorkerError = {
   code?: string;
@@ -40,6 +41,7 @@ export type PageSegmentsFailure = {
 };
 
 export type PageSegmentsPanelProps = {
+  onQueueChange(event: QueueTransition): void;
   batchCode: string | null;
   intervalMs: number;
   retryIntervalMs: number;

@@ -1,3 +1,4 @@
+import type { QueueTransition } from "../../queue/type/queue.types";
 import type { IndexChange } from "../../queue/type/queue.types";
 import type { ReactNode } from "react";
 import type {
@@ -91,6 +92,7 @@ export type MetdataStoreState = {
 };
 
 export type MetdataMetadataProps = {
+  onQueueChange(event: QueueTransition): void;
   authToken: string | null;
   apiGatewayUrl: string;
   batch: string;

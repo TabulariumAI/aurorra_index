@@ -2,6 +2,55 @@ import { expect, test, type Locator } from "@playwright/test";
 
 test.use({ channel: "msedge" });
 
+for (const width of [375, 940]) {
+  test(`metadata segment dividers, badges and inset rows follow disclosure at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/?scenario=metadata-short");
+    const accordion = page.getByRole("region", { name: "Metadata accordion" });
+    const trigger = accordion.getByRole("button", { name: "Parties(Party Clause)" });
+    const header = trigger.locator("..");
+    const segment = header.locator("..");
+    const count = header.locator(":scope > span");
+    const row = segment.getByRole("article");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(trigger.locator("svg")).toHaveCSS("transform", "matrix(0, 1, -1, 0, 0, 0)");
+    await expect(header).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(segment).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(segment).toHaveCSS("border-bottom-width", "1px");
+    await expect(count).toHaveCSS("background-color", "rgb(241, 245, 249)");
+    await expect(count).toHaveText("1");
+    const [headerBox, countBox, rowBox, titleBox] = await Promise.all([
+      header.boundingBox(), count.boundingBox(), row.boundingBox(), trigger.locator("span").boundingBox(),
+    ]);
+    expect(rowBox!.x - headerBox!.x).toBeCloseTo(32, 0);
+    expect(rowBox!.x).toBeCloseTo(titleBox!.x, 0);
+    expect(countBox!.x + countBox!.width).toBeCloseTo(headerBox!.x + headerBox!.width, 0);
+    expect(rowBox!.x + rowBox!.width).toBeCloseTo(headerBox!.x + headerBox!.width, 0);
+    expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await header.getByRole("button", { name: "Add Index" }).click();
+    await expect(page.locator("#visual-stage")).toHaveAttribute("data-add-segment", "party");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await page.mouse.move(0, 0);
+    await page.screenshot({ path: testInfo.outputPath("segments-expanded.png") });
+    await trigger.focus();
+    await expect(trigger).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger.locator("svg")).toHaveCSS("transform", "none");
+    await expect(row).toHaveCount(0);
+    await expect(header.getByRole("button", { name: "Add Index" })).toHaveCount(0);
+    await expect(count).toHaveText("1");
+    await page.keyboard.press("Space");
+    await expect(row).toBeVisible();
+    const pages = accordion.getByRole("button", { name: "Pages", exact: true });
+    await pages.click();
+    await expect(pages).toHaveAttribute("aria-expanded", "true");
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(pages.locator("svg")).toHaveCSS("transform", "matrix(0, 1, -1, 0, 0, 0)");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  });
+}
+
 test("metadata keeps row actions and fixed header scrolling with expanded details", async ({ page }) => {
   await page.goto("/?scenario=metadata");
   const header = page.locator("header").first();
@@ -15,9 +64,15 @@ test("metadata keeps row actions and fixed header scrolling with expanded detail
   await expect(copy).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(drop).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(drop).toHaveAttribute("title", "Delete index");
+  await expect(copy).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(drop).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await drop.click();
   const confirm = row.getByRole("button", { name: "Confirm", exact: true });
   await expect(confirm).toHaveAttribute("data-armed", "true");
+  await expect(confirm).toHaveCSS("background-color", "rgb(224, 243, 255)");
+  await page.mouse.move(0, 0);
+  await accordion.getByRole("button", { name: "Parties(Party Clause)", exact: true }).focus();
+  await expect(confirm).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await expect(confirm.locator("[data-confirm-progress='true']")).toHaveCount(1);
   await expect(confirm).toHaveCSS("width", "32px");
   await expect(confirm).toHaveCSS("height", "32px");
@@ -112,7 +167,7 @@ test("metadata segment count tokens remain consistent across header states", asy
   const endorsementsHeader = accordion.getByRole("button", { name: "Record Endorsements" }).locator("..");
 
   await expect(accordion.getByRole("button", { name: "Pages" }).locator("..").locator("button[aria-label]")).toHaveCount(0);
-  await expect(accordion.getByRole("button", { name: /Parties\(Party Clause\)/i }).locator("..").locator("button[aria-label]")).toHaveCount(2);
+  await expect(accordion.getByRole("button", { name: /Parties\(Party Clause\)/i }).locator("..").locator("button[aria-label]")).toHaveCount(3);
   await expect(endorsementsHeader.locator("button[aria-label]")).toHaveCount(0);
 
   const countStyle = async (count: Locator) => count.evaluate((element) => {
@@ -131,7 +186,8 @@ test("metadata segment count tokens remain consistent across header states", asy
 
   expect(pagesStyle).toEqual(partiesStyle);
   expect(titlesStyle).toEqual(partiesStyle);
-  expect(partiesStyle.borderTopWidth).toBe("1px");
+  expect(partiesStyle.borderTopWidth).toBe("0px");
+  expect(partiesStyle.backgroundColor).toBe("rgb(241, 245, 249)");
 });
 
 test("metadata short rows use the same combined disclosure", async ({ page }) => {
@@ -210,7 +266,7 @@ test("metadata segment text actions remain within workspace viewports", async ({
     await expect(reprocess).toHaveText("Reprocess");
     await expect(chat).toHaveText("AI chat");
     await expect(count).toHaveCount(1);
-    await expect(actions).toHaveCount(2);
+    await expect(actions).toHaveCount(3);
     const [headerBox, actionBox, countBox] = await Promise.all([
       header.boundingBox(),
       reprocess.locator("..").boundingBox(),

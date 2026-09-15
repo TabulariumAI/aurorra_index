@@ -440,7 +440,7 @@ export function useImageViewer() {
     fitHeight,
     fitPage,
     fitWidth,
-    isLoading: Boolean(!pageReady && request && packageMetadata && tiffBytes && tiffType !== null),
+    isLoading: Boolean(!pageReady && viewerState?.status !== "copyingSelection" && request && packageMetadata && tiffBytes && tiffType !== null),
     isNavigating: loaded && (viewerStatus === "loadingPage" || viewerState?.status === "loadingPage"),
     isRestoredSession: restoredSession,
     isRestoring: Boolean(session && (!lensReady || !restoreDone)),

@@ -41,6 +41,17 @@ test("image viewer package flow renders toolbar and lens controls", async ({ pag
   await expect(page.getByRole("button", { name: "Zoom in" })).toBeVisible();
   await expect(page.getByLabel("Current scale")).toHaveText("100%");
   await expect(page.getByRole("button", { name: "Scale options" })).toBeVisible();
+  for (const name of ["Zoom in", "Zoom out", "Scale options", "Export", "First page", "Last page"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  }
+  const zoomIn = page.getByRole("button", { name: "Zoom in", exact: true });
+  await zoomIn.hover();
+  await expect(zoomIn).toHaveCSS("background-color", "rgb(224, 243, 255)");
+  await page.mouse.move(0, 0);
+  await zoomIn.focus();
+  await expect(zoomIn).toHaveCSS("background-color", "rgb(224, 243, 255)");
+  await page.getByRole("searchbox", { name: "Search image text" }).focus();
+  await expect(zoomIn).toHaveCSS("background-color", "rgb(255, 255, 255)");
   const searchBox = page.getByRole("searchbox", { name: "Search image text" });
   const searchButton = page.getByRole("button", { exact: true, name: "Search" });
   const selectButton = page.getByRole("button", { exact: true, name: "Select" });

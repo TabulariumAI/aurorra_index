@@ -19,7 +19,7 @@ function pendingResponse() {
 }
 function runtime(): QueueRuntime {
   return {
-    authToken: "token", intervalMs: 0,
+    onChange: vi.fn(), authToken: "token", intervalMs: 0,
     client: {
       updatePageSegments: vi.fn(async () => undefined),
       patchIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),

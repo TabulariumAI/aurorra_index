@@ -9,7 +9,7 @@ import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorker
 import { queueStoreApi } from "../../queue/store/queueStore";
 import type { EditIndexPanelProps } from "../type/editIndex.types";
 
-export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs, retryIntervalMs, retryLimit, request, onClose, onError, onReadyChange, onResource, workerClient }: EditIndexPanelProps) {
+export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs, onQueueChange, retryIntervalMs, retryLimit, request, onClose, onError, onReadyChange, onResource, workerClient }: EditIndexPanelProps) {
   const [fields, setFields] = useState<IndexFields>({ index: "", label: "", page: "", source: "" });
   const [selected, setSelected] = useState<string[]>([]);
   const { aspects, ready } = useAspects(request, onResource, onReadyChange, onError);
@@ -47,7 +47,7 @@ export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs
         new_index_label: fields.label, new_index_aspect: selectedAspects.join(","),
         new_index_value: fields.index, new_index_ambiguous: null,
         old_index_label: request.index.label ?? null, old_index_aspect: request.index.aspect ?? null, old_index_value: request.index.value ?? null,
-      }]) }, { authToken, client, intervalMs });
+      }]) }, { authToken, client, intervalMs, onChange: onQueueChange });
       onClose();
     } catch (submitError) {
       const failure = submitError as Error & { code?: string; details?: unknown; status?: number };

@@ -11,7 +11,7 @@ function props(): EditIndexPanelProps {
   return {
     apiGatewayUrl: "https://gateway.test", authToken: "token", intervalMs: 0, batchCode: "batch",
     retryIntervalMs: 0, retryLimit: 0, request: { index, segment: "party", session: "session" },
-    onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
+    onQueueChange: vi.fn(), onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
     onResource: vi.fn(async () => ({ aspects: { party: ["grantor", "grantee"], property: ["parcel_id"] } })),
     workerClient: { patchIndex: vi.fn(() => new Promise<never>(() => {})), patchStatus: vi.fn(),
       indexData: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), reprocessSegment: vi.fn(), updatePageSegments: vi.fn() },

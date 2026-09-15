@@ -14,7 +14,6 @@ function progressLabel(status: string): string {
 
 function lensProgressLabel(status: string): string {
   if (status === "loadingPage") return "Decoding document page...";
-  if (status === "copyingSelection") return "Copying selection...";
   return "Loading...";
 }
 
@@ -66,7 +65,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
   }, [apiGatewayUrl, authToken, requestVersion, session, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
-  const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "copyingSelection" || viewerStatus === "loadingPage");
+  const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage");
   const progress = loading || lensLoading;
 
   useEffect(() => {

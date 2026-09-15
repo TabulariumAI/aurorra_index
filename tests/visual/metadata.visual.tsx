@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { useState } from "react";
 import { MetadataPanel } from "aurora-core";
 import { getPanelData } from "aurora-core";
 import type { MetadataSegments, MetadataPayload } from "aurora-core";
@@ -95,7 +96,9 @@ stage.style.padding = "0 1rem 1rem";
 stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 
-createRoot(stage).render(
+function MetadataPreview() {
+  const [openSegment, setOpenSegment] = useState<string | null>(segments.PARTY);
+  return (
   <MetadataPanel
     actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
     batch="Pending"
@@ -105,9 +108,10 @@ createRoot(stage).render(
     metadata={activeMetadata}
     onConfirm={noOp}
     onDrop={noOp}
+    onAddIndex={(segment) => stage!.setAttribute("data-add-segment", segment)}
     onEditIndex={(item) => stage.setAttribute("data-edit-code", String(item.code))}
     onReprocess={noOp}
-    openSegment={segments.PARTY}
+    openSegment={openSegment}
     panelData={activePanelData}
     reprocessingSegment={scenario === "metadata-reprocess" ? segments.PARTY : null}
     removedCodes={new Set()}
@@ -116,8 +120,11 @@ createRoot(stage).render(
     showContext
     segments={segments}
     session="visual-session-metadata"
-    setSectionOpen={noOp}
+    setSectionOpen={(segment, open) => setOpenSegment(open ? segment : null)}
     shortcuts={null}
     status="success"
-  />,
-);
+  />
+  );
+}
+
+createRoot(stage).render(<MetadataPreview />);

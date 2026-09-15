@@ -461,21 +461,28 @@ describe("ImageViewerPanel", () => {
     expect(Boolean(screen.queryByLabelText("Image viewer top toolbar"))).toBe(compact);
   });
 
-  it.each(["addingPages", "copyingSelection"] as const)("keeps %s blocking after a page has loaded", (status) => {
-    imageViewerStoreApi.setState({ status: "ready", viewerStatus: status });
+  it("keeps adding pages blocking after a page has loaded", () => {
+    imageViewerStoreApi.setState({ status: "ready", viewerStatus: "addingPages" });
     render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
     expect(onReadyChange).toHaveBeenLastCalledWith(false);
     expect(screen.queryByLabelText("Image viewer footer toolbar")).not.toBeInTheDocument();
   });
 
-  it("reports lens progress while copying a selection", () => {
-    imageViewerStoreApi.setState({ viewerStatus: "copyingSelection" });
+  it.each([false, true])("keeps copying nonblocking throughout the status transition (compact=%s)", (compact) => {
+    imageViewerStoreApi.setState({ status: "ready", viewerStatus: "ready" });
     const onLoaderChange = vi.fn();
 
-    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
-
-    expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Copying selection..."]);
-    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    render(<ImageViewerPanel compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+    const top = screen.getByLabelText("Image viewer top toolbar");
+    const footer = screen.getByLabelText("Image viewer footer toolbar");
+    const host = document.querySelector("[data-document-lens-host='true']");
+    for (const status of ["copyingSelection", "ready"] as const) {
+      act(() => imageViewerStoreApi.getState().setViewerStatus(status));
+      expect(onReadyChange).toHaveBeenLastCalledWith(true);
+      expect(onLoaderChange).toHaveBeenLastCalledWith(null);
+      expect(screen.getByLabelText("Image viewer top toolbar")).toBe(top);
+      expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+      expect(document.querySelector("[data-document-lens-host='true']")).toBe(host);
+    }
   });
 });
