@@ -2,7 +2,26 @@
   "name": "aurorra-index",
   "private": true,
   "version": "0.0.0",
+  "description": "React components for document metadata review, visual indexing, mapping, auditing, and index-quality workflows in the Tabularium AI platform.",
   "type": "module",
+  "license": "Apache-2.0",
+  "author": "Tabularium AI",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TabulariumAI/aurorra_index.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TabulariumAI/aurorra_index/issues"
+  },
+  "homepage": "https://github.com/TabulariumAI/aurorra_index#readme",
+  "keywords": [
+    "document-metadata",
+    "document-indexing",
+    "document-viewer",
+    "audit",
+    "react",
+    "tabularium-ai"
+  ],
   "main": "./src/public-api.ts",
   "module": "./src/public-api.ts",
   "types": "./src/public-api.ts",

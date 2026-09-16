@@ -1,372 +1,47 @@
 {
   "heading": {
-    "class": "notice",
-    "title": "NOTICE OF OBLIGATION TO PAY IMPROVEMENT DISTRICT ASSESSMENT TO THE CITY OF SAN ANTONIO, TEXAS",
-    "secondary_titles": null,
-    "total": "0.0",
-    "date": null,
-    "number": null,
-    "explanation": "The document contains a clear standalone title at the top of the page indicating it is a notice regarding an obligation to pay an improvement district assessment to the City of San Antonio, Texas. The legal description references Bexar County, Texas, establishing jurisdiction. The content is a formal notice related to property assessment obligations, consistent with a notice document. The page is the first page with substantive legal and transactional content, so is_title_page is YES. There is no formal notarial acknowledgment section, so has_acknowledgment is NO. The page is not blank or a confirmation page."
+    "title": "Synthetic document"
   },
-  "tags": null,
+  "tags": [
+    "fixture"
+  ],
   "usage": {
-    "costs": [
-      "$0.6200"
-    ]
+    "costs": []
   },
   "secrets": [],
   "indexes": [
     {
-      "code": "5763984a-d62a-452e-83af-40b09e6b612c",
-      "label": "reference_volume",
-      "value": "20003",
-      "aspect": "reference_volume",
-      "source": "Volume 20003, Page 1807, Plat Records of Bexar County, Texas",
+      "code": "fixture-index-1",
+      "label": "Reference",
       "page": "1",
+      "page_number": "1",
       "segment": "reference",
-      "ambiguous": "NO",
-      "explanation": "Volume number of the plat records where the subdivision map is recorded"
-    },
-    {
-      "code": "d5462029-706d-46a1-8402-0aa4cfce49b2",
-      "label": "reference_page",
-      "value": "1807",
-      "aspect": "reference_page",
-      "source": "Volume 20003, Page 1807, Plat Records of Bexar County, Texas",
-      "page": "1",
-      "segment": "reference",
-      "ambiguous": "NO",
-      "explanation": "Page number of the plat records where the subdivision map is recorded"
-    },
-    {
-      "code": "31a8a568-b742-44e7-a6ba-7cf76751c6ea",
-      "label": "effective_date",
-      "value": "May 18, 2026",
-      "aspect": "effective_date",
-      "source": "Date: 5/18/2026",
-      "page": "1",
-      "segment": "transaction",
-      "ambiguous": "NO",
-      "explanation": "Date provided in the table section, likely related to the execution or acknowledgment date within the document body. UPDATE date normalization: aspect='effective_date', label='effective_date', '5/18/2026' -> 'May 18, 2026'"
-    },
-    {
-      "code": "a3010be0-e304-4f2d-8ca1-020fd9918f76",
-      "label": "notary_name",
-      "value": "THOMAS CHRISTOPHER MARTIN",
-      "aspect": "notary_name",
-      "source": "The forgoing instrument was acknowledged before me Thomas Christopher Martin, known by me to be the person(s) whose name(s) is/are subscribed to the forgoing instrument and acknowledged to me that he or she executed the same for the purposes therein expressed.",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Name of the notary who acknowledged the instrument; UPDATE name normalization: aspect='notary_name', label='notary_name', 'Thomas Christopher Martin' -> 'THOMAS CHRISTOPHER MARTIN'"
-    },
-    {
-      "code": "53321ae8-f429-44ae-b24c-40ed7ad7e75d",
-      "label": "notary_acknowledgment_date",
-      "value": "May 18, 2026",
-      "aspect": "notary_acknowledgment_date",
-      "source": "Given under my hand and seal of office on May 18th, 2026.",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Date the instrument was acknowledged by the notary; UPDATE date normalization: aspect='notary_acknowledgment_date', label='notary_acknowledgment_date', 'May 18th, 2026' -> 'May 18, 2026'"
-    },
-    {
-      "code": "64463564-8663-4d87-b9b2-c9e5edff72da",
-      "label": "notary_seal_present",
-      "value": "true",
-      "aspect": "notary_seal_present",
-      "source": "[SEAL]",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Seal of office is present in the acknowledgment block"
-    },
-    {
-      "code": "1760c6b2-d2b5-4c5f-9415-80a1e76d5767",
-      "label": "notary_name",
-      "value": "TERRI S JONES",
-      "aspect": "notary_name",
-      "source": "NOTARY PUBLIC STATE OF\n\nTerri S Jones\n\nID NUMBER 130255677 COMMISSION EXPIRES June 10, 2027",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Name of the notary from the notary public block; UPDATE name normalization: aspect='notary_name', label='notary_name', 'Terri S Jones' -> 'TERRI S JONES'"
-    },
-    {
-      "code": "36875714-1ce1-437d-924f-424465b61024",
-      "label": "notary_commission_number",
-      "value": "130255677",
-      "aspect": "notary_commission_number",
-      "source": "ID NUMBER 130255677 COMMISSION EXPIRES June 10, 2027",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Commission number of the notary"
-    },
-    {
-      "code": "95bdadc4-545b-491f-b111-06a3fbbbc968",
-      "label": "notary_expire_date",
-      "value": "June 10, 2027",
-      "aspect": "notary_expire_date",
-      "source": "COMMISSION EXPIRES June 10, 2027",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Commission expiration date of the notary"
-    },
-    {
-      "code": "56274c41-9591-4224-ac2a-161fc89a0496",
-      "label": "electronic_signature",
-      "value": "true",
-      "aspect": "electronic_signature",
-      "source": "Electronically signed and notarized online using the Proof platform.",
-      "page": "2",
-      "segment": "acknowledgment",
-      "ambiguous": "NO",
-      "explanation": "Indicates the document was electronically signed and notarized"
-    },
-    {
-      "code": "67f4cd74-a4ca-4e1f-98d8-f16eae750624",
-      "label": "recording_instrument_number",
-      "value": "20260095672",
-      "aspect": "recording_instrument_number",
-      "source": "Document Number:  20260095672",
-      "page": "4",
-      "segment": "endorsement",
-      "ambiguous": "NO",
-      "explanation": "The unique instrument number assigned to this recorded document"
-    },
-    {
-      "code": "92c13523-c86c-4afb-a235-bd2208071e28",
-      "label": "recording_date",
-      "value": "May 20, 2026",
-      "aspect": "recording_date",
-      "source": "Recorded Date:  May 20, 2026",
-      "page": "4",
-      "segment": "endorsement",
-      "ambiguous": "NO",
-      "explanation": "The date on which the document was officially recorded"
-    },
-    {
-      "code": "c3618969-4e75-41b0-9e6f-ae3ae4b087d3",
-      "label": "recording_fee",
-      "value": "$33.00",
-      "aspect": "recording_fee",
-      "source": "Total Fees:  $33.00",
-      "page": "4",
-      "segment": "endorsement",
-      "ambiguous": "NO",
-      "explanation": "The fee paid for recording the document"
-    },
-    {
-      "code": "37be8806-7f19-4d3a-8ee0-5f5e3bf84cee",
-      "label": "recording_clerk",
-      "value": "LUCY ADAMECLARK",
-      "aspect": "recording_clerk",
-      "source": "eFILED IN THE OFFICIAL PUBLIC eRECORDS OF BEXAR COUNTY LUCY ADAME-CLARK, BEXAR COUNTY CLERK",
-      "page": "4",
-      "segment": "endorsement",
-      "ambiguous": "NO",
-      "explanation": "The name of the county clerk who recorded the document; UPDATE name normalization: aspect='recording_clerk', label='recording_clerk', 'Lucy Adame-Clark' -> 'LUCY ADAMECLARK'"
-    },
-    {
-      "code": "e7628e44-6959-47e1-916e-12d80eb7ceb1",
-      "label": "recording_county",
-      "value": "Bexar",
-      "aspect": "recording_county",
-      "source": "eFILED IN THE OFFICIAL PUBLIC eRECORDS OF BEXAR COUNTY",
-      "page": "4",
-      "segment": "endorsement",
-      "ambiguous": "NO",
-      "explanation": "The county where the document was recorded"
-    },
-    {
-      "code": "27a38c20-21c7-4920-97ec-54356c5707f7",
-      "label": "recording_state",
-      "value": "TX",
-      "aspect": "recording_state",
-      "source": "Official Public Record of Bexar County, Texas",
-      "page": "4",
-      "segment": "endorsement",
-      "ambiguous": "NO",
-      "explanation": "The state where the document was recorded; UPDATE place normalization: aspect='recording_state', label='recording_state', 'Texas' -> 'TX'"
-    },
-    {
-      "code": "446761aa-0c58-41e1-b242-457fa4b0a9ca",
-      "label": "other_notary_acknowledgment",
-      "value": "Notary Acknowledgment by VALERIE HERNANDEZ (136126414)",
-      "aspect": "other_notary_acknowledgment",
-      "source": "Given under my hand and seal of office on May 18, 2026. | VALERIE HERNANDEZ Notary Public, State of Texas | My Commission Expires October 14, 2028 NOTARY ID 136126414",
-      "page": "3",
-      "segment": null,
-      "ambiguous": "NO",
-      "explanation": "Collapsed acknowledgment indexes on page 3 into other_notary_acknowledgment. Date of notarization as stated in the acknowledgment block; Name of the notary public as stated in the acknowledgment block; Notary commission number as stated in the acknowledgment block; Notary commission expiration date as explicitly labeled; Presence of seal indicated by phrase 'seal of office' in acknowledgment block"
+      "source": "Synthetic source",
+      "value": "Synthetic value"
     }
   ],
-  "parties": [
-    {
-      "code": "b91fc102-e399-47a1-9a07-1a475853ec77",
-      "label": "buyer",
-      "value": "MARTIN THOMAS CHRISTOPHER",
-      "aspect": "person, Indirect",
-      "source": "Thomas Christopher Martin",
-      "page": "1",
-      "segment": "party",
-      "ambiguous": "NO",
-      "explanation": "Index: Buyer role bound by the clause 'between Thomas Christopher Martin (collectively, \"Buyer\") and Seller' in the present operative clause of this instrument; Normalized person party value: label='buyer', aspect='person' :: 'Thomas Christopher Martin' → 'THOMAS CHRISTOPHER MARTIN' → Enrichment: THOMAS CHRISTOPHER MARTIN is indexed as a person party because the operative clause binds him as 'Buyer' in this instrument. At least one person must be indexed per county standards."
-    },
-    {
-      "code": "a8d8c54a-2e02-47a7-b61c-864d91cd3020",
-      "label": "obligee",
-      "value": "CITY OF SAN ANTONIO",
-      "aspect": "government, Indirect",
-      "source": "City of San Antonio, Texas",
-      "page": "1",
-      "segment": "party",
-      "ambiguous": "NO",
-      "explanation": "Index: Government entity obligated to receive payment as per the notice of obligation to pay improvement district assessment; Label 'government_entity' is not a valid role; update to 'obligee' per operative clause. Normalized non-person party value: label='obligee', aspect='government' :: 'City of San Antonio' -> 'CITY OF SAN ANTONIO' → Enrichment: CITY OF SAN ANTONIO is indexed as a government party because the operative clause binds it as 'Obligee' (recipient of payment) in this instrument. Government entities must be indexed when named in operative clauses."
-    },
-    {
-      "code": "42908a4c-270c-44f2-84c9-10cd3d8b38b3",
-      "label": "seller",
-      "value": "LENNAR HOMES OF TEXAS SALES AND MARKETING LTD.",
-      "aspect": "partnership, Direct",
-      "source": "Lennar Homes of Texas Sales and Marketing Ltd. a Texas limited partnership",
-      "page": "2",
-      "segment": "party",
-      "ambiguous": "NO",
-      "explanation": "Index: Extracted as the Seller, a Texas limited partnership, from the operative clause acknowledging notice provision; Label is not a role; update to 'seller' as per operative clause binding. Normalized non-person party value: label='seller', aspect='partnership' :: 'Lennar Homes of Texas Sales and Marketing Ltd.' -> 'LENNAR HOMES OF TEXAS SALES AND MARKETING LTD.' → Enrichment: LENNAR HOMES OF TEXAS SALES AND MARKETING LTD. is indexed as a partnership party because the operative clause binds it as 'Seller' in this instrument. Partnerships must be indexed when named in operative clauses."
-    },
-    {
-      "code": "c246380f-6438-43b3-ba6a-d4325542d64b",
-      "label": "toni_sims",
-      "value": "SIMS TONI",
-      "aspect": "agent, Procedural",
-      "source": "Authorized Agent of Seller: Printed Name: Toni Sims",
-      "page": "2",
-      "segment": "party",
-      "ambiguous": "NO",
-      "explanation": "Index: Extracted as Authorized Agent of Seller from the operative clause; Normalized person party value: label='toni_sims', aspect='agent' :: 'Toni Sims' → 'TONI SIMS' → Enrichment: TONI SIMS is indexed as an agent party because the operative clause identifies her as 'Authorized Agent of Seller.' Agents must be indexed when named in operative clauses."
-    }
-  ],
+  "parties": [],
   "legals": {
-    "summary": "1 parcel. Lot 34, Block 179, Stone Garden - Unit 2, Bexar County, Texas; PLATTED.",
-    "groups": [
+    "summary": "Synthetic legal summary"
+  },
+  "chain": [],
+  "history": {
+    "events": []
+  },
+  "pages": {
+    "num_of_pages": 5,
+    "recordables": [
       {
-        "type": "lot_block",
-        "elements": [
-          {
-            "aspect": "lot",
-            "value": "34",
-            "ambiguous": "NO",
-            "explanation": "GROUP_BASIS:PLATTED Lot number is explicitly stated as 'Lot 34' in the description."
-          },
-          {
-            "aspect": "block",
-            "value": "179",
-            "ambiguous": "NO",
-            "explanation": "Block number is explicitly stated as 'Block 179' in the description."
-          },
-          {
-            "aspect": "subdivision",
-            "value": "STONE GARDEN - UNIT 2",
-            "ambiguous": "NO",
-            "explanation": "Subdivision name is given as 'Stone Garden - Unit 2' directly in the description."
-          },
-          {
-            "aspect": "county",
-            "value": "BEXAR",
-            "ambiguous": "NO",
-            "explanation": "County is specified as 'Bexar County, Texas' in the description."
-          },
-          {
-            "aspect": "state",
-            "value": "TEXAS",
-            "ambiguous": "NO",
-            "explanation": "State is specified as 'Texas' in the description."
-          }
-        ],
-        "code": "6904471d-c871-45cd-9298-a5e86be85c2b",
-        "source": "Lot 34, Block 179, in CB 4007, Stone Garden - Unit 2, a subdivision in Bexar County, Texas according to the map or plat thereof recorded under Volume 20003, Page 1807, Plat Records of Bexar County, Texas.",
-        "page": "1"
-      },
-      {
-        "type": "plat_references",
-        "elements": [
-          {
-            "aspect": "plat_volume",
-            "value": "20003",
-            "ambiguous": "NO",
-            "explanation": "GROUP_BASIS:PLATTED Plat volume is stated as 'Volume 20003' in the recording reference."
-          },
-          {
-            "aspect": "plat_page",
-            "value": "1807",
-            "ambiguous": "NO",
-            "explanation": "Plat page is stated as 'Page 1807' in the recording reference."
-          }
-        ],
-        "code": "74ce6e74-c874-4557-a37f-d409164f0ecb",
-        "source": "Lot 34, Block 179, in CB 4007, Stone Garden - Unit 2, a subdivision in Bexar County, Texas according to the map or plat thereof recorded under Volume 20003, Page 1807, Plat Records of Bexar County, Texas.",
-        "page": "1"
+        "code": "fixture-page-1",
+        "name": "1",
+        "segments": [
+          "reference"
+        ]
       }
     ]
   },
-  "chain": null,
-  "history": null,
-  "pages": {
-    "recordables": [
-      {
-        "code": "6ebc8a7d-6298-474e-998a-ad01e004e0d0",
-        "class": "notice",
-        "segments": [
-          "property",
-          "reference",
-          "transaction",
-          "party",
-          "secrets"
-        ],
-        "name": "1",
-        "explanation": "The document contains a clear standalone title at the top of the page indicating it is a notice regarding an obligation to pay an improvement district assessment to the City of San Antonio, Texas. The legal description references Bexar County, Texas, establishing jurisdiction. The content is a formal notice related to property assessment obligations, consistent with a notice document. The page is the first page with substantive legal and transactional content, so is_title_page is YES. There is no formal notarial acknowledgment section, so has_acknowledgment is NO. The page is not blank or a confirmation page."
-      },
-      {
-        "code": "324d8d50-7b4b-468f-8867-4ed872bcb779",
-        "class": "Acknowledgment",
-        "segments": [
-          "transaction",
-          "party",
-          "acknowledgment"
-        ],
-        "name": "2",
-        "explanation": "The page contains acknowledgment language including 'acknowledged before me', notary public references, a notary seal, and signature details, indicating it is an acknowledgment page."
-      },
-      {
-        "code": "58a99a95-a057-4ebc-9d4c-c958be83445f",
-        "class": "Acknowledgment",
-        "segments": [
-          "transaction",
-          "acknowledgment"
-        ],
-        "name": "3",
-        "explanation": "The page contains acknowledgment language including 'acknowledged before me' and references to a Notary Public, indicating it is an acknowledgment page."
-      },
-      {
-        "code": "e1e0b302-f963-43bf-9a84-e0560b7ea170",
-        "class": "Record Confirmation",
-        "segments": [
-          "endorsement"
-        ],
-        "name": "4",
-        "explanation": "Page contains official recording confirmation details including document number, recorded date/time, county clerk name, and certification statement indicating the instrument was eFILED and eRECORDED in Bexar County."
-      }
-    ],
-    "nonrecordables": [],
-    "num_of_pages": 4,
-    "num_of_records": 4
-  },
-  "fee_factors": null,
-  "fees": null,
-  "funds": null,
-  "gaps": null
+  "fee_factors": [],
+  "fees": [],
+  "funds": [],
+  "gaps": []
 }
