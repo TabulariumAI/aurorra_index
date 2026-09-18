@@ -84,6 +84,7 @@ function PageSegmentsVisualHarness() {
         choices={choices}
         onClose={() => setClosed(true)}
         onError={() => undefined}
+        onQueueChange={() => undefined}
         onReadyChange={() => undefined}
         pageClass="blank"
         pageCode="page-1"

@@ -28,16 +28,6 @@ function sameSegments(left: string[], right: string[]): boolean {
   return left.join("|") === right.join("|");
 }
 
-function CheckboxIndicator(): JSX.Element {
-  return (
-    <Checkbox.Indicator style={pageSegmentsStyles.checkboxIndicator}>
-      <svg aria-hidden="true" fill="none" height="12" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 16 16" width="12">
-        <path d="m3 8 3 3 7-7" />
-      </svg>
-    </Checkbox.Indicator>
-  );
-}
-
 export function PageSegmentsPanel({
   apiGatewayUrl,
   authToken,
@@ -110,9 +100,9 @@ export function PageSegmentsPanel({
               pageSegmentsStoreApi.getState().setSelected([]);
             }
           }}
-          style={pageSegmentsStyles.checkboxRoot(false)}
+          style={pageSegmentsStyles.checkboxRoot(status === "saving", blankChecked)}
         >
-          <CheckboxIndicator />
+          <Checkbox.Indicator aria-hidden style={pageSegmentsStyles.checkboxIndicator}>✓</Checkbox.Indicator>
         </Checkbox.Root>
         <span>This page is blank</span>
       </label>
@@ -127,10 +117,10 @@ export function PageSegmentsPanel({
                 disabled={disabled || status === "saving"}
                 id={`segment-${segment}`}
                 onCheckedChange={(checked) => setSegmentChecked(segment, checked === true)}
-                style={pageSegmentsStyles.checkboxRoot(disabled)}
+                style={pageSegmentsStyles.checkboxRoot(disabled || status === "saving", selected.includes(segment))}
                 value={segment}
               >
-                <CheckboxIndicator />
+                <Checkbox.Indicator aria-hidden style={pageSegmentsStyles.checkboxIndicator}>✓</Checkbox.Indicator>
               </Checkbox.Root>
               <span style={pageSegmentsStyles.itemText(disabled)}>{PAGE_SEGMENT_LABELS[segment]}</span>
             </label>

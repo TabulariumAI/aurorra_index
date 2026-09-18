@@ -16,6 +16,14 @@ if (scenario === "legal-gap") {
   await import("./metadata.visual.tsx");
 } else if (scenario === "metadata-short") {
   await import("./metadata.visual.tsx");
+} else if (scenario === "metadata-row") {
+  await import("./metadata.visual.tsx");
+} else if (scenario === "metadata-party-rows") {
+  await import("./metadata.visual.tsx");
+} else if (scenario === "metadata-address-row") {
+  await import("./metadata.visual.tsx");
+} else if (scenario === "metadata-pages") {
+  await import("./metadata.visual.tsx");
 } else if (scenario === "pagesegments-fail") {
   await import("./pagesegments.visual.tsx");
 } else if (scenario === "pagesegments") {

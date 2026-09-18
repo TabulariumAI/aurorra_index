@@ -22,6 +22,7 @@ const viewerHasMetadata = vi.hoisted(() => ({ value: true }));
 const viewerCanSelect = vi.hoisted(() => ({ value: true }));
 const viewerCanSearch = vi.hoisted(() => ({ value: true }));
 const decodeDocError = vi.hoisted(() => ({ value: null as Error | null }));
+const navigationWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
 const decodeWait = vi.hoisted(() => ({ promise: null as Promise<void> | null }));
 const auroraLensCtor = vi.hoisted(() =>
   vi.fn(function AuroraLensMock(
@@ -29,6 +30,7 @@ const auroraLensCtor = vi.hoisted(() =>
     _host: HTMLElement,
     options: { onStateChange?: (state: unknown) => void; onStatusChange?: (status: string) => void },
   ) {
+    let pageIndex = 1;
     const emitState = (status: "idle" | "loadingPage" | "ready") => {
       options.onStatusChange?.(status);
       options.onStateChange?.({
@@ -48,8 +50,8 @@ const auroraLensCtor = vi.hoisted(() =>
         canZoomIn: status === "ready",
         canZoomOut: status === "ready",
         pageCount: status === "ready" ? 4 : 0,
-        pageIndex: status === "ready" ? 1 : -1,
-        pageInfo: status === "ready" && viewerHasMetadata.value ? { class: "Deed", indexes: [], pageNumber: 2, segments: [] } : null,
+        pageIndex: status === "ready" ? pageIndex : -1,
+        pageInfo: status === "ready" && viewerHasMetadata.value ? { class: "Deed", indexes: [], pageNumber: pageIndex + 1, segments: [] } : null,
         drawMode: false,
         status,
         viewMode: "page",
@@ -71,7 +73,8 @@ const auroraLensCtor = vi.hoisted(() =>
         options.onStateChange?.(ready);
         return { copied: true, groups: [{ value: { context: ["Mock paragraph"], kind: ["BODY"], token: ["Mock value"] } }], text: "" };
       }),
-      decodeDoc: vi.fn(async () => {
+      decodeDoc: vi.fn(async (_file: File, options: { page: number }) => {
+        pageIndex = options.page;
         if (decodeDocError.value) throw decodeDocError.value;
         emitState("loadingPage");
         await decodeWait.promise;
@@ -81,7 +84,12 @@ const auroraLensCtor = vi.hoisted(() =>
       fitHeight: vi.fn(),
       fitPage: vi.fn(),
       fitWidth: vi.fn(),
-      goToPage: vi.fn(),
+      goToPage: vi.fn(async (page: number) => {
+        emitState("loadingPage");
+        await navigationWait.promise;
+        pageIndex = page;
+        emitState("ready");
+      }),
       lastPage: vi.fn(),
       loadMetadata: vi.fn(),
       nextPage: vi.fn(),
@@ -214,6 +222,7 @@ describe("useImageViewer", () => {
     addIndexStoreApi.getState().close();
     decodeDocError.value = null;
     decodeWait.promise = null;
+    navigationWait.promise = null;
     restoreSessionWait.promise = null;
     restoreSessionResult.value = false;
     viewerCanExport.value = true;
@@ -723,6 +732,188 @@ describe("useImageViewer", () => {
     expect(screen.getByRole("button", { name: "search" })).toBeDisabled();
     expect(imageViewerStoreApi.getState().searchText).toBe("Cedar");
     expect(lensInstances[0].search).not.toHaveBeenCalledWith("Cedar", { additive: false, context: null });
+  });
+
+  it.each([false, true])("highlights the displayed page without navigating (restored=%s)", async (restored) => {
+    restoreSessionResult.value = restored;
+    if (restored) { setHost(); setRequest(); }
+    else seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    const lens = lensInstances[0];
+    expect(lens.goToPage).not.toHaveBeenCalled();
+    vi.mocked(lens.searchIndex).mockClear();
+    const request = imageViewerStoreApi.getState().request!;
+    for (const value of ["Bob", "Carol", "Carol"]) {
+      await act(async () => imageViewerStoreApi.getState().setRequest({
+        ...request, value, metadataIndex: { ...request.metadataIndex!, value },
+      }));
+      expect(lens.searchIndex).toHaveBeenLastCalledWith(2, expect.objectContaining({ value }), { additive: false });
+    }
+    expect(lens.searchIndex).toHaveBeenCalledTimes(3);
+    expect(lens.goToPage).not.toHaveBeenCalled();
+    expect(lens.decodeDoc).toHaveBeenCalledTimes(restored ? 0 : 1);
+  });
+
+  it("does not replay an identical request returned by the host", async () => {
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    const lens = lensInstances[0];
+    vi.mocked(lens.searchIndex).mockClear();
+    await act(async () => setRequest());
+    const request = imageViewerStoreApi.getState().request!;
+    await act(async () => imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
+      pageCount: 4, pageMap: new Map(), request: structuredClone(request),
+      selectedIndex: { code: request.code, segment: request.segment }, session: request.session,
+    }));
+    expect(lens.searchIndex).toHaveBeenCalledTimes(1);
+    expect(lens.goToPage).not.toHaveBeenCalled();
+    expect(lens.decodeDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["value", "quote"])("preserves %s search on the displayed page", async (kind) => {
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    const request = imageViewerStoreApi.getState().request!;
+    await act(async () => imageViewerStoreApi.getState().setRequest({
+      ...request, metadataIndex: null, value: kind === "value" ? "Bob" : "", quote: "source context",
+    }));
+    expect(lensInstances[0].search).toHaveBeenCalledExactlyOnceWith(
+      kind === "value" ? "Bob" : "source context",
+      { additive: false, context: kind === "value" ? "source context" : null },
+    );
+    expect(lensInstances[0].goToPage).not.toHaveBeenCalled();
+  });
+
+  it("navigates once and highlights only after the new page is ready", async () => {
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    let finish!: () => void;
+    navigationWait.promise = new Promise<void>((resolve) => { finish = resolve; });
+    const lens = lensInstances[0];
+    vi.mocked(lens.searchIndex).mockClear();
+    const request = { ...imageViewerStoreApi.getState().request!, page: 3 };
+    await act(async () => imageViewerStoreApi.getState().setRequest(request));
+    expect(lens.goToPage).toHaveBeenCalledExactlyOnceWith(2);
+    expect(lens.searchIndex).not.toHaveBeenCalled();
+    expect(screen.getByTestId("navigating")).toHaveTextContent("true");
+    await act(async () => finish());
+    expect(lens.searchIndex).toHaveBeenCalledExactlyOnceWith(3, request.metadataIndex, { additive: false });
+    expect(screen.getByTestId("navigating")).toHaveTextContent("false");
+    expect(lens.decodeDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([2, 3, 4])("uses the latest selection on page %s during navigation", async (page) => {
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    let finish!: () => void;
+    navigationWait.promise = new Promise<void>((resolve) => { finish = resolve; });
+    const lens = lensInstances[0];
+    vi.mocked(lens.searchIndex).mockClear();
+    const request = imageViewerStoreApi.getState().request!;
+    await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, page: 3 }));
+    const latest = { ...request, code: "idx-latest", page, metadataIndex: { ...request.metadataIndex!, value: "Latest" } };
+    await act(async () => imageViewerStoreApi.getState().setRequest(latest));
+    expect(lens.searchIndex).not.toHaveBeenCalled();
+    await act(async () => finish());
+    expect(vi.mocked(lens.goToPage).mock.calls).toEqual(page === 3 ? [[2]] : [[2], [page - 1]]);
+    expect(lens.searchIndex).toHaveBeenCalledExactlyOnceWith(page, latest.metadataIndex, { additive: false });
+  });
+
+  it.each([2, 3])("finishes initial decoding with the latest selection on page %s", async (page) => {
+    let finish!: () => void;
+    decodeWait.promise = new Promise<void>((resolve) => { finish = resolve; });
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.decodeDoc).toHaveBeenCalledTimes(1));
+    const latest = { ...imageViewerStoreApi.getState().request!, code: "idx-latest", page, metadataIndex: {
+      ambiguous: "NO", label: "Party", source: "Latest source", value: "Latest",
+    } };
+    await act(async () => imageViewerStoreApi.getState().setRequest(latest));
+    await act(async () => finish());
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(lensInstances[0].goToPage).mock.calls).toEqual(page === 2 ? [] : [[page - 1]]);
+    expect(lensInstances[0].searchIndex).toHaveBeenCalledExactlyOnceWith(page, latest.metadataIndex, { additive: false });
+  });
+
+  it("opens the page when metadata is selected from thumbnails", async () => {
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    const lens = lensInstances[0];
+    vi.mocked(lens.searchIndex).mockClear();
+    await act(async () => imageViewerStoreApi.getState().setViewerState({
+      ...imageViewerStoreApi.getState().viewerState!, viewMode: "thumbnails",
+    }));
+    await act(async () => setRequest());
+    expect(lens.goToPage).toHaveBeenCalledExactlyOnceWith(1);
+    expect(imageViewerStoreApi.getState().viewerState?.viewMode).toBe("page");
+    expect(lens.searchIndex).toHaveBeenCalledExactlyOnceWith(2, imageViewerStoreApi.getState().request!.metadataIndex, { additive: false });
+  });
+
+  it("does not replay the last metadata selection during toolbar navigation", async () => {
+    seedPackage();
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+    const lens = lensInstances[0];
+    vi.mocked(lens.searchIndex).mockClear();
+    await act(async () => imageViewerStoreApi.getState().setViewerState({
+      ...imageViewerStoreApi.getState().viewerState!, pageIndex: 2,
+    }));
+    expect(lens.goToPage).not.toHaveBeenCalled();
+    expect(lens.searchIndex).not.toHaveBeenCalled();
+    await act(async () => setRequest());
+    expect(lens.goToPage).toHaveBeenCalledExactlyOnceWith(1);
+    expect(lens.searchIndex).toHaveBeenCalledTimes(1);
+  });
+
+  it("navigates from a restored page without decoding a package", async () => {
+    restoreSessionResult.value = true;
+    setHost();
+    setRequest();
+    const request = { ...imageViewerStoreApi.getState().request!, page: 3 };
+    imageViewerStoreApi.getState().setRequest(request);
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.searchIndex).toHaveBeenCalledWith(3, request.metadataIndex, { additive: false }));
+    expect(lensInstances[0].goToPage).toHaveBeenCalledExactlyOnceWith(2);
+    expect(lensInstances[0].decodeDoc).not.toHaveBeenCalled();
+  });
+
+  it.each(["decode", "navigate"])("ignores completion after unmount during %s", async (operation) => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    if (operation === "decode") decodeWait.promise = pending;
+    seedPackage();
+    const view = render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.decodeDoc).toHaveBeenCalledTimes(1));
+    const lens = lensInstances[0];
+    if (operation === "navigate") {
+      await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled());
+      await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledTimes(1));
+      navigationWait.promise = pending;
+      await act(async () => imageViewerStoreApi.getState().setRequest({ ...imageViewerStoreApi.getState().request!, page: 3 }));
+      expect(lens.goToPage).toHaveBeenCalledTimes(1);
+    }
+    vi.mocked(lens.searchIndex).mockClear();
+    view.unmount();
+    await act(async () => finish());
+    expect(lens.searchIndex).not.toHaveBeenCalled();
+    expect(lens.close).toHaveBeenCalledTimes(1);
+    expect(imageViewerStoreApi.getState().viewerState).toBeNull();
   });
 
   it("syncs a changed host page request once after the package is decoded", async () => {

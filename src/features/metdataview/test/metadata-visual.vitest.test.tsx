@@ -27,10 +27,8 @@ const panelDefaults = {
   actions: {
     confirm: true,
     drop: true,
-    refine: true,
     reprocess: true,
   },
-  batch: "Pending",
   sections: {
     filterByChoices: true,
     hiddenSegments: new Set<string>(),
@@ -140,13 +138,13 @@ describe("metadata visual surface", () => {
     const partyHeader = screen.getByRole("button", { name: /Parties\(Party Clause\)/i }).parentElement;
     const endorsementHeader = screen.getByRole("button", { name: "Record Endorsements" }).parentElement;
 
-    expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(2);
+    expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(1);
     expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
 
     rerender(<MetadataPanel {...props} openSegment="endorsement" />);
 
     expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
-    expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(2);
+    expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(1);
   });
 
   it("renders the package metadata surface with shared armed index actions", async () => {
@@ -169,7 +167,6 @@ describe("metadata visual surface", () => {
       <MetadataPanel
         {...panelDefaults}
         callbacks={{ onEditPage }}
-        batch="Property Intake"
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "PartyClauseIndexing" }]}
         metadata={metadata}
@@ -212,18 +209,17 @@ describe("metadata visual surface", () => {
       expect(context).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
       expect(context.children).toHaveLength(2);
       expect(context.firstElementChild).toHaveTextContent("Deed");
-      expect(context.lastElementChild).toHaveTextContent("Property Intake");
-      expect(context.lastElementChild).toHaveTextContent("session-1");
+      expect(context.lastElementChild).toHaveTextContent("Indexes");
+      expect(context.lastElementChild).toHaveTextContent("Unclear");
       expect(context.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
       expect(context.nextElementSibling).toHaveAttribute("data-panel-scroll", "true");
     }
 
-    expect(screen.getByText("Property Intake")).toHaveStyle({ fontWeight: "700" });
-    expect(screen.getByText("session-1")).toHaveStyle({
+    expect(screen.queryByText("Property Intake")).not.toBeInTheDocument();
+    expect(screen.queryByText("session-1")).not.toBeInTheDocument();
+    expect(screen.getByText("Unclear")).toHaveStyle({
       fontSize: "0.75rem",
       lineHeight: "1.35",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
       whiteSpace: "nowrap",
     });
     const title = screen.getByText("Deed");
@@ -283,7 +279,7 @@ describe("metadata visual surface", () => {
     expect(screen.queryByText("▸")).not.toBeInTheDocument();
     expect(screen.getByText("Alice")).toHaveStyle({ fontWeight: "700", textTransform: "none" });
     const reprocessButton = screen.getByRole("button", { name: "Reprocess" });
-    const chatButton = screen.getByRole("button", { name: "Open AI chat" });
+    expect(screen.queryByRole("button", { name: "Open AI chat" })).not.toBeInTheDocument();
     expect(reprocessButton).toHaveStyle({
       background: "var(--icon-surface)",
       boxShadow: "none",
@@ -292,14 +288,6 @@ describe("metadata visual surface", () => {
     });
     expect(reprocessButton).toHaveTextContent("Reprocess");
     expect(reprocessButton.querySelector("svg")).toBeNull();
-    expect(chatButton).toHaveStyle({
-      background: "var(--icon-surface)",
-      boxShadow: "none",
-      color: "var(--primary)",
-      height: "2rem",
-    });
-    expect(chatButton).toHaveTextContent("AI chat");
-    expect(chatButton.querySelector("svg")).toBeNull();
     expect(screen.queryByText("|")).not.toBeInTheDocument();
     const actionGroup = reprocessButton.parentElement;
     expect(actionGroup).toBeTruthy();
@@ -325,7 +313,7 @@ describe("metadata visual surface", () => {
       }
     }
     fireEvent.click(segmentButton);
-    expect(setSectionOpen).toHaveBeenCalledWith("party", false);
+    expect(setSectionOpen).not.toHaveBeenCalled();
     setSectionOpen.mockClear();
     if (segmentTitleBox) {
       expect(segmentTitleBox).toHaveStyle({ flex: "1 1 auto", minWidth: "0px" });
@@ -336,15 +324,8 @@ describe("metadata visual surface", () => {
 
     fireEvent.click(reprocessButton);
     await waitFor(() => expect(onReprocess).toHaveBeenCalledWith("party"));
-    fireEvent.click(chatButton);
     expect(setSectionOpen).not.toHaveBeenCalled();
-    expect(onEditPage).toHaveBeenCalledWith({
-      code: "",
-      page: 0,
-      segment: "party",
-      session: "session-1",
-      type: "segment",
-    });
+    expect(onEditPage).not.toHaveBeenCalled();
   });
 
   it("toggles explanation and quote together", async () => {
@@ -565,8 +546,11 @@ describe("metadata visual surface", () => {
     expect(pageRow).toBeTruthy();
     expect(pageRow).toHaveStyle({
       gap: "0.25rem",
+      gridTemplateColumns: "minmax(0, 1fr) auto",
       padding: "0.45rem 0.72rem",
     });
+    expect(pageRow).not.toHaveTextContent("Recordable");
+    expect(pageRow).not.toHaveTextContent("Pages");
     expect(pageRow).not.toHaveTextContent("Quote:");
     expect(screen.queryByRole("button", { name: "Delete index" })).not.toBeInTheDocument();
     const footer = document.querySelector<HTMLElement>("[data-metadata-footer]");
@@ -612,7 +596,7 @@ describe("metadata visual surface", () => {
       code: "page-1",
       pageClass: "text",
       pageSegments: ["reference", "property"],
-    }));
+    }), expect.any(HTMLButtonElement));
 
     rerender(<MetadataPanel {...props} openSegment="party" />);
 

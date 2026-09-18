@@ -111,7 +111,6 @@ describe("IndexContainer", () => {
       <IndexContainer onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
-        batch="Pending"
         batchCode={null}
         callbacks={{ onActionComplete, onEditPage, onMetadataLoaded, onPageClick, onView, onViewStarted }}
         choices={choices}
@@ -157,6 +156,8 @@ describe("IndexContainer", () => {
     expect(screen.queryByRole("button", { name: /Monetary/i })).not.toBeInTheDocument();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
+    expect(screen.getByText("Indexes").parentElement).toHaveTextContent("2");
+    expect(screen.getByText("Unclear").parentElement).toHaveTextContent("1");
     if (header) {
       expect(header).toHaveStyle({ flex: "0 0 auto", position: "static" });
       expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0", overflowX: "hidden", overflowY: "auto" });
@@ -169,7 +170,9 @@ describe("IndexContainer", () => {
     expect(onActionComplete).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("link", { name: "Alice" }));
-    expect(onPageClick).toHaveBeenCalled();
+    expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
+      highlightOptions: imageViewerStoreApi.getState().request!.highlightOptions,
+    }));
     expect(imageViewerStoreApi.getState().request).toMatchObject({
       code: "idx-1",
       index: "index",
@@ -205,6 +208,7 @@ describe("IndexContainer", () => {
         session: "session-1",
         type: "page",
       }),
+      expect.any(HTMLButtonElement),
     );
 
     expect(workerClient.confirmIndex).toHaveBeenCalledTimes(1);
@@ -259,6 +263,8 @@ describe("IndexContainer", () => {
     await waitFor(() => expect(screen.getByText("Alice").closest("article")).toHaveAttribute("data-removing", "true"));
     fireEvent.animationEnd(screen.getByText("Alice").closest("article")!);
     expect(screen.queryByText("Alice")).not.toBeInTheDocument();
+    expect(screen.getByText("Indexes").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("Unclear").parentElement).toHaveTextContent("0");
   }, 10_000);
 
   it("renders worker errors through callbacks only", async () => {
@@ -269,7 +275,6 @@ describe("IndexContainer", () => {
       <IndexContainer onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
-        batch="Pending"
         batchCode={null}
         callbacks={{ onMetadataError, onViewError }}
         choices={choices}
@@ -326,7 +331,6 @@ describe("IndexContainer", () => {
     const props = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: {},
       choices,
@@ -366,7 +370,6 @@ describe("IndexContainer", () => {
       <IndexContainer onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
-        batch="Pending"
         batchCode={null}
         callbacks={{ onViewCanceled }}
         choices={choices}

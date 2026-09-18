@@ -95,7 +95,6 @@ export type MetdataMetadataProps = {
   onQueueChange(event: QueueTransition): void;
   authToken: string | null;
   apiGatewayUrl: string;
-  batch: string;
   batchCode: string | null;
   headerActions?: ReactNode;
   callbacks: MetadataCallbacks;

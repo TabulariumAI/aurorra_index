@@ -15,16 +15,20 @@ test("page segments panel renders choices, updates actions, and closes after que
   await expect(endorsement).toBeEnabled();
   await expect(party).toBeEnabled();
   await expect(party).toBeChecked();
+  await expect(reference).toHaveCSS("border-radius", "0px");
+  await expect(reference).toHaveCSS("box-shadow", "none");
+  await expect(reference).toHaveCSS("height", "16px");
+  await expect(reference).toHaveCSS("width", "16px");
+  await expect(reference).toHaveAttribute("data-state", "checked");
 
   await expect(page.getByRole("button", { name: "Submit" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Cancel" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close" })).toHaveCount(0);
 
   await endorsement.check();
-  await expect(page.getByRole("button", { name: "Submit" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Update" })).toBeEnabled();
 
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: "Update" }).click();
   await expect(page.getByRole("region", { name: "Page Segments", exact: true })).toHaveCount(0);
   await expect(page.getByTestId("pending-item")).toHaveCount(0);
 });
@@ -39,7 +43,7 @@ test("page segments panel retains failed changes for retry or cancellation", asy
   await expect(property).toBeEnabled();
 
   await property.check();
-  await page.getByRole("button", { name: "Submit" }).click();
+  await page.getByRole("button", { name: "Update" }).click();
 
   await expect(page.getByRole("region", { name: "Page Segments", exact: true })).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveText("Could not save page segments.");

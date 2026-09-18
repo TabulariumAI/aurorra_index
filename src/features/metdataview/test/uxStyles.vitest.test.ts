@@ -23,35 +23,18 @@ describe("index styles", () => {
       padding: "var(--panel-header-padding)",
     });
     expect(metadataStyles).toMatchObject({
-      batch: {
-        fontSize: "0.75rem",
-        fontWeight: 700,
-        lineHeight: 1.35,
-        overflowWrap: "anywhere",
-        whiteSpace: "normal",
-      },
-      headerInfo: {
-        alignItems: "flex-end",
-        display: "flex",
-        flexDirection: "column",
-        minWidth: 0,
-      },
-      session: {
-        fontSize: "0.75rem",
-        lineHeight: 1.35,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
-      },
+      statistic: { display: "flex", flexDirection: "column-reverse" },
+      statistics: { display: "flex", flex: "0 0 auto", minWidth: "max-content" },
+      statisticLabel: { fontSize: "0.75rem" },
+      statisticValue: { fontWeight: 700, margin: 0 },
       title: {
         fontSize: "calc(var(--panel-title-size) * 1.15)",
         fontWeight: "var(--panel-title-weight)",
         letterSpacing: "var(--panel-title-tracking)",
         lineHeight: "var(--panel-title-line-height)",
-        minWidth: "min-content",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap",
+        minWidth: 0,
+        overflowWrap: "anywhere",
+        whiteSpace: "normal",
       },
     });
     expect(imageViewerStyles.topToolbar).toMatchObject({

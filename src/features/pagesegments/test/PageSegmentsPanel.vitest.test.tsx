@@ -37,6 +37,12 @@ it("preserves selected segments and permissions without network work on open", (
   expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
   expect(workerClient.updatePageSegments).not.toHaveBeenCalled(); expect(workerClient.indexData).not.toHaveBeenCalled();
 });
+it("uses the project flat compact checkbox treatment", () => {
+  setup();
+  const checkbox = screen.getByRole("checkbox", { name: "Reference (Recital)" });
+  expect(checkbox).toHaveAttribute("data-state", "checked");
+  expect(checkbox).toHaveStyle({ borderRadius: "0px", boxShadow: "none", height: "1rem", width: "1rem" });
+});
 it("closes after queue acceptance and changes the page before processing finishes", async () => {
   const { workerClient, onClose, onError } = setup();
   fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" }));

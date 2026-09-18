@@ -75,7 +75,7 @@ describe("useMetadata", () => {
   it("exposes the current segment, opens Pages on request, and resets between sessions", async () => {
     const onSegmentExpand = vi.fn();
     const props: MetdataMetadataProps = {
-      authToken: "token", apiGatewayUrl: "https://doc.example.com", batch: "Pending", batchCode: null,
+      authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
       callbacks: { onSegmentExpand }, choices, deferredState: createDeferredState({ segment: "party" }),
       intervalMs: 0, retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
       segments, session: "session-1", workerClient: createClient(),
@@ -109,7 +109,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onActionComplete, onActionError },
       choices,
@@ -150,7 +149,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: {},
       choices,
@@ -192,7 +190,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onMetadataLoaded },
       choices: null,
@@ -222,7 +219,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: {
         onMetadataError,
@@ -257,7 +253,6 @@ describe("useMetadata", () => {
     const props: Omit<MetdataMetadataProps, "session"> = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: {},
       choices,
@@ -297,7 +292,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onSegmentExpand },
       choices,
@@ -339,7 +333,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onActionComplete },
       choices,
@@ -380,7 +373,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onActionComplete },
       choices,
@@ -419,7 +411,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onActionComplete, onIndexFocus },
       choices,
@@ -459,7 +450,6 @@ describe("useMetadata", () => {
     const props: MetdataMetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
-      batch: "Pending",
       batchCode: null,
       callbacks: { onActionComplete, onActionError },
       choices,

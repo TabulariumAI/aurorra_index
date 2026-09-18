@@ -70,8 +70,7 @@ function AddressMapVisualHarness(): JSX.Element {
   return (
     <>
       <MetadataPanel
-        actions={{ confirm: true, drop: true, refine: true, reprocess: true }}
-        batch="Pending"
+        actions={{ confirm: true, drop: true, reprocess: true }}
         callbacks={{
           onAddressClick: (value) => setAddressClicked(buildAddressMapEmbedUrl(value)),
           onPageClick: () => undefined,

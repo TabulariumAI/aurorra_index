@@ -15,7 +15,7 @@ function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
 }
 
 export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
-  const { batch, callbacks, children, segments, session } = props;
+  const { callbacks, children, segments, session } = props;
   const metadata = useMetadata(props);
   const tasks = useQueueStore((state) => state.tasks);
   const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
@@ -33,9 +33,10 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
     ...callbacks,
     onPageClick: callbacks.onPageClick
       ? (payload: MetadataActionPayload) => {
+          const highlightOptions = { scroll: false };
           imageViewerStoreApi.getState().setRequest({
             code: payload.code,
-            highlightOptions: { scroll: false },
+            highlightOptions,
             index: payload.type,
             metadataIndex: payload.metadataIndex ?? null,
             page: payload.page,
@@ -44,7 +45,7 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
             session: payload.session,
             value: payload.value ?? "",
           });
-          callbacks.onPageClick?.(payload);
+          callbacks.onPageClick?.({ ...payload, highlightOptions });
         }
       : undefined,
   };
@@ -53,14 +54,15 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
     <div style={metadataStyles.rootShell}>
       <MetadataPanel
         onAddIndex={(segment) => addIndexStoreApi.getState().open({ segment })}
-        onEditIndex={(index, segment) => editIndexStoreApi.getState().open({ index, segment, session })}
+        onEditIndex={(index, segment, anchor) => {
+          editIndexStoreApi.getState().open({ index, segment, session });
+          callbacks.onEditIndex?.(index, segment, anchor);
+        }}
         actions={{
           confirm: true,
           drop: true,
-          refine: true,
           reprocess: true,
         }}
-        batch={batch}
         callbacks={panelCallbacks}
         children={children}
         headerActions={props.headerActions}

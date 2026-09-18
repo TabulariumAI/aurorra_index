@@ -29,10 +29,8 @@ const panelDefaults = {
   actions: {
     confirm: true,
     drop: true,
-    refine: true,
     reprocess: true,
   },
-  batch: "Pending",
   sections: {
     filterByChoices: true,
     hiddenSegments: new Set<string>(),

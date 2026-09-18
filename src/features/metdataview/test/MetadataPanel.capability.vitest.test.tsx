@@ -56,10 +56,8 @@ describe("MetadataPanel capability mode", () => {
         actions={{
           confirm: false,
           drop: false,
-          refine: false,
           reprocess: false,
         }}
-        batch="Pending"
         callbacks={{ onPageClick }}
         choices={null}
         confirmedCodes={new Set()}
@@ -111,10 +109,8 @@ describe("MetadataPanel capability mode", () => {
         actions={{
           confirm: false,
           drop: false,
-          refine: false,
           reprocess: false,
         }}
-        batch="Pending"
         callbacks={{}}
         choices={null}
         confirmedCodes={new Set()}

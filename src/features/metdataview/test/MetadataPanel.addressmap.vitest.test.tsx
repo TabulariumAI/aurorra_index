@@ -26,10 +26,8 @@ const panelDefaults = {
   actions: {
     confirm: true,
     drop: true,
-    refine: true,
     reprocess: true,
   },
-  batch: "Pending",
   sections: {
     filterByChoices: true,
     hiddenSegments: new Set<string>(),
@@ -93,10 +91,10 @@ describe("MetadataPanel address map integration", () => {
 
     const openButton = await screen.findByRole("button", { name: "Open address 123 Main Street, Austin, TX 78701" });
     const value = screen.getByText("123 Main Street, Austin, TX 78701");
-    expect(openButton.parentElement?.firstElementChild).toBe(openButton);
-    expect(openButton.parentElement?.lastElementChild).toBe(value);
+    expect(openButton.parentElement?.firstElementChild).toBe(value);
+    expect(openButton.parentElement?.lastElementChild).toBe(openButton);
     expect(openButton).toHaveStyle({ padding: "0px" });
-    expect(openButton.parentElement).toHaveStyle({ display: "block" });
+    expect(openButton.parentElement).toHaveStyle({ alignItems: "flex-start", display: "flex", flexDirection: "column", gap: "0.15rem" });
     expect(value).toHaveStyle({ display: "inline", whiteSpace: "normal", overflowWrap: "anywhere" });
     expect(openButton).toHaveTextContent("Show map");
     expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });

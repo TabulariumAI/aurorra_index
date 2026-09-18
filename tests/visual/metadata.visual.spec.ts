@@ -203,6 +203,134 @@ test("metadata short rows use the same combined disclosure", async ({ page }) =>
   await expect(row.getByText("Quote:")).toHaveCount(0);
 });
 
+for (const width of [940, 1440]) {
+  test(`metadata rows place descriptors left of the main value at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?scenario=metadata-row");
+    const row = page.locator("article").first();
+    const dot = row.locator(":scope > span").first();
+    const aspects = row.locator(":scope > div").nth(0);
+    const primary = aspects.locator(":scope > div").nth(0);
+    const secondary = aspects.locator(":scope > div").nth(1);
+    const value = row.getByText("20180081078", { exact: true }).locator("../..");
+
+    await expect(primary).toHaveText("Recording Instrument Number");
+    await expect(secondary).toHaveText("Record Endorsements");
+    await expect(value).toHaveText("20180081078");
+    await expect(dot).toHaveCSS("border-radius", "999px");
+    await expect(dot).toHaveCSS("background-color", "rgb(34, 139, 34)");
+    await expect(row).toHaveCSS("border-left-width", "0px");
+    const [aspectsBox, primaryBox, valueBox] = await Promise.all([aspects.boundingBox(), primary.boundingBox(), value.boundingBox()]);
+    expect(aspectsBox).not.toBeNull();
+    expect(primaryBox).not.toBeNull();
+    expect(valueBox).not.toBeNull();
+    expect(Math.abs(valueBox!.y + valueBox!.height / 2 - aspectsBox!.y - aspectsBox!.height / 2)).toBeLessThanOrEqual(2);
+    expect(valueBox!.x).toBeGreaterThan(primaryBox!.x + primaryBox!.width);
+    expect(valueBox!.width).toBeGreaterThan(primaryBox!.width);
+    expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("metadata-row-layout.png") });
+  });
+}
+
+for (const width of [700, 1312]) {
+  test(`metadata status dots stay aligned to the primary aspect at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?scenario=metadata-party-rows");
+    const rows = page.locator('article[data-index-segment="party"]');
+    await expect(rows).toHaveCount(6);
+
+    for (const row of await rows.all()) {
+      const dot = row.locator(":scope > span").first();
+      const primary = row.locator(":scope > div").first().locator(":scope > div").first();
+      const [dotBox, primaryBox, lineHeight] = await Promise.all([
+        dot.boundingBox(),
+        primary.boundingBox(),
+        primary.evaluate(element => parseFloat(getComputedStyle(element).lineHeight)),
+      ]);
+      expect(dotBox).not.toBeNull();
+      expect(primaryBox).not.toBeNull();
+      expect(Math.abs(dotBox!.y + dotBox!.height / 2 - primaryBox!.y - lineHeight / 2)).toBeLessThanOrEqual(2);
+      await expect(row).toHaveCSS("border-left-width", "0px");
+      await expect(row).toHaveCSS("border-bottom-width", "1px");
+      await expect(row).toHaveCSS("border-radius", "0px");
+      expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    }
+
+    if (width === 1312) {
+      const first = rows.first();
+      const value = first.getByRole("link", { name: "GALINDO MANUEL GUEL" });
+      const actions = first.locator(":scope > div").nth(1);
+      const [actionBox, rowBox, valueBox] = await Promise.all([actions.boundingBox(), first.boundingBox(), value.boundingBox()]);
+      expect(actionBox).not.toBeNull();
+      expect(rowBox).not.toBeNull();
+      expect(valueBox).not.toBeNull();
+      expect(Math.abs(valueBox!.y + valueBox!.height / 2 - rowBox!.y - rowBox!.height / 2)).toBeLessThanOrEqual(2);
+      expect(Math.abs(actionBox!.y + actionBox!.height / 2 - rowBox!.y - rowBox!.height / 2)).toBeLessThanOrEqual(2);
+      await expect(value).toHaveCSS("text-decoration-line", "none");
+    }
+
+    if (width === 700) {
+      const secondaryBox = await rows.nth(5).locator(":scope > div").first().locator(":scope > div").nth(1).boundingBox();
+      expect(secondaryBox).not.toBeNull();
+      expect(secondaryBox!.height).toBeGreaterThan(20);
+    }
+    await page.screenshot({ path: testInfo.outputPath("metadata-party-rows.png") });
+  });
+}
+
+test("address rows place Show map below the address in the value column", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1312, height: 900 });
+  await page.goto("/?scenario=metadata-address-row");
+
+  const row = page.locator('article[data-index-segment="transaction"]').first();
+  const value = row.getByRole("link", { name: "4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC" });
+  const map = row.getByRole("button", { name: "Open address 4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC" });
+  const valueColumn = value.locator("../..");
+
+  await expect(valueColumn).toHaveCSS("align-items", "flex-start");
+  await expect(valueColumn).toHaveCSS("flex-direction", "column");
+  expect(await valueColumn.locator(":scope > *").evaluateAll(elements => elements.map(element => element.textContent))).toEqual([
+    "4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC",
+    "Show map",
+  ]);
+  const [valueBox, mapBox] = await Promise.all([value.boundingBox(), map.boundingBox()]);
+  expect(valueBox).not.toBeNull();
+  expect(mapBox).not.toBeNull();
+  expect(Math.abs(mapBox!.x - valueBox!.x)).toBeLessThanOrEqual(1);
+  expect(mapBox!.y).toBeGreaterThanOrEqual(valueBox!.y + valueBox!.height);
+  expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+
+  await map.click();
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-address", "4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC");
+  await page.screenshot({ path: testInfo.outputPath("metadata-address-row.png") });
+});
+
+test("page rows remove the descriptor column", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.goto("/?scenario=metadata-pages");
+
+  const rows = page.locator('article[data-index-segment="page"]');
+  await expect(rows).toHaveCount(3);
+  for (const row of await rows.all()) {
+    await expect(row).not.toContainText("Recordable");
+    await expect(row).not.toContainText("Pages");
+    await expect(row).toHaveCSS("grid-template-columns", /.+px .+px/);
+    expect((await row.evaluate(element => getComputedStyle(element).gridTemplateColumns.split(" "))).length).toBe(2);
+    expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  }
+
+  const first = rows.first();
+  const value = first.getByRole("link", { name: "1 : Title page" });
+  const actions = first.getByRole("button", { name: "Copy value 1 : Title page" }).locator("..");
+  const [rowBox, valueBox, actionsBox] = await Promise.all([first.boundingBox(), value.boundingBox(), actions.boundingBox()]);
+  expect(rowBox).not.toBeNull();
+  expect(valueBox).not.toBeNull();
+  expect(actionsBox).not.toBeNull();
+  expect(valueBox!.x - rowBox!.x).toBeLessThan(24);
+  expect(actionsBox!.x).toBeGreaterThan(valueBox!.x + valueBox!.width);
+  await page.screenshot({ path: testInfo.outputPath("metadata-pages.png") });
+});
+
 test("metadata reprocess stays in the segment header", async ({ page }) => {
   await page.goto("/?scenario=metadata-reprocess");
 
@@ -216,26 +344,22 @@ test("metadata reprocess stays in the segment header", async ({ page }) => {
 
   await expect(progress).toBeVisible();
   await expect(segmentHeader.getByRole("button", { name: "Reprocess" })).toHaveCount(0);
-  await expect(chat).toBeVisible();
-  await expect(chat).toHaveText("AI chat");
+  await expect(chat).toHaveCount(0);
   await expect(segmentCount).toHaveCount(1);
   await expect(progress).toHaveCSS("height", "44px");
   await expect(progress).toHaveCSS("width", "44px");
   await expect(spinner).toHaveCSS("border-radius", "999px");
   await expect(spinner).toHaveCSS("animation-name", "metadata-spinner");
-  const [progressBox, actionBox, chatBox, segmentTriggerBox, segmentCountBox] = await Promise.all([
+  const [progressBox, actionBox, segmentTriggerBox, segmentCountBox] = await Promise.all([
     spinner.boundingBox(),
     progress.locator("..").boundingBox(),
-    chat.boundingBox(),
     segmentTrigger.boundingBox(),
     segmentCount.boundingBox(),
   ]);
   expect(progressBox).not.toBeNull();
   expect(actionBox).not.toBeNull();
-  expect(chatBox).not.toBeNull();
   expect(segmentTriggerBox).not.toBeNull();
   expect(segmentCountBox).not.toBeNull();
-  expect(Math.abs((progressBox!.y + (progressBox!.height / 2)) - (chatBox!.y + (chatBox!.height / 2)))).toBeLessThanOrEqual(2);
   expect(Math.abs((actionBox!.y + (actionBox!.height / 2)) - (segmentTriggerBox!.y + (segmentTriggerBox!.height / 2)))).toBeLessThanOrEqual(2);
   expect(Math.abs((actionBox!.y + (actionBox!.height / 2)) - (segmentCountBox!.y + (segmentCountBox!.height / 2)))).toBeLessThanOrEqual(2);
   expect(segmentTriggerBox!.x + segmentTriggerBox!.width).toBeLessThanOrEqual(actionBox!.x);
@@ -262,11 +386,10 @@ test("metadata segment text actions remain within workspace viewports", async ({
     const chat = header.getByRole("button", { name: "Open AI chat" });
 
     await expect(reprocess).toBeVisible();
-    await expect(chat).toBeVisible();
+    await expect(chat).toHaveCount(0);
     await expect(reprocess).toHaveText("Reprocess");
-    await expect(chat).toHaveText("AI chat");
     await expect(count).toHaveCount(1);
-    await expect(actions).toHaveCount(3);
+    await expect(actions).toHaveCount(2);
     const [headerBox, actionBox, countBox] = await Promise.all([
       header.boundingBox(),
       reprocess.locator("..").boundingBox(),

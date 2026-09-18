@@ -17,17 +17,6 @@ function requestKey(request: PageRequest, requestVersion: number): string {
   return `${request.session}:${requestVersion}:${request.page}:${request.code}:${request.index}:${request.segment}:${searchKey}:${request.highlightOptions.scroll}`;
 }
 
-async function syncLensRequest(lens: LensApi, request: PageRequest): Promise<void> {
-  console.info("imageviewer lens sync request", {
-    code: request.code,
-    page: request.page,
-    segment: request.segment,
-    session: request.session,
-  });
-  await lens.goToPage(toLensPage(request.page));
-  applySearch(lens, request);
-}
-
 function applySearch(lens: LensApi, request: PageRequest): void {
   if (request.metadataIndex) {
     console.info("imageviewer lens search index request", {
@@ -77,6 +66,7 @@ export function useImageViewer() {
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
   const fitPageVersion = useImageViewerStore((state) => state.fitPageVersion);
   const request = useImageViewerStore((state) => state.request);
+  const requestSession = request?.session;
   const requestVersion = useImageViewerStore((state) => state.requestVersion);
   const session = useImageViewerStore((state) => state.session);
   const packageMetadata = useImageViewerStore((state) => state.packageMetadata);
@@ -148,6 +138,7 @@ export function useImageViewer() {
       decodedSessionRef.current = null;
       decodedPackageVersionRef.current = 0;
       fitPageRequestRef.current = 0;
+      lastRequestKeyRef.current = "";
       retryPackageRef.current = 0;
       retryVersionRef.current = 0;
       setDecodedVersion(0);
@@ -188,6 +179,7 @@ export function useImageViewer() {
 
   useEffect(() => {
     const lens = lensRef.current;
+    const request = imageViewerStoreApi.getState().request;
     if (!restoreDone || !lensReady || !lens || !request || !packageMetadata || !tiffBytes || tiffType === null) return;
     if (decodedSessionRef.current === request.session && decodedPackageVersionRef.current === packageVersion) return;
     const packageKey = `${request.session}:${packageVersion}`;
@@ -204,6 +196,7 @@ export function useImageViewer() {
       decodingPackageKeyRef.current = packageKey;
       try {
         setLoaded(false);
+        lastRequestKeyRef.current = "";
         activeLens.clear();
         console.info("imageviewer lens metadata load", {
           metadataPages: activePackageMetadata.pages.length,
@@ -224,10 +217,8 @@ export function useImageViewer() {
         await activeLens.decodeDoc(file, { page: toLensPage(activeRequest.page), viewMode: "page" });
         const state = imageViewerStoreApi.getState();
         if (canceled || lensRef.current !== activeLens || state.session !== activeRequest.session || state.packageVersion !== activePackageVersion) return;
-        applySearch(activeLens, activeRequest);
         decodedSessionRef.current = activeRequest.session;
         decodedPackageVersionRef.current = activePackageVersion;
-        lastRequestKeyRef.current = requestKey(activeRequest, requestVersion);
         setDecodedVersion(activePackageVersion);
         setLoaded(true);
         console.info("imageviewer lens ready", {
@@ -255,7 +246,7 @@ export function useImageViewer() {
     return () => {
       canceled = true;
     };
-  }, [lensReady, packageMetadata, packageVersion, request, requestVersion, restoreDone, tiffBytes, tiffType]);
+  }, [lensReady, packageMetadata, packageVersion, requestSession, restoreDone, tiffBytes, tiffType]);
 
   useEffect(() => {
     if (
@@ -290,24 +281,22 @@ export function useImageViewer() {
 
   useEffect(() => {
     const lens = lensRef.current;
-    if (!lens || !pageReady || !request) return;
+    if (!lens || !pageReady || !request || decodingPackageKeyRef.current) return;
     const key = requestKey(request, requestVersion);
     if (lastRequestKeyRef.current === key) return;
-    lastRequestKeyRef.current = key;
-    const activeLens = lens;
-    const activeRequest = request;
-    let canceled = false;
-
-    async function syncRequest() {
-      await syncLensRequest(activeLens, activeRequest);
-      if (canceled) return;
+    if (viewerState?.viewMode !== "page" || viewerState.pageIndex !== toLensPage(request.page)) {
+      console.info("imageviewer lens sync request", {
+        code: request.code,
+        page: request.page,
+        segment: request.segment,
+        session: request.session,
+      });
+      void lens.goToPage(toLensPage(request.page));
+      return;
     }
-
-    void syncRequest();
-    return () => {
-      canceled = true;
-    };
-  }, [pageReady, request, requestVersion]);
+    lastRequestKeyRef.current = key;
+    applySearch(lens, request);
+  }, [pageReady, request, requestVersion, viewerState?.pageIndex, viewerState?.viewMode]);
 
   useEffect(() => {
     const lens = lensRef.current;
