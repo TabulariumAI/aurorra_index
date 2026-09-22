@@ -18,7 +18,9 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
   const { callbacks, children, segments, session } = props;
   const metadata = useMetadata(props);
   const tasks = useQueueStore((state) => state.tasks);
-  const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
+  const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.filter(change => change.action !== "reprocess").map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
+  const pendingSegments = new Map(tasks.filter(task => task.session === session && task.changes.some(change => change.action === "reprocess"))
+    .map(task => [task.segment, { busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} /> : null }] as const));
   const ready = metadata.store.status === "success" || metadata.store.status === "error";
   const loading = metadata.store.status === "loading";
 
@@ -69,6 +71,7 @@ export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
         confirmedCodes={emptyCodes}
         removedCodes={emptyCodes}
         pendingChanges={pendingChanges}
+        pendingSegments={pendingSegments}
         sections={{
           filterByChoices: true,
           hiddenSegments: new Set(),

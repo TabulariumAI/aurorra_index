@@ -30,12 +30,12 @@ export const PAGE_SEGMENT_ORDER = Object.freeze([
 export const PAGE_SEGMENT_LABELS = Object.freeze({
   reference: "Reference (Recital)",
   property: "Property(Exhibit)",
-  endorsement: "Record Endorsements",
+  endorsement: "Endorsements",
   transaction: "Transaction",
   party: "Party (Party Clause)",
   secrets: "Confidential",
   monetary: "Monetary",
-  acknowledgment: "Notarial Acknowledgment",
+  acknowledgment: "Acknowledgment",
   court: "Court",
   vital: "Vital",
 });

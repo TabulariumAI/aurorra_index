@@ -23,6 +23,40 @@ beforeEach(() => {
 });
 
 describe("EditIndexPanel", () => {
+  it.each(["party", "property", "transaction"])("defaults Enhancement off for %s", async (segment) => {
+    const config = props();
+    config.request = { ...config.request, segment };
+    render(<EditIndexPanel {...config} />);
+    await waitFor(() => expect(config.onReadyChange).toHaveBeenCalledWith(true));
+    const checkbox = screen.getByRole("checkbox", { name: "Enhancement" });
+    expect(checkbox).not.toBeChecked();
+    if (segment === "transaction") expect(checkbox).toBeDisabled();
+    else expect(checkbox).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
+  });
+
+  it.each([false, true])("submits Enhancement %s with the edited value", async (checked) => {
+    const config = props();
+    render(<EditIndexPanel {...config} />);
+    await screen.findByRole("button", { name: "Remove Grantor (Party)" });
+    if (checked) fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Updated" } });
+    fireEvent.click(screen.getByRole("button", { name: "Update" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(config.workerClient!.patchIndex).toHaveBeenCalledWith(
+      "token", "session", "party", expect.objectContaining({ new_index_value: "Updated", allow_enrichment: checked }),
+    ));
+  });
+
+  it("resets Enhancement when another index opens", () => {
+    const config = props();
+    const { rerender } = render(<EditIndexPanel {...config} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
+    rerender(<EditIndexPanel {...config} request={{ ...config.request, segment: "transaction" }} />);
+    expect(screen.getByRole("checkbox", { name: "Enhancement" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Enhancement" })).toBeDisabled();
+  });
+
   it("treats reordered aspects as unchanged but detects replacing an aspect with a duplicate", async () => {
     const config = props();
     config.onResource = vi.fn(async () => ({ aspects: { party: ["grantor", "grantee"], property: ["grantor"] } }));
@@ -82,7 +116,7 @@ describe("EditIndexPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
     expect(config.workerClient!.patchIndex).toHaveBeenCalledExactlyOnceWith("token", "session", "party", {
-      action: "update", explanation: "P 3  Original source", new_index_label: "New label", new_index_aspect: "grantor,parcel_id",
+      action: "update", allow_enrichment: false, explanation: "P 3  Original source", new_index_label: "New label", new_index_aspect: "grantor,parcel_id",
       new_index_value: "New value", new_index_ambiguous: null,
       old_index_label: "Raw Label", old_index_aspect: "grantor,grantee", old_index_value: " Original  Value ",
     });

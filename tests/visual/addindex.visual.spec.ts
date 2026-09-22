@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("Add Index renders and confirms the exported Image Viewer selection", async ({ page }) => {
+test.use({ channel: "msedge" });
+
+test("Add Index renders and confirms the exported Image Viewer selection", async ({ page }, testInfo) => {
   let serviceRequest: {
     authorization: string | undefined;
     body: unknown;
@@ -28,7 +30,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
     json: { status: "completed", data: "https://storage.example.test/metadata.json" },
   }));
   await page.route("https://storage.example.test/metadata.json", (route) => route.fulfill({
-    json: { heading: {}, secrets: [], indexes: [{ code: "added", segment: "party", label: "Party", aspect: "Party", value: "Edited Index" }], pages: { num_of_pages: 4 }, fees: [], funds: [] },
+    json: { heading: {}, secrets: [], indexes: [], parties: [{ code: "added", segment: "party", label: "Party", aspect: "Party", value: "Edited Index" }], pages: { num_of_pages: 4 }, fees: [], funds: [] },
   }));
   await page.setViewportSize({ width: 1880, height: 1334 });
   await page.goto("/?scenario=imageviewer");
@@ -99,18 +101,16 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   expect(formBox!.width).toBeLessThan(1880);
   expect(formBox!.height).toBeLessThan(1334);
   await expect.poll(async () => form.evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("add-index-form.png"), fullPage: true });
   await expect(page.getByTestId("add-index-field")).toHaveCSS("border-width", "0px");
   await expect(page.getByTestId("add-quote-field")).toHaveCSS("border-width", "0px");
   await expect(page.getByTestId("add-type-field")).toHaveCSS("border-width", "0px");
   const actionsBox = await page.getByTestId("add-index-actions").boundingBox();
   const confirmBox = await page.getByRole("button", { name: "Add", exact: true }).boundingBox();
-  const cancelBox = await page.getByRole("button", { name: "Cancel" }).boundingBox();
+  await expect(page.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
   expect(actionsBox).not.toBeNull();
   expect(confirmBox).not.toBeNull();
-  expect(cancelBox).not.toBeNull();
   expect(confirmBox!.width).toBeGreaterThanOrEqual(112);
-  expect(cancelBox!.width).toBeGreaterThanOrEqual(112);
-  expect(confirmBox!.x).toBeLessThan(cancelBox!.x);
   expect(Math.abs(
     actionsBox!.x + actionsBox!.width / 2
       - (formBox!.x + formBox!.width / 2),
@@ -136,13 +136,32 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
     authorization: "Bearer token",
     body: {
       segment: "party",
-      explanation: "P 7  Edited source",
+      explanation: "Index created by user.",
+      new_index_page: "7",
+      new_index_source: "Edited source",
       new_index_label: "Party label",
       new_index_aspect: "grantor",
       new_index_value: "Edited Index",
+      allow_enrichment: false,
     },
     method: "POST",
   });
+  await page.route("https://gateway.example.test/v1/metadata/session/data", route => route.fulfill({
+    json: { status: "completed", data: "https://storage.example.test/added.json" },
+  }));
+  await page.route("https://storage.example.test/added.json", route => route.fulfill({
+    json: { heading: {}, indexes: [], parties: [{ code: "added", segment: "party", label: "Party label", aspect: "grantor", value: "Edited Index", page: "7", source: "Edited source", explanation: "Index created by user." }], pages: { num_of_pages: 7 }, secrets: [], fees: [], funds: [] },
+  }));
+  await page.goto("/queue.html");
+  const row = page.getByRole("article").filter({ hasText: "Edited Index" });
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Expand details" }).click();
+  await expect(row).toContainText("Index created by user.");
+  await expect(row).toContainText("P:7. Edited source");
+  await expect(row).toContainText("Explanation:");
+  await expect(row).toContainText("Quote:");
+  await page.screenshot({ path: testInfo.outputPath("added-index-details.png"), fullPage: true });
+
 });
 
 test("Add Index closes and retains a recoverable task when the service rejects the index", async ({ page }) => {

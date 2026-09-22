@@ -5,19 +5,18 @@ import {
   getPanelData,
   type MetadataActionPayload,
   type MetadataError,
-  type MetadataAction,
 } from "aurora-core";
 import { indexStoreApi, useIndexStore } from "../store/metadataStore";
 import { storeApi, useStore } from "../../../store/state/store";
 import type { MetdataMetadataProps } from "../type/metadataView.types";
 import { createIndexWorkerClient } from "../worker/metadataWorkerClient";
 
-function toWorkerError(error: unknown, fallback = "Metadata request failed."): MetadataError {
+function toWorkerError(error: unknown): MetadataError {
   const candidate = error as { code?: string; details?: unknown; error?: string; message?: string; status?: number };
   return {
     code: candidate.code,
     details: candidate.details,
-    error: candidate.error || candidate.message || fallback,
+    error: candidate.error || candidate.message || "Metadata request failed.",
     status: candidate.status,
   };
 }
@@ -45,7 +44,6 @@ export function useMetadata({
   const panelData = useMemo(() => (metadata ? getPanelData(metadata) : null), [metadata]);
   const openSegment = store.openSegment;
   const [selectedIndex, setSelectedIndex] = useState(deferredState.selectedIndex);
-  const [reprocessingSegment, setReprocessingSegment] = useState<string | null>(null);
   const refreshIdRef = useRef<number | null>(null);
   const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => indexStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
 
@@ -67,8 +65,9 @@ export function useMetadata({
       indexStoreApi.getState().setLoading(session);
       callbacks.onViewStarted?.();
       try {
-        const data = await client.indexData(authToken ?? "", session);
+        const data = await client.indexData(authToken ?? "", session, refresh);
         queueStoreApi.getState().setMetadata(session, data);
+        if (indexStoreApi.getState().activeSession !== session) return data;
         indexStoreApi.getState().setLoaded(session);
         callbacks.onView?.(data);
         callbacks.onMetadataLoaded?.(data);
@@ -76,9 +75,11 @@ export function useMetadata({
         return data;
       } catch (error) {
         const workerError = toWorkerError(error);
-        indexStoreApi.getState().setError(workerError);
-        callbacks.onViewError?.(workerError);
-        callbacks.onMetadataError?.(workerError);
+        if (indexStoreApi.getState().activeSession === session) {
+          indexStoreApi.getState().setError(workerError);
+          callbacks.onViewError?.(workerError);
+          callbacks.onMetadataError?.(workerError);
+        }
         throw workerError;
       }
     },
@@ -131,31 +132,10 @@ export function useMetadata({
       { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
   }, [onQueueChange, authToken, batchCode, client, intervalMs, session]);
 
-  const onReprocess = useCallback(
-    async (segment: string) => {
-      const action: MetadataAction = { action: "reprocess", segment, session };
-      setReprocessingSegment(segment);
-      try {
-        try {
-          await client.reprocessSegment(authToken ?? "", session, segment);
-        } catch (error) {
-          const workerError = toWorkerError(error, "Reprocess request failed.");
-          callbacks.onActionError?.({ action, error: workerError });
-          return;
-        }
-        try {
-          await loadMetadata(true);
-          indexStoreApi.setState({ openSegment: segment });
-          callbacks.onActionComplete?.(action);
-        } catch (error) {
-          callbacks.onActionError?.({ action, error: toWorkerError(error, "Metadata refresh failed.") });
-        }
-      } finally {
-        setReprocessingSegment(null);
-      }
-    },
-    [authToken, callbacks, client, loadMetadata, session],
-  );
+  const onReprocess = useCallback(async (segment: string) => {
+    await queueStoreApi.getState().enqueue({ action: "reprocess", session, segment, batch: batchCode },
+      { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
+  }, [onQueueChange, authToken, batchCode, client, intervalMs, session]);
 
   return {
     choices,
@@ -165,7 +145,6 @@ export function useMetadata({
     onDrop,
     onReprocess,
     openSegment,
-    reprocessingSegment,
     retryAttempt: store.retryAttempt,
     selectedIndex,
     setSectionOpen,

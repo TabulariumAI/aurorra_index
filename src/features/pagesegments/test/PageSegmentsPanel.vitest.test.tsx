@@ -33,7 +33,7 @@ it("has no panel close action and disables actions after manual reversion", () =
 it("preserves selected segments and permissions without network work on open", () => {
   const { workerClient } = setup();
   expect(screen.getByRole("checkbox", { name: "Reference (Recital)" })).toBeChecked();
-  expect(screen.getByRole("checkbox", { name: "Record Endorsements" })).toBeDisabled();
+  expect(screen.getByRole("checkbox", { name: "Endorsements" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
   expect(workerClient.updatePageSegments).not.toHaveBeenCalled(); expect(workerClient.indexData).not.toHaveBeenCalled();
 });

@@ -1,6 +1,22 @@
 import type { CSSProperties } from "react";
 
 export const indexStyles = {
+  checkboxRow: {
+    alignItems: "center",
+    display: "flex",
+    gap: "0.55rem",
+    fontSize: "0.95rem",
+    color: "var(--title-ink)",
+  },
+  checkbox(disabled: boolean, checked: boolean): CSSProperties {
+    return {
+      alignItems: "center", appearance: "none", background: checked ? "var(--primary-dark)" : "var(--white)",
+      border: "1px solid var(--slate-500)", borderRadius: 0, boxShadow: "none", color: "var(--white)",
+      cursor: disabled ? "not-allowed" : "pointer", display: "inline-flex", flex: "0 0 auto",
+      height: "1rem", justifyContent: "center", margin: 0, minHeight: "1rem", minWidth: "1rem",
+      opacity: disabled ? 0.65 : 1, padding: 0, width: "1rem",
+    };
+  },
   root: {
     alignItems: "stretch",
     boxSizing: "border-box",
@@ -94,4 +110,4 @@ export const indexStyles = {
       whiteSpace: "nowrap",
     };
   },
-} satisfies Record<string, CSSProperties | ((variant: "primary" | "secondary") => CSSProperties)>;
+} satisfies Record<string, CSSProperties | ((variant: "primary" | "secondary") => CSSProperties) | ((disabled: boolean, checked: boolean) => CSSProperties)>;

@@ -98,7 +98,7 @@ describe("useMetadata", () => {
     expect(indexStoreApi.getState().openSegment).toBeNull();
   });
 
-  it("reloads metadata and preserves requested segment during reprocess", async () => {
+  it("queues reprocess without changing the active segment", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const onActionError = vi.fn();
@@ -135,12 +135,13 @@ describe("useMetadata", () => {
 
     await waitFor(() => expect(client.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
     await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(2));
-    expect(result.current.openSegment).toBe("party");
-    expect(onActionComplete).toHaveBeenCalledWith({ action: "reprocess", segment: "party", session: "session-1" });
+    expect(result.current.openSegment).toBe("legal");
+    expect(onActionComplete).not.toHaveBeenCalled();
+    expect(props.onQueueChange).toHaveBeenCalledWith(expect.objectContaining({ status: "queued", changes: [{ action: "reprocess", segment: "party" }] }));
     expect(onActionError).not.toHaveBeenCalled();
   });
 
-  it("keeps reprocess progress local until the segment request completes", async () => {
+  it("accepts reprocess before completion in the shared queue", async () => {
     const client = createClient();
     let complete: (() => void) | undefined;
     vi.mocked(client.reprocessSegment).mockImplementationOnce(() => new Promise<{ data: string; status: "completed" }>((resolve) => {
@@ -169,10 +170,10 @@ describe("useMetadata", () => {
       void result.current.onReprocess("party");
     });
     await waitFor(() => expect(client.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
-    expect(result.current.reprocessingSegment).toBe("party");
+    expect(queueStoreApi.getState().tasks[0]).toMatchObject({ segment: "party", status: "processing" });
 
     act(() => complete?.());
-    await waitFor(() => expect(result.current.reprocessingSegment).toBeNull());
+    await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
   });
 
   it("uses cached metadata without downloading it again", async () => {
@@ -439,7 +440,7 @@ describe("useMetadata", () => {
     expect(result.current.metadata?.indexes).toEqual([]);
   });
 
-  it("keeps queued failures in metadata tasks and preserves the reprocess error callback", async () => {
+  it("keeps confirm, drop and reprocess failures in the shared queue", async () => {
     const client = createClient();
     vi.mocked(client.confirmIndex).mockRejectedValueOnce(Object.assign(new Error("Confirm failed"), { code: "index_confirm_failed", status: 500 }));
     vi.mocked(client.dropIndex).mockRejectedValueOnce(Object.assign(new Error("Drop failed"), { code: "index_drop_failed", status: 500 }));
@@ -481,13 +482,41 @@ describe("useMetadata", () => {
     await act(async () => {
       await result.current.onReprocess("party");
     });
-    expect(onActionError).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: { action: "reprocess", segment: "party", session: "session-1" },
-        error: expect.objectContaining({ code: "index_reprocess_failed", error: "Reprocess failed", status: 500 }),
-      }),
-    );
-    expect(result.current.reprocessingSegment).toBeNull();
+    await waitFor(() => expect(queueStoreApi.getState().tasks[2]).toMatchObject({ status: "failed", error: "Reprocess failed" }));
+    expect(onActionError).not.toHaveBeenCalled();
     expect(onActionComplete).not.toHaveBeenCalled();
+  });
+});
+
+describe("segment reprocess lifecycle", () => {
+  beforeEach(() => {
+    queueStoreApi.getState().reset();
+    indexStoreApi.getState().resetMetadata();
+    storeApi.getState().resetAllState();
+  });
+  it("finishes the queued session after switching views without changing the new view", async () => {
+    const client = createClient();
+    let finish!: () => void;
+    vi.mocked(client.reprocessSegment).mockImplementation(() => new Promise(resolve => {
+      finish = () => resolve({ status: "completed", data: "" });
+    }));
+    const props: MetdataMetadataProps = {
+      authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
+      callbacks: { onActionComplete: vi.fn(), onActionError: vi.fn() },
+      choices, deferredState: createDeferredState({ segment: "party" }), intervalMs: 0,
+      retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      refresh: null, segments, session: "session-1", workerClient: client,
+    };
+    const view = renderHook(value => useMetadata(value), { initialProps: props });
+    await waitFor(() => expect(view.result.current.store.status).toBe("success"));
+    await act(async () => { await view.result.current.onReprocess("party"); });
+    view.rerender({ ...props, session: "session-2", deferredState: createDeferredState({ segment: "property" }) });
+    await waitFor(() => expect(view.result.current.store.activeSession).toBe("session-2"));
+    act(() => finish());
+    await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
+    expect(view.result.current.store.activeSession).toBe("session-2");
+    expect(view.result.current.openSegment).toBe("property");
+    expect(props.callbacks.onActionComplete).not.toHaveBeenCalled();
+    expect(props.onQueueChange).toHaveBeenCalledWith(expect.objectContaining({ session: "session-1", status: "completed" }));
   });
 });

@@ -1,4 +1,4 @@
-import { composeMetadataJSON, splitMetadataJSON, replaceMetadataPageSegments } from "aurora-core";
+import { composeMetadataJSON, getPanelData, splitMetadataJSON, replaceMetadataPageSegments } from "aurora-core";
 import type { MetadataIndex, MetadataPayload } from "aurora-core";
 import { validateChange } from "./indexChange";
 import type { IndexChange, QueueChange, QueueRequest } from "../type/queue.types";
@@ -20,6 +20,7 @@ function matches(item: MetadataIndex, patch: IndexChange): boolean {
 }
 
 export function readChanges(request: QueueRequest, metadata: MetadataPayload, id: string): QueueChange[] {
+  if ("action" in request && request.action === "reprocess") return [{ action: "reprocess", segment: request.segment }];
   const indexes = [...(metadata.indexes ?? []), ...(metadata.parties ?? []), ...(metadata.secrets ?? [])];
   if ("action" in request && request.action === "page") {
     replaceMetadataPageSegments(splitMetadataJSON(metadata), request.code, request.segments);
@@ -38,13 +39,17 @@ export function readChanges(request: QueueRequest, metadata: MetadataPayload, id
     const patch = value;
     const candidates = [...(projected.indexes ?? []), ...(projected.parties ?? []), ...(projected.secrets ?? []).map((item) => ({ ...item, aspect: item.label })),
       ...(projected.legals?.groups ?? []).flatMap((group) => (group.elements ?? []).map((element) => ({ ...element, code: group.code, label: "legal", segment: "legal", page: group.page })))];
-    const found = patch.action === "add" ? undefined : candidates.find((item) => matches(item, patch));
-    const index: MetadataIndex = found ?? {
+    const partiesOnly = request.segment === "party" && patch.action !== "remove" && !patch.allow_enrichment;
+    const targets = partiesOnly ? projected.parties ?? [] : candidates;
+    const found = patch.action === "add" ? undefined : targets.find((item) => matches(item, patch));
+    const index: MetadataIndex = found ? { ...found, ...(partiesOnly ? { segment: request.segment } : {}) } : {
       code: `${id}:${position}`, segment: request.segment,
       ...(patch.new_index_label !== null ? { label: patch.new_index_label } : {}),
       ...(patch.new_index_aspect !== null ? { aspect: patch.new_index_aspect } : {}),
       ...(patch.new_index_value !== null ? { value: patch.new_index_value } : {}),
       ...(patch.new_index_ambiguous !== null ? { ambiguous: patch.new_index_ambiguous } : {}),
+      ...(patch.new_index_page != null ? { page: patch.new_index_page } : {}),
+      ...(patch.new_index_source != null ? { source: patch.new_index_source } : {}),
       explanation: patch.explanation,
     };
     const change: QueueChange = { action: "patch", code: index.code ?? "", index, patch };
@@ -54,6 +59,7 @@ export function readChanges(request: QueueRequest, metadata: MetadataPayload, id
 }
 
 export function applyChange(metadata: MetadataPayload, change: QueueChange): MetadataPayload {
+  if (change.action === "reprocess") return metadata;
   if (change.action === "page") return composeMetadataJSON(replaceMetadataPageSegments(splitMetadataJSON(metadata), change.code, change.segments))!;
   const patch = change.patch;
   const selected = (item: MetadataIndex) => change.code ? item.code === change.code : Boolean(patch && matches(item, patch));
@@ -78,6 +84,9 @@ export function applyChange(metadata: MetadataPayload, change: QueueChange): Met
       return next;
     });
   };
+  if (change.index.segment === "party" && patch && patch.action !== "remove" && !patch.allow_enrichment) {
+    return { ...metadata, parties: apply(patch.action === "add" ? getPanelData(metadata).parties : metadata.parties ?? []) };
+  }
   const result = { ...metadata, indexes: apply(metadata.indexes ?? []) };
   if (metadata.parties && (patch?.action !== "add" || change.index.segment === "party")) result.parties = apply(metadata.parties);
   if (metadata.secrets && (patch?.action !== "add" || change.index.segment === "secrets")) {

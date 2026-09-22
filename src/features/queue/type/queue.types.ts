@@ -3,10 +3,13 @@ import type { MetdataPatchResult, MetdataWorkerClient } from "../../metdataview/
 
 export type IndexChange = {
   action: "add" | "update" | "remove";
+  allow_enrichment?: boolean;
   explanation: string;
   new_index_label: string | null;
   new_index_aspect: string | null;
   new_index_value: string | null;
+  new_index_page?: string | null;
+  new_index_source?: string | null;
   new_index_ambiguous: string | null;
   old_index_label: string | null;
   old_index_aspect: string | null;
@@ -17,7 +20,7 @@ export type QueueRequest = {
   batch: string | null;
   session: string;
   segment: string;
-} & ({ data: string } | { action: "confirm" | "drop"; code: string } | { action: "page"; code: string; segments: string[] });
+} & ({ data: string } | { action: "confirm" | "drop"; code: string } | { action: "page"; code: string; segments: string[] } | { action: "reprocess" });
 
 export type QueueTransition = {
   session: string;
@@ -34,10 +37,10 @@ export type QueueRuntime = {
   client: MetdataWorkerClient;
 };
 
-export type QueueChange = {
+export type QueueChange = { action: "reprocess"; segment: string } | ({
   code: string;
   index: MetadataIndex;
-} & ({ action: "confirm" | "drop" | "patch"; patch: IndexChange | null } | { action: "page"; patch: null; segments: string[] });
+} & ({ action: "confirm" | "drop" | "patch"; patch: IndexChange | null } | { action: "page"; patch: null; segments: string[] }));
 
 export type QueueTask = {
   id: string;
@@ -47,19 +50,22 @@ export type QueueTask = {
   changes: QueueChange[];
   cursor: number;
   result: MetdataPatchResult | null;
-  status: "queued" | "processing" | "failed";
+  status: "queued" | "processing" | "completed" | "failed";
   error: string | null;
   runtime: QueueRuntime;
 };
 
 export type QueueState = {
-  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload> }>;
+  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload>; paths: Record<string, string> }>;
+  paths: Record<string, string>;
+  generation: number;
   tasks: QueueTask[];
   queues: QueueStatus[];
   restore(scope: string, runtime: QueueRuntime): void;
   enqueue(request: QueueRequest, runtime: QueueRuntime): Promise<{ status: "accepted" }>;
   retry(id: string): Promise<{ status: "accepted" }>;
-  cancel(id: string, code: string): void;
+  cancel(id: string, code?: string): void;
   setMetadata(session: string, metadata: MetadataPayload): void;
+  setPath(session: string, path: string): void;
   reset(): void;
 };

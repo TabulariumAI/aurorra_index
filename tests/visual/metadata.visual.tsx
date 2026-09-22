@@ -172,7 +172,7 @@ function MetadataPreview() {
     onReprocess={noOp}
     openSegment={openSegment}
     panelData={activePanelData}
-    reprocessingSegment={scenario === "metadata-reprocess" ? segments.PARTY : null}
+    reprocessingSegments={new Set(scenario === "metadata-reprocess" ? [segments.PARTY] : [])}
     removedCodes={new Set()}
     sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}
     selectedIndex={null}

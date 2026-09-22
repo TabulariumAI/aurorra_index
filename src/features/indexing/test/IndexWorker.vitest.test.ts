@@ -23,6 +23,24 @@ function plainResponse(text = "plain", status = 200) {
 }
 
 describe("IndexWorker", () => {
+  it("reads a saved SAS URL directly without sending gateway credentials", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(metadata)));
+    const path = "https://blob/metadata.json?sig=test";
+    const result = await new IndexWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData", path });
+    expect(result).toEqual({ ok: true, data: metadata, path });
+    expect(fetch).toHaveBeenCalledExactlyOnceWith(path);
+  });
+  it.each([false, true])("forwards allow_enrichment=%s only for add and update", (allow_enrichment) => {
+    for (const action of ["add", "update", "remove"] as const) {
+      const command = { apiBaseUrl: "https://gateway", token: "token", session: "session", segment: "party", type: "patchIndex" as const,
+        change: { action, allow_enrichment, explanation: "Change", new_index_label: "party", new_index_aspect: "grantor",
+          new_index_value: "Bob", new_index_ambiguous: null, old_index_label: "party", old_index_aspect: "grantor", old_index_value: "Alice" } };
+      const body = JSON.parse(new IndexWorker().buildRequest(command).body!);
+      if (action === "remove") expect(body).not.toHaveProperty("allow_enrichment");
+      else expect(body.allow_enrichment).toBe(allow_enrichment);
+    }
+  });
+
   it.each(["add", "update", "remove"] as const)("sends queued %s changes through the existing patch route", async (action) => {
     const change = {
       action,
@@ -131,7 +149,7 @@ describe("IndexWorker", () => {
       type: "indexData",
     });
 
-    expect(result).toEqual({ ok: true, data: metadata });
+    expect(result).toEqual({ ok: true, data: metadata, path: sasUrl });
     expect(fetchMock).toHaveBeenNthCalledWith(1, "https://doc.example.com/v1/metadata/session-1/data", {
       body: null,
       headers: { Authorization: "Bearer token-1" },

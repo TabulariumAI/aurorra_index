@@ -28,7 +28,7 @@ export type MetdataMetadataRefresh = {
 };
 
 export type MetdataWorkerResult<T> =
-  | { ok: true; data: T }
+  | { ok: true; data: T; path?: string }
   | ({ ok: false } & MetadataError);
 
 export type MetdataPatchResult = {
@@ -47,7 +47,7 @@ export type MetdataWorkerCommand = ({
   session: string;
   token: string;
 } & (
-  | { type: "indexData" }
+  | { type: "indexData"; path?: string | null }
   | { type: "patchIndex"; segment: string; change: IndexChange }
   | { segment: string; type: "reprocessSegment" }
   | { code: string; type: "confirmIndex" }
@@ -60,7 +60,7 @@ export type MetdataWorkerClient = {
   patchIndex(token: string, session: string, segment: string, change: IndexChange): Promise<MetdataPatchResult>;
   confirmIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
   dropIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
-  indexData(token: string, session: string): Promise<MetadataPayload>;
+  indexData(token: string, session: string, refresh: boolean): Promise<MetadataPayload>;
   patchStatus(token: string, session: string, version: number): Promise<MetdataPatchResult>;
   reprocessSegment(token: string, session: string, segment: string): Promise<MetdataReprocessResult>;
 };

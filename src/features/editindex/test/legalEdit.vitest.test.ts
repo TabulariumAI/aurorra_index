@@ -7,8 +7,7 @@ it("ties a legal element update to its existing group for pending state and chan
   const change: IndexChange = { action: "update", explanation: "User change", old_index_label: "legal", old_index_aspect: "subdivision", old_index_value: "Original",
     new_index_label: "legal", new_index_aspect: "subdivision", new_index_value: "Updated", new_index_ambiguous: null };
   const changes = readChanges({ batch: null, session: "session", segment: "legal", data: JSON.stringify([change]) }, metadata, "task");
-  expect(changes[0].code).toBe("legal-1");
-  expect(changes[0].index).toMatchObject({ value: "Original", aspect: "subdivision" });
+  expect(changes[0]).toMatchObject({ action: "patch", code: "legal-1", index: { value: "Original", aspect: "subdivision" } });
   expect(applyChange(metadata, changes[0]).legals?.groups?.[0].elements).toEqual([
     { aspect: "subdivision", value: "Updated", explanation: "User change" }, { aspect: "lot", value: "2" },
   ]);

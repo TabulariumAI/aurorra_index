@@ -28,6 +28,56 @@ beforeEach(() => {
 });
 
 describe("AddIndexPanel", () => {
+  it.each(["party", "property", "transaction"])("defaults Enhancement off for %s", async (segment) => {
+    render(<AddIndexPanel {...props({ segment })} />);
+    const checkbox = screen.getByRole("checkbox", { name: "Enhancement" });
+    expect(checkbox).not.toBeChecked();
+    if (segment === "transaction") expect(checkbox).toBeDisabled();
+    else expect(checkbox).toBeEnabled();
+  });
+
+  it.each([false, true])("queues the Enhancement choice %s with every selected type", async (checked) => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.click(screen.getByRole("option", { name: "Parcel Id" }));
+    if (checked) fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
+    for (const task of queueStoreApi.getState().tasks) {
+      for (const change of task.changes) {
+        expect(change.action === "patch" && change.patch).toMatchObject({ allow_enrichment: checked });
+      }
+    }
+  });
+
+  it("keeps the image page and source separate in the request and displayed index", async () => {
+    const config = props();
+    render(<AddIndexPanel {...config} />);
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
+    expect(config.workerClient!.patchIndex).toHaveBeenCalledWith("token-1", "session-1", "party", expect.objectContaining({
+      new_index_page: "3", new_index_source: "Selected source", explanation: "Index created by user.",
+    }));
+    expect(getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session-1"))!).parties[0]).toMatchObject({
+      page: "3", source: "Selected source", explanation: "Index created by user.",
+    });
+  });
+
+  it("clears Enhancement when another request opens", () => {
+    const config = props();
+    const { rerender } = render(<AddIndexPanel {...config} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
+    rerender(<AddIndexPanel {...config} segment="transaction" request={{ segment: "transaction" }} />);
+    expect(screen.getByRole("checkbox", { name: "Enhancement" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Enhancement" })).toBeDisabled();
+  });
+
   it("keeps the draft without a Cancel action or submission", async () => {
     const config = props();
     render(<AddIndexPanel {...config} />);
@@ -63,7 +113,7 @@ describe("AddIndexPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
     expect(config.workerClient!.patchIndex).toHaveBeenCalledWith("token-1", "session-1", segment, expect.objectContaining({
-      new_index_value: "Manual value", new_index_aspect: segment === "party" ? "grantor" : "parcel_id", explanation: "P   ",
+      new_index_value: "Manual value", new_index_aspect: segment === "party" ? "grantor" : "parcel_id", explanation: "Index created by user.", new_index_page: "", new_index_source: "",
     }));
   });
 
@@ -204,8 +254,8 @@ describe("AddIndexPanel", () => {
     await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
     const tasks = queueStoreApi.getState().tasks;
     expect(tasks.map((task) => task.segment)).toEqual(["party", "property"]);
-    expect(tasks.flatMap((task) => task.changes.map((change) => change.patch))).toEqual(
-      ["grantor", "grantee", "parcel_id"].map((aspect) => expect.objectContaining({ new_index_aspect: aspect, new_index_label: "Custom label", new_index_value: "Edited value", explanation: "P 7  Edited source" })),
+    expect(tasks.flatMap((task) => task.changes.map((change) => change.action === "patch" ? change.patch : null))).toEqual(
+      ["grantor", "grantee", "parcel_id"].map((aspect) => expect.objectContaining({ new_index_aspect: aspect, new_index_label: "Custom label", new_index_value: "Edited value", explanation: "Index created by user.", new_index_page: "7", new_index_source: "Edited source" })),
     );
     expect(config.onError).not.toHaveBeenCalled();
   });
@@ -234,13 +284,13 @@ describe("AddIndexPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
     const tasks = queueStoreApi.getState().tasks;
-    expect(tasks.flatMap((task) => task.changes.map((change) => change.patch))).toEqual([
+    expect(tasks.flatMap((task) => task.changes.map((change) => change.action === "patch" ? change.patch : null))).toEqual([
       expect.objectContaining({ new_index_aspect: "grantor", new_index_label: "Grantor", new_index_value: "Selected value" }),
       expect.objectContaining({ new_index_aspect: "parcel_id", new_index_label: "Parcel Id", new_index_value: "Selected value" }),
     ]);
     const panel = getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session-1"))!);
-    expect(panel.properties).toContainEqual(expect.objectContaining({ aspect: "parcel_id", label: "Parcel Id", value: "Selected value" }));
-    expect(panel.parties).toContainEqual(expect.objectContaining({ aspect: "grantor", label: "Grantor" }));
+    expect(panel.properties).toEqual([expect.objectContaining({ aspect: "parcel_id", label: "Parcel Id", value: "Selected value" })]);
+    expect(panel.parties).toEqual([expect.objectContaining({ aspect: "grantor", label: "Grantor", value: "Selected value" })]);
   });
 
   it("expands compact Additional details fields without losing selection", async () => {

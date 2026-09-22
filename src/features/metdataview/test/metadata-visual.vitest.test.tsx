@@ -136,7 +136,7 @@ describe("metadata visual surface", () => {
     };
     const { rerender } = render(<MetadataPanel {...props} openSegment="party" />);
     const partyHeader = screen.getByRole("button", { name: /Parties\(Party Clause\)/i }).parentElement;
-    const endorsementHeader = screen.getByRole("button", { name: "Record Endorsements" }).parentElement;
+    const endorsementHeader = screen.getByRole("button", { name: "Endorsements" }).parentElement;
 
     expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(1);
     expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);

@@ -6,7 +6,7 @@ test("page segments panel renders choices, updates actions, and closes after que
   const reference = page.getByRole("checkbox", { name: "Reference (Recital)" });
   const property = page.getByRole("checkbox", { name: "Property(Exhibit)" });
   const secrets = page.getByRole("checkbox", { name: "Confidential" });
-  const endorsement = page.getByRole("checkbox", { name: "Record Endorsements" });
+  const endorsement = page.getByRole("checkbox", { name: "Endorsements" });
   const party = page.getByRole("checkbox", { name: "Party (Party Clause)" });
 
   await expect(reference).toBeChecked();

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { composeMetadataJSON, splitMetadataJSON, type MetadataPayload } from "aurora-core";
 import { storeApi } from "../../../store/state/store";
-import { applyChange, indexKey, readChanges } from "../data/queueData";
+import { applyChange, readChanges } from "../data/queueData";
 import type { QueueChange, QueueState, QueueTask } from "../type/queue.types";
 
 function reportChange(task: QueueTask, status: "queued" | "processing" | "completed" | "failed" | "retried" | "canceled", changes: readonly QueueChange[]): void {
@@ -15,11 +15,19 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
   let generation = 0;
   let running = false;
 
+  function canRefresh(session: string): boolean {
+    return get().tasks.every((task) => task.session !== session ||
+      (task.status !== "failed" && task.cursor === task.changes.length));
+  }
+
   function project(session: string): void {
     const base = bases.get(session);
     if (!base) return;
     const metadata = get().tasks.filter((task) => task.session === session)
-      .reduce((data, task) => task.changes.slice(task.cursor).reduce((current, change) => change.action === "drop" || change.patch?.action === "remove" ? current : applyChange(current, change), data), base);
+      .reduce((data, task) => task.changes.reduce((current, change, position) =>
+        (change.action === "patch" && change.patch?.action === "add") ||
+        (position >= task.cursor && (change.action === "page" || change.action === "confirm"))
+          ? applyChange(current, change) : current, data), base);
     storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
   }
 
@@ -31,7 +39,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         completed: queue.completed + (completed?.session === queue.session && completed.batch === queue.batch ? 1 : 0),
       }));
       return { tasks: [...state.tasks], queues, ...(scope !== null ? { snapshots: { ...state.snapshots, [scope]: {
-        tasks: state.tasks.map(({ runtime: _runtime, ...task }) => task), queues, bases: Object.fromEntries(bases),
+        tasks: state.tasks.map(({ runtime: _runtime, ...task }) => task), queues, bases: Object.fromEntries(bases), paths: state.paths,
       } } } : {}) };
     });
   }
@@ -41,7 +49,10 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
     running = true;
     const started = generation;
     try {
-      for (let task = get().tasks.find((item) => item.status === "queued"); task; task = get().tasks.find((item) => item.status === "queued")) {
+      for (;;) {
+        const task = get().tasks.find((item) => item.status === "queued" && item.cursor < item.changes.length)
+          ?? get().tasks.find((item) => item.status !== "failed" && canRefresh(item.session));
+        if (!task) break;
         task.status = "processing";
         task.error = null;
         const refreshing = task.cursor === task.changes.length;
@@ -52,65 +63,60 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
           while (task.cursor < task.changes.length) {
             const change = task.changes[task.cursor];
             reportChange(task, "processing", [change]);
-            if (change.action === "page") {
+            if (change.action === "reprocess") {
+              await client.reprocessSegment(authToken, task.session, change.segment);
+              if (started !== generation) return;
+            } else if (change.action === "page") {
               await client.updatePageSegments(authToken, task.session, change.code, change.segments);
               if (started !== generation) return;
-              bases.set(task.session, applyChange(bases.get(task.session)!, change));
-              reportChange(task, "completed", [change]);
-              task.cursor += 1;
-              notify();
-              continue;
+            } else {
+              if (!task.result) {
+                task.result = change.patch
+                  ? await client.patchIndex(authToken, task.session, task.segment, change.patch)
+                  : change.action === "confirm"
+                    ? await client.confirmIndex(authToken, task.session, change.code)
+                    : await client.dropIndex(authToken, task.session, change.code);
+                if (started !== generation) return;
+                notify();
+              }
+              while (task.result.status === "pending" || task.result.status === "processing") {
+                await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
+                if (started !== generation) return;
+                task.result = await client.patchStatus(authToken, task.session, task.result.version);
+                if (started !== generation) return;
+                notify();
+              }
+              if (task.result.status === "error") {
+                const error = task.result.data;
+                task.result = null;
+                throw new Error(error);
+              }
             }
-            if (!task.result) {
-              task.result = change.patch
-                ? await client.patchIndex(authToken, task.session, task.segment, change.patch)
-                : change.action === "confirm"
-                  ? await client.confirmIndex(authToken, task.session, change.code)
-                  : await client.dropIndex(authToken, task.session, change.code);
-              if (started !== generation) return;
-              notify();
-            }
-            while (task.result.status === "pending" || task.result.status === "processing") {
-              await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
-              if (started !== generation) return;
-              task.result = await client.patchStatus(authToken, task.session, task.result.version);
-              if (started !== generation) return;
-              notify();
-            }
-            if (task.result.status === "error") {
-              const error = task.result.data;
-              task.result = null;
-              throw new Error(error);
-            }
-            bases.set(task.session, applyChange(bases.get(task.session)!, change));
+            if (change.action === "page" || change.action === "confirm") bases.set(task.session, applyChange(bases.get(task.session)!, change));
             reportChange(task, "completed", [change]);
             task.cursor += 1;
             task.result = null;
             notify();
           }
-          const data = await client.indexData(authToken, task.session);
+          const reprocess = task.changes.some(change => change.action === "reprocess");
+          task.status = reprocess ? "processing" : "completed";
+          notify(refreshing || reprocess ? undefined : task);
+          if (!canRefresh(task.session)) {
+            continue;
+          }
+          const data = await client.indexData(authToken, task.session, true);
           if (started !== generation) return;
-          // Resolve server codes for indexes added locally before processing later tasks.
-          const indexes = [...(data.indexes ?? []), ...(data.parties ?? []), ...(data.secrets ?? [])];
-          for (const change of task.changes.filter((item) => item.patch?.action === "add")) {
-            const found = indexes.find((item) => item.aspect && item.value && change.index.aspect && change.index.value &&
-              indexKey(item.aspect) === indexKey(change.index.aspect) && indexKey(item.value) === indexKey(change.index.value));
-            if (found?.code) {
-              const localCode = change.code;
-              for (const queued of get().tasks.filter((item) => item.session === task!.session)) {
-                for (const next of queued.changes.filter((item) => item.code === localCode)) {
-                  next.code = found.code;
-                  next.index = { ...next.index, code: found.code };
-                }
-              }
-            }
+          if (!canRefresh(task.session)) {
+            continue;
           }
           bases.set(task.session, data);
-          set((state) => ({ tasks: state.tasks.filter((item) => item.id !== task!.id) }));
+          const reprocessed = get().tasks.filter((item) => item.session === task.session && item.changes.some(change => change.action === "reprocess"));
+          set((state) => ({ tasks: state.tasks.filter((item) => item.session !== task.session) }));
           project(task.session);
           if (!get().tasks.some((item) => item.session === task!.session)) bases.delete(task.session);
           if (refreshing) reportChange(task, "completed", []);
-          notify(task);
+          notify();
+          for (const item of reprocessed) notify(item);
         } catch (error) {
           if (started !== generation) return;
           task.status = "failed";
@@ -125,7 +131,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
   }
 
   return {
-    tasks: [], queues: [], snapshots: {},
+    tasks: [], queues: [], snapshots: {}, paths: {}, generation: 0,
     restore(owner, runtime) {
       if (scope === owner) {
         for (const task of get().tasks) task.runtime = runtime;
@@ -149,7 +155,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         }
         return task;
       });
-      set({ tasks, queues: snapshot?.queues ?? [] });
+      set({ tasks, queues: snapshot?.queues ?? [], paths: snapshot?.paths ?? {}, generation });
       for (const session of bases.keys()) project(session);
       notify();
       void process();
@@ -183,15 +189,21 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
     cancel(id, code) {
       const task = get().tasks.find((item) => item.id === id);
       if (!task || task.status === "processing") throw new Error("A processing change cannot be canceled.");
-      if (!task.changes.slice(task.cursor).some((change) => change.code === code)) throw new Error("A completed change cannot be canceled.");
-      reportChange(task, "canceled", task.changes.slice(task.cursor).filter(change => change.code === code));
-      if (task.changes[task.cursor]?.code === code) task.result = null;
-      task.changes = task.changes.filter((change, position) => position < task.cursor || change.code !== code);
+      const canceled = task.changes.slice(task.cursor).filter(change => change.action === "reprocess" ? code === undefined : change.code === code);
+      if (canceled.length === 0) throw new Error("A completed change cannot be canceled.");
+      reportChange(task, "canceled", canceled);
+      if (canceled.includes(task.changes[task.cursor])) task.result = null;
+      task.changes = task.changes.filter(change => !canceled.includes(change));
       if (task.changes.length === task.cursor) {
         set((state) => ({ tasks: state.tasks.filter((item) => item.id !== id) }));
       }
       project(task.session);
       if (!get().tasks.some((item) => item.session === task.session)) bases.delete(task.session);
+      notify();
+      void process();
+    },
+    setPath(session, path) {
+      set((state) => ({ paths: { ...state.paths, [session]: path } }));
       notify();
     },
     setMetadata(session, metadata) {
@@ -208,7 +220,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       running = false;
       for (const [session, metadata] of bases) storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
       bases.clear();
-      set({ tasks: [], queues: [] });
+      set({ tasks: [], queues: [], paths: {}, generation });
       notify();
     },
   };

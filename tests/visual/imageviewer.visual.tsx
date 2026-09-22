@@ -117,6 +117,7 @@ function VisualImageViewer() {
             retryIntervalMs={0}
             retryLimit={0}
             batchCode={null}
+            onQueueChange={() => {}}
             onClose={() => addIndexStoreApi.getState().close()}
             onError={(error) => {
               stage.dataset.error = error.error;

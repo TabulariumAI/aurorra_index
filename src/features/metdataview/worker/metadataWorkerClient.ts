@@ -2,6 +2,8 @@ import { createPageSegmentsWorkerClient } from "../../pagesegments/worker/pageSe
 import type { MetdataPatchResult, MetdataReprocessResult, MetdataWorkerClient, MetdataWorkerConfig } from "../type/metadataView.types";
 import type { MetadataPayload } from "aurora-core";
 import { retryWorker } from "../../../shared/worker/retryWorker";
+import { queueStoreApi } from "../../queue/store/queueStore";
+import type { MetdataWorkerCommand } from "../type/metadataView.types";
 
 type WorkerError = Error & {
   code?: string;
@@ -20,7 +22,8 @@ function resolveError(message: string, payload: unknown): WorkerError {
   return error;
 }
 
-async function runWorkerOnce<T>(command: unknown): Promise<T> {
+async function runWorkerOnce<T>(command: MetdataWorkerCommand): Promise<T> {
+  const generation = queueStoreApi.getState().generation;
   return new Promise<T>((resolve, reject) => {
     const worker = new Worker(new URL("./metdataWorker.ts", import.meta.url), { type: "module" });
     let settled = false;
@@ -33,8 +36,9 @@ async function runWorkerOnce<T>(command: unknown): Promise<T> {
       settled = true;
       cleanup();
 
-      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number };
+      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number; path?: string };
       if (payload && payload.ok === true) {
+        if (command.type === "indexData" && payload.path && generation === queueStoreApi.getState().generation) queueStoreApi.getState().setPath(command.session, payload.path);
         resolve(payload.data as T);
         return;
       }
@@ -54,7 +58,7 @@ async function runWorkerOnce<T>(command: unknown): Promise<T> {
 
 export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWorkerClient {
   const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
-  const runReadWorker = <T>(command: unknown) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
+  const runReadWorker = <T>(command: MetdataWorkerCommand) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
   return {
     updatePageSegments: createPageSegmentsWorkerClient({ apiBaseUrl }).updatePageSegments,
     patchIndex(token, session, segment, change) {
@@ -66,8 +70,8 @@ export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWor
     dropIndex(token, session, code) {
       return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "dropIndex" });
     },
-    indexData(token, session) {
-      return runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData" });
+    indexData(token, session, refresh) {
+      return runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData", path: refresh ? null : queueStoreApi.getState().paths[session] ?? null });
     },
     patchStatus(token, session, version) {
       return runReadWorker<MetdataPatchResult>({ apiBaseUrl, session, token, type: "patchStatus", version });

@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
-import { splitMetadataJSON } from "aurora-core";
+import { composeMetadataJSON, getPanelData, splitMetadataJSON, type MetadataPayload } from "aurora-core";
 import type { QueueRuntime } from "../type/queue.types";
 
 function runtime(): QueueRuntime {
@@ -20,13 +20,50 @@ async function load() {
 
 beforeEach(() => { localStorage.clear(); vi.resetModules(); });
 
-it("restores unacknowledged requests as failed without resending and keeps disabled row data", async () => {
+it("retains the last SAS path across reloads and isolates owners", async () => {
+  const first = await load();
+  first.queueStoreApi.getState().restore("user-one", runtime());
+  first.queueStoreApi.getState().setPath("session", "https://blob/metadata.json?sig=test");
+  vi.resetModules();
+  const restored = await load();
+  restored.queueStoreApi.getState().restore("user-two", runtime());
+  expect(restored.queueStoreApi.getState().paths).toEqual({});
+  restored.queueStoreApi.getState().restore("user-one", runtime());
+  expect(restored.queueStoreApi.getState().paths.session).toBe("https://blob/metadata.json?sig=test");
+});
+
+it.each([false, true])("restores reprocess with acknowledged=%s without resending", async (acknowledged) => {
+  const first = await load();
+  const config = runtime();
+  vi.mocked(config.client.reprocessSegment).mockImplementation(() => acknowledged
+    ? Promise.resolve({ status: "completed", data: "" }) : new Promise(() => {}));
+  vi.mocked(config.client.indexData).mockReturnValue(new Promise(() => {}));
+  first.queueStoreApi.getState().restore("user-one", config);
+  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [] }));
+  await first.queueStoreApi.getState().enqueue({ action: "reprocess", session: "session", batch: null, segment: "party" }, config);
+  if (acknowledged) await waitFor(() => expect(config.client.indexData).toHaveBeenCalledOnce());
+  vi.resetModules();
+  const restored = await load();
+  const next = runtime();
+  restored.queueStoreApi.getState().restore("user-one", next);
+  if (acknowledged) {
+    await waitFor(() => expect(restored.queueStoreApi.getState().tasks).toHaveLength(0));
+    expect(next.client.indexData).toHaveBeenCalledExactlyOnceWith("private-token", "session", true);
+    expect(restored.queueStoreApi.getState().queues[0]).toMatchObject({ completed: 1, failed: 0 });
+  } else {
+    expect(restored.queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed", cursor: 0 });
+    expect(next.client.indexData).not.toHaveBeenCalled();
+  }
+  expect(next.client.reprocessSegment).not.toHaveBeenCalled();
+});
+
+it.each([false, true])("restores unacknowledged requests with enrichment=%s and keeps disabled row data", async (allow_enrichment) => {
   const first = await load();
   const config = runtime();
   first.queueStoreApi.getState().restore("user-one", config);
   first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [] }));
   await first.queueStoreApi.getState().enqueue({ batch: "batch", session: "session", segment: "property", data: JSON.stringify([{
-    action: "add", explanation: "P 1 Source", new_index_label: "Parcel Id", new_index_aspect: "parcel_id", new_index_value: "Parcel",
+    action: "add", allow_enrichment, explanation: "Index created by user.", new_index_page: "1", new_index_source: "Source", new_index_label: "Parcel Id", new_index_aspect: "parcel_id", new_index_value: "Parcel",
     new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
   }]) }, config);
   const saved = localStorage.getItem("aurorra-index:queue")!;
@@ -36,14 +73,44 @@ it("restores unacknowledged requests as failed without resending and keeps disab
   const restored = await load();
   const next = runtime();
   restored.queueStoreApi.getState().restore("user-one", next);
-  expect(next.onChange).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", session: "session", batch: "batch", changes: [expect.objectContaining({ index: expect.objectContaining({ value: "Parcel" }) })] }));
+  expect(next.onChange).toHaveBeenCalledWith(expect.objectContaining({ status: "failed", session: "session", batch: "batch", changes: [expect.objectContaining({ index: expect.objectContaining({ value: "Parcel", page: "1", source: "Source", explanation: "Index created by user." }) })] }));
   expect(restored.queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed", cursor: 0, result: null });
   expect(restored.queueStoreApi.getState().queues[0]).toMatchObject({ pending: 0, failed: 1 });
   expect(JSON.stringify(restored.storeApi.getState().getJSON("session"))).toContain("Parcel");
   expect(next.client.patchIndex).not.toHaveBeenCalled();
   await restored.queueStoreApi.getState().retry(restored.queueStoreApi.getState().tasks[0].id);
   expect(next.client.patchIndex).toHaveBeenCalledOnce();
-  expect(next.client.patchIndex).toHaveBeenCalledWith("private-token", "session", "property", expect.objectContaining({ new_index_aspect: "parcel_id" }));
+  expect(next.client.patchIndex).toHaveBeenCalledWith("private-token", "session", "property", expect.objectContaining({ new_index_aspect: "parcel_id", allow_enrichment, new_index_page: "1", new_index_source: "Source", explanation: "Index created by user." }));
+});
+
+it.each(["processing", "completed"] as const)("restores a %s addition with its original code until server metadata replaces it", async (status) => {
+  const first = await load();
+  const config = runtime();
+  vi.mocked(config.client.patchIndex).mockResolvedValue({ status, data: "", version: 7 });
+  vi.mocked(config.client.indexData).mockReturnValue(new Promise(() => {}));
+  first.queueStoreApi.getState().restore("owner", config);
+  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [], parties: [] }));
+  await first.queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "party", data: JSON.stringify([{
+    action: "add", explanation: "Source", new_index_label: "Grantor", new_index_aspect: "grantor", new_index_value: "Bob",
+    new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
+  }]) }, config);
+  await waitFor(() => expect(status === "completed" ? config.client.indexData : config.client.patchStatus).toHaveBeenCalled());
+  const change = first.queueStoreApi.getState().tasks[0].changes[0];
+  if (change.action !== "patch") throw new Error("Expected an addition");
+  vi.resetModules();
+  const restored = await load();
+  const next = runtime();
+  let refresh!: (data: MetadataPayload) => void;
+  vi.mocked(next.client.indexData).mockImplementation(() => new Promise(resolve => { refresh = resolve; }));
+  vi.mocked(next.client.patchStatus).mockResolvedValue({ status: "completed", data: "", version: 7 });
+  restored.queueStoreApi.getState().restore("owner", next);
+  expect(getPanelData(composeMetadataJSON(restored.storeApi.getState().getJSON("session"))!).parties).toEqual([change.index]);
+  await waitFor(() => expect(next.client.indexData).toHaveBeenCalledOnce());
+  const server = { ...change.index, code: "server" };
+  refresh({ indexes: [], parties: [server] });
+  await waitFor(() => expect(restored.queueStoreApi.getState().tasks).toHaveLength(0));
+  expect(getPanelData(composeMetadataJSON(restored.storeApi.getState().getJSON("session"))!).parties).toEqual([server]);
+  expect(next.client.patchIndex).not.toHaveBeenCalled();
 });
 
 it("resumes an acknowledged version by polling rather than resubmitting", async () => {
@@ -135,6 +202,6 @@ it("persists refreshed baselines and ignores responses after approved cancellati
   respond({ status: "completed", data: "", version: 7 });
   await Promise.resolve();
   expect(config.client.indexData).not.toHaveBeenCalled();
-  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {} });
+  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {}, paths: {} });
   expect(JSON.stringify(storeApi.getState().getJSON("session"))).toContain("Fresh");
 });

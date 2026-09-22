@@ -20,8 +20,33 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
 }
 
 describe("IndexWorker", () => {
+  it.each([null, "false", 1])("rejects non-boolean enrichment %j before fetching", async (allow_enrichment) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const input = command();
+    Object.assign(input.change, { allow_enrichment });
+    await expect(new IndexWorker().run(input)).resolves.toMatchObject({ ok: false, code: "invalid_enrichment" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it.each([["1", "Notary source\nSecond line"], ["", ""], [null, null]])("sends page %s and source separately", (page, source) => {
+    const input = command({ explanation: "Index created by user." });
+    Object.assign(input.change, { new_index_page: page, new_index_source: source });
+    const body = JSON.parse(new IndexWorker().buildRequest(input).body!);
+    expect(body).toMatchObject({ new_index_page: page, new_index_source: source, explanation: "Index created by user." });
+  });
+
+  it.each(["page", "source"])("rejects a non-string %s before fetching", async (field) => {
+    const input = command();
+    Object.assign(input.change, { [`new_index_${field}`]: 7 });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(new IndexWorker().run(input)).resolves.toMatchObject({ ok: false, code: `invalid_${field}` });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("builds and sends the Add Index request with bearer auth", async () => {
@@ -36,6 +61,7 @@ describe("IndexWorker", () => {
         new_index_label: "party",
         new_index_aspect: "party",
         new_index_value: "Selected value",
+        allow_enrichment: false,
       }),
       method: "POST",
       url: "https://gateway.example.com/v1/refine/session%2F1/patch/add",
@@ -54,6 +80,7 @@ describe("IndexWorker", () => {
         new_index_label: "party",
         new_index_aspect: "party",
         new_index_value: "Selected value",
+        allow_enrichment: false,
       }),
       headers: {
         Authorization: "Bearer token-1",
@@ -73,6 +100,7 @@ describe("IndexWorker", () => {
         new_index_label: "",
         new_index_aspect: "party",
         new_index_value: "Selected value",
+        allow_enrichment: false,
       }),
       headers: {
         Authorization: "Bearer token-1",

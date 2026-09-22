@@ -54,7 +54,8 @@ async function resolveIndexData(payload: unknown): Promise<MetdataWorkerResult<M
   }
   const result = await fetchJson(envelope.data.data);
   if (!result.ok) return result;
-  return validateMetadataPayload(result.data);
+  const metadata = validateMetadataPayload(result.data);
+  return metadata.ok ? { ...metadata, path: envelope.data.data } : metadata;
 }
 
 function resolveReprocess(payload: unknown): MetdataWorkerResult<MetdataReprocessResult> {
@@ -137,7 +138,8 @@ export class IndexWorker {
     if (command.type === "patchIndex") {
       const { action, ...change } = command.change;
       const body = { segment: command.segment, explanation: change.explanation,
-        ...(action !== "remove" ? { new_index_label: change.new_index_label, new_index_aspect: change.new_index_aspect, new_index_value: change.new_index_value } : {}),
+        ...(action !== "remove" ? { new_index_label: change.new_index_label, new_index_aspect: change.new_index_aspect, new_index_value: change.new_index_value, allow_enrichment: change.allow_enrichment ?? false } : {}),
+        ...(action === "add" ? { new_index_page: change.new_index_page, new_index_source: change.new_index_source } : {}),
         ...(action === "update" ? { new_index_ambiguous: change.new_index_ambiguous } : {}),
         ...(action !== "add" ? { old_index_label: change.old_index_label, old_index_aspect: change.old_index_aspect, old_index_value: change.old_index_value } : {}),
       };
@@ -184,6 +186,12 @@ export class IndexWorker {
         const failure = error as Error & { code: string };
         return { ok: false, code: failure.code, error: failure.message };
       }
+    }
+    if (command.type === "indexData" && command.path) {
+      const result = await fetchJson(command.path);
+      if (!result.ok) return result;
+      const metadata = validateMetadataPayload(result.data);
+      return metadata.ok ? { ...metadata, path: command.path } : metadata;
     }
     const request = this.buildRequest(command);
     let response: Response;

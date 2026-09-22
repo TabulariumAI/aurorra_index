@@ -9,7 +9,7 @@ it.each(["party", "property", "reference", "endorsement", "monetary", "acknowled
   render(<Tooltip.Provider><MetadataRow callbacks={{}} confirmed={false} item={index} selected={false} segment={segment} session="session" onEdit={onEdit} /></Tooltip.Provider>);
   expect(screen.getByRole("button", { name: "Edit index" })).toHaveStyle({ width: "2rem", minWidth: "2rem", minHeight: "2rem" });
   fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
-  expect(onEdit).toHaveBeenCalledExactlyOnceWith(index, segment);
+  expect(onEdit).toHaveBeenCalledExactlyOnceWith(index, segment, screen.getByRole("button", { name: "Edit index" }));
 });
 
 it("disables index editing while its queue change is pending", () => {

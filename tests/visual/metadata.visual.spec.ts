@@ -35,13 +35,10 @@ for (const width of [375, 940]) {
     await trigger.focus();
     await expect(trigger).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(trigger.locator("svg")).toHaveCSS("transform", "none");
-    await expect(row).toHaveCount(0);
-    await expect(header.getByRole("button", { name: "Add Index" })).toHaveCount(0);
-    await expect(count).toHaveText("1");
-    await page.keyboard.press("Space");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(row).toBeVisible();
+    await page.keyboard.press("Space");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
     const pages = accordion.getByRole("button", { name: "Pages", exact: true });
     await pages.click();
     await expect(pages).toHaveAttribute("aria-expanded", "true");
@@ -95,7 +92,7 @@ for (const width of [1440, 480]) {
     const row = page.locator("article").first();
     const edit = row.getByRole("button", { name: "Edit index" });
     const expand = row.getByRole("button", { name: "Expand details" });
-    const value = row.getByRole("link");
+    const value = row.getByRole("link").filter({ hasText: "All that certain lot" });
     await expect(edit).toBeVisible();
     await expect(expand).toHaveAttribute("aria-expanded", "false");
     await expect(row.getByText("Explanation:")).toHaveCount(0);
@@ -164,10 +161,10 @@ test("metadata segment count tokens remain consistent across header states", asy
   const pagesCount = accordion.getByRole("button", { name: "Pages" }).locator("..").locator(":scope > span");
   const partiesCount = accordion.getByRole("button", { name: /Parties\(Party Clause\)/i }).locator("..").locator(":scope > span");
   const titlesCount = accordion.getByRole("button", { name: "Titles" }).locator("..").locator(":scope > span");
-  const endorsementsHeader = accordion.getByRole("button", { name: "Record Endorsements" }).locator("..");
+  const endorsementsHeader = accordion.getByRole("button", { name: "Endorsements" }).locator("..");
 
   await expect(accordion.getByRole("button", { name: "Pages" }).locator("..").locator("button[aria-label]")).toHaveCount(0);
-  await expect(accordion.getByRole("button", { name: /Parties\(Party Clause\)/i }).locator("..").locator("button[aria-label]")).toHaveCount(3);
+  await expect(accordion.getByRole("button", { name: /Parties\(Party Clause\)/i }).locator("..").locator("button[aria-label]")).toHaveCount(2);
   await expect(endorsementsHeader.locator("button[aria-label]")).toHaveCount(0);
 
   const countStyle = async (count: Locator) => count.evaluate((element) => {
@@ -209,13 +206,13 @@ for (const width of [940, 1440]) {
     await page.goto("/?scenario=metadata-row");
     const row = page.locator("article").first();
     const dot = row.locator(":scope > span").first();
-    const aspects = row.locator(":scope > div").nth(0);
+    const aspects = row.getByRole("link").filter({ hasText: "Recording Instrument Number" });
     const primary = aspects.locator(":scope > div").nth(0);
     const secondary = aspects.locator(":scope > div").nth(1);
-    const value = row.getByText("20180081078", { exact: true }).locator("../..");
+    const value = row.getByRole("link", { name: "20180081078", exact: true }).locator("../..");
 
     await expect(primary).toHaveText("Recording Instrument Number");
-    await expect(secondary).toHaveText("Record Endorsements");
+    await expect(secondary).toHaveText("Endorsements");
     await expect(value).toHaveText("20180081078");
     await expect(dot).toHaveCSS("border-radius", "999px");
     await expect(dot).toHaveCSS("background-color", "rgb(34, 139, 34)");
@@ -241,7 +238,7 @@ for (const width of [700, 1312]) {
 
     for (const row of await rows.all()) {
       const dot = row.locator(":scope > span").first();
-      const primary = row.locator(":scope > div").first().locator(":scope > div").first();
+      const primary = row.getByRole("link").first().locator(":scope > div").first();
       const [dotBox, primaryBox, lineHeight] = await Promise.all([
         dot.boundingBox(),
         primary.boundingBox(),
@@ -259,7 +256,7 @@ for (const width of [700, 1312]) {
     if (width === 1312) {
       const first = rows.first();
       const value = first.getByRole("link", { name: "GALINDO MANUEL GUEL" });
-      const actions = first.locator(":scope > div").nth(1);
+      const actions = first.locator(":scope > div[data-preview-exclude]").first();
       const [actionBox, rowBox, valueBox] = await Promise.all([actions.boundingBox(), first.boundingBox(), value.boundingBox()]);
       expect(actionBox).not.toBeNull();
       expect(rowBox).not.toBeNull();
@@ -270,7 +267,7 @@ for (const width of [700, 1312]) {
     }
 
     if (width === 700) {
-      const secondaryBox = await rows.nth(5).locator(":scope > div").first().locator(":scope > div").nth(1).boundingBox();
+      const secondaryBox = await rows.nth(5).getByRole("link").first().locator(":scope > div").nth(1).boundingBox();
       expect(secondaryBox).not.toBeNull();
       expect(secondaryBox!.height).toBeGreaterThan(20);
     }
@@ -331,40 +328,42 @@ test("page rows remove the descriptor column", async ({ page }, testInfo) => {
   await page.screenshot({ path: testInfo.outputPath("metadata-pages.png") });
 });
 
-test("metadata reprocess stays in the segment header", async ({ page }) => {
+for (const width of [480, 1440]) {
+test(`metadata reprocess blocks and animates the whole segment at ${width}px`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width, height: 900 });
   await page.goto("/?scenario=metadata-reprocess");
-
-  const accordion = page.getByRole("region", { name: "Metadata accordion" });
-  const segmentTrigger = accordion.getByRole("button", { name: /Parties\(Party Clause\)/i });
-  const segmentHeader = segmentTrigger.locator("..");
-  const progress = segmentHeader.getByRole("status", { name: "Reprocessing party" });
-  const spinner = progress.locator(".metadata-progress-spinner");
-  const chat = segmentHeader.getByRole("button", { name: "Open AI chat" });
-  const segmentCount = segmentHeader.locator(":scope > span");
-
+  const progress = page.getByRole("progressbar", { name: "Reprocessing party" });
+  const segment = progress.locator("..");
   await expect(progress).toBeVisible();
-  await expect(segmentHeader.getByRole("button", { name: "Reprocess" })).toHaveCount(0);
-  await expect(chat).toHaveCount(0);
-  await expect(segmentCount).toHaveCount(1);
-  await expect(progress).toHaveCSS("height", "44px");
-  await expect(progress).toHaveCSS("width", "44px");
-  await expect(spinner).toHaveCSS("border-radius", "999px");
-  await expect(spinner).toHaveCSS("animation-name", "metadata-spinner");
-  const [progressBox, actionBox, segmentTriggerBox, segmentCountBox] = await Promise.all([
-    spinner.boundingBox(),
-    progress.locator("..").boundingBox(),
-    segmentTrigger.boundingBox(),
-    segmentCount.boundingBox(),
-  ]);
-  expect(progressBox).not.toBeNull();
-  expect(actionBox).not.toBeNull();
-  expect(segmentTriggerBox).not.toBeNull();
-  expect(segmentCountBox).not.toBeNull();
-  expect(Math.abs((actionBox!.y + (actionBox!.height / 2)) - (segmentTriggerBox!.y + (segmentTriggerBox!.height / 2)))).toBeLessThanOrEqual(2);
-  expect(Math.abs((actionBox!.y + (actionBox!.height / 2)) - (segmentCountBox!.y + (segmentCountBox!.height / 2)))).toBeLessThanOrEqual(2);
-  expect(segmentTriggerBox!.x + segmentTriggerBox!.width).toBeLessThanOrEqual(actionBox!.x);
-  expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(segmentCountBox!.x);
+  await expect(segment).toHaveAttribute("aria-busy", "true");
+  await expect(progress).not.toHaveAttribute("aria-valuenow");
+  await expect(progress.locator(".metadata-row-progress")).toHaveCSS("animation-name", "metadata-pending");
+  await expect(progress.locator(".metadata-row-progress")).toHaveCSS("border-top-width", "2px");
+  await expect(segment.locator("[inert]").first()).toContainText("Parties(Party Clause)");
+  const bounds = await progress.boundingBox();
+  const segmentBounds = await segment.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(segmentBounds).not.toBeNull();
+  expect(bounds!.width).toBeCloseTo(segmentBounds!.width, 0);
+  const borderHeight = await segment.evaluate(node => {
+    const style = getComputedStyle(node);
+    return Number.parseFloat(style.borderTopWidth) + Number.parseFloat(style.borderBottomWidth);
+  });
+  expect(bounds!.height).toBeCloseTo(segmentBounds!.height - borderHeight, 0);
+  await page.keyboard.press("Tab");
+  expect(await segment.evaluate(node => node.contains(document.activeElement))).toBe(false);
+  await expect(page.getByRole("button", { name: "Pages", exact: true })).toBeEnabled();
+  await segment.locator("button").first().evaluate((node: HTMLButtonElement) => node.focus());
+  expect(await segment.evaluate(node => node.contains(document.activeElement))).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath("metadata-segment-progress.png") });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(progress.locator(".metadata-row-progress")).toHaveCSS("animation-name", "none");
+  await expect(progress).toBeVisible();
+  await page.getByRole("button", { name: "Pages", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Pages", exact: true })).toHaveAttribute("aria-expanded", "true");
+  await expect(progress).toBeVisible();
 });
+}
 
 test("metadata segment text actions remain within workspace viewports", async ({ page }) => {
   for (const viewport of [
