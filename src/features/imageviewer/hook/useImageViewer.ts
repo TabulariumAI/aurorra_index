@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import type { AddIndexSelection } from "../../addindex";
 import { toPositivePage, toViewerError } from "../data/imageViewerData";
+import { isRecognitionPageError, resolveImagePage } from "../data/recognitionPages";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import type { LensApi, PageRequest } from "../type/imageViewer.types";
 
@@ -17,7 +18,7 @@ function requestKey(request: PageRequest, requestVersion: number): string {
   return `${request.session}:${requestVersion}:${request.page}:${request.code}:${request.index}:${request.segment}:${searchKey}:${request.highlightOptions.scroll}`;
 }
 
-function applySearch(lens: LensApi, request: PageRequest): void {
+function applySearch(lens: LensApi, request: PageRequest, imagePage: number): void {
   if (request.metadataIndex) {
     console.info("imageviewer lens search index request", {
       page: request.page,
@@ -25,7 +26,7 @@ function applySearch(lens: LensApi, request: PageRequest): void {
       sourceLength: request.metadataIndex.source.length,
       valueLength: request.metadataIndex.value.length,
     });
-    lens.searchIndex(request.page, request.metadataIndex, { additive: false });
+    lens.searchIndex(imagePage, request.metadataIndex, { additive: false });
     return;
   }
   if (request.value) {
@@ -66,6 +67,9 @@ export function useImageViewer() {
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
   const fitPageVersion = useImageViewerStore((state) => state.fitPageVersion);
   const request = useImageViewerStore((state) => state.request);
+  const choices = useImageViewerStore((state) => state.choices);
+  const pageCount = useImageViewerStore((state) => state.pageCount);
+  const error = useImageViewerStore((state) => state.error);
   const requestSession = request?.session;
   const requestVersion = useImageViewerStore((state) => state.requestVersion);
   const session = useImageViewerStore((state) => state.session);
@@ -76,8 +80,27 @@ export function useImageViewer() {
   const viewerState = useImageViewerStore((state) => state.viewerState);
   const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
   const status = useImageViewerStore((state) => state.status);
-  const pageReady = Boolean(loaded && viewerState?.status === "ready" && viewerState.pageIndex >= 0);
+  const resolution = useMemo(() => {
+    if (!request || request.session !== session) return { page: null, error: null };
+    try {
+      return { page: resolveImagePage(request.page, pageCount, choices), error: null };
+    } catch (error) {
+      return { page: null, error: toViewerError(error, "Document page is unavailable.") };
+    }
+  }, [choices, pageCount, request, session]);
+  const imagePage = resolution.page;
+  const validRequest = imagePage !== null;
+  const pageReady = Boolean(!resolution.error && loaded && viewerState?.status === "ready" && viewerState.pageIndex >= 0);
   const metadataReady = Boolean(pageReady && viewerState?.pageInfo);
+
+  useEffect(() => {
+    const state = imageViewerStoreApi.getState();
+    if (state.request !== request || state.choices !== choices || state.pageCount !== pageCount || state.session !== session) return;
+    if (resolution.error) {
+      lastRequestKeyRef.current = "";
+      if (error !== resolution.error) state.setError(resolution.error);
+    }
+  }, [choices, error, pageCount, request, resolution, session]);
 
   useLayoutEffect(() => {
     const lensHost = lensHostRef.current;
@@ -180,7 +203,7 @@ export function useImageViewer() {
   useEffect(() => {
     const lens = lensRef.current;
     const request = imageViewerStoreApi.getState().request;
-    if (!restoreDone || !lensReady || !lens || !request || !packageMetadata || !tiffBytes || tiffType === null) return;
+    if (!restoreDone || !lensReady || !lens || !request || !validRequest || !packageMetadata || !tiffBytes || tiffType === null) return;
     if (decodedSessionRef.current === request.session && decodedPackageVersionRef.current === packageVersion) return;
     const packageKey = `${request.session}:${packageVersion}`;
     if (decodingPackageKeyRef.current === packageKey) return;
@@ -190,7 +213,6 @@ export function useImageViewer() {
     const activePackageVersion = packageVersion;
     const activeTiffBytes = tiffBytes;
     const activeTiffType = tiffType;
-    let canceled = false;
 
     async function decodePackage() {
       decodingPackageKeyRef.current = packageKey;
@@ -214,9 +236,10 @@ export function useImageViewer() {
           tiffBytes: activeTiffBytes.byteLength,
           tiffType: activeTiffType,
         });
-        await activeLens.decodeDoc(file, { page: toLensPage(activeRequest.page), viewMode: "page" });
+        const imagePage = resolveImagePage(activeRequest.page, pageCount, choices);
+        await activeLens.decodeDoc(file, { page: toLensPage(imagePage), viewMode: "page" });
         const state = imageViewerStoreApi.getState();
-        if (canceled || lensRef.current !== activeLens || state.session !== activeRequest.session || state.packageVersion !== activePackageVersion) return;
+        if (lensRef.current !== activeLens || state.session !== activeRequest.session || state.packageVersion !== activePackageVersion) return;
         decodedSessionRef.current = activeRequest.session;
         decodedPackageVersionRef.current = activePackageVersion;
         setDecodedVersion(activePackageVersion);
@@ -226,14 +249,15 @@ export function useImageViewer() {
           packageVersion: activePackageVersion,
           session: activeRequest.session,
         });
-        imageViewerStoreApi.getState().setReady();
+        if (!isRecognitionPageError(state.error)) state.setReady();
       } catch (error) {
         console.info("imageviewer lens error", {
           packageVersion: activePackageVersion,
           session: activeRequest.session,
         });
-        if (!canceled && lensRef.current === activeLens) {
-          imageViewerStoreApi.getState().setError(toViewerError(error, "Image package failed to load."));
+        const state = imageViewerStoreApi.getState();
+        if (lensRef.current === activeLens && state.session === activeRequest.session && state.packageVersion === activePackageVersion) {
+          state.setError(toViewerError(error, "Image package failed to load."));
         }
       } finally {
         if (decodingPackageKeyRef.current === packageKey) {
@@ -243,18 +267,16 @@ export function useImageViewer() {
     }
 
     void decodePackage();
-    return () => {
-      canceled = true;
-    };
-  }, [lensReady, packageMetadata, packageVersion, requestSession, restoreDone, tiffBytes, tiffType]);
+  }, [choices, lensReady, packageMetadata, packageVersion, pageCount, requestSession, restoreDone, tiffBytes, tiffType, validRequest]);
 
   useEffect(() => {
     if (
       !pageReady ||
       status !== "ready" ||
       !request ||
+      imagePage === null ||
       requestVersion === 0 ||
-      viewerState?.pageIndex !== toLensPage(request.page) ||
+      viewerState?.pageIndex !== toLensPage(imagePage) ||
       viewerState.pageInfo
     ) return;
     if (retryVersionRef.current !== requestVersion) {
@@ -277,26 +299,27 @@ export function useImageViewer() {
         error: "Image package metadata is unavailable for this page.",
       });
     }
-  }, [decodedVersion, pageReady, request, requestVersion, status, viewerState]);
+  }, [decodedVersion, imagePage, pageReady, request, requestVersion, status, viewerState]);
 
   useEffect(() => {
     const lens = lensRef.current;
-    if (!lens || !pageReady || !request || decodingPackageKeyRef.current) return;
-    const key = requestKey(request, requestVersion);
+    if (!lens || !pageReady || !request || imagePage === null || decodingPackageKeyRef.current) return;
+    const key = `${requestKey(request, requestVersion)}:${imagePage}`;
     if (lastRequestKeyRef.current === key) return;
-    if (viewerState?.viewMode !== "page" || viewerState.pageIndex !== toLensPage(request.page)) {
+    if (viewerState?.viewMode !== "page" || viewerState.pageIndex !== toLensPage(imagePage)) {
       console.info("imageviewer lens sync request", {
         code: request.code,
         page: request.page,
         segment: request.segment,
         session: request.session,
       });
-      void lens.goToPage(toLensPage(request.page));
+      void lens.goToPage(toLensPage(imagePage));
       return;
     }
     lastRequestKeyRef.current = key;
-    applySearch(lens, request);
-  }, [pageReady, request, requestVersion, viewerState?.pageIndex, viewerState?.viewMode]);
+    if (isRecognitionPageError(imageViewerStoreApi.getState().error)) imageViewerStoreApi.getState().setReady();
+    applySearch(lens, request, imagePage);
+  }, [imagePage, pageReady, request, requestVersion, viewerState?.pageIndex, viewerState?.viewMode]);
 
   useEffect(() => {
     const lens = lensRef.current;
@@ -429,7 +452,8 @@ export function useImageViewer() {
     fitHeight,
     fitPage,
     fitWidth,
-    isLoading: Boolean(!pageReady && viewerState?.status !== "copyingSelection" && request && packageMetadata && tiffBytes && tiffType !== null),
+    isLoading: Boolean(!resolution.error && !pageReady && viewerState?.status !== "copyingSelection" && request && packageMetadata && tiffBytes && tiffType !== null),
+    hasRequestError: Boolean(resolution.error),
     isNavigating: loaded && (viewerStatus === "loadingPage" || viewerState?.status === "loadingPage"),
     isRestoredSession: restoredSession,
     isRestoring: Boolean(session && (!lensReady || !restoreDone)),

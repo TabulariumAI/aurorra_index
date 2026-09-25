@@ -27,6 +27,9 @@ const processOptions = [
 ];
 
 export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersProps) {
+  const allChanges = Object.values(report.changeCounts).reduce((total, count) => total + count, 0);
+  const allProcesses = Object.values(report.processCounts).reduce((total, count) => total + count, 0);
+
   return (
     <div style={auditStyles.filters}>
       <div style={auditStyles.filterRow}>
@@ -43,7 +46,7 @@ export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersP
                 key={`change-${value || "all"}`}
                 value={value}
               >
-                {`${label} (${report.changeCounts[
+                {`${label} (${value === "" ? allChanges : report.changeCounts[
                   value === "ADD" ? "add" : value === "REMOVE" ? "remove" : value === "CORRECTION" ? "correction" : "other"
                 ]})`}
               </option>
@@ -63,7 +66,7 @@ export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersP
                 key={`process-${value || "all"}`}
                 value={value}
               >
-                {`${label} (${report.processCounts[
+                {`${label} (${value === "" ? allProcesses : report.processCounts[
                   value === "VERIFICATION" ? "verification" : value === "ENRICHMENT" ? "enrichment" : value === "Reprocess |" ? "reprocess" : value === "USER" ? "user" : "other"
                 ]})`}
               </option>

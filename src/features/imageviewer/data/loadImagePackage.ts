@@ -10,6 +10,7 @@ async function runImagePackage(input: LoadPackageInput): Promise<void> {
   const hostInput: HostInput = {
     apiGatewayUrl: input.apiGatewayUrl,
     authToken: input.authToken,
+    choices: state.session === input.session ? state.choices : null,
     onError: input.onError,
     pageCount: state.pageCount,
     pageMap: state.pageMap,

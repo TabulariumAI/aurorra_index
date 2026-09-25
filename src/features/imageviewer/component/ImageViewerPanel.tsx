@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import type { JSX } from "react";
 import { addIndexStoreApi } from "../../addindex";
 import { loadImagePackage } from "../data/loadImagePackage";
+import { isRecognitionPageError } from "../data/recognitionPages";
 import { useImageViewer } from "../hook/useImageViewer";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import { imageViewerStyles } from "../style/imageViewerStyles";
@@ -34,7 +35,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
   const reloadRef = useRef(0);
 
   useEffect(() => {
-    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring) return;
+    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring || viewer.hasRequestError) return;
     const state = imageViewerStoreApi.getState();
     const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
     const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
@@ -42,7 +43,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
     if (!state.onError) return;
     const restart = viewer.reloadId > reloadRef.current;
     if (!restart && viewer.isRestoredSession) return;
-    if (!restart && ((state.status === "ready" && hasPackage) || restoredLensReady)) return;
+    if (!restart && ((hasPackage && (state.status === "ready" || isRecognitionPageError(state.error))) || restoredLensReady)) return;
     if (restart) reloadRef.current = viewer.reloadId;
     console.info("imageviewer package load start", {
       hasPackage,
@@ -62,7 +63,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
       session,
       workerClient: workerClient ?? undefined,
     });
-  }, [apiGatewayUrl, authToken, requestVersion, session, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
+  }, [apiGatewayUrl, authToken, requestVersion, session, viewer.hasRequestError, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
   const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage");

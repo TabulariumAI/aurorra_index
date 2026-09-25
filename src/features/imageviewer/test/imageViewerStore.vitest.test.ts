@@ -10,6 +10,7 @@ describe("imageViewerStore", () => {
   it("stores host input and replaces local package bytes", () => {
     const onError = vi.fn();
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
@@ -59,6 +60,7 @@ describe("imageViewerStore", () => {
 
   it("clears downloaded package values when session changes", () => {
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -70,6 +72,7 @@ describe("imageViewerStore", () => {
     });
     imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(1), tiffType: "image/tiff" });
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -116,6 +119,7 @@ describe("imageViewerStore", () => {
 
   it("clears transient lens state without clearing same-session package values", () => {
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -149,6 +153,7 @@ describe("imageViewerStore", () => {
 
   it("preserves same-session package bytes when TIFF content type is empty", () => {
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),

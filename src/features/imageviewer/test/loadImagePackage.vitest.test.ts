@@ -129,6 +129,7 @@ describe("loadImagePackage", () => {
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),

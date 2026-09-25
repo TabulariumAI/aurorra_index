@@ -92,6 +92,7 @@ function VisualImageViewer() {
       <ImageViewerPanel
         compact={compact}
         hostInput={{
+          choices: [{ service: "Recognition", level: 6 }],
           ...hostInput,
           onError(error) {
             stage.dataset.error = error.error;

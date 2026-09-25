@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import type { StoreState } from "../type/imageViewer.types";
+import { isRecognitionPageError } from "../data/recognitionPages";
 
 const DEFAULT_POLL_INTERVAL_MS = 1500;
 
 export const useImageViewerStore = create<StoreState>()((set, get) => ({
   apiGatewayUrl: "",
   authToken: null,
+  choices: null,
   error: null,
   fitPageVersion: 0,
   onError: null,
@@ -45,6 +47,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     set({
       apiGatewayUrl: "",
       authToken: null,
+      choices: null,
       error: null,
       fitPageVersion: 0,
       onError: null,
@@ -81,7 +84,8 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     set({
       apiGatewayUrl: input.apiGatewayUrl,
       authToken: input.authToken,
-      error: null,
+      choices: input.choices,
+      error: sameSession && isRecognitionPageError(current.error) ? current.error : null,
       fitPageVersion: sameSession ? current.fitPageVersion : 0,
       onError: input.onError,
       pageCount: input.pageCount,

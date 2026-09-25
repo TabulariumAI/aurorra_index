@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auditStoreApi } from "../store/auditStore";
 import { AuditPanel } from "../component/AuditPanel";
@@ -106,6 +106,8 @@ describe("AuditPanel", () => {
     expect(screen.getByText("Old remove message")).toBeInTheDocument();
     expect(screen.getByText("Addition (1)")).toBeInTheDocument();
     expect(screen.getByText("Verification (1)")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Change type")).getByRole("option", { name: "All (3)" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Process")).getByRole("option", { name: "All (3)" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -148,6 +150,7 @@ describe("AuditPanel", () => {
     );
 
     await screen.findByText("No gaps found.");
+    expect(screen.getAllByRole("option", { name: "All (0)" })).toHaveLength(2);
     expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
   });
 
@@ -169,11 +172,23 @@ describe("AuditPanel", () => {
     fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "REMOVE" } });
     expect(screen.getByText("Old remove message")).toBeInTheDocument();
     expect(screen.queryByText("Newest addition message")).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("Change type")).getByRole("option", { name: "All (3)" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Process")).getByRole("option", { name: "All (1)" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Process"), { target: { value: "USER" } });
     expect(screen.getByText("Old remove message")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Process"), { target: { value: "VERIFICATION" } });
     expect(screen.getByText("No gaps found.")).toBeInTheDocument();
+    expect(screen.getAllByRole("option", { name: "All (1)" })).toHaveLength(2);
+
+    fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "" } });
+    expect(screen.getByText("Newest addition message")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Change type")).getByRole("option", { name: "All (1)" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Process")).getByRole("option", { name: "All (3)" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Process"), { target: { value: "" } });
+    expect(screen.getByText("Old remove message")).toBeInTheDocument();
+    expect(screen.getAllByRole("option", { name: "All (3)" })).toHaveLength(2);
   });
 });

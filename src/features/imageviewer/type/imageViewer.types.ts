@@ -32,6 +32,7 @@ export type PackageMetadata = {
 export type HostInput = {
   apiGatewayUrl: string;
   authToken: string;
+  choices: unknown;
   onError: (error: ViewerError) => void;
   pageCount: number;
   pageMap: ReadonlyMap<string, string>;
@@ -108,6 +109,7 @@ export type LoadPackageInput = {
 export type StoreState = {
   apiGatewayUrl: string;
   authToken: string | null;
+  choices: unknown;
   error: ViewerError | null;
   fitPageVersion: number;
   onError: ((error: ViewerError) => void) | null;

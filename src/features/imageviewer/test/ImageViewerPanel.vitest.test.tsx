@@ -106,6 +106,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
@@ -159,6 +160,7 @@ describe("ImageViewerPanel", () => {
   it("opens Add Index with the exported selection", async () => {
     viewerRestoredSession = true;
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -195,6 +197,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -233,6 +236,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -271,6 +275,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -300,6 +305,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -328,6 +334,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -364,6 +371,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -396,6 +404,7 @@ describe("ImageViewerPanel", () => {
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,

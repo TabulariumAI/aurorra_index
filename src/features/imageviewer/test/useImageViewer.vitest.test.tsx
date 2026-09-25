@@ -184,10 +184,11 @@ function setRequest() {
 
 function setHost(onError = vi.fn()) {
   imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
     apiGatewayUrl: "https://gateway",
     authToken: "token",
     onError,
-    pageCount: 2,
+    pageCount: 4,
     pageMap: new Map(),
     request: null,
     selectedIndex: null,
@@ -210,6 +211,103 @@ function seedPackage(metadata: { pages: unknown[] } = { pages: [] }, bytes: Arra
 }
 
 describe("useImageViewer", () => {
+  it("maps Level3 preview navigation and highlights without changing source page identities", async () => {
+    seedPackage();
+    imageViewerStoreApi.setState({ choices: [{ service: "Recognition", level: 3 }], pageCount: 20 });
+    const request = imageViewerStoreApi.getState().request!;
+    imageViewerStoreApi.getState().setRequest({ ...request, page: 20 });
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.searchIndex).toHaveBeenCalledWith(8, request.metadataIndex, { additive: false }));
+    const lens = lensInstances[0];
+    expect(lens.decodeDoc).toHaveBeenCalledWith(expect.any(File), { page: 7, viewMode: "page" });
+    for (const [source, image] of [[19, 7], [18, 6], [5, 5]]) {
+      await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, page: source }));
+      expect(lens.goToPage).toHaveBeenLastCalledWith(image - 1);
+      expect(lens.searchIndex).toHaveBeenLastCalledWith(image, request.metadataIndex, { additive: false });
+      expect(imageViewerStoreApi.getState().request?.page).toBe(source);
+    }
+    expect(lens.decodeDoc).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("reload-id")).toHaveTextContent("0");
+  });
+
+  it.each([6, 17])("rejects excluded page %s before decoding or searching", async (page) => {
+    seedPackage();
+    const onError = vi.fn();
+    imageViewerStoreApi.setState({ choices: [{ service: "Recognition", level: 3 }], pageCount: 20, onError });
+    imageViewerStoreApi.getState().setRequest({ ...imageViewerStoreApi.getState().request!, page });
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByTestId("restore-state")).toHaveTextContent("ready"));
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: "image_page_unavailable" }));
+    expect(lensInstances[0].decodeDoc).not.toHaveBeenCalled();
+    expect(lensInstances[0].goToPage).not.toHaveBeenCalled();
+    expect(lensInstances[0].searchIndex).not.toHaveBeenCalled();
+    expect(screen.getByTestId("reload-id")).toHaveTextContent("0");
+  });
+
+  it("recovers from an excluded page by navigating the existing package", async () => {
+    seedPackage();
+    imageViewerStoreApi.setState({ choices: [{ service: "Recognition", level: 3 }], pageCount: 20 });
+    const request = imageViewerStoreApi.getState().request!;
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.searchIndex).toHaveBeenCalledTimes(1));
+    const lens = lensInstances[0];
+    await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, page: 17 }));
+    expect(imageViewerStoreApi.getState().error?.code).toBe("image_page_unavailable");
+    expect(lens.goToPage).not.toHaveBeenCalled();
+    await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, page: 20 }));
+    expect(lens.goToPage).toHaveBeenCalledExactlyOnceWith(7);
+    expect(lens.searchIndex).toHaveBeenLastCalledWith(8, request.metadataIndex, { additive: false });
+    expect(imageViewerStoreApi.getState().status).toBe("ready");
+    expect(lens.decodeDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps source pages when reusing a restored Lens session", async () => {
+    setHost();
+    setRequest();
+    imageViewerStoreApi.setState({ choices: [{ service: "Recognition", level: 3 }], pageCount: 20 });
+    const request = imageViewerStoreApi.getState().request!;
+    imageViewerStoreApi.getState().setRequest({ ...request, page: 20 });
+    restoreSessionResult.value = true;
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.searchIndex).toHaveBeenCalledWith(8, request.metadataIndex, { additive: false }));
+    expect(lensInstances[0].goToPage).toHaveBeenCalledWith(7);
+    expect(lensInstances[0].decodeDoc).not.toHaveBeenCalled();
+  });
+
+  it("keeps decoding usable when an excluded page is clicked before initial decoding completes", async () => {
+    let finish!: () => void;
+    decodeWait.promise = new Promise<void>(resolve => { finish = resolve; });
+    seedPackage();
+    imageViewerStoreApi.setState({ choices: [{ service: "Recognition", level: 3 }], pageCount: 20 });
+    const request = imageViewerStoreApi.getState().request!;
+    render(<Harness />);
+    await waitFor(() => expect(lensInstances[0]?.decodeDoc).toHaveBeenCalledTimes(1));
+    await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, page: 17 }));
+    await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, page: 20 }));
+    await act(async () => finish());
+    await waitFor(() => expect(lensInstances[0].searchIndex).toHaveBeenCalledWith(8, request.metadataIndex, { additive: false }));
+    expect(lensInstances[0].decodeDoc).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not report stale choices before the host layout effect installs the current input", async () => {
+    const onError = vi.fn();
+    setRequest();
+    imageViewerStoreApi.setState({ session: "session-1", choices: null });
+    const request = { ...imageViewerStoreApi.getState().request!, page: 20 };
+    render(<ImageViewerPanel compact={false} onReadyChange={vi.fn()} hostInput={{
+      apiGatewayUrl: "https://gateway", authToken: "token", choices: [{ service: "Recognition", level: 3 }],
+      onError, pageCount: 20, pageMap: new Map(), request, selectedIndex: null, session: "session-1",
+      workerClient: {
+        packageImage: vi.fn(async () => ({ status: "completed", data: "" })),
+        imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+        imageData: vi.fn(async () => ({ status: "completed" as const, data: { tiff: "https://storage/image.tiff", data: "https://storage/image.json" } })),
+        downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(1), tiffType: "image/tiff" })),
+      },
+    }} />);
+    await waitFor(() => expect(lensInstances[0]?.searchIndex).toHaveBeenCalledWith(8, request.metadataIndex, { additive: false }));
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.spyOn(console, "info").mockImplementation(() => undefined);
   });
@@ -276,8 +374,9 @@ describe("useImageViewer", () => {
       expect(screen.getByTestId("navigating")).toHaveTextContent("false");
     }
     act(() => imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
-      pageCount: 2, pageMap: new Map(), request: null, selectedIndex: null, session: "session-2",
+      pageCount: 4, pageMap: new Map(), request: null, selectedIndex: null, session: "session-2",
     }));
     expect(screen.getByTestId("navigating")).toHaveTextContent("false");
   });
@@ -766,6 +865,7 @@ describe("useImageViewer", () => {
     await act(async () => setRequest());
     const request = imageViewerStoreApi.getState().request!;
     await act(async () => imageViewerStoreApi.getState().setHostInput({
+      choices: [{ service: "Recognition", level: 6 }],
       apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
       pageCount: 4, pageMap: new Map(), request: structuredClone(request),
       selectedIndex: { code: request.code, segment: request.segment }, session: request.session,
