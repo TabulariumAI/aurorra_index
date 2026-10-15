@@ -20,7 +20,7 @@ stage.innerHTML = "";
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",

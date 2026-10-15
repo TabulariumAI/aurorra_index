@@ -39,7 +39,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         completed: queue.completed + (completed?.session === queue.session && completed.batch === queue.batch ? 1 : 0),
       }));
       return { tasks: [...state.tasks], queues, ...(scope !== null ? { snapshots: { ...state.snapshots, [scope]: {
-        tasks: state.tasks.map(({ runtime: _runtime, ...task }) => task), queues, bases: Object.fromEntries(bases), paths: state.paths,
+        tasks: state.tasks.map(({ runtime: _runtime, ...task }) => task), queues, bases: Object.fromEntries(bases), paths: state.paths, etags: state.etags,
       } } } : {}) };
     });
   }
@@ -131,7 +131,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
   }
 
   return {
-    tasks: [], queues: [], snapshots: {}, paths: {}, generation: 0,
+    tasks: [], queues: [], snapshots: {}, paths: {}, etags: {}, generation: 0,
     restore(owner, runtime) {
       if (scope === owner) {
         for (const task of get().tasks) task.runtime = runtime;
@@ -155,7 +155,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         }
         return task;
       });
-      set({ tasks, queues: snapshot?.queues ?? [], paths: snapshot?.paths ?? {}, generation });
+      set({ tasks, queues: snapshot?.queues ?? [], paths: snapshot?.paths ?? {}, etags: snapshot?.etags ?? {}, generation });
       for (const session of bases.keys()) project(session);
       notify();
       void process();
@@ -206,6 +206,10 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       set((state) => ({ paths: { ...state.paths, [session]: path } }));
       notify();
     },
+    setEtag(session, etag) {
+      set(state => ({ etags: { ...state.etags, [session]: etag } }));
+      notify();
+    },
     setMetadata(session, metadata) {
       if (get().tasks.some((task) => task.session === session)) {
         bases.set(session, metadata);
@@ -220,7 +224,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       running = false;
       for (const [session, metadata] of bases) storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
       bases.clear();
-      set({ tasks: [], queues: [], paths: {}, generation });
+      set({ tasks: [], queues: [], paths: {}, etags: {}, generation });
       notify();
     },
   };

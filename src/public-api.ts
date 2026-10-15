@@ -1,4 +1,6 @@
 import { lazy } from "react";
+export { UsagePanel, useUsage } from "./features/usage";
+export type { UsageRecord } from "./features/usage";
 export { QueueExitPanel } from "./features/queueexit/component/QueueExitPanel";
 export { useQueueExitStore } from "./features/queueexit/store/queueExitStore";
 
@@ -20,11 +22,13 @@ export {
   toPlatJSON,
 } from "./features/legalmap/data/legalData";
 export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
+export type { LegalMapPayload } from "./features/legalmap/data/legalData";
 export { createDeferredState } from "./features/indexing/data/deferredState";
 export { indexStoreApi, useIndexStore } from "./features/metdataview/store/metadataStore";
 export { AddressMapContent } from "./features/addressmap";
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
 export { createIndexWorkerClient } from "./features/metdataview/worker/metadataWorkerClient";
+export { requestResource } from "./features/metdataview/data/metadataResource";
 export {
   PageSegmentsPanel,
   createPageSegmentsWorkerClient,
@@ -43,6 +47,7 @@ export {
 export {
   IqPanel,
   loadIqReport,
+  generateIqReport,
   useIqReport,
   createIqWorkerClient,
   iqStoreApi,
@@ -68,6 +73,8 @@ export {
   useImageViewerStore,
 } from "./features/imageviewer/store/imageViewerStore";
 export { loadImagePackage } from "./features/imageviewer/data/loadImagePackage";
+export { generateImagePackage } from "./features/imageviewer/worker/imageWorkerClient";
+export type { GenerationInput } from "./shared/type/generation.types";
 export type {
   HostInput,
   LoadPackageInput,
@@ -115,12 +122,10 @@ export type {
   IqGateStatus,
   IqGateView,
   IqPanelProps,
-  IqPollResult,
   IqReport,
   IqReportView,
   IqSegment,
   IqSegmentView,
-  IqStartResult,
   IqStatus,
   IqStoreState,
   IqUiStatus,
@@ -136,12 +141,14 @@ export type {
   AuditFilters,
   AuditGap,
   AuditGapView,
+  AuditPatch,
   AuditPanelProps,
   AuditReport,
   AuditReportView,
   AuditStoreState,
   AuditStatus,
   AuditUsage,
+  AuditUsageService,
   AuditWorkerClient,
   AuditWorkerCommand,
   AuditWorkerConfig,

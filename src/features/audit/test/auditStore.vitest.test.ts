@@ -22,7 +22,7 @@ describe("auditStore", () => {
 
   it("sets loading and refreshing while preserving report", () => {
     auditStoreApi.getState().setLoaded("session-1", report);
-    auditStoreApi.getState().setLoading("session-2");
+    auditStoreApi.getState().setLoading("session-2", false);
     expect(auditStoreApi.getState()).toMatchObject({ activeSession: "session-2", error: null, report, status: "loading" });
 
     auditStoreApi.getState().setRefreshing("session-3");
@@ -62,4 +62,15 @@ describe("auditStore", () => {
       status: "idle",
     });
   });
+});
+
+it("keeps background audits available to usage without replacing the open session", () => {
+  auditStoreApi.getState().setLoading("open", false);
+  auditStoreApi.getState().setLoaded("background", report);
+  expect(auditStoreApi.getState()).toMatchObject({ activeSession: "open", report: null, status: "loading" });
+  expect(auditStoreApi.getState().reportsBySession.background).toEqual(report);
+  auditStoreApi.getState().setLoaded("open", { gaps: [] });
+  expect(auditStoreApi.getState().reportsBySession).toEqual({ background: report, open: { gaps: [] } });
+  auditStoreApi.getState().resetAudit();
+  expect(auditStoreApi.getState().reportsBySession).toEqual({});
 });

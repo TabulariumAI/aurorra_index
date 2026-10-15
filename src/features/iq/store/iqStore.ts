@@ -6,14 +6,13 @@ const initialState = {
   ackingCodes: new Set<string>(),
   error: null,
   report: null,
-  refresh: null,
-  refreshId: 0,
   retryAttempt: 0,
   status: "idle",
-} satisfies Pick<IqStoreState, "activeSession" | "ackingCodes" | "error" | "refresh" | "refreshId" | "report" | "retryAttempt" | "status">;
+} satisfies Pick<IqStoreState, "activeSession" | "ackingCodes" | "error" | "report" | "retryAttempt" | "status">;
 
 export const useIqStore = create<IqStoreState>()((set) => ({
   ...initialState,
+  generation: 0,
   ackStart(code) {
     set((state) => ({
       ackingCodes: new Set([...state.ackingCodes, code]),
@@ -34,20 +33,12 @@ export const useIqStore = create<IqStoreState>()((set) => ({
       };
     });
   },
-  refreshIq(session) {
-    set((state) => {
-      const id = state.refreshId + 1;
-      return {
-        refresh: { id, session },
-        refreshId: id,
-      };
-    });
-  },
   resetIq() {
-    set({
+    set(state => ({
       ...initialState,
       ackingCodes: new Set<string>(),
-    });
+      generation: state.generation + 1,
+    }));
   },
   setError(error) {
     set({ error, retryAttempt: 0, status: "error" });

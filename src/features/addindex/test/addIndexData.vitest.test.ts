@@ -14,7 +14,7 @@ describe("formatSelection", () => {
         { value: { context: ["JOHN SMITH"], kind: ["BODY"], token: ["JOHN SMITH"] } },
         { value: { context: [secondContext], kind: ["BODY"], token: ["JOHN M. SMITH"] } },
       ],
-      pageNumber: 3,
+      pageName: "Exhibit-A",
     };
 
     expect(formatSelection(selection)).toEqual({
@@ -28,7 +28,7 @@ describe("formatSelection", () => {
       groups: [
         { value: { context: [null, "  Paragraph   context  "], kind: ["BODY"], token: [null, " ", "..."] } },
       ],
-      pageNumber: 1,
+      pageName: "1",
     };
 
     expect(formatSelection(selection)).toEqual({
@@ -41,11 +41,11 @@ describe("formatSelection", () => {
     expect(aspectGroups({
       aspects: {
         party: ["grantor", "grantee"],
-        property: ["parcel_id"],
+        property: ["property_id"],
       },
     })).toEqual({
       party: ["grantor", "grantee"],
-      property: ["parcel_id"],
+      property: ["property_id"],
     });
   });
 

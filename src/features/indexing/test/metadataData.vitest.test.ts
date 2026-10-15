@@ -16,6 +16,12 @@ import {
 const metadataFixturePath = join(process.cwd(), "src", "test", "metadata#v1.json");
 
 describe("metadata data normalization", () => {
+  it("does not store audit usage in metadata parts or recomposed metadata", () => {
+    const payload = { heading: { title: "NOTICE" }, usage: { costs: ["$2.7500"], services: [] } };
+    const parts = splitMetadataJSON(payload);
+    expect(parts.headingJSON).toEqual({ heading: payload.heading });
+    expect(composeMetadataJSON(parts)).toEqual({ heading: payload.heading });
+  });
   it("splits metadata payload into the required JSON parts", () => {
     const payload = {
       chain: [{ source: "chain source" }],
@@ -48,7 +54,6 @@ describe("metadata data normalization", () => {
       ],
       secrets: [{ code: "s1", page: "1", page_number: "1", label: "secret", segment: "secrets", value: "classified" }],
       tags: ["a", "b"],
-      usage: { costs: ["0.10"] },
     } as unknown as MetadataPayload;
 
     const parts = splitMetadataJSON(payload);
@@ -65,7 +70,6 @@ describe("metadata data normalization", () => {
     expect(parts.headingJSON).toEqual({
       heading: { title: "NOTICE" },
       tags: ["a", "b"],
-      usage: { costs: ["0.10"] },
     });
     expect(parts.indexJSON).toEqual({
       indexes: payload.indexes,
@@ -92,7 +96,6 @@ describe("metadata data normalization", () => {
       parties: [],
       secrets: [],
       tags: ["a"],
-      usage: { costs: ["0.10"] },
     } as unknown as MetadataPayload);
     const recomposed = composeMetadataJSON(parts);
 
@@ -109,7 +112,6 @@ describe("metadata data normalization", () => {
       parties: [],
       secrets: [],
       tags: ["a"],
-      usage: { costs: ["0.10"] },
     });
   });
 
@@ -139,7 +141,7 @@ describe("metadata data normalization", () => {
     const fixtureContent = await readFile(metadataFixturePath, "utf8");
     const fixture = JSON.parse(fixtureContent) as MetadataPayload &
       Record<string, unknown> & { tags?: unknown; usage?: unknown };
-    const { gaps, ...fixturePayload } = fixture;
+    const { gaps, usage, ...fixturePayload } = fixture;
 
     const parts = splitMetadataJSON(fixture);
     const recomposed = composeMetadataJSON(parts);
@@ -171,13 +173,13 @@ describe("metadata data normalization", () => {
   it("extracts parcel options", () => {
     expect(
       getParcelOptions([
-        { aspect: "parcel_id", value: "PID-1" },
-        { aspect: "parcel_address", value: "ADDR-1" },
+        { aspect: "property_id", value: "PID-1" },
+        { aspect: "property_address", value: "ADDR-1" },
         { aspect: "parcel_reference", value: "REF-1" },
       ]),
     ).toEqual({
-      parcel_address: "ADDR-1",
-      parcel_id: "PID-1",
+      property_address: "ADDR-1",
+      property_id: "PID-1",
       parcel_reference: "REF-1",
     });
   });

@@ -1,147 +1,205 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadIqReport } from "../data/loadIqReport";
 import { iqStoreApi } from "../store/iqStore";
+import * as iqWorker from "../worker/iqWorkerClient";
 import type { IqReport, IqWorkerClient } from "../type/iq.types";
 
-const report: IqReport = {
-  decision: "Pass",
-  explanation: [],
-  gates: [],
-  iq_doc: 97,
-  segments: [],
-};
-
-function createClient(): IqWorkerClient {
-  return {
-    ackGate: vi.fn(async () => ({ data: {}, isComplete: true as const, status: "completed" })),
-    loadReport: vi.fn(async () => report),
-    pollReport: vi.fn()
-      .mockResolvedValueOnce({ data: null, isComplete: false as const, status: "pending" as const })
-      .mockResolvedValueOnce({ data: report, isComplete: true as const, status: "completed" as const }),
-    startReport: vi.fn(async () => ({ data: {}, isComplete: false, status: "pending" })),
-  };
+const report: IqReport = { decision: "Pass", explanation: [], gates: [], iq_doc: 97, segments: [] };
+function client(): IqWorkerClient {
+  return { ackGate: vi.fn(), loadReport: vi.fn(async () => report) };
 }
-
-function deferred<Value>() {
-  let resolve: (value: Value | PromiseLike<Value>) => void = () => undefined;
-  const promise = new Promise<Value>((nextResolve) => {
-    resolve = nextResolve;
-  });
-  return { promise, resolve };
+function input(workerClient: IqWorkerClient) {
+  return { apiGatewayUrl: "https://api", authToken: "token", retryIntervalMs: 0, retryLimit: 5,
+    onError: vi.fn(), onComplete: vi.fn(), session: "session-1", workerClient };
 }
-
+function deferred() {
+  let resolve!: (value: IqReport) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<IqReport>((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
 describe("loadIqReport", () => {
-  beforeEach(() => {
-    iqStoreApi.getState().resetIq();
-  });
-
-  it("starts, polls, and stores the report", async () => {
-    const client = createClient();
-
-    await loadIqReport({
-      apiGatewayUrl: "https://api",
-      authToken: "token",
-      retryIntervalMs: 0,
-      onError: vi.fn(),
-      pollIntervalMs: 0,
-      retryLimit: 5,
-      session: "session-1",
-      workerClient: client,
-    });
-
-    expect(client.startReport).toHaveBeenCalledWith("token", "session-1");
-    expect(client.pollReport).toHaveBeenCalledTimes(2);
+  beforeEach(() => iqStoreApi.getState().resetIq());
+  afterEach(() => vi.restoreAllMocks());
+  it("loads through one GET and calls completion after storing the report", async () => {
+    const worker = client();
+    const request = input(worker);
+    await loadIqReport(request);
+    expect(worker.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1", false);
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", report, status: "success" });
+    expect(request.onComplete).toHaveBeenCalledWith(report);
   });
-
-  it("shares an active session load and skips an already loaded report", async () => {
-    const client = createClient();
-    vi.mocked(client.pollReport).mockReset();
-    vi.mocked(client.pollReport).mockResolvedValue({ data: report, isComplete: true, status: "completed" });
-    const input = {
-      apiGatewayUrl: "https://api",
-      authToken: "token",
-      retryIntervalMs: 0,
-      onError: vi.fn(),
-      pollIntervalMs: 0,
-      retryLimit: 5,
-      session: "session-1",
-      workerClient: client,
-    };
-
-    await Promise.all([loadIqReport(input), loadIqReport(input)]);
-    await loadIqReport(input);
-
-    expect(client.startReport).toHaveBeenCalledTimes(1);
-    expect(client.pollReport).toHaveBeenCalledTimes(1);
+  it("shares concurrent reads but revalidates an already loaded report", async () => {
+    const worker = client();
+    const request = input(worker);
+    await Promise.all([loadIqReport(request), loadIqReport(request)]);
+    expect(worker.loadReport).toHaveBeenCalledTimes(1);
+    await loadIqReport(request);
+    expect(worker.loadReport).toHaveBeenCalledTimes(2);
   });
-
-  it("restarts a completed session when a reprocess requests a new IQ report", async () => {
-    const client = createClient();
-    vi.mocked(client.pollReport).mockReset();
-    vi.mocked(client.pollReport).mockResolvedValue({ data: report, isComplete: true, status: "completed" });
-    const input = {
-      apiGatewayUrl: "https://api",
-      authToken: "token",
-      retryIntervalMs: 0,
-      onError: vi.fn(),
-      pollIntervalMs: 0,
-      retryLimit: 5,
-      session: "session-1",
-      workerClient: client,
-    };
-
-    await loadIqReport(input);
-    await loadIqReport({ ...input, restart: true });
-
-    expect(client.startReport).toHaveBeenCalledTimes(2);
-    expect(client.pollReport).toHaveBeenCalledTimes(2);
+  it("calls each caller's completion callback when sharing a request", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const first = input(worker);
+    const second = input(worker);
+    const reads = [loadIqReport(first), loadIqReport(second)];
+    pending.resolve(report);
+    await Promise.all(reads);
+    expect(worker.loadReport).toHaveBeenCalledTimes(1);
+    expect(first.onComplete).toHaveBeenCalledExactlyOnceWith(report);
+    expect(second.onComplete).toHaveBeenCalledExactlyOnceWith(report);
   });
-
-  it("queues a reprocess report restart behind an active report", async () => {
-    const client = createClient();
-    const firstPoll = deferred<{ data: IqReport; isComplete: true; status: "completed" }>();
-    vi.mocked(client.pollReport).mockReset();
-    vi.mocked(client.pollReport).mockImplementationOnce(() => firstPoll.promise).mockResolvedValueOnce({ data: report, isComplete: true, status: "completed" });
-    const input = {
-      apiGatewayUrl: "https://api",
-      authToken: "token",
-      retryIntervalMs: 0,
-      onError: vi.fn(),
-      pollIntervalMs: 0,
-      retryLimit: 5,
-      session: "session-1",
-      workerClient: client,
-    };
-
-    const firstLoad = loadIqReport(input);
-    const reprocessLoad = loadIqReport({ ...input, restart: true });
-    expect(client.startReport).toHaveBeenCalledTimes(1);
-
-    firstPoll.resolve({ data: report, isComplete: true, status: "completed" });
-    await Promise.all([firstLoad, reprocessLoad]);
-
-    expect(client.startReport).toHaveBeenCalledTimes(2);
-    expect(client.pollReport).toHaveBeenCalledTimes(2);
+  it("forces refresh and queues it behind an active read", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const request = input(worker);
+    const first = loadIqReport(request);
+    const refresh = loadIqReport({ ...request, restart: true });
+    expect(worker.loadReport).toHaveBeenCalledTimes(1);
+    pending.resolve(report);
+    await Promise.all([first, refresh]);
+    expect(worker.loadReport).toHaveBeenLastCalledWith("token", "session-1", true);
+    expect(worker.loadReport).toHaveBeenCalledTimes(2);
+    expect(request.onComplete).toHaveBeenCalledTimes(2);
   });
-
-  it("reports a start failure without polling", async () => {
-    const client = createClient();
-    vi.mocked(client.startReport).mockRejectedValueOnce(Object.assign(new Error("start failed"), { code: "start_error", status: 500 }));
-    const onError = vi.fn();
-
-    await loadIqReport({
-      apiGatewayUrl: "https://api",
-      authToken: "token",
-      retryIntervalMs: 0,
-      onError,
-      retryLimit: 5,
-      session: "session-1",
-      workerClient: client,
-    });
-
-    expect(client.pollReport).not.toHaveBeenCalled();
-    expect(onError).toHaveBeenCalledWith({ code: "start_error", details: undefined, error: "start failed", status: 500 });
+  it.each([null, "session-2"])("discards late success after session changes to %s", async session => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const request = input(worker);
+    const load = loadIqReport(request);
+    const queued = loadIqReport({ ...request, restart: true });
+    iqStoreApi.getState().resetIq();
+    if (session) iqStoreApi.getState().setLoaded(session, { ...report, iq_doc: 55 });
+    pending.resolve(report);
+    await Promise.all([load, queued]);
+    expect(worker.loadReport).toHaveBeenCalledTimes(1);
+    expect(request.onComplete).not.toHaveBeenCalled();
+    expect(iqStoreApi.getState().activeSession).toBe(session);
+    expect(iqStoreApi.getState().report?.iq_doc ?? null).toBe(session ? 55 : null);
+  });
+  it("reports request failure and permits a later retry", async () => {
+    const worker = client();
+    vi.mocked(worker.loadReport).mockRejectedValueOnce(Object.assign(new Error("load failed"), { code: "iq_error", status: 500 }));
+    const request = input(worker);
+    await loadIqReport(request);
+    expect(request.onError).toHaveBeenCalledWith({ code: "iq_error", details: undefined, error: "load failed", status: 500 });
+    expect(request.onComplete).not.toHaveBeenCalled();
     expect(iqStoreApi.getState().status).toBe("error");
+    await loadIqReport(request);
+    expect(iqStoreApi.getState().report).toEqual(report);
   });
+  it("discards late errors after a session change", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const request = input(worker);
+    const load = loadIqReport(request);
+    iqStoreApi.getState().setLoaded("session-2", { ...report, iq_doc: 55 });
+    pending.reject(new Error("old session failed"));
+    await load;
+    expect(request.onError).not.toHaveBeenCalled();
+    expect(iqStoreApi.getState().status).toBe("success");
+  });
+  it("calls each caller's error callback when sharing a failed request", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const first = input(worker);
+    const second = input(worker);
+    const reads = [loadIqReport(first), loadIqReport(second)];
+    pending.reject(new Error("shared failure"));
+    await Promise.all(reads);
+    expect(worker.loadReport).toHaveBeenCalledTimes(1);
+    for (const request of [first, second]) {
+      expect(request.onError).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ error: "shared failure" }));
+      expect(request.onComplete).not.toHaveBeenCalled();
+    }
+  });
+  it.each(["success", "error"])("ignores old %s after resetting and reopening the same session", async outcome => {
+    const oldWorker = client();
+    const pending = deferred();
+    vi.mocked(oldWorker.loadReport).mockReturnValueOnce(pending.promise);
+    const oldRequest = input(oldWorker);
+    const oldLoad = loadIqReport(oldRequest);
+    const oldRefresh = loadIqReport({ ...oldRequest, restart: true });
+    iqStoreApi.getState().resetIq();
+    const worker = client();
+    const current = { ...report, iq_doc: 55 };
+    vi.mocked(worker.loadReport).mockResolvedValueOnce(current);
+    const request = input(worker);
+    const reopened = loadIqReport(request);
+    await Promise.resolve();
+    await Promise.resolve();
+    if (outcome === "success") pending.resolve(report);
+    else pending.reject(new Error("obsolete failure"));
+    await Promise.all([oldLoad, oldRefresh, reopened]);
+    expect(worker.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1", false);
+    expect(oldWorker.loadReport).toHaveBeenCalledTimes(1);
+    expect(oldRequest.onComplete).not.toHaveBeenCalled();
+    expect(oldRequest.onError).not.toHaveBeenCalled();
+    expect(request.onComplete).toHaveBeenCalledExactlyOnceWith(current);
+    expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", report: current, status: "success", error: null });
+  });
+  it("keeps the reopened request shared when an obsolete request finishes first", async () => {
+    const worker = client();
+    const old = deferred();
+    const current = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
+    const previous = input(worker);
+    const oldLoad = loadIqReport(previous);
+    iqStoreApi.getState().resetIq();
+    const request = input(worker);
+    const reopened = loadIqReport(request);
+    old.resolve(report);
+    await oldLoad;
+    const loading = iqStoreApi.getState().status;
+    const shared = input(worker);
+    const sharedLoad = loadIqReport(shared);
+    current.resolve({ ...report, iq_doc: 55 });
+    await Promise.all([reopened, sharedLoad]);
+    expect(worker.loadReport).toHaveBeenCalledTimes(2);
+    expect(previous.onComplete).not.toHaveBeenCalled();
+    expect(loading).toBe("loading");
+    expect(request.onComplete).toHaveBeenCalledOnce();
+    expect(shared.onComplete).toHaveBeenCalledOnce();
+    expect(iqStoreApi.getState().report?.iq_doc).toBe(55);
+  });
+  it("runs a queued forced refresh after a shared failure", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const request = input(worker);
+    const read = loadIqReport(request);
+    const refresh = loadIqReport({ ...request, restart: true });
+    pending.reject(new Error("read failed"));
+    await Promise.all([read, refresh]);
+    expect(worker.loadReport).toHaveBeenCalledTimes(2);
+    expect(worker.loadReport).toHaveBeenLastCalledWith("token", "session-1", true);
+    expect(request.onError).toHaveBeenCalledOnce();
+    expect(request.onComplete).toHaveBeenCalledExactlyOnceWith(report);
+    expect(iqStoreApi.getState().status).toBe("success");
+  });
+
+  it("ignores obsolete retries after resetting and reopening the same session", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(worker);
+    const request = input(worker);
+    const oldLoad = loadIqReport({ ...request, workerClient: undefined });
+    const retry = factory.mock.calls[0][0].onRetry!;
+    retry(2);
+    expect(iqStoreApi.getState().retryAttempt).toBe(2);
+    iqStoreApi.getState().resetIq();
+    await loadIqReport(input(client()));
+    retry(3);
+    pending.resolve(report);
+    await oldLoad;
+    expect(iqStoreApi.getState()).toMatchObject({ status: "success", retryAttempt: 0 });
+    expect(request.onComplete).not.toHaveBeenCalled();
+  });
+
 });

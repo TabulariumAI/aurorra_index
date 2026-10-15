@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { indexStyles } from "../../../shared/style/indexStyles";
 import { auditStyles } from "../../audit/style/auditStyles";
 import { imageViewerStyles } from "../../imageviewer/style/imageViewerStyles";
 import { iqStyles } from "../../iq/style/iqStyles";
 import { legalMapStyles } from "../../legalmap/style/legalMapStyles";
 import { pageSegmentsStyles } from "../../pagesegments/style/pageSegmentsStyles";
-import { disclosureButtonStyle, metadataStyles, rowStyles, segmentStyles } from "aurora-core";
+import { formStyles, disclosureButtonStyle, metadataStyles, rowStyles, segmentStyles } from "aurora-core";
 
 describe("index styles", () => {
   it("uses the target typography and accordion rhythm", () => {
@@ -82,29 +81,29 @@ describe("index styles", () => {
     expect(segmentStyles).not.toHaveProperty("actionLine");
     expect(segmentStyles).not.toHaveProperty("actionDivider");
     expect(segmentStyles).not.toHaveProperty("actionLink");
-    expect(rowStyles.row(true, "#123456")).toMatchObject({ backgroundColor: "var(--accent-surface)" });
+    expect(rowStyles.row(true)).toMatchObject({ backgroundColor: "var(--accent-surface)" });
     expect(rowStyles.actionButtonHover).toMatchObject({ background: "var(--accent-surface)" });
     expect(legalMapStyles.shell).toMatchObject({ fontFamily: "var(--font-ui)" });
   });
 
   it("uses aligned cards, fields, and primary controls", () => {
-    expect(indexStyles.field).toMatchObject({
+    expect(formStyles.field).toMatchObject({
       display: "grid",
       gap: "0.55rem",
       margin: 0,
       padding: 0,
     });
-    expect(indexStyles.field).not.toHaveProperty("border");
-    expect(indexStyles.field).not.toHaveProperty("borderRadius");
-    expect(indexStyles.input).toMatchObject({
+    expect(formStyles.field).not.toHaveProperty("border");
+    expect(formStyles.field).not.toHaveProperty("borderRadius");
+    expect(formStyles.input).toMatchObject({
       border: "1px solid var(--border-card)",
       borderRadius: "var(--radius-control)",
       minHeight: "2.5rem",
     });
-    expect(indexStyles.button("primary")).toMatchObject({
-      backgroundColor: "var(--primary-dark)",
-      borderRadius: "var(--radius-control)",
+    expect(formStyles.button).toMatchObject({
+      fontWeight: 600,
       height: "2.75rem",
+      minWidth: "7rem",
     });
     expect(pageSegmentsStyles.item).toMatchObject({
       border: "1px solid var(--border-card)",
@@ -114,17 +113,18 @@ describe("index styles", () => {
   });
 
   it("uses aligned viewer and data surfaces", () => {
-    expect(imageViewerStyles.scaleButton).toMatchObject({
+    expect(imageViewerStyles.menuButton).toMatchObject({
       border: 0,
       borderRadius: "var(--radius-control)",
       height: "2rem",
-      width: "2rem",
+      width: "2.75rem",
     });
-    expect(imageViewerStyles.searchInput).toMatchObject({
+    expect(imageViewerStyles.searchBox).toMatchObject({
       border: "1px solid var(--border-card)",
       borderRadius: "var(--radius-control)",
       minHeight: "2.75rem",
     });
+    expect(imageViewerStyles.searchInput).toMatchObject({ border: 0, minHeight: "2.75rem" });
     expect(iqStyles.root).toMatchObject({ fontFamily: "var(--font-ui)" });
     expect(iqStyles.content).toMatchObject({ padding: "0.85rem var(--panel-content-padding)" });
     expect(iqStyles.summaryCard).toMatchObject({

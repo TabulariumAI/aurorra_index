@@ -46,10 +46,32 @@ export const auditStyles = {
     justifyContent: "flex-end",
     width: "100%",
   } as CSSProperties,
-  usageCosts: {
-    color: "var(--title-ink)",
-    fontSize: "0.95rem",
-    margin: "0.85rem 0 0",
+  usage: {
+    border: "1px solid var(--border-card)",
+    borderRadius: "var(--radius-card)",
+    margin: "0.85rem 0",
+    padding: "0.75rem",
+  } as CSSProperties,
+  usageTitle: {
+    fontSize: "1rem",
+    fontWeight: 600,
+    margin: "0 0 0.5rem",
+  } as CSSProperties,
+  usageTable: {
+    borderCollapse: "collapse",
+    fontSize: "0.8125rem",
+    width: "100%",
+  } as CSSProperties,
+  serviceCell: {
+    fontWeight: 500,
+    padding: "0.4rem 0.25rem",
+    textAlign: "left",
+  } as CSSProperties,
+  usageCell: {
+    fontVariantNumeric: "tabular-nums",
+    padding: "0.4rem 0.25rem",
+    textAlign: "right",
+    whiteSpace: "nowrap",
   } as CSSProperties,
   summaryBadge: {
     alignItems: "center",
@@ -158,6 +180,44 @@ export const auditStyles = {
     lineHeight: 1.45,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
+  } as CSSProperties,
+  details: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.25rem",
+    margin: 0,
+    fontSize: "0.92rem",
+    lineHeight: 1.45,
+  } as CSSProperties,
+  detailRow: {
+    display: "grid",
+    gridTemplateColumns: "6rem minmax(0, 1fr)",
+    gap: "0.5rem",
+  } as CSSProperties,
+  detailLabel: {
+    color: gapMetaPalette.muted,
+  } as CSSProperties,
+  detailValue: {
+    color: "var(--body-ink)",
+    margin: 0,
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    minWidth: 0,
+  } as CSSProperties,
+  gapFooter: {
+    alignItems: "baseline",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "0.35rem 0.75rem",
+    justifyContent: "space-between",
+  } as CSSProperties,
+  gapSegment: {
+    color: gapMetaPalette.muted,
+    fontSize: "0.8rem",
+    marginLeft: "auto",
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    textAlign: "right",
   } as CSSProperties,
   gapProcess: {
     color: gapMetaPalette.muted,

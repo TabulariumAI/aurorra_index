@@ -8,7 +8,7 @@ export const PAGE_SEGMENT_CHOICES = Object.freeze({
   secrets: "ConfidentialIndexing",
   monetary: "MonetaryInfoIndexing",
   acknowledgment: "AcknowledgmentIndexing",
-  court: "CourtIndexing",
+  judgment: "CourtIndexing",
   vital: "VitalIndexing",
 });
 
@@ -23,7 +23,7 @@ export const PAGE_SEGMENT_ORDER = Object.freeze([
   "secrets",
   "monetary",
   "acknowledgment",
-  "court",
+  "judgment",
   "vital",
 ]) as readonly PageSegmentValue[];
 
@@ -36,7 +36,7 @@ export const PAGE_SEGMENT_LABELS = Object.freeze({
   secrets: "Confidential",
   monetary: "Monetary",
   acknowledgment: "Acknowledgment",
-  court: "Court",
+  judgment: "Judgment",
   vital: "Vital",
 });
 

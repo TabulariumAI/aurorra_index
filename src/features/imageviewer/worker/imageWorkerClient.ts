@@ -7,6 +7,7 @@ import type {
   WorkerConfig,
   WorkerResult,
 } from "../type/imageViewer.types";
+import type { GenerationInput } from "../../../shared/type/generation.types";
 
 type WorkerError = Error & {
   code?: string;
@@ -55,11 +56,15 @@ function runWorker<T>(command: unknown): Promise<T> {
   });
 }
 
+export function generateImagePackage(input: GenerationInput): Promise<PackageResponse> {
+  return runWorker<PackageResponse>({ apiBaseUrl: input.apiGatewayUrl, session: input.session, token: input.authToken, type: "imagePackage" });
+}
+
 export function createWorkerClient(config: WorkerConfig): WorkerClient {
   const { apiBaseUrl } = config;
   return {
     packageImage(token, session) {
-      return runWorker<PackageResponse>({ apiBaseUrl, session, token, type: "imagePackage" });
+      return generateImagePackage({ apiGatewayUrl: apiBaseUrl, authToken: token, session });
     },
     imageStatus(token, session) {
       return runWorker<PackageResponse>({ apiBaseUrl, session, token, type: "imageStatus" });

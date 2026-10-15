@@ -1,0 +1,145 @@
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/@testing-library/react/dist/index.js", {"importedNames":["fireEvent","render","screen","waitFor"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/node_modules/react/index.js", {"importedNames":["useState"]});
+const __vite_ssr_import_2__ = await __vite_ssr_import__("/node_modules/vitest/dist/index.js", {"importedNames":["describe","expect","it","vi"]});
+const __vite_ssr_import_3__ = await __vite_ssr_import__("/@fs/C:/GitHub/Tabularium/aurora_core/src/public-api.ts", {"importedNames":["MetadataPanel","getPanelData"]});
+const __vite_ssr_import_4__ = await __vite_ssr_import__("/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV","Fragment"]});
+
+
+
+
+var _jsxFileName = "C:/GitHub/Tabularium/aurorra_index/src/features/metdataview/test/MetadataPanel.addressmap.vitest.test.tsx";
+
+const segments = {
+	ACKNOWLEDGMENT: "acknowledgment",
+	JUDGMENT: "judgment",
+	ENDORSEMENT: "endorsement",
+	FEE: "fee",
+	FEEFACTOR: "factor",
+	FUND: "fund",
+	LEGAL: "legal",
+	MONETARY: "monetary",
+	PAGE: "page",
+	PARTY: "party",
+	PROPERTY: "property",
+	REFERENCE: "reference",
+	SECRETS: "secrets",
+	TITLE: "title",
+	TRANSACTION: "transaction",
+	VITAL: "vital"
+};
+const panelDefaults = {
+	actions: {
+		confirm: true,
+		drop: true,
+		reprocess: true
+	},
+	sections: {
+		filterByChoices: true,
+		hiddenSegments: new Set(),
+		showEmpty: false
+	},
+	showContext: true,
+	shortcuts: null,
+	status: "success"
+};
+function PanelHarness() {
+	const [address, setAddress] = (0,__vite_ssr_import_1__.useState)("");
+	const metadata = {
+		fees: [],
+		funds: [],
+		heading: {
+			class: "deed",
+			title: "Warranty Deed"
+		},
+		indexes: [{
+			aspect: "property_address",
+			code: "idx-addr",
+			label: "property address",
+			page: "1",
+			segment: "property",
+			value: "123 Main Street, Austin, TX 78701"
+		}],
+		pages: {
+			num_of_pages: 1,
+			recordables: [{
+				code: "page-1",
+				name: "1"
+			}]
+		},
+		secrets: []
+	};
+	return /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_4__.Fragment), { children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_3__.MetadataPanel), {
+		...panelDefaults,
+		callbacks: { onAddressClick: (value) => setAddress(value) },
+		confirmedCodes: new Set(),
+		choices: [{
+			level: 1,
+			service: "ExhibitIndexing"
+		}],
+		metadata,
+		onConfirm: __vite_ssr_import_2__.vi.fn(),
+		onDrop: __vite_ssr_import_2__.vi.fn(),
+		onReprocess: __vite_ssr_import_2__.vi.fn(),
+		openSegment: "property",
+		removedCodes: new Set(),
+		selectedIndex: null,
+		segments,
+		session: "session-address-map",
+		setSectionOpen: __vite_ssr_import_2__.vi.fn(),
+		panelData: (0,__vite_ssr_import_3__.getPanelData)(metadata)
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 64,
+		columnNumber: 7
+	}, this), /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("div", {
+		"data-testid": "address-clicked",
+		children: address
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 83,
+		columnNumber: 7
+	}, this)] }, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 63,
+		columnNumber: 5
+	}, this);
+}
+(0,__vite_ssr_import_2__.describe)("MetadataPanel address map integration", () => {
+	(0,__vite_ssr_import_2__.it)("forwards address row click to callbacks.onAddressClick", async () => {
+		(0,__vite_ssr_import_0__.render)(/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)(PanelHarness, {}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 90,
+			columnNumber: 12
+		}, this));
+		const openButton = await __vite_ssr_import_0__.screen.findByRole("button", { name: "Open address 123 Main Street, Austin, TX 78701" });
+		const value = __vite_ssr_import_0__.screen.getByText("123 Main Street, Austin, TX 78701");
+		(0,__vite_ssr_import_2__.expect)(openButton.parentElement?.firstElementChild).toBe(value);
+		(0,__vite_ssr_import_2__.expect)(openButton.parentElement?.lastElementChild).toBe(openButton);
+		(0,__vite_ssr_import_2__.expect)(openButton).toHaveStyle({ padding: "0px" });
+		(0,__vite_ssr_import_2__.expect)(openButton.parentElement).toHaveStyle({
+			alignItems: "flex-start",
+			display: "flex",
+			flexDirection: "column",
+			gap: "0.15rem"
+		});
+		(0,__vite_ssr_import_2__.expect)(value).toHaveStyle({
+			display: "inline",
+			whiteSpace: "normal",
+			overflowWrap: "anywhere"
+		});
+		(0,__vite_ssr_import_2__.expect)(openButton).toHaveTextContent("Show map");
+		(0,__vite_ssr_import_2__.expect)(openButton).toHaveStyle({
+			alignItems: "center",
+			height: "2rem",
+			minHeight: "2rem",
+			width: "auto"
+		});
+		__vite_ssr_import_0__.fireEvent.click(openButton);
+		await (0,__vite_ssr_import_0__.waitFor)(() => (0,__vite_ssr_import_2__.expect)(__vite_ssr_import_0__.screen.getByTestId("address-clicked").textContent).toBe("123 Main Street, Austin, TX 78701"));
+		(0,__vite_ssr_import_2__.expect)(__vite_ssr_import_0__.screen.queryByRole("dialog")).not.toBeInTheDocument();
+	});
+});
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,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LGtCQUFrQjtDQUM3RCxDQUFDO0FBQ0gsQ0FBQyIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiTWV0YWRhdGFQYW5lbC5hZGRyZXNzbWFwLnZpdGVzdC50ZXN0LnRzeCJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBmaXJlRXZlbnQsIHJlbmRlciwgc2NyZWVuLCB3YWl0Rm9yIH0gZnJvbSBcIkB0ZXN0aW5nLWxpYnJhcnkvcmVhY3RcIjtcbmltcG9ydCB7IHVzZVN0YXRlLCB0eXBlIEpTWCB9IGZyb20gXCJyZWFjdFwiO1xuaW1wb3J0IHsgZGVzY3JpYmUsIGV4cGVjdCwgaXQsIHZpIH0gZnJvbSBcInZpdGVzdFwiO1xuaW1wb3J0IHsgTWV0YWRhdGFQYW5lbCwgZ2V0UGFuZWxEYXRhLCB0eXBlIE1ldGFkYXRhU2VnbWVudHMsIHR5cGUgTWV0YWRhdGFQYXlsb2FkIH0gZnJvbSBcImF1cm9yYS1jb3JlXCI7XG5cbmNvbnN0IHNlZ21lbnRzOiBNZXRhZGF0YVNlZ21lbnRzID0ge1xuICBBQ0tOT1dMRURHTUVOVDogXCJhY2tub3dsZWRnbWVudFwiLFxuICBKVURHTUVOVDogXCJqdWRnbWVudFwiLFxuICBFTkRPUlNFTUVOVDogXCJlbmRvcnNlbWVudFwiLFxuICBGRUU6IFwiZmVlXCIsXG4gIEZFRUZBQ1RPUjogXCJmYWN0b3JcIixcbiAgRlVORDogXCJmdW5kXCIsXG4gIExFR0FMOiBcImxlZ2FsXCIsXG4gIE1PTkVUQVJZOiBcIm1vbmV0YXJ5XCIsXG4gIFBBR0U6IFwicGFnZVwiLFxuICBQQVJUWTogXCJwYXJ0eVwiLFxuICBQUk9QRVJUWTogXCJwcm9wZXJ0eVwiLFxuICBSRUZFUkVOQ0U6IFwicmVmZXJlbmNlXCIsXG4gIFNFQ1JFVFM6IFwic2VjcmV0c1wiLFxuICBUSVRMRTogXCJ0aXRsZVwiLFxuICBUUkFOU0FDVElPTjogXCJ0cmFuc2FjdGlvblwiLFxuICBWSVRBTDogXCJ2aXRhbFwiLFxufTtcblxuY29uc3QgcGFuZWxEZWZhdWx0cyA9IHtcbiAgYWN0aW9uczoge1xuICAgIGNvbmZpcm06IHRydWUsXG4gICAgZHJvcDogdHJ1ZSxcbiAgICByZXByb2Nlc3M6IHRydWUsXG4gIH0sXG4gIHNlY3Rpb25zOiB7XG4gICAgZmlsdGVyQnlDaG9pY2VzOiB0cnVlLFxuICAgIGhpZGRlblNlZ21lbnRzOiBuZXcgU2V0PHN0cmluZz4oKSxcbiAgICBzaG93RW1wdHk6IGZhbHNlLFxuICB9LFxuICBzaG93Q29udGV4dDogdHJ1ZSxcbiAgc2hvcnRjdXRzOiBudWxsLFxuICBzdGF0dXM6IFwic3VjY2Vzc1wiIGFzIGNvbnN0LFxufTtcblxuZnVuY3Rpb24gUGFuZWxIYXJuZXNzKCk6IEpTWC5FbGVtZW50IHtcbiAgY29uc3QgW2FkZHJlc3MsIHNldEFkZHJlc3NdID0gdXNlU3RhdGUoXCJcIik7XG5cbiAgY29uc3QgbWV0YWRhdGE6IE1ldGFkYXRhUGF5bG9hZCA9IHtcbiAgICBmZWVzOiBbXSxcbiAgICBmdW5kczogW10sXG4gICAgaGVhZGluZzogeyBjbGFzczogXCJkZWVkXCIsIHRpdGxlOiBcIldhcnJhbnR5IERlZWRcIiB9LFxuICAgIGluZGV4ZXM6IFtcbiAgICAgIHtcbiAgICAgICAgYXNwZWN0OiBcInByb3BlcnR5X2FkZHJlc3NcIixcbiAgICAgICAgY29kZTogXCJpZHgtYWRkclwiLFxuICAgICAgICBsYWJlbDogXCJwcm9wZXJ0eSBhZGRyZXNzXCIsXG4gICAgICAgIHBhZ2U6IFwiMVwiLFxuICAgICAgICBzZWdtZW50OiBcInByb3BlcnR5XCIsXG4gICAgICAgIHZhbHVlOiBcIjEyMyBNYWluIFN0cmVldCwgQXVzdGluLCBUWCA3ODcwMVwiLFxuICAgICAgfSxcbiAgICBdLFxuICAgIHBhZ2VzOiB7IG51bV9vZl9wYWdlczogMSwgcmVjb3JkYWJsZXM6IFt7IGNvZGU6IFwicGFnZS0xXCIsIG5hbWU6IFwiMVwiIH1dIH0sXG4gICAgc2VjcmV0czogW10sXG4gIH07XG5cbiAgcmV0dXJuIChcbiAgICA8PlxuICAgICAgPE1ldGFkYXRhUGFuZWxcbiAgICAgICAgey4uLnBhbmVsRGVmYXVsdHN9XG4gICAgICAgIGNhbGxiYWNrcz17e1xuICAgICAgICAgIG9uQWRkcmVzc0NsaWNrOiAodmFsdWUpID0+IHNldEFkZHJlc3ModmFsdWUpLFxuICAgICAgICB9fVxuICAgICAgICBjb25maXJtZWRDb2Rlcz17bmV3IFNldCgpfVxuICAgICAgICBjaG9pY2VzPXtbeyBsZXZlbDogMSwgc2VydmljZTogXCJFeGhpYml0SW5kZXhpbmdcIiB9XX1cbiAgICAgICAgbWV0YWRhdGE9e21ldGFkYXRhfVxuICAgICAgICBvbkNvbmZpcm09e3ZpLmZuKCl9XG4gICAgICAgIG9uRHJvcD17dmkuZm4oKX1cbiAgICAgICAgb25SZXByb2Nlc3M9e3ZpLmZuKCl9XG4gICAgICAgIG9wZW5TZWdtZW50PVwicHJvcGVydHlcIlxuICAgICAgICByZW1vdmVkQ29kZXM9e25ldyBTZXQoKX1cbiAgICAgICAgc2VsZWN0ZWRJbmRleD17bnVsbH1cbiAgICAgICAgc2VnbWVudHM9e3NlZ21lbnRzfVxuICAgICAgICBzZXNzaW9uPVwic2Vzc2lvbi1hZGRyZXNzLW1hcFwiXG4gICAgICAgIHNldFNlY3Rpb25PcGVuPXt2aS5mbigpfVxuICAgICAgICBwYW5lbERhdGE9e2dldFBhbmVsRGF0YShtZXRhZGF0YSl9XG4gICAgICAvPlxuICAgICAgPGRpdiBkYXRhLXRlc3RpZD1cImFkZHJlc3MtY2xpY2tlZFwiPnthZGRyZXNzfTwvZGl2PlxuICAgIDwvPlxuICApO1xufVxuXG5kZXNjcmliZShcIk1ldGFkYXRhUGFuZWwgYWRkcmVzcyBtYXAgaW50ZWdyYXRpb25cIiwgKCkgPT4ge1xuICBpdChcImZvcndhcmRzIGFkZHJlc3Mgcm93IGNsaWNrIHRvIGNhbGxiYWNrcy5vbkFkZHJlc3NDbGlja1wiLCBhc3luYyAoKSA9PiB7XG4gICAgcmVuZGVyKDxQYW5lbEhhcm5lc3MgLz4pO1xuXG4gICAgY29uc3Qgb3BlbkJ1dHRvbiA9IGF3YWl0IHNjcmVlbi5maW5kQnlSb2xlKFwiYnV0dG9uXCIsIHsgbmFtZTogXCJPcGVuIGFkZHJlc3MgMTIzIE1haW4gU3RyZWV0LCBBdXN0aW4sIFRYIDc4NzAxXCIgfSk7XG4gICAgY29uc3QgdmFsdWUgPSBzY3JlZW4uZ2V0QnlUZXh0KFwiMTIzIE1haW4gU3RyZWV0LCBBdXN0aW4sIFRYIDc4NzAxXCIpO1xuICAgIGV4cGVjdChvcGVuQnV0dG9uLnBhcmVudEVsZW1lbnQ/LmZpcnN0RWxlbWVudENoaWxkKS50b0JlKHZhbHVlKTtcbiAgICBleHBlY3Qob3BlbkJ1dHRvbi5wYXJlbnRFbGVtZW50Py5sYXN0RWxlbWVudENoaWxkKS50b0JlKG9wZW5CdXR0b24pO1xuICAgIGV4cGVjdChvcGVuQnV0dG9uKS50b0hhdmVTdHlsZSh7IHBhZGRpbmc6IFwiMHB4XCIgfSk7XG4gICAgZXhwZWN0KG9wZW5CdXR0b24ucGFyZW50RWxlbWVudCkudG9IYXZlU3R5bGUoeyBhbGlnbkl0ZW1zOiBcImZsZXgtc3RhcnRcIiwgZGlzcGxheTogXCJmbGV4XCIsIGZsZXhEaXJlY3Rpb246IFwiY29sdW1uXCIsIGdhcDogXCIwLjE1cmVtXCIgfSk7XG4gICAgZXhwZWN0KHZhbHVlKS50b0hhdmVTdHlsZSh7IGRpc3BsYXk6IFwiaW5saW5lXCIsIHdoaXRlU3BhY2U6IFwibm9ybWFsXCIsIG92ZXJmbG93V3JhcDogXCJhbnl3aGVyZVwiIH0pO1xuICAgIGV4cGVjdChvcGVuQnV0dG9uKS50b0hhdmVUZXh0Q29udGVudChcIlNob3cgbWFwXCIpO1xuICAgIGV4cGVjdChvcGVuQnV0dG9uKS50b0hhdmVTdHlsZSh7IGFsaWduSXRlbXM6IFwiY2VudGVyXCIsIGhlaWdodDogXCIycmVtXCIsIG1pbkhlaWdodDogXCIycmVtXCIsIHdpZHRoOiBcImF1dG9cIiB9KTtcbiAgICBmaXJlRXZlbnQuY2xpY2sob3BlbkJ1dHRvbik7XG5cbiAgICBhd2FpdCB3YWl0Rm9yKCgpID0+IGV4cGVjdChzY3JlZW4uZ2V0QnlUZXN0SWQoXCJhZGRyZXNzLWNsaWNrZWRcIikudGV4dENvbnRlbnQpLnRvQmUoXCIxMjMgTWFpbiBTdHJlZXQsIEF1c3RpbiwgVFggNzg3MDFcIikpO1xuICAgIGV4cGVjdChzY3JlZW4ucXVlcnlCeVJvbGUoXCJkaWFsb2dcIikpLm5vdC50b0JlSW5UaGVEb2N1bWVudCgpO1xuICB9KTtcbn0pO1xuIl0sImZpbGUiOiIvc3JjL2ZlYXR1cmVzL21ldGRhdGF2aWV3L3Rlc3QvTWV0YWRhdGFQYW5lbC5hZGRyZXNzbWFwLnZpdGVzdC50ZXN0LnRzeCJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL2ZlYXR1cmVzL21ldGRhdGF2aWV3L3Rlc3QvTWV0YWRhdGFQYW5lbC5hZGRyZXNzbWFwLnZpdGVzdC50ZXN0LnRzeCIsIi9zcmMvZmVhdHVyZXMvbWV0ZGF0YXZpZXcvdGVzdC9NZXRhZGF0YVBhbmVsLmFkZHJlc3NtYXAudml0ZXN0LnRlc3QudHN4IixbXV0=

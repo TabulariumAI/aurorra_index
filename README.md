@@ -9,7 +9,7 @@ It is a host-integrated package. The host provides authentication, API gateway c
 - Metadata review and index add, edit, confirm, drop, refine, and reprocess workflows
 - Image viewing and page-segment management
 - Address and legal mapping
-- Audit and index-quality panels
+- Audit, index-quality, and service-usage panels
 - Queue and pending-change state for document workflows
 
 ## Requirements
@@ -31,6 +31,8 @@ The package exports the host-integrated `IndexContainer`, `ImageViewerPanel`, `A
 ```tsx
 import { IndexContainer, ImageViewerPanel } from "aurorra-index";
 ```
+
+`ImageViewerPanel` requires the host `renderTolerance` callout renderer. Page-size rejection shows the source, page dimensions, and required tolerance. **Process anyway** retries the cached image package with a temporary tolerance; **Cancel**, Close, or Escape dismisses approval. The override is not persisted and is discarded when preview unmounts or its document changes.
 
 See the exported prop types in [`src/public-api.ts`](src/public-api.ts). The host must supply valid credentials and compatible gateway endpoints.
 
@@ -54,3 +56,27 @@ Do not commit credentials, authorization headers, SAS tokens, generated build ou
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+## Service usage
+
+`useUsage(owner)` runs the IndexedDB job for service events in loaded audit reports. Index completion, metadata refresh,
+and queued reprocessing retrieve the latest audit URL from the gateway and download
+the audit in the background. Opening Audit and refreshing Audit also retrieve a
+fresh URL and report. An audit failure does not hide successful metadata. Use the workspace owner key formed
+from gateway URL, subscription, and email. The job ignores existing GUIDs, keeps
+only the previous and current UTC calendar months, and repeats cleanup at UTC
+midnight. Unmounting the host stops the worker, subscription, and timer.
+Each persisted record includes its session ID. Database version 2
+rebuilds the usage cache from loaded audit reports to populate these IDs.
+
+`UsagePanel` receives the persisted service records and provides service/date
+selection, distinct session counts per service in the selected dates, daily or
+Monday to Sunday weekly UTC charts, and average page cost
+(total service cost divided by total pages used). Operations without pages show
+"No pages used" instead of a numeric average. The host owns the dialog framing.
+
+The four service groups are Extraction, IQ refinement, Refinement, and Model generation.
+Each operation contributes one record per applicable group. `AuditPanel` shows group costs,
+recorded processing times in seconds, and page counts across the loaded audit's complete history,
+below the audit gaps. It does not display a separate total-cost line.
+Audit gap filters do not filter service usage. Both panels use the same service grouping and labels.

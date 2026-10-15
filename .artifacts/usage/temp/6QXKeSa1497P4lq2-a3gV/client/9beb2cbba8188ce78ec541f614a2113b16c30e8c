@@ -1,0 +1,21 @@
+__vite_ssr_exportName__("useEditIndexStore", () => { try { return useEditIndexStore } catch {} });
+__vite_ssr_exportName__("editIndexStoreApi", () => { try { return editIndexStoreApi } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/zustand/index.js", {"importedNames":["create"]});
+
+const useEditIndexStore = (0,__vite_ssr_import_0__.create)()((set) => ({
+	request: null,
+	open(request) {
+		set({ request: {
+			...request,
+			index: { ...request.index }
+		} });
+	},
+	close() {
+		set({ request: null });
+	}
+}));
+const editIndexStoreApi = useEditIndexStore;
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7QUFBQTs7QUFHTyxNQUFNLHVCQUFvQiw4QkFBNEIsR0FBRyxTQUFTO0NBQ3ZFLFNBQVM7Q0FDVCxLQUFLLFNBQVM7RUFBRSxJQUFJLEVBQUUsU0FBUztHQUFFLEdBQUc7R0FBUyxPQUFPLEVBQUUsR0FBRyxRQUFRLE1BQU07RUFBRSxFQUFFLENBQUM7Q0FBRztDQUMvRSxRQUFRO0VBQUUsSUFBSSxFQUFFLFNBQVMsS0FBSyxDQUFDO0NBQUc7QUFDcEMsRUFBRTtBQUNLLE1BQU0sb0JBQW9CIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJlZGl0SW5kZXhTdG9yZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBjcmVhdGUgfSBmcm9tIFwienVzdGFuZFwiO1xuaW1wb3J0IHR5cGUgeyBFZGl0SW5kZXhTdG9yZVN0YXRlIH0gZnJvbSBcIi4uL3R5cGUvZWRpdEluZGV4LnR5cGVzXCI7XG5cbmV4cG9ydCBjb25zdCB1c2VFZGl0SW5kZXhTdG9yZSA9IGNyZWF0ZTxFZGl0SW5kZXhTdG9yZVN0YXRlPigpKChzZXQpID0+ICh7XG4gIHJlcXVlc3Q6IG51bGwsXG4gIG9wZW4ocmVxdWVzdCkgeyBzZXQoeyByZXF1ZXN0OiB7IC4uLnJlcXVlc3QsIGluZGV4OiB7IC4uLnJlcXVlc3QuaW5kZXggfSB9IH0pOyB9LFxuICBjbG9zZSgpIHsgc2V0KHsgcmVxdWVzdDogbnVsbCB9KTsgfSxcbn0pKTtcbmV4cG9ydCBjb25zdCBlZGl0SW5kZXhTdG9yZUFwaSA9IHVzZUVkaXRJbmRleFN0b3JlO1xuIl0sImZpbGUiOiIvc3JjL2ZlYXR1cmVzL2VkaXRpbmRleC9zdG9yZS9lZGl0SW5kZXhTdG9yZS50cyJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL2ZlYXR1cmVzL2VkaXRpbmRleC9zdG9yZS9lZGl0SW5kZXhTdG9yZS50cyIsIi9zcmMvZmVhdHVyZXMvZWRpdGluZGV4L3N0b3JlL2VkaXRJbmRleFN0b3JlLnRzIixbXV0=

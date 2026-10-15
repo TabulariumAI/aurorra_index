@@ -1,0 +1,36 @@
+__vite_ssr_exportName__("SuccessIcon", () => { try { return SuccessIcon } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV"]});
+var _jsxFileName = "C:/GitHub/Tabularium/aurora_core/src/SuccessIcon.tsx";
+
+function SuccessIcon() {
+	return /* @__PURE__ */ (0,__vite_ssr_import_0__.jsxDEV)("svg", {
+		"aria-hidden": "true",
+		"data-status-icon": "success",
+		fill: "currentColor",
+		height: "0.7rem",
+		viewBox: "0 0 24 24",
+		width: "0.7rem",
+		style: {
+			color: "#15803d",
+			flexShrink: 0,
+			verticalAlign: "middle"
+		},
+		children: /* @__PURE__ */ (0,__vite_ssr_import_0__.jsxDEV)("circle", {
+			cx: "12",
+			cy: "12",
+			r: "12"
+		}, void 0, false, {
+			fileName: _jsxFileName,
+			lineNumber: 5,
+			columnNumber: 7
+		}, this)
+	}, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 3,
+		columnNumber: 5
+	}, this);
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7OztBQUFPLFNBQVMsY0FBYztDQUM1QixPQUNFLGlEQUFDLE9BQUQ7RUFBSyxlQUFZO0VBQU8sb0JBQWlCO0VBQVUsTUFBSztFQUFlLFFBQU87RUFBUyxTQUFRO0VBQVksT0FBTTtFQUMvRyxPQUFPO0dBQUUsT0FBTztHQUFXLFlBQVk7R0FBRyxlQUFlO0VBQVM7WUFDbEUsaURBQUMsVUFBRDtHQUFRLElBQUc7R0FBSyxJQUFHO0dBQUssR0FBRTtFQUFNOzs7OztDQUM3Qjs7Ozs7QUFFVCIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiU3VjY2Vzc0ljb24udHN4Il0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBmdW5jdGlvbiBTdWNjZXNzSWNvbigpIHtcbiAgcmV0dXJuIChcbiAgICA8c3ZnIGFyaWEtaGlkZGVuPVwidHJ1ZVwiIGRhdGEtc3RhdHVzLWljb249XCJzdWNjZXNzXCIgZmlsbD1cImN1cnJlbnRDb2xvclwiIGhlaWdodD1cIjAuN3JlbVwiIHZpZXdCb3g9XCIwIDAgMjQgMjRcIiB3aWR0aD1cIjAuN3JlbVwiXG4gICAgICBzdHlsZT17eyBjb2xvcjogXCIjMTU4MDNkXCIsIGZsZXhTaHJpbms6IDAsIHZlcnRpY2FsQWxpZ246IFwibWlkZGxlXCIgfX0+XG4gICAgICA8Y2lyY2xlIGN4PVwiMTJcIiBjeT1cIjEyXCIgcj1cIjEyXCIgLz5cbiAgICA8L3N2Zz5cbiAgKTtcbn1cbiJdLCJmaWxlIjoiL0Bmcy9DOi9HaXRIdWIvVGFidWxhcml1bS9hdXJvcmFfY29yZS9zcmMvU3VjY2Vzc0ljb24udHN4In0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9yYV9jb3JlL3NyYy9TdWNjZXNzSWNvbi50c3giLCIvQGZzL0M6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9yYV9jb3JlL3NyYy9TdWNjZXNzSWNvbi50c3giLFtdXQ==

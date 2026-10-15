@@ -7,7 +7,7 @@ import { createIndexWorkerClient } from "../../src/features/metdataview/worker/m
 import { queueStoreApi } from "../../src/features/queue/store/queueStore";
 
 const segments: MetadataSegments = {
-  ACKNOWLEDGMENT: "acknowledgment", COURT: "court", ENDORSEMENT: "endorsement", FEE: "fee",
+  ACKNOWLEDGMENT: "acknowledgment", JUDGMENT: "judgment", ENDORSEMENT: "endorsement", FEE: "fee",
   FEEFACTOR: "factor", FUND: "fund", LEGAL: "legal", MONETARY: "monetary", PAGE: "page",
   PARTY: "party", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TITLE: "title",
   TRANSACTION: "transaction", VITAL: "vital",

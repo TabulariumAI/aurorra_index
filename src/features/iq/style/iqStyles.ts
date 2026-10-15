@@ -8,11 +8,10 @@ const palette = {
 } satisfies Record<IqBucket, { fg: string; bar: string }>;
 
 const gateColors = {
-  success: { bg: "#10b981", border: "#065f46" },
-  warning: { bg: "#fcd34d", border: "#d97706" },
-  info: { bg: "#94a3b8", border: "#475569" },
-  fail: { bg: "#ef4444", border: "#991b1b" },
-} satisfies Record<IqUiStatus, { bg: string; border: string }>;
+  warning: "#f59e0b",
+  info: "#94a3b8",
+  fail: "#ef4444",
+} satisfies Record<Exclude<IqUiStatus, "success">, string>;
 
 export const iqStyles = {
   root: {
@@ -173,15 +172,14 @@ export const iqStyles = {
     letterSpacing: "0.01em",
     textTransform: "uppercase",
   },
-  gateFlag(status: IqUiStatus): CSSProperties {
+  gateFlag(status: Exclude<IqUiStatus, "success">): CSSProperties {
     return {
-      background: gateColors[status].bg,
-      border: `0.0625rem solid ${gateColors[status].border}`,
-      borderRadius: "0.125rem",
+      background: gateColors[status],
+      borderRadius: "999px",
       display: "inline-block",
       flex: "0 0 auto",
-      height: "0.85rem",
-      width: "0.85rem",
+      height: "0.7rem",
+      width: "0.7rem",
     };
   },
   gateText: {

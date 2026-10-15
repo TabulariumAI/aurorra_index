@@ -35,6 +35,7 @@ describe("useAuditReport", () => {
 
     renderHook(() =>
       useAuditReport({
+        onResource: vi.fn(),
         apiGatewayUrl: "https://api",
         authToken: "token",
         callbacks,
@@ -60,6 +61,7 @@ describe("useAuditReport", () => {
 
     renderHook(() =>
       useAuditReport({
+        onResource: vi.fn(),
         apiGatewayUrl: "https://api",
         authToken: "token",
         callbacks,
@@ -81,6 +83,7 @@ describe("useAuditReport", () => {
     const callbacks = { onAuditCanceled: vi.fn() };
     const { unmount } = renderHook(() =>
       useAuditReport({
+        onResource: vi.fn(),
         apiGatewayUrl: "https://api",
         authToken: "token",
         callbacks,
@@ -96,4 +99,36 @@ describe("useAuditReport", () => {
     unmount();
     expect(callbacks.onAuditCanceled).toHaveBeenCalledTimes(1);
   });
+});
+
+it("requests the latest audit when reopened even with an existing report", async () => {
+  const client = createClient();
+  const props = { onResource: vi.fn(), apiGatewayUrl: "https://api", authToken: "token", callbacks: {}, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "s", workerClient: client };
+  auditStoreApi.getState().setLoaded("s", { gaps: [] });
+  const view = renderHook(() => useAuditReport(props));
+  await waitFor(() => expect(client.loadReport).toHaveBeenCalledTimes(1));
+  view.unmount();
+  renderHook(() => useAuditReport(props));
+  await waitFor(() => expect(client.loadReport).toHaveBeenCalledTimes(2));
+});
+
+it("does not publish a late audit or error after the owner resets", async () => {
+  for (const fail of [false, true]) {
+    let finish!: () => void;
+    const client: AuditWorkerClient = { loadReport: vi.fn(() => new Promise<AuditReport>((resolve, reject) => {
+      finish = () => fail ? reject(new Error("Old owner")) : resolve(report);
+    })) };
+    const callbacks = { onAuditLoaded: vi.fn(), onAuditError: vi.fn() };
+    const view = renderHook(() => useAuditReport({ onResource: vi.fn(), apiGatewayUrl: "https://api", authToken: "old-token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "old", workerClient: client }));
+    await waitFor(() => expect(client.loadReport).toHaveBeenCalledOnce());
+    auditStoreApi.getState().resetAudit();
+    finish();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(auditStoreApi.getState().report).toBeNull();
+    expect(auditStoreApi.getState().error).toBeNull();
+    expect(callbacks.onAuditLoaded).not.toHaveBeenCalled();
+    expect(callbacks.onAuditError).not.toHaveBeenCalled();
+    view.unmount();
+  }
 });

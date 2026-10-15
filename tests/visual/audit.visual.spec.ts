@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("https://doc.example.com/v1/model/aspects", route => route.fulfill({ json: { aspects: { reference: ["recording_number"], party: ["grantor"], transaction: ["recording_date"] } } }));
+});
+
 test("Audit panel renders filters, sorting, and message expansion", async ({ page }) => {
   await page.goto("/?scenario=audit");
 
@@ -15,23 +19,20 @@ test("Audit panel renders filters, sorting, and message expansion", async ({ pag
   const changeType = page.getByLabel("Change type");
   const process = page.getByLabel("Process");
   const badgeLabel = page.getByText("Out of 3");
-  const costs = page.getByText("$1.6641 $0.0190");
+  await expect(page.getByText("$1.6641 $0.0190")).toHaveCount(0);
 
   const changeTypeBox = await changeType.boundingBox();
   const processBox = await process.boundingBox();
   const badgeBox = await badgeLabel.boundingBox();
-  const costsBox = await costs.boundingBox();
   const controlsRowBox = await controlsRow.boundingBox();
 
   expect(changeTypeBox).toBeTruthy();
   expect(processBox).toBeTruthy();
   expect(badgeBox).toBeTruthy();
-  expect(costsBox).toBeTruthy();
   expect(controlsRowBox).toBeTruthy();
-  if (!changeTypeBox || !processBox || !badgeBox || !costsBox || !controlsRowBox) throw new Error("Expected audit layout in view.");
+  if (!changeTypeBox || !processBox || !badgeBox || !controlsRowBox) throw new Error("Expected audit layout in view.");
 
   expect(badgeBox.y).toBeGreaterThanOrEqual(changeTypeBox.y);
-  await expect(costs).toHaveCSS("color", "rgb(16, 36, 58)");
 
   const addMessage = await page.getByText("Newest addition message").boundingBox();
   const correction = await page.getByText("This is a long correction message").boundingBox();
@@ -43,7 +44,6 @@ test("Audit panel renders filters, sorting, and message expansion", async ({ pag
 
   expect(addMessage.y).toBeLessThan(correction.y);
   expect(correction.y).toBeLessThan(removeMessage.y);
-  expect(costsBox.y).toBeGreaterThan(removeMessage.y);
 
   await expect(page.getByText("[Show more]")).toBeVisible();
   await page.getByText("[Show more]").first().click();

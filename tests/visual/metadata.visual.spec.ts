@@ -3,6 +3,42 @@ import { expect, test, type Locator } from "@playwright/test";
 test.use({ channel: "msedge" });
 
 for (const width of [375, 940]) {
+  test(`all segment rows align left with summary and legal elements use half indent at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/?scenario=metadata-property-alignment");
+    const property = page.locator(".metadata-property");
+    await expect(property.locator("article")).toHaveCount(2);
+    const rem = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize));
+    const summary = await property.locator(":scope > p").boundingBox();
+    for (const row of await property.locator("article").all()) {
+      const rowBox = await row.boundingBox();
+      const dot = await row.getByRole("img", { name: "OK" }).boundingBox();
+      expect(dot!.x).toBeCloseTo(rowBox!.x, 0);
+      expect(dot!.x).toBeCloseTo(summary!.x, 0);
+    }
+    const group = property.locator('article[data-index-code="legal-1"]');
+    const heading = await group.getByText("Legal Description", { exact: true }).boundingBox();
+    const element = await group.getByText("Subdivision:", { exact: true }).boundingBox();
+    expect(element!.x - heading!.x).toBeCloseTo(rem, 0);
+    expect(await property.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`property-alignment-${width}.png`) });
+    const propertyLabel = await property.locator('article[data-index-code="property-1"] > :nth-child(2)').boundingBox();
+    await page.goto("/?scenario=metadata-party-rows");
+    const partyRows = page.locator('article[data-index-segment="party"]');
+    await expect(partyRows).toHaveCount(6);
+    for (const row of await partyRows.all()) {
+      const rowBox = await row.boundingBox();
+      const dot = await row.locator(":scope > span").first().boundingBox();
+      const label = await row.locator(":scope > :nth-child(2)").boundingBox();
+      expect(dot!.x).toBeCloseTo(rowBox!.x, 0);
+      expect(dot!.x).toBeCloseTo(summary!.x, 0);
+      expect(label!.x).toBeCloseTo(propertyLabel!.x, 0);
+    }
+    await page.screenshot({ path: testInfo.outputPath(`party-alignment-${width}.png`) });
+  });
+}
+
+for (const width of [375, 940]) {
   test(`metadata segment dividers, badges and inset rows follow disclosure at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("/?scenario=metadata-short");
@@ -274,6 +310,23 @@ for (const width of [700, 1312]) {
     await page.screenshot({ path: testInfo.outputPath("metadata-party-rows.png") });
   });
 }
+
+test("metadata values remain left-aligned when row actions differ", async ({ page }) => {
+  await page.setViewportSize({ width: 1312, height: 900 });
+  await page.goto("/?scenario=metadata-party-rows");
+  const rows = page.locator('article[data-index-segment="party"]');
+  await expect(rows).toHaveCount(6);
+  await expect(rows.first().getByRole("button", { name: "Confirm index and remove ambiguity" })).toBeVisible();
+  await expect(rows.nth(1).getByRole("button", { name: "Confirm index and remove ambiguity" })).toHaveCount(0);
+
+  const valueColumns = await Promise.all(
+    (await rows.all()).map(row => row.locator(":scope > div").nth(1).boundingBox()),
+  );
+  expect(valueColumns.every(box => box !== null)).toBe(true);
+  for (const box of valueColumns.slice(1)) {
+    expect(box!.x).toBeCloseTo(valueColumns[0]!.x, 0);
+  }
+});
 
 test("address rows place Show map below the address in the value column", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1312, height: 900 });

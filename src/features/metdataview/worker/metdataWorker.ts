@@ -6,6 +6,7 @@ import { fetchJson } from "../../../shared/worker/fetchJson";
 type IndexDataEnvelope = {
   data: string;
   status: string;
+  etag: string;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -55,7 +56,7 @@ async function resolveIndexData(payload: unknown): Promise<MetdataWorkerResult<M
   const result = await fetchJson(envelope.data.data);
   if (!result.ok) return result;
   const metadata = validateMetadataPayload(result.data);
-  return metadata.ok ? { ...metadata, path: envelope.data.data } : metadata;
+  return metadata.ok ? { ...metadata, path: envelope.data.data, etag: envelope.data.etag } : metadata;
 }
 
 function resolveReprocess(payload: unknown): MetdataWorkerResult<MetdataReprocessResult> {

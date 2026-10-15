@@ -1,7 +1,7 @@
 export { IqPanel } from "./component/IqPanel";
 export { loadIqReport } from "./data/loadIqReport";
 export { useIqReport } from "./hook/useIqReport";
-export { createIqWorkerClient } from "./worker/iqWorkerClient";
+export { createIqWorkerClient, generateIqReport } from "./worker/iqWorkerClient";
 export { iqStoreApi, useIqStore } from "./store/iqStore";
 export {
   GATE_FAIL,
@@ -24,12 +24,10 @@ export type {
   IqGateStatus,
   IqGateView,
   IqPanelProps,
-  IqPollResult,
   IqReport,
   IqReportView,
   IqSegment,
   IqSegmentView,
-  IqStartResult,
   IqStatus,
   IqStoreState,
   IqUiStatus,

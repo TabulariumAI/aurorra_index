@@ -1,4 +1,4 @@
-import type { IqAckResult, IqPollResult, IqReport, IqStartResult, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
+import type { IqAckResult, IqReport, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
 import { fetchJson } from "../../../shared/worker/fetchJson";
 
 type ParsedResponse = {
@@ -28,34 +28,6 @@ async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqRep
     return validateReport(result.data);
   }
   return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
-}
-
-async function pollFromPayload(payload: unknown): Promise<IqWorkerResult<IqPollResult>> {
-  if (!isObject(payload)) {
-    return { ok: false, code: "validation_error", error: "Response is not a valid IQ status." };
-  }
-  if (payload.status === "error") {
-    return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
-  }
-  if (payload.status === "pending" || payload.status === "processing") {
-    return { ok: true, data: { data: null, isComplete: false, status: payload.status } };
-  }
-  if (payload.status !== "completed") {
-    return { ok: false, code: "validation_error", error: "Response is not a valid IQ status." };
-  }
-  const report = await reportFromPayload(payload);
-  if (!report.ok) return report;
-  return { ok: true, data: { data: report.data, isComplete: true, status: "completed" } };
-}
-
-function startFromPayload(payload: unknown): IqStartResult {
-  const source = isObject(payload) ? payload : {};
-  const status = String(source.status ?? "");
-  return {
-    status,
-    data: source.data,
-    isComplete: status === "completed",
-  };
 }
 
 function ackFromPayload(payload: unknown): IqAckResult {
@@ -109,16 +81,13 @@ export class IqWorker {
   buildRequest(command: IqWorkerCommand): { body: string | null; method: "GET" | "POST"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
-    if (command.type === "iqStart") {
-      return { body: JSON.stringify({}), method: "POST", url: `${apiBaseUrl}/v1/iq/${session}/start` };
-    }
     if (command.type === "iqAck") {
       return { body: null, method: "POST", url: `${apiBaseUrl}/v1/iq/${session}/gates/${encodeURIComponent(command.code)}/ack` };
     }
-    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data` };
+    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
   }
 
-  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqReport | IqPollResult | IqStartResult | IqAckResult>> {
+  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqReport | IqAckResult>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }
@@ -131,7 +100,7 @@ export class IqWorker {
     if (command.type === "iqAck" && (typeof command.code !== "string" || !command.code.trim())) {
       return { ok: false, code: "invalid_gate_code", error: "Gate code is missing or invalid." };
     }
-    if (command.type !== "iqData" && command.type !== "iqPoll" && command.type !== "iqStart" && command.type !== "iqAck") {
+    if (command.type !== "iqData" && command.type !== "iqAck") {
       return { ok: false, code: "invalid_command", error: "Unknown IQ worker command." };
     }
 
@@ -140,6 +109,7 @@ export class IqWorker {
     try {
       response = await fetch(request.url, {
         body: request.body,
+        cache: "no-store",
         headers: {
           Authorization: `Bearer ${command.token}`,
           ...(request.body ? { "Content-Type": "application/json" } : {}),
@@ -153,9 +123,7 @@ export class IqWorker {
     const parsed = await parseResponse(response);
     if (!parsed.ok) return parsed;
     if (!response.ok) return httpError(parsed.data);
-    if (command.type === "iqStart") return { ok: true, data: startFromPayload(parsed.data.payload) };
     if (command.type === "iqAck") return { ok: true, data: ackFromPayload(parsed.data.payload) };
-    if (command.type === "iqPoll") return pollFromPayload(parsed.data.payload);
     return reportFromPayload(parsed.data.payload);
   }
 }

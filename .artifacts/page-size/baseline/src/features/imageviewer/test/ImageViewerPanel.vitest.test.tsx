@@ -1,0 +1,564 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ViewerState } from "@tabulariumai/aurora-lens";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
+import { imageViewerStoreApi } from "../store/imageViewerStore";
+import { storeApi } from "../../../store/state/store";
+import { splitMetadataJSON } from "aurora-core";
+
+let viewerPageCount = 2;
+let viewerPage = 2;
+let viewerReloadId = 0;
+let viewerRestoring = false;
+let viewerRestoredSession = false;
+let viewerNavigating = false;
+let viewerThumbs = false;
+const exportSelection = vi.hoisted(() => vi.fn(async () => ({
+  groups: [
+    { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },
+  ],
+  pageName: "Exhibit-A",
+})));
+const copySelection = vi.hoisted(() => vi.fn(async () => ({ copied: true, groups: [], text: "Selected value" })));
+const select = vi.hoisted(() => vi.fn());
+const showThumbnails = vi.hoisted(() => vi.fn());
+
+vi.mock("../hook/useImageViewer", () => ({
+  useImageViewer: () => ({
+    actualSize: vi.fn(),
+    canActualSize: true,
+    canClearSearch: true,
+    canExport: true,
+    canFitHeight: true,
+    canFitPage: true,
+    canFitWidth: true,
+    canGoFirst: true,
+    canGoLast: true,
+    canGoNext: true,
+    canGoPrevious: true,
+    canSearch: true,
+    canSelect: true,
+    canShowThumbnails: true,
+    canZoomIn: true,
+    canZoomOut: true,
+    clearSearch: vi.fn(),
+    copySelection,
+    exportSelection,
+    firstPage: vi.fn(),
+    fitHeight: vi.fn(),
+    fitPage: vi.fn(),
+    fitWidth: vi.fn(),
+    isThumbs: viewerThumbs,
+    isNavigating: viewerNavigating,
+    lastPage: vi.fn(),
+    lensHostRef: { current: null },
+    nextPage: vi.fn(),
+    page: viewerPage,
+    pageCount: viewerPageCount,
+    previousPage: vi.fn(),
+    reloadId: viewerReloadId,
+    search: vi.fn(),
+    selecting: false,
+    select,
+    showThumbnails,
+    zoom: 1,
+    zoomIn: vi.fn(),
+    zoomOut: vi.fn(),
+    isLoading: false,
+    isRestoredSession: viewerRestoredSession,
+    isRestoring: viewerRestoring,
+  }),
+}));
+
+import { ImageViewerPanel } from "../component/ImageViewerPanel";
+
+const directPackageRaw = readFileSync(path.join(process.cwd(), "src", "test", "package", "image-package.json"), "utf8");
+const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: string };
+const onReadyChange = vi.fn();
+
+describe("ImageViewerPanel", () => {
+  afterEach(() => {
+    addIndexStoreApi.getState().close();
+    storeApi.getState().resetJSON();
+    imageViewerStoreApi.getState().resetViewer();
+    viewerPageCount = 2;
+    viewerPage = 2;
+    viewerReloadId = 0;
+    viewerRestoring = false;
+    viewerRestoredSession = false;
+    viewerNavigating = false;
+    viewerThumbs = false;
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    exportSelection.mockClear();
+    copySelection.mockClear();
+    select.mockClear();
+    showThumbnails.mockClear();
+    onReadyChange.mockClear();
+  });
+
+  it("does not show a match result before Match is used", () => {
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+    expect(screen.queryByRole("status", { name: "Index match result" })).not.toBeInTheDocument();
+  });
+
+  it("completes the package flow through the host", async () => {
+    const onError = vi.fn();
+    const onLoaderChange = vi.fn();
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: directPackage,
+      })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError,
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+
+    expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
+    expect(onReadyChange).toHaveBeenCalledWith(false);
+    await waitFor(() => expect(onLoaderChange).toHaveBeenCalledWith(["Generating the image package"]));
+    expect(screen.getByRole("region", { name: "Image viewer" })).not.toHaveStyle({ border: "1px solid rgba(15, 23, 42, 0.18)" });
+    expect(screen.getByRole("button", { name: /^Select$/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "More" })).toBeEnabled();
+    await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
+    await waitFor(() => expect(onReadyChange).toHaveBeenLastCalledWith(true));
+    expect(workerClient.packageImage).toHaveBeenCalledBefore(workerClient.imageStatus);
+    expect(workerClient.imageData).toHaveBeenCalled();
+    expect(workerClient.downloadPackage).toHaveBeenCalledWith("token", {
+      jsonUrl: directPackage.data,
+      tiffUrl: directPackage.tiff,
+    });
+    expect(onError).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
+  });
+
+  it("keeps image mode when preview becomes compact", () => {
+    const view = render(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
+
+    expect(screen.getByLabelText("Image viewer footer toolbar")).toBeVisible();
+    expect(showThumbnails).not.toHaveBeenCalled();
+
+    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
+    expect(showThumbnails).not.toHaveBeenCalled();
+
+    viewerPage = 3;
+    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
+    expect(showThumbnails).not.toHaveBeenCalled();
+
+    view.rerender(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+    view.rerender(<ImageViewerPanel compact onReadyChange={onReadyChange} />);
+    expect(showThumbnails).not.toHaveBeenCalled();
+  });
+
+  it("opens Add Index with the exported selection", async () => {
+    viewerRestoredSession = true;
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+    });
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Select$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    expect(select).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(exportSelection).toHaveBeenCalledTimes(1));
+    expect(addIndexStoreApi.getState().request).toEqual({
+      groups: [
+        { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },
+      ],
+      pageName: "Exhibit-A",
+    });
+  });
+
+  it("copies selected value without opening Add Index", async () => {
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+
+    await waitFor(() => expect(copySelection).toHaveBeenCalledTimes(1));
+    expect(exportSelection).not.toHaveBeenCalled();
+    expect(addIndexStoreApi.getState().request).toBeNull();
+  });
+
+  it("matches selected text against cached metadata and focuses the winning index", async () => {
+    const onIndexFocus = vi.fn();
+    storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [
+      { code: "other", segment: "party", page: "5", value: "Selected value", source: "Selected context" },
+      { code: "winner", segment: "party", page: "Exhibit-A", value: "Selected value", source: "Selected context" },
+    ] }));
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
+      pageMap: new Map(), request: null, selectedIndex: null, session: "session-1",
+    });
+    render(<ImageViewerPanel compact={false} onIndexFocus={onIndexFocus} onReadyChange={onReadyChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Match" }));
+
+    await waitFor(() => expect(onIndexFocus).toHaveBeenCalledWith({ code: "winner", segment: "party" }));
+    expect(addIndexStoreApi.getState().request).toBeNull();
+  });
+
+  it("shows a clear status when selected text has no matching index and clears it on a new match", async () => {
+    viewerRestoredSession = true;
+    storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [
+      { code: "other", segment: "party", value: "Unrelated words", source: "Different context" },
+    ] }));
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
+      pageMap: new Map(), request: null, selectedIndex: null, session: "session-1",
+    });
+    const onIndexFocus = vi.fn();
+    render(<ImageViewerPanel compact={false} onIndexFocus={onIndexFocus} onReadyChange={onReadyChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Match" }));
+    expect(await screen.findByRole("status", { name: "Index match result" })).toHaveTextContent("No matching index found");
+    expect(onIndexFocus).not.toHaveBeenCalled();
+
+    storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [
+      { code: "winner", segment: "party", value: "Selected value", source: "Selected context" },
+    ] }));
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Match" }));
+    await waitFor(() => expect(onIndexFocus).toHaveBeenCalledWith({ code: "winner", segment: "party" }));
+    expect(screen.queryByRole("status", { name: "Index match result" })).not.toBeInTheDocument();
+  });
+
+  it("shows the no-match result when cached metadata is unavailable", async () => {
+    viewerRestoredSession = true;
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
+      pageMap: new Map(), request: null, selectedIndex: null, session: "session-1",
+    });
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Match" }));
+    expect(await screen.findByRole("status", { name: "Index match result" })).toHaveTextContent("No matching index found");
+    act(() => imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(),
+      pageMap: new Map(), request: null, selectedIndex: null, session: "session-2",
+    }));
+    expect(screen.queryByRole("status", { name: "Index match result" })).not.toBeInTheDocument();
+  });
+
+  it("does not restart package download when same-session panel remounts with cached package", async () => {
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: directPackage,
+      })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    const view = render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
+    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+    view.unmount();
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    await waitFor(() => expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument());
+    expect(workerClient.packageImage).toHaveBeenCalledTimes(1);
+    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
+    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-downloads a cached package when Lens requests a reload", async () => {
+    viewerReloadId = 1;
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: directPackage,
+      })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+    imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" });
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
+    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
+    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+    expect(consoleInfo).toHaveBeenCalledWith("imageviewer package load start", {
+      hasPackage: true,
+      page: null,
+      reason: "lens_page_metadata_missing",
+      reloadId: 1,
+      requestVersion: 0,
+      session: "session-1",
+      status: "ready",
+    });
+  });
+
+  it("does not start package flow while lens restore is pending", () => {
+    viewerRestoring = true;
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("does not start package flow after lens restore succeeds", () => {
+    viewerRestoredSession = true;
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("does not start package flow while restored lens state reaches the hook", () => {
+    const workerClient = {
+      packageImage: vi.fn(),
+      imageStatus: vi.fn(),
+      imageData: vi.fn(),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+    imageViewerStoreApi.getState().setViewerState({
+      pageIndex: 1,
+      status: "ready",
+    } as unknown as ViewerState);
+    imageViewerStoreApi.getState().setReady();
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    expect(workerClient.packageImage).not.toHaveBeenCalled();
+    expect(workerClient.imageStatus).not.toHaveBeenCalled();
+    expect(workerClient.imageData).not.toHaveBeenCalled();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("starts package flow when ready status has no local package", async () => {
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: directPackage,
+      })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError: vi.fn(),
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+    imageViewerStoreApi.getState().setStatus("ready");
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
+    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
+    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
+  });
+
+  it("bubbles package errors without rendering a package alert", async () => {
+    const onError = vi.fn();
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageData: vi.fn(async () => ({
+        status: "completed" as const,
+        data: { data: "", tiff: "" },
+      })),
+      downloadPackage: vi.fn(),
+    };
+    imageViewerStoreApi.getState().setHostInput({
+      apiGatewayUrl: "https://gateway",
+      authToken: "token",
+      onError,
+      pageMap: new Map(),
+      packagePollIntervalMs: 1,
+      request: null,
+      selectedIndex: null,
+      session: "session-1",
+      workerClient,
+    });
+
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      code: "invalid_image_package",
+      error: "Image package JSON does not identify TIFF and JSON URLs.",
+    })));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+
+  it("reports lens progress before the first Aurora Lens page is available", () => {
+    viewerPageCount = 0;
+    imageViewerStoreApi.setState({ viewerStatus: "loadingPage" });
+    const onLoaderChange = vi.fn();
+
+    render(<ImageViewerPanel compact={false} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+
+    expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument();
+    expect(document.querySelector("[data-document-lens-host='true']")).toBeInTheDocument();
+    expect(onLoaderChange).toHaveBeenLastCalledWith(["Decoding document page..."]);
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it.each([false, true])("keeps both toolbars mounted during navigation (compact=%s)", (compact) => {
+    viewerPageCount = 4;
+    imageViewerStoreApi.getState().setReady();
+    const onLoaderChange = vi.fn();
+    const view = render(<ImageViewerPanel compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+    const top = screen.getByLabelText("Image viewer top toolbar");
+    const footer = screen.getByLabelText("Image viewer footer toolbar");
+    for (const page of [3, 2]) {
+      viewerNavigating = true;
+      act(() => imageViewerStoreApi.getState().setViewerStatus("loadingPage"));
+      expect(screen.getByLabelText("Image viewer top toolbar")).toBe(top);
+      expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+      expect(onReadyChange).toHaveBeenLastCalledWith(true);
+      expect(onLoaderChange).toHaveBeenLastCalledWith(null);
+      viewerPage = page;
+      viewerNavigating = false;
+      act(() => imageViewerStoreApi.getState().setViewerStatus("ready"));
+      view.rerender(<ImageViewerPanel compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+      expect(screen.getByText(`Page ${page} of 4`)).toBeVisible();
+      expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+    }
+  });
+
+  it.each([false, true])("preserves thumbnail toolbar visibility (compact=%s)", (compact) => {
+    viewerThumbs = true;
+    render(<ImageViewerPanel compact={compact} onReadyChange={onReadyChange} />);
+    expect(screen.queryByLabelText("Image viewer footer toolbar")).not.toBeInTheDocument();
+    expect(Boolean(screen.queryByLabelText("Image viewer top toolbar"))).toBe(compact);
+  });
+
+  it("keeps adding pages blocking after a page has loaded", () => {
+    imageViewerStoreApi.setState({ status: "ready", viewerStatus: "addingPages" });
+    render(<ImageViewerPanel compact={false} onReadyChange={onReadyChange} />);
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByLabelText("Image viewer footer toolbar")).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])("keeps copying nonblocking throughout the status transition (compact=%s)", (compact) => {
+    imageViewerStoreApi.setState({ status: "ready", viewerStatus: "ready" });
+    const onLoaderChange = vi.fn();
+
+    render(<ImageViewerPanel compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
+    const top = screen.getByLabelText("Image viewer top toolbar");
+    const footer = screen.getByLabelText("Image viewer footer toolbar");
+    const host = document.querySelector("[data-document-lens-host='true']");
+    for (const status of ["copyingSelection", "ready"] as const) {
+      act(() => imageViewerStoreApi.getState().setViewerStatus(status));
+      expect(onReadyChange).toHaveBeenLastCalledWith(true);
+      expect(onLoaderChange).toHaveBeenLastCalledWith(null);
+      expect(screen.getByLabelText("Image viewer top toolbar")).toBe(top);
+      expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
+      expect(document.querySelector("[data-document-lens-host='true']")).toBe(host);
+    }
+  });
+});

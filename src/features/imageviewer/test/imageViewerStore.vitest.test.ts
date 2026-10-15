@@ -1,3 +1,4 @@
+import { pageSize } from "../../../test/pageSize";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
@@ -10,11 +11,10 @@ describe("imageViewerStore", () => {
   it("stores host input and replaces local package bytes", () => {
     const onError = vi.fn();
     imageViewerStoreApi.getState().setHostInput({
-      choices: [{ service: "Recognition", level: 6 }],
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,
-      pageCount: 2,
       pageMap: new Map([["1", "page-1"]]),
       request: {
         code: "page-1",
@@ -34,9 +34,9 @@ describe("imageViewerStore", () => {
     imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(2), tiffType: "image/tiff" });
 
     expect(imageViewerStoreApi.getState()).toMatchObject({
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
-      pageCount: 2,
       request: {
         code: "page-1",
         highlightOptions: { scroll: false },
@@ -60,11 +60,10 @@ describe("imageViewerStore", () => {
 
   it("clears downloaded package values when session changes", () => {
     imageViewerStoreApi.getState().setHostInput({
-      choices: [{ service: "Recognition", level: 6 }],
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      pageCount: 2,
       pageMap: new Map(),
       request: null,
       selectedIndex: null,
@@ -72,11 +71,10 @@ describe("imageViewerStore", () => {
     });
     imageViewerStoreApi.getState().setLocalPackage({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(1), tiffType: "image/tiff" });
     imageViewerStoreApi.getState().setHostInput({
-      choices: [{ service: "Recognition", level: 6 }],
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      pageCount: 2,
       pageMap: new Map(),
       request: null,
       selectedIndex: null,
@@ -119,11 +117,10 @@ describe("imageViewerStore", () => {
 
   it("clears transient lens state without clearing same-session package values", () => {
     imageViewerStoreApi.getState().setHostInput({
-      choices: [{ service: "Recognition", level: 6 }],
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      pageCount: 2,
       pageMap: new Map(),
       request: null,
       selectedIndex: null,
@@ -153,11 +150,10 @@ describe("imageViewerStore", () => {
 
   it("preserves same-session package bytes when TIFF content type is empty", () => {
     imageViewerStoreApi.getState().setHostInput({
-      choices: [{ service: "Recognition", level: 6 }],
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      pageCount: 2,
       pageMap: new Map(),
       request: null,
       selectedIndex: null,

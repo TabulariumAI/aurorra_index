@@ -7,9 +7,11 @@ const initialState = {
   refresh: null,
   refreshId: 0,
   report: null,
+  reportsBySession: {},
+  requests: {},
   retryAttempt: 0,
   status: "idle",
-} satisfies Pick<AuditStoreState, "activeSession" | "error" | "refresh" | "refreshId" | "report" | "retryAttempt" | "status">;
+} satisfies Pick<AuditStoreState, "activeSession" | "error" | "refresh" | "refreshId" | "report" | "reportsBySession" | "requests" | "retryAttempt" | "status">;
 
 export const useAuditStore = create<AuditStoreState>()((set) => ({
   ...initialState,
@@ -29,6 +31,8 @@ export const useAuditStore = create<AuditStoreState>()((set) => ({
       refresh: null,
       refreshId: 0,
       report: null,
+      reportsBySession: {},
+      requests: {},
       retryAttempt: 0,
       status: "idle",
     });
@@ -37,16 +41,26 @@ export const useAuditStore = create<AuditStoreState>()((set) => ({
     set({ error, retryAttempt: 0, status: "error" });
   },
   setLoaded(session, report) {
-    set({ activeSession: session, error: null, report, retryAttempt: 0, status: "success" });
-  },
-  setLoading(session) {
-    set((state) => ({
-      activeSession: session,
-      error: null,
-      report: state.report,
-      retryAttempt: 1,
-      status: "loading",
+    set(state => ({
+      reportsBySession: { ...state.reportsBySession, [session]: report },
+      ...(state.activeSession === null || state.activeSession === session
+        ? { activeSession: session, error: null, report, retryAttempt: 0, status: "success" as const }
+        : {}),
     }));
+  },
+  setLoading(session, background) {
+    const code = crypto.randomUUID();
+    set(state => ({
+      requests: { ...state.requests, [session]: code },
+      ...(!background ? {
+        activeSession: session,
+        error: null,
+        report: state.report,
+        retryAttempt: 1,
+        status: "loading" as const,
+      } : {}),
+    }));
+    return code;
   },
   setRefreshing(session) {
     set((state) => ({

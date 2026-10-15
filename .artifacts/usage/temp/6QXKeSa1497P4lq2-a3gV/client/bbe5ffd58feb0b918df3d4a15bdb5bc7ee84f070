@@ -1,0 +1,62 @@
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/@testing-library/react/dist/index.js", {"importedNames":["cleanup","fireEvent","render","screen","within"]});
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/node_modules/vitest/dist/index.js", {"importedNames":["afterEach","expect","it","vi"]});
+const __vite_ssr_import_2__ = await __vite_ssr_import__("/src/features/usage/component/UsagePanel.tsx", {"importedNames":["UsagePanel"]});
+const __vite_ssr_import_3__ = await __vite_ssr_import__("/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV"]});
+
+
+
+var _jsxFileName = "C:/GitHub/Tabularium/aurorra_index/src/features/usage/test/UsagePanel.vitest.test.tsx";
+
+(0,__vite_ssr_import_1__.afterEach)((0,__vite_ssr_import_0__.cleanup));
+(0,__vite_ssr_import_1__.it)("renders service charts, weighted costs, and daily/weekly selection", () => {
+	__vite_ssr_import_1__.vi.useFakeTimers();
+	__vite_ssr_import_1__.vi.setSystemTime(new Date("2026-10-08T12:00:00Z"));
+	(0,__vite_ssr_import_0__.render)(/* @__PURE__ */ (0,__vite_ssr_import_3__.jsxDEV)((0,__vite_ssr_import_2__.UsagePanel), { records: [
+		{
+			code: "one",
+			name: "extraction",
+			cost: 11,
+			page_num: 1,
+			timestamp: "2026-10-04T12:00:00Z"
+		},
+		{
+			code: "two",
+			name: "extraction",
+			cost: 22,
+			page_num: 10,
+			timestamp: "2026-10-05T12:00:00Z"
+		},
+		{
+			code: "three",
+			name: "refinement",
+			cost: 0,
+			page_num: 0,
+			timestamp: "2026-10-05T12:00:00Z"
+		}
+	] }, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 10,
+		columnNumber: 10
+	}, this));
+	const extraction = __vite_ssr_import_0__.screen.getByRole("region", { name: "Extraction usage" });
+	(0,__vite_ssr_import_1__.expect)((0,__vite_ssr_import_0__.within)(extraction).getByText("$3.0000")).toBeInTheDocument();
+	(0,__vite_ssr_import_1__.expect)((0,__vite_ssr_import_0__.within)(extraction).getByRole("img", { name: "Extraction daily cost chart" })).toBeInTheDocument();
+	__vite_ssr_import_0__.fireEvent.change(__vite_ssr_import_0__.screen.getByLabelText("Period"), { target: { value: "weekly" } });
+	(0,__vite_ssr_import_1__.expect)((0,__vite_ssr_import_0__.within)(extraction).getByRole("img", { name: "Extraction weekly cost chart" })).toBeInTheDocument();
+	__vite_ssr_import_0__.fireEvent.change(__vite_ssr_import_0__.screen.getByLabelText("Service"), { target: { value: "refinement" } });
+	(0,__vite_ssr_import_1__.expect)(__vite_ssr_import_0__.screen.queryByRole("region", { name: "Extraction usage" })).not.toBeInTheDocument();
+	(0,__vite_ssr_import_1__.expect)(__vite_ssr_import_0__.screen.getByText("No pages used")).toBeInTheDocument();
+	__vite_ssr_import_1__.vi.useRealTimers();
+});
+(0,__vite_ssr_import_1__.it)("shows an empty state when the selected dates contain no service events", () => {
+	(0,__vite_ssr_import_0__.render)(/* @__PURE__ */ (0,__vite_ssr_import_3__.jsxDEV)((0,__vite_ssr_import_2__.UsagePanel), { records: [] }, void 0, false, {
+		fileName: _jsxFileName,
+		lineNumber: 27,
+		columnNumber: 10
+	}, this));
+	(0,__vite_ssr_import_1__.expect)(__vite_ssr_import_0__.screen.getByText("No usage in the selected period.")).toBeInTheDocument();
+});
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTtBQUNBOzs7Ozs7O0dBRUEsb0NBQVUsOEJBQU87R0FFakIsMEJBQUcsNEVBQTRFO0NBQzdFLHlCQUFHLGNBQWM7Q0FDakIseUJBQUcsY0FBYyxJQUFJLEtBQUssc0JBQXNCLENBQUM7SUFDakQsOEJBQU8sb0RBQUMsbUNBQUQsRUFBWSxTQUFTO0VBQzFCO0dBQUUsTUFBTTtHQUFPLE1BQU07R0FBYyxNQUFNO0dBQUksVUFBVTtHQUFHLFdBQVc7RUFBdUI7RUFDNUY7R0FBRSxNQUFNO0dBQU8sTUFBTTtHQUFjLE1BQU07R0FBSSxVQUFVO0dBQUksV0FBVztFQUF1QjtFQUM3RjtHQUFFLE1BQU07R0FBUyxNQUFNO0dBQWMsTUFBTTtHQUFHLFVBQVU7R0FBRyxXQUFXO0VBQXVCO0NBQy9GLEVBQUk7Ozs7U0FBQztDQUNMLE1BQU0sYUFBYSw2QkFBTyxVQUFVLFVBQVUsRUFBRSxNQUFNLG1CQUFtQixDQUFDO0lBQzFFLGlDQUFPLDhCQUFPLFVBQVUsRUFBRSxVQUFVLFNBQVMsQ0FBQyxFQUFFLGtCQUFrQjtJQUNsRSxpQ0FBTyw4QkFBTyxVQUFVLEVBQUUsVUFBVSxPQUFPLEVBQUUsTUFBTSw4QkFBOEIsQ0FBQyxDQUFDLEVBQUUsa0JBQWtCO0NBQ3ZHLGdDQUFVLE9BQU8sNkJBQU8sZUFBZSxRQUFRLEdBQUcsRUFBRSxRQUFRLEVBQUUsT0FBTyxTQUFTLEVBQUUsQ0FBQztJQUNqRixpQ0FBTyw4QkFBTyxVQUFVLEVBQUUsVUFBVSxPQUFPLEVBQUUsTUFBTSwrQkFBK0IsQ0FBQyxDQUFDLEVBQUUsa0JBQWtCO0NBQ3hHLGdDQUFVLE9BQU8sNkJBQU8sZUFBZSxTQUFTLEdBQUcsRUFBRSxRQUFRLEVBQUUsT0FBTyxhQUFhLEVBQUUsQ0FBQztJQUN0Riw4QkFBTyw2QkFBTyxZQUFZLFVBQVUsRUFBRSxNQUFNLG1CQUFtQixDQUFDLENBQUMsRUFBRSxJQUFJLGtCQUFrQjtJQUN6Riw4QkFBTyw2QkFBTyxVQUFVLGVBQWUsQ0FBQyxFQUFFLGtCQUFrQjtDQUM1RCx5QkFBRyxjQUFjO0FBQ25CLENBQUM7R0FFRCwwQkFBRyxnRkFBZ0Y7SUFDakYsOEJBQU8sb0RBQUMsbUNBQUQsRUFBWSxTQUFTLENBQUMsRUFBSTs7OztTQUFDO0lBQ2xDLDhCQUFPLDZCQUFPLFVBQVUsa0NBQWtDLENBQUMsRUFBRSxrQkFBa0I7QUFDakYsQ0FBQyIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiVXNhZ2VQYW5lbC52aXRlc3QudGVzdC50c3giXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgY2xlYW51cCwgZmlyZUV2ZW50LCByZW5kZXIsIHNjcmVlbiwgd2l0aGluIH0gZnJvbSBcIkB0ZXN0aW5nLWxpYnJhcnkvcmVhY3RcIjtcbmltcG9ydCB7IGFmdGVyRWFjaCwgZXhwZWN0LCBpdCwgdmkgfSBmcm9tIFwidml0ZXN0XCI7XG5pbXBvcnQgeyBVc2FnZVBhbmVsIH0gZnJvbSBcIi4uL2NvbXBvbmVudC9Vc2FnZVBhbmVsXCI7XG5cbmFmdGVyRWFjaChjbGVhbnVwKTtcblxuaXQoXCJyZW5kZXJzIHNlcnZpY2UgY2hhcnRzLCB3ZWlnaHRlZCBjb3N0cywgYW5kIGRhaWx5L3dlZWtseSBzZWxlY3Rpb25cIiwgKCkgPT4ge1xuICB2aS51c2VGYWtlVGltZXJzKCk7XG4gIHZpLnNldFN5c3RlbVRpbWUobmV3IERhdGUoXCIyMDI2LTEwLTA4VDEyOjAwOjAwWlwiKSk7XG4gIHJlbmRlcig8VXNhZ2VQYW5lbCByZWNvcmRzPXtbXG4gICAgeyBjb2RlOiBcIm9uZVwiLCBuYW1lOiBcImV4dHJhY3Rpb25cIiwgY29zdDogMTEsIHBhZ2VfbnVtOiAxLCB0aW1lc3RhbXA6IFwiMjAyNi0xMC0wNFQxMjowMDowMFpcIiB9LFxuICAgIHsgY29kZTogXCJ0d29cIiwgbmFtZTogXCJleHRyYWN0aW9uXCIsIGNvc3Q6IDIyLCBwYWdlX251bTogMTAsIHRpbWVzdGFtcDogXCIyMDI2LTEwLTA1VDEyOjAwOjAwWlwiIH0sXG4gICAgeyBjb2RlOiBcInRocmVlXCIsIG5hbWU6IFwicmVmaW5lbWVudFwiLCBjb3N0OiAwLCBwYWdlX251bTogMCwgdGltZXN0YW1wOiBcIjIwMjYtMTAtMDVUMTI6MDA6MDBaXCIgfSxcbiAgXX0gLz4pO1xuICBjb25zdCBleHRyYWN0aW9uID0gc2NyZWVuLmdldEJ5Um9sZShcInJlZ2lvblwiLCB7IG5hbWU6IFwiRXh0cmFjdGlvbiB1c2FnZVwiIH0pO1xuICBleHBlY3Qod2l0aGluKGV4dHJhY3Rpb24pLmdldEJ5VGV4dChcIiQzLjAwMDBcIikpLnRvQmVJblRoZURvY3VtZW50KCk7XG4gIGV4cGVjdCh3aXRoaW4oZXh0cmFjdGlvbikuZ2V0QnlSb2xlKFwiaW1nXCIsIHsgbmFtZTogXCJFeHRyYWN0aW9uIGRhaWx5IGNvc3QgY2hhcnRcIiB9KSkudG9CZUluVGhlRG9jdW1lbnQoKTtcbiAgZmlyZUV2ZW50LmNoYW5nZShzY3JlZW4uZ2V0QnlMYWJlbFRleHQoXCJQZXJpb2RcIiksIHsgdGFyZ2V0OiB7IHZhbHVlOiBcIndlZWtseVwiIH0gfSk7XG4gIGV4cGVjdCh3aXRoaW4oZXh0cmFjdGlvbikuZ2V0QnlSb2xlKFwiaW1nXCIsIHsgbmFtZTogXCJFeHRyYWN0aW9uIHdlZWtseSBjb3N0IGNoYXJ0XCIgfSkpLnRvQmVJblRoZURvY3VtZW50KCk7XG4gIGZpcmVFdmVudC5jaGFuZ2Uoc2NyZWVuLmdldEJ5TGFiZWxUZXh0KFwiU2VydmljZVwiKSwgeyB0YXJnZXQ6IHsgdmFsdWU6IFwicmVmaW5lbWVudFwiIH0gfSk7XG4gIGV4cGVjdChzY3JlZW4ucXVlcnlCeVJvbGUoXCJyZWdpb25cIiwgeyBuYW1lOiBcIkV4dHJhY3Rpb24gdXNhZ2VcIiB9KSkubm90LnRvQmVJblRoZURvY3VtZW50KCk7XG4gIGV4cGVjdChzY3JlZW4uZ2V0QnlUZXh0KFwiTm8gcGFnZXMgdXNlZFwiKSkudG9CZUluVGhlRG9jdW1lbnQoKTtcbiAgdmkudXNlUmVhbFRpbWVycygpO1xufSk7XG5cbml0KFwic2hvd3MgYW4gZW1wdHkgc3RhdGUgd2hlbiB0aGUgc2VsZWN0ZWQgZGF0ZXMgY29udGFpbiBubyBzZXJ2aWNlIGV2ZW50c1wiLCAoKSA9PiB7XG4gIHJlbmRlcig8VXNhZ2VQYW5lbCByZWNvcmRzPXtbXX0gLz4pO1xuICBleHBlY3Qoc2NyZWVuLmdldEJ5VGV4dChcIk5vIHVzYWdlIGluIHRoZSBzZWxlY3RlZCBwZXJpb2QuXCIpKS50b0JlSW5UaGVEb2N1bWVudCgpO1xufSk7XG4iXSwiZmlsZSI6Ii9zcmMvZmVhdHVyZXMvdXNhZ2UvdGVzdC9Vc2FnZVBhbmVsLnZpdGVzdC50ZXN0LnRzeCJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL2ZlYXR1cmVzL3VzYWdlL3Rlc3QvVXNhZ2VQYW5lbC52aXRlc3QudGVzdC50c3giLCIvc3JjL2ZlYXR1cmVzL3VzYWdlL3Rlc3QvVXNhZ2VQYW5lbC52aXRlc3QudGVzdC50c3giLFtdXQ==

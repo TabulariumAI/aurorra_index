@@ -1,6 +1,5 @@
-import { formatLabel } from "aurora-core";
+import { formStyles, formatLabel } from "aurora-core";
 import { useEffect, useId, useRef, useState } from "react";
-import { indexStyles } from "../style/indexStyles";
 import { typeSelectStyles as styles } from "../style/typeSelectStyles";
 
 type TypeSelectProps = {
@@ -63,8 +62,8 @@ export function TypeSelect({ aspects, segment, selected, onChange }: TypeSelectP
   }
 
   return (
-    <div ref={field} data-testid="add-type-field" style={indexStyles.field}>
-      <label htmlFor={id} style={indexStyles.label}>Type</label>
+    <div ref={field} data-testid="add-type-field" style={formStyles.field}>
+      <label htmlFor={id} style={formStyles.label}>Type</label>
       <div style={{ ...styles.control, ...(open ? styles.focused : {}) }}>
         {selected.length > 0 && <div style={styles.chips}>
           {selected.map((key) => {

@@ -1,4 +1,6 @@
-import type { IqWorkerClient, IqWorkerConfig } from "../type/iq.types";
+import type { IqReport, IqWorkerClient, IqWorkerConfig } from "../type/iq.types";
+import type { GenerationInput } from "../../../shared/type/generation.types";
+import { requestResource } from "../../metdataview/data/metadataResource";
 import { retryWorker } from "../../../shared/worker/retryWorker";
 
 type WorkerError = Error & {
@@ -50,6 +52,10 @@ async function runWorkerOnce<T>(command: unknown): Promise<T> {
   });
 }
 
+export function generateIqReport(input: GenerationInput): Promise<IqReport> {
+  return runWorkerOnce<IqReport>({ apiBaseUrl: input.apiGatewayUrl, session: input.session, token: input.authToken, type: "iqData", etag: null });
+}
+
 export function createIqWorkerClient(config: IqWorkerConfig): IqWorkerClient {
   const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
   const runReadWorker = <T>(command: unknown) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
@@ -57,14 +63,9 @@ export function createIqWorkerClient(config: IqWorkerConfig): IqWorkerClient {
     ackGate(token, session, code) {
       return runWorkerOnce({ apiBaseUrl, code, session, token, type: "iqAck" });
     },
-    loadReport(token, session) {
-      return runReadWorker({ apiBaseUrl, session, token, type: "iqData" });
-    },
-    pollReport(token, session) {
-      return runReadWorker({ apiBaseUrl, session, token, type: "iqPoll" });
-    },
-    startReport(token, session) {
-      return runWorkerOnce({ apiBaseUrl, session, token, type: "iqStart" });
+    async loadReport(token, session, refresh) {
+      const etag = refresh ? null : await requestResource({ resource: "metadata_etag" }, session);
+      return runReadWorker({ apiBaseUrl, session, token, type: "iqData", etag });
     },
   };
 }

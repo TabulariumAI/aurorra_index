@@ -1,3 +1,5 @@
+import { auditStoreApi } from "../../audit/store/auditStore";
+import { createAuditWorkerClient } from "../../audit/worker/auditWorkerClient";
 import { createPageSegmentsWorkerClient } from "../../pagesegments/worker/pageSegmentsWorkerClient";
 import type { MetdataPatchResult, MetdataReprocessResult, MetdataWorkerClient, MetdataWorkerConfig } from "../type/metadataView.types";
 import type { MetadataPayload } from "aurora-core";
@@ -36,9 +38,10 @@ async function runWorkerOnce<T>(command: MetdataWorkerCommand): Promise<T> {
       settled = true;
       cleanup();
 
-      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number; path?: string };
+      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number; path?: string; etag?: string };
       if (payload && payload.ok === true) {
         if (command.type === "indexData" && payload.path && generation === queueStoreApi.getState().generation) queueStoreApi.getState().setPath(command.session, payload.path);
+        if (command.type === "indexData" && payload.etag !== undefined && generation === queueStoreApi.getState().generation) queueStoreApi.getState().setEtag(command.session, payload.etag);
         resolve(payload.data as T);
         return;
       }
@@ -58,6 +61,7 @@ async function runWorkerOnce<T>(command: MetdataWorkerCommand): Promise<T> {
 
 export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWorkerClient {
   const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
+  const auditClient = createAuditWorkerClient({ apiBaseUrl, retryIntervalMs, retryLimit });
   const runReadWorker = <T>(command: MetdataWorkerCommand) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
   return {
     updatePageSegments: createPageSegmentsWorkerClient({ apiBaseUrl }).updatePageSegments,
@@ -70,8 +74,21 @@ export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWor
     dropIndex(token, session, code) {
       return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, code, session, token, type: "dropIndex" });
     },
-    indexData(token, session, refresh) {
-      return runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData", path: refresh ? null : queueStoreApi.getState().paths[session] ?? null });
+    async indexData(token, session, refresh) {
+      const generation = queueStoreApi.getState().generation;
+      const metadata = await runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData", path: refresh ? null : queueStoreApi.getState().paths[session] ?? null });
+      if (generation === queueStoreApi.getState().generation) {
+        const request = auditStoreApi.getState().setLoading(session, true);
+        void auditClient.loadReport(token, session).then(report => {
+          if (generation === queueStoreApi.getState().generation && auditStoreApi.getState().requests[session] === request) auditStoreApi.getState().setLoaded(session, report);
+        }).catch((error: WorkerError) => {
+          const state = auditStoreApi.getState();
+          if (generation === queueStoreApi.getState().generation && state.requests[session] === request && (state.activeSession === null || state.activeSession === session)) {
+            state.setError({ error: error.message, code: error.code, details: error.details, status: error.status });
+          }
+        });
+      }
+      return metadata;
     },
     patchStatus(token, session, version) {
       return runReadWorker<MetdataPatchResult>({ apiBaseUrl, session, token, type: "patchStatus", version });

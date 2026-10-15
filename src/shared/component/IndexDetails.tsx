@@ -1,7 +1,7 @@
+import { formStyles } from "aurora-core";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { useId, useState } from "react";
 import { indexDetailsStyles } from "../style/indexDetailsStyles";
-import { indexStyles } from "../style/indexStyles";
 import type { IndexFields } from "../type/indexFields.types";
 
 export function IndexDetails({ fields, onChange }: { fields: IndexFields; onChange(fields: IndexFields): void }) {
@@ -17,18 +17,18 @@ export function IndexDetails({ fields, onChange }: { fields: IndexFields; onChan
     </Collapsible.Trigger>
     <Collapsible.Content>
       <div style={indexDetailsStyles.content}>
-        <label htmlFor={labelId} style={indexStyles.control}>
-          <span style={indexStyles.label}>Label</span>
-          <input id={labelId} onChange={(event) => onChange({ ...fields, label: event.target.value })} style={indexStyles.input} type="text" value={fields.label} />
+        <label htmlFor={labelId} style={formStyles.control}>
+          <span style={formStyles.label}>Label</span>
+          <input id={labelId} onChange={(event) => onChange({ ...fields, label: event.target.value })} style={formStyles.input} type="text" value={fields.label} />
         </label>
         <fieldset aria-label="Quote" data-testid="add-quote-field" style={indexDetailsStyles.quote}>
-          <label htmlFor={sourceId} style={indexStyles.control}>
-            <span style={indexStyles.label}>Source</span>
+          <label htmlFor={sourceId} style={formStyles.control}>
+            <span style={formStyles.label}>Source</span>
             <textarea id={sourceId} onChange={(event) => onChange({ ...fields, source: event.target.value })} rows={3} style={indexDetailsStyles.source} value={fields.source} />
           </label>
-          <label htmlFor={pageId} style={indexStyles.control}>
-            <span style={indexStyles.label}>Page Number</span>
-            <input id={pageId} onChange={(event) => onChange({ ...fields, page: event.target.value })} style={indexStyles.input} type="text" value={fields.page} />
+          <label htmlFor={pageId} style={formStyles.control}>
+            <span style={formStyles.label}>Page Number</span>
+            <input id={pageId} onChange={(event) => onChange({ ...fields, page: event.target.value })} style={formStyles.input} type="text" value={fields.page} />
           </label>
         </fieldset>
       </div>

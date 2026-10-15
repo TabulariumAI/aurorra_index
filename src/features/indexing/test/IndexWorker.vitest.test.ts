@@ -23,6 +23,22 @@ function plainResponse(text = "plain", status = 200) {
 }
 
 describe("IndexWorker", () => {
+  it("retrieves the metadata etag with its blob path", async () => {
+    const path = "https://blob/metadata.json?sig=test";
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: path, etag: "metadata-etag" }))
+      .mockResolvedValueOnce(jsonResponse(metadata)));
+    const result = await new IndexWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData" });
+    expect(result).toEqual({ ok: true, data: metadata, path, etag: "metadata-etag" });
+  });
+  it("transports null unchanged fields without replacing original selectors", () => {
+    const change = { action: "update" as const, explanation: "User correction", new_index_value: "04 22, 2029",
+      new_index_label: null, new_index_aspect: null, new_index_ambiguous: null,
+      old_index_label: "notary_expiration_date", old_index_aspect: "notary_expiration_date", old_index_value: "September 22, 2029" };
+    const request = new IndexWorker().buildRequest({ apiBaseUrl: "https://gateway", token: "token", session: "session", segment: "acknowledgment", change, type: "patchIndex" });
+    const { action: _action, ...fields } = change;
+    expect(JSON.parse(request.body!)).toEqual({ segment: "acknowledgment", allow_enrichment: false, ...fields });
+  });
   it("reads a saved SAS URL directly without sending gateway credentials", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(metadata)));
     const path = "https://blob/metadata.json?sig=test";

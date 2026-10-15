@@ -37,7 +37,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
 
   await expect(page.locator("#visual-stage")).toHaveAttribute(
     "data-image-loader",
-    '["Backend is generating the image package"]',
+    '["Generating the image package"]',
   );
   await expect(page.getByRole("progressbar", { name: "image viewer progress" })).toHaveCount(0);
   await page.evaluate(() => {
@@ -48,8 +48,9 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(page.getByText("Page 3 of 4")).toBeVisible();
   await page.getByRole("button", { exact: true, name: "Select" }).click();
   await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-draw-mode", "true");
+  await page.getByRole("button", { name: "More" }).click();
   await page.getByRole("button", { name: "Export" }).click();
-  await expect(page.locator("[data-document-lens-host='true']")).toHaveAttribute("data-selection", "copied");
+  await expect(page.locator("[data-document-lens-host='true']")).not.toHaveAttribute("data-selection", "copied");
 
   const host = page.getByTestId("add-index-host");
   await expect(host).toBeVisible();
@@ -182,6 +183,7 @@ test("Add Index closes and retains a recoverable task when the service rejects t
   await page.getByRole("button", { name: "Next page" }).click();
   await expect(page.getByText("Page 3 of 4")).toBeVisible();
   await page.getByRole("button", { exact: true, name: "Select" }).click();
+  await page.getByRole("button", { name: "More" }).click();
   await page.getByRole("button", { name: "Export" }).click();
 
   const host = page.getByTestId("add-index-host");

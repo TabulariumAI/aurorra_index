@@ -1,67 +1,45 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createIqWorkerClient } from "../worker/iqWorkerClient";
+import { queueStoreApi } from "../../queue/store/queueStore";
 
+afterEach(() => vi.unstubAllGlobals());
 describe("iqWorkerClient", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it("retries read commands after connectivity failures", async () => {
-    const commands: Array<{ type: string }> = [];
-    const onRetry = vi.fn();
-    const attempts = new Map<string, number>();
-
+  it("forwards current session metadata etags and omits them for forced refresh", async () => {
+    const commands: unknown[] = [];
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
-      onerror: ((event: ErrorEvent) => void) | null = null;
-
-      postMessage(command: { type: string }) {
-        commands.push(command);
-        const attempt = (attempts.get(command.type) ?? 0) + 1;
-        attempts.set(command.type, attempt);
-        this.onmessage?.({
-          data: attempt === 1
-            ? { error: "Failed to fetch", ok: false }
-            : { data: {}, ok: true },
-        } as MessageEvent);
-      }
-
+      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: {} } } as MessageEvent); }
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-
-    const client = createIqWorkerClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
-
-    await expect(client.loadReport("token", "session-1")).resolves.toEqual({});
-    await expect(client.pollReport("token", "session-1")).resolves.toEqual({});
-    expect(commands.map((command) => command.type)).toEqual(["iqData", "iqData", "iqPoll", "iqPoll"]);
-    expect(onRetry).toHaveBeenCalledTimes(2);
-    expect(onRetry).toHaveBeenNthCalledWith(1, 2);
-    expect(onRetry).toHaveBeenNthCalledWith(2, 2);
+    queueStoreApi.setState({ etags: { first: "first-etag", second: "second-etag" } });
+    const worker = createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 });
+    await worker.loadReport("token", "first", false);
+    await worker.loadReport("token", "second", false);
+    queueStoreApi.getState().setEtag("first", "latest");
+    await worker.loadReport("token", "first", false);
+    await worker.loadReport("token", "first", true);
+    await worker.loadReport("token", "unloaded", false);
+    expect(commands).toEqual(["first-etag", "second-etag", "latest", null, null].map((etag, i) => ({
+      apiBaseUrl: "https://gateway", session: ["first", "second", "first", "first", "unloaded"][i], token: "token", type: "iqData", etag,
+    })));
   });
-
-  it("does not retry POST commands after a connectivity failure", async () => {
-    const commands: Array<{ type: string }> = [];
+  it("retries GET connectivity failures but does not retry gate acknowledgements", async () => {
+    const commands: { type: string }[] = [];
     const onRetry = vi.fn();
-
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
-      onerror: ((event: ErrorEvent) => void) | null = null;
-
       postMessage(command: { type: string }) {
         commands.push(command);
-        this.onmessage?.({ data: { error: "Failed to fetch", ok: false } } as MessageEvent);
+        this.onmessage?.({ data: commands.length === 2 ? { ok: true, data: {} } : { ok: false, error: "Failed to fetch" } } as MessageEvent);
       }
-
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-
-    const client = createIqWorkerClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
-
-    await expect(client.startReport("token", "session-1")).rejects.toThrow("Failed to fetch");
-    await expect(client.ackGate("token", "session-1", "gate-1")).rejects.toThrow("Failed to fetch");
-    expect(commands.map((command) => command.type)).toEqual(["iqStart", "iqAck"]);
-    expect(onRetry).not.toHaveBeenCalled();
+    const worker = createIqWorkerClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
+    await expect(worker.loadReport("token", "first", false)).resolves.toEqual({});
+    await expect(worker.ackGate("token", "first", "gate-1")).rejects.toThrow("Failed to fetch");
+    expect(commands.map(command => command.type)).toEqual(["iqData", "iqData", "iqAck"]);
+    expect(onRetry).toHaveBeenCalledExactlyOnceWith(2);
   });
 });

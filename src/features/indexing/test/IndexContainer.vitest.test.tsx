@@ -13,7 +13,7 @@ vi.hoisted(() => { Object.defineProperty(window, "AnimationEvent", { value: Even
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
@@ -119,6 +119,43 @@ function renderMetadata() {
 }
 
 describe("IndexContainer", () => {
+  it("reprocesses merged property content through the queue and preserves legal actions after refresh", async () => {
+    const { workerClient, pending, onPageClick, view } = renderMetadata();
+    await screen.findByText("Alice");
+    fireEvent.click(screen.getByRole("button", { name: "Property Info" }));
+    const trigger = screen.getByRole("button", { name: "Property Info" });
+    expect(trigger.parentElement?.querySelector(":scope > span")).toHaveTextContent("2");
+    expect(screen.queryByRole("button", { name: "Legal Descriptions" })).toBeNull();
+    expect(screen.getByText("101 Main Street")).toBeVisible();
+    const group = view.container.querySelector<HTMLElement>('[data-index-code="legal-1"]')!;
+    fireEvent.click(within(group).getByRole("link", { name: "Lot Block" }));
+    expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({ code: "legal-1", segment: "legal", page: "3" }));
+    expect(within(group).queryByRole("button")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+    await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledExactlyOnceWith("token", "session-1", "property"));
+    expect(screen.getByText("101 Main Street").closest("[inert]")).not.toBeNull();
+    expect(screen.getByText("Property is described.").closest("[inert]")).not.toBeNull();
+    expect(screen.getByText("Riverside", { exact: false }).closest("[inert]")).not.toBeNull();
+    act(() => pending.reprocess!());
+    await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
+    expect(workerClient.indexData).toHaveBeenCalledWith("token", "session-1", true);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("101 Main Street").closest("[inert]")).toBeNull();
+    expect(within(group).queryByRole("button")).toBeNull();
+  });
+
+  it("hands page and title clicks to the host and viewer with distinct search data", async () => {
+    const { onPageClick } = renderMetadata();
+    await screen.findByText("Alice");
+    fireEvent.click(screen.getByRole("button", { name: "Pages" }));
+    fireEvent.click(await screen.findByRole("link", { name: "1 : Title page" }));
+    expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "page", segment: "page", metadataIndex: null, quote: "", value: "" });
+    expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", type: "page", metadataIndex: null, quote: "", value: "", highlightOptions: { scroll: false } }));
+    fireEvent.click(screen.getByRole("button", { name: "Titles" }));
+    fireEvent.click(await screen.findByRole("link", { name: "Warranty Deed" }));
+    expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "title", segment: "page", metadataIndex: null, quote: "", value: "Warranty Deed" });
+    expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", type: "title", value: "Warranty Deed", highlightOptions: { scroll: false } }));
+  });
   afterEach(() => {
     addIndexStoreApi.getState().close();
     editIndexStoreApi.getState().close();
@@ -194,7 +231,7 @@ describe("IndexContainer", () => {
     expect(screen.getByRole("button", { name: /Endorsements/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Parties\(Party Clause\)/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /References\(Recital\)/i })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Property(Exhibit)" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Property Info" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Acknowledgment/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Transactional/i })).toBeVisible();
     expect(screen.queryByRole("button", { name: /Monetary/i })).not.toBeInTheDocument();
@@ -220,7 +257,7 @@ describe("IndexContainer", () => {
 
   });
 
-  it("opens the selected image and routes index, page, and legal edits", async () => {
+  it("opens the selected image, routes index and page edits, and keeps legal elements read-only", async () => {
     const { view, workerClient, onPageClick, onEditPage } = renderMetadata();
     await screen.findByText("Alice");
     fireEvent.click(screen.getByRole("link", { name: "Alice" }));
@@ -235,7 +272,7 @@ describe("IndexContainer", () => {
         source: "source",
         value: "Alice",
       },
-      page: 1,
+      page: "1",
       quote: "source",
       segment: "party",
       session: "session-1",
@@ -269,10 +306,9 @@ describe("IndexContainer", () => {
     expect(workerClient.dropIndex).toHaveBeenCalledTimes(0);
     expect(workerClient.reprocessSegment).toHaveBeenCalledTimes(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Legal Descriptions" }));
-    fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
-    expect(editIndexStoreApi.getState().request).toEqual({ session: "session-1", segment: "legal", index: { aspect: "subdivision", value: "Riverside", label: "legal", page: "3" } });
-    editIndexStoreApi.getState().close();
+    fireEvent.click(screen.getByRole("button", { name: "Property Info" }));
+    expect(within(view.container.querySelector<HTMLElement>('[data-index-code="legal-1"]')!).queryByRole("button")).toBeNull();
+    expect(editIndexStoreApi.getState().request).toBeNull();
 
   });
 
@@ -466,6 +502,10 @@ it("keeps failed segments blocked with accessible shared recovery", async () => 
   await screen.findByRole("alert");
   expect(screen.queryByRole("progressbar")).toBeNull();
   expect(screen.getByText("Alice").closest("[inert]")).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Error details" }));
+  expect(await screen.findByRole("dialog", { name: "Error details" })).toHaveTextContent("Reprocess failed");
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   const retry = screen.getByRole("button", { name: "Retry change" });
   expect(retry.closest("[inert]")).toBeNull();
   fireEvent.click(retry);

@@ -1,6 +1,5 @@
 import { useEffect, type JSX } from "react";
-import type { LegalPayload } from "aurora-core";
-import { isBlank, normalizeLegalData, type PlatBlock, type PlatLot, type PlatPhase } from "../data/legalData";
+import { displayLots, divisionKinds, isBlank, normalizeLegalData, type DisplayLot, type LegalMapPayload, type PlatBlock, type PlatDivision } from "../data/legalData";
 import {
   blockLabelStyle,
   blockStyle,
@@ -9,18 +8,13 @@ import {
   legalMapStyles,
   legendBoxStyle,
   lotStyle,
-  phaseLabelStyle,
-  phaseStyle,
+  divisionLabelStyle,
+  divisionStyle,
+  rowFillStyle,
 } from "../style/legalMapStyles";
 
-function stripCommonPrefixes(value: string): string {
-  return value.replace(/^\s*(lot|block|phase|tract|unit|no\.?|#)\s*/i, "").trim();
-}
-
-function digitsPreferred(value: unknown): string {
-  const source = stripCommonPrefixes(String(value || ""));
-  const nums = source.match(/\d+/g);
-  return nums && nums.length > 0 ? nums.join(",") : source;
+function labelValue(value: string, kind: string): string {
+  return value.replace(new RegExp(`(^|[,/])\\s*${kind}\\b\\s*(?:no\\.?\\s*)?`, "gi"), "$1").trim();
 }
 
 function countNumbers(value: unknown): number {
@@ -35,99 +29,83 @@ function sizeScale(count: number): number {
   return 0.25;
 }
 
-function LotView({ index, lot, spanCount = 1, rangeText = null, scale }: { index: number; lot: PlatLot | null; spanCount?: number; rangeText?: string | null; scale: number }): JSX.Element {
-  const empty = !lot || isBlank(lot.name);
-  const showCondo = Boolean(lot?.condominium_unit && !isBlank(lot.condominium_unit));
+const perimeterSlots = [
+  [1, 1], [1, 2], [1, 3], [1, 4],
+  [2, 4], [3, 4],
+  [4, 4], [4, 3], [4, 2], [4, 1],
+  [3, 1], [2, 1],
+] as const;
 
+function LotView({ lot, scale, gridColumn, gridRow }: { lot: DisplayLot | null; scale: number; gridColumn: string; gridRow: number }): JSX.Element {
+  const empty = !lot || !lot.filled;
   return (
-    <span style={lotStyle(empty, showCondo, scale, spanCount)} title={showCondo ? "Condominium Unit" : undefined}>
-      {showCondo ? digitsPreferred(rangeText || lot?.condominium_unit) : empty ? "" : digitsPreferred(lot?.name || index + 1)}
+    <span data-legal-map-lot={empty ? undefined : "true"} data-legal-map-empty={lot && empty ? "true" : undefined} title={lot && !empty ? lot.detail : undefined} style={lotStyle(empty, scale, gridColumn, gridRow)}>
+      {lot && !empty ? <span>{labelValue(lot.name, "lot")}</span> : null}
+      {lot && !empty ? <span style={legalMapStyles.lotCaption}>{lot.detail ?? (lot.name.includes("–") ? "Lots" : "Lot")}</span> : null}
     </span>
   );
 }
 
 function BlockView({ block }: { block: PlatBlock }): JSX.Element {
   const empty = isBlank(block.name);
-  const scale = legalMapConstants.amp * sizeScale(empty ? 1 : countNumbers(block.name) || 1);
-  const donorLots = Array.isArray(block.lots) ? block.lots.slice(0, 99) : [];
-  const lots = donorLots.length >= 9 ? donorLots : [...donorLots, ...Array.from<null>({ length: 9 - donorLots.length }).fill(null)];
+  const scale = legalMapConstants.amp * sizeScale(countNumbers(block.name));
+  const displayed = displayLots(block.lots);
+  const tiles = perimeterSlots.map(([row, column], index) => {
+    const lot = displayed[index] ?? null;
+    return <LotView key={index} lot={lot} scale={lot?.detail ? 0.75 : legalMapConstants.amp * sizeScale(countNumbers(lot?.name))} gridColumn={String(column)} gridRow={row} />;
+  });
 
   return (
-    <div style={blockStyle(empty, scale)}>
-      <div style={blockLabelStyle(scale)}>{empty ? "" : digitsPreferred(block.name)}</div>
-      {[0, 1, 2].map((row) => (
-        <div key={row} style={{ ...legalMapStyles.blockRows, marginBottom: row !== 2 ? "3px" : "0" }}>
-          {(() => {
-            const rowLots: JSX.Element[] = [];
-            for (let col = 0; col < 3;) {
-              const index = row * 3 + col;
-              const lot = lots[index];
-              const showRange = Boolean(lot?.condominium_unit && /^\d+\s*-\s*\d+$/.test(lot.condominium_unit));
-              const spanCount = showRange ? 2 : 1;
-              const perLotScale =
-                lot && !isBlank(lot.name)
-                  ? legalMapConstants.amp * sizeScale(countNumbers(lot.name) || 1)
-                  : legalMapConstants.amp;
-              rowLots.push(
-                <LotView
-                  index={index}
-                  key={index}
-                  lot={lot}
-                  rangeText={showRange ? lot?.condominium_unit : null}
-                  scale={perLotScale}
-                  spanCount={spanCount}
-                />,
-              );
-              col += spanCount;
-            }
-            return rowLots;
-          })()}
-        </div>
-      ))}
+    <div data-legal-map-block="true" style={legalMapStyles.blockGrid}>
+      <div style={blockStyle}>
+        <div data-legal-map-block-label="true" style={blockLabelStyle(scale)}>{labelValue(block.name, "block")}</div>
+        {!empty ? <span style={legalMapStyles.blockCaption}>Block</span> : null}
+      </div>
+      {tiles}
     </div>
   );
 }
 
-function PhaseView({ phase }: { phase: PlatPhase }): JSX.Element {
-  const empty = isBlank(phase.name);
-  const scale = legalMapConstants.amp * sizeScale(empty ? 1 : countNumbers(phase.name) || 1);
-
+function DivisionView({ division }: { division: PlatDivision }): JSX.Element {
+  const kinds = divisionKinds.filter(kind => !isBlank(division[kind]));
   return (
-    <div style={phaseStyle(empty, scale)}>
-      {!empty ? <div style={phaseLabelStyle(scale)}>{digitsPreferred(phase.name)}</div> : null}
-      {phase.blocks.map((block, index) => <BlockView block={block} key={`${block.name}-${index}`} />)}
-    </div>
-  );
-}
-
-function Legend({ matchPlatSubdivision, presentLayers }: { matchPlatSubdivision: boolean; presentLayers: Set<string> }): JSX.Element | null {
-  const items = [
-    { key: "subdivision", name: "Subdivision", color: "transparent", borderColor: matchPlatSubdivision ? legalMapColors.subdivisionColor : legalMapColors.subdivisionBorder },
-    { key: "tract", name: "Tract", color: legalMapColors.tractBg },
-    { key: "phase", name: "Phase", color: legalMapColors.phaseBg },
-    { key: "block", name: "Block", color: legalMapColors.blockBg },
-    { key: "lot", name: "Lot", color: legalMapColors.lotBg },
-    { key: "lot_empty", name: "Lot (empty)", color: legalMapColors.emptyBg },
-    { key: "condo_unit", name: "Condominium Unit", color: legalMapColors.condoBg },
-  ].filter((item) => presentLayers.has(item.key));
-
-  if (items.length === 0) return null;
-
-  return (
-    <div style={legalMapStyles.legendRow}>
-      <div style={legalMapStyles.legendItems}>
-        {items.map((item) => (
-          <span key={item.key} style={legalMapStyles.legendItem}>
-            <span style={legendBoxStyle(item.color, item.borderColor)} />
-            <span style={legalMapStyles.legendLabel}>{item.name}</span>
-          </span>
-        ))}
+    <div data-legal-map-division="true" style={divisionStyle(kinds.length === 0)}>
+      {kinds.length > 0 ? <div style={legalMapStyles.divisionLabels}>
+        {kinds.map(kind => <div key={kind} style={divisionLabelStyle}>
+          {`${kind[0].toUpperCase()}${kind.slice(1)} ${labelValue(division[kind], kind)}`}
+        </div>)}
+      </div> : null}
+      <div style={legalMapStyles.divisionBlocks}>
+        {division.blocks.map((block, index) => <BlockView block={block} key={`${block.name}-${index}`} />)}
       </div>
     </div>
   );
 }
 
-export function LegalMapContent({ legal, onReadyChange }: { legal: LegalPayload | null | undefined; onReadyChange(ready: boolean): void }): JSX.Element {
+function Legend({ presentLayers }: { presentLayers: Set<string> }): JSX.Element | null {
+  const items = [
+    { key: "subdivision", name: "Subdivision", color: "transparent", borderColor: legalMapColors.subdivisionBorder },
+    { key: "right_of_way", name: "Right Of Way", color: legalMapColors.rowBg, borderColor: legalMapColors.subdivisionBorder },
+    ...divisionKinds.map(kind => ({ key: kind, name: `${kind[0].toUpperCase()}${kind.slice(1)}`, color: legalMapColors.divisionBg, borderColor: legalMapColors.divisionBorder })),
+    { key: "block", name: "Block", color: legalMapColors.blockBg, borderColor: legalMapColors.blockBorder },
+    { key: "lot", name: "Lot", color: legalMapColors.lotBg, borderColor: legalMapColors.lotBorder },
+  ].filter((item) => presentLayers.has(item.key));
+
+  if (items.length === 0) return null;
+
+  return (
+    <div style={legalMapStyles.legendItems}>
+      {items.map((item) => (
+        <span key={item.key} style={legalMapStyles.legendItem}>
+          <span style={{ ...legendBoxStyle(item.color, item.borderColor), ...(item.key === "right_of_way" ? rowFillStyle : {}) }} />
+          <span style={legalMapStyles.legendLabel}>{item.name}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function LegalMapContent({ legal, onReadyChange }: { legal: LegalMapPayload | null | undefined; onReadyChange(ready: boolean): void }): JSX.Element {
   const view = normalizeLegalData(legal);
 
   useEffect(() => {
@@ -144,26 +122,45 @@ export function LegalMapContent({ legal, onReadyChange }: { legal: LegalPayload 
 
   return (
     <div style={legalMapStyles.shell}>
-      <div data-legal-map-grid="true" style={legalMapStyles.grid}>
-        <div style={legalMapStyles.gridContent}>
-          {view.subdivisions.map((subdivision, index) => (
-            <div key={`${subdivision.subdivision}-${index}`} style={legalMapStyles.subdivisionWrapper}>
-              <div style={legalMapStyles.subdivisionContent}>
+      <div style={legalMapStyles.mapColumn}>
+        <div data-legal-map-grid="true" style={legalMapStyles.grid}>
+          <div style={legalMapStyles.gridContent}>
+            {view.subdivisions.map((subdivision, index) => (
+              <div key={`${subdivision.subdivision}-${index}`} style={legalMapStyles.subdivisionWrapper}>
                 {!isBlank(subdivision.subdivision) ? <div style={legalMapStyles.subdivisionLabel}>{subdivision.subdivision}</div> : null}
-                {subdivision.tracks.map((track, trackIndex) =>
-                  track.phases.map((phase, phaseIndex) => (!isBlank(phase.name) || phase.blocks.length > 0 ? <PhaseView key={`${track.name}-${trackIndex}-${phase.name}-${phaseIndex}`} phase={phase} /> : null)),
-                )}
+                <div data-legal-map-subdivision="true" style={legalMapStyles.subdivisionBoundary}>
+                  <div style={{ ...legalMapStyles.subdivisionContent, ...(subdivision.rightsOfWay.length > 0 ? legalMapStyles.rowContent : {}) }}>
+                    {subdivision.divisions.map((division, divisionIndex) => <DivisionView key={divisionIndex} division={division} />)}
+                    {subdivision.rightsOfWay.map((value, rowIndex) => (
+                      <div key={value} data-legal-map-row="true" style={{ ...legalMapStyles.rowBand, top: `${(rowIndex + 1) * 100 / (subdivision.rightsOfWay.length + 1)}%` }}>
+                        {value}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-        <Legend matchPlatSubdivision={view.matchPlatSubdivision} presentLayers={view.presentLayers} />
-        {view.locationLabel ? (
-          <div id="plat-location-bottom" style={legalMapStyles.location}>
-            {view.locationLabel}
+            ))}
           </div>
-        ) : null}
+          {view.locationLabel ? (
+            <div id="plat-location-bottom" style={legalMapStyles.location}>
+              {view.locationLabel}
+            </div>
+          ) : null}
+          <div data-legal-map-north="true" aria-hidden="true" style={legalMapStyles.northMarker}>
+            <svg width="16" height="20" viewBox="0 0 24 28" fill="currentColor">
+              <path d="M12 1 3 24l9-5 9 5z" />
+            </svg>
+            <span>N</span>
+          </div>
+        </div>
       </div>
+      <aside data-legal-map-info="true" style={legalMapStyles.infoColumn}>
+        {view.summary ? <>
+          <h3 style={legalMapStyles.infoHeading}>Description</h3>
+          <div style={legalMapStyles.infoCard}>{view.summary}</div>
+        </> : null}
+        <Legend presentLayers={view.presentLayers} />
+      </aside>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import type { LegalElement, LegalGroup, LegalPayload } from "aurora-core";
 
+export type LegalMapPayload = LegalPayload & { parcels_num?: number };
+
 const stateAbbr: Record<string, string> = {
   AL: "Alabama",
   AK: "Alaska",
@@ -54,34 +56,107 @@ const stateAbbr: Record<string, string> = {
   DC: "District of Columbia",
 };
 
-const unitKeys = ["condominium_unit", "unit_number", "unit", "unit_designation", "condo_unit", "suite", "apartment"];
+export const divisionKinds = ["unit", "phase", "section"] as const;
 const stateNames = Object.values(stateAbbr);
 const stateNameRegex = new RegExp(`\\b(${stateNames.map((value) => value.replace(/ /g, "\\s+")).join("|")})\\b`, "i");
 
 export type PlatLot = {
-  condominium_unit?: string;
   name: string;
 };
+
+export type DisplayLot = { name: string; filled: boolean; detail?: string };
+
+function numericLots(value: string): number[] | null {
+  const cleaned = value.replace(/(^|,|&|\band\b)\s*lots?\b\s*(?:no\.?\s*)?/gi, "$1").trim().replace(/,\s*(?=&|\band\b)/gi, "");
+  if (!/^\d+(?:\s*[-–]\s*\d+)?(?:\s*(?:,|&|\band\b)\s*\d+(?:\s*[-–]\s*\d+)?)*$/i.test(cleaned)) return null;
+  const numbers = new Set<number>();
+  for (const part of cleaned.split(/\s*(?:,|&|\band\b)\s*/i)) {
+    const [start, end = start] = part.split(/\s*[-–]\s*/).map(Number);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end < start || end - start > 10000) return null;
+    for (let number = start; number <= end; number += 1) numbers.add(number);
+  }
+  return [...numbers];
+}
+
+export function displayLots(lots: PlatLot[]): DisplayLot[] {
+  const numeric = new Set<number>();
+  const other: DisplayLot[] = [];
+  for (const lot of lots) {
+    const parsed = numericLots(lot.name);
+    if (parsed) parsed.forEach(number => numeric.add(number));
+    else other.push({ name: lot.name, filled: true });
+  }
+  if (!numeric.size) return other.length <= 12 ? other : [
+    { name: `${other.length} lots`, filled: true, detail: other.map(lot => lot.name).join(", ") },
+  ];
+  const ordered = [...numeric].sort((a, b) => a - b);
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+  const rangeLabel = (start: number, end: number) => start === end ? String(start) : `${start}–${end}`;
+  let numericDisplay: DisplayLot[] = [];
+  if (last - first + 1 <= 12 - other.length) {
+    for (let number = first; number <= last; number += 1) numericDisplay.push({ name: String(number), filled: numeric.has(number) });
+  } else {
+    let runStart = first;
+    let previous = first;
+    for (const number of ordered.slice(1)) {
+      if (number === previous + 1) { previous = number; continue; }
+      numericDisplay.push({ name: rangeLabel(runStart, previous), filled: true });
+      numericDisplay.push({ name: rangeLabel(previous + 1, number - 1), filled: false });
+      runStart = previous = number;
+    }
+    numericDisplay.push({ name: rangeLabel(runStart, previous), filled: true });
+    const capacity = 12 - other.length;
+    while (numericDisplay.length < capacity) {
+      let longestIndex = -1;
+      let longestLength = 1;
+      numericDisplay.forEach((entry, index) => {
+        if (!entry.filled) return;
+        const [start, end = start] = entry.name.split("–").map(Number);
+        if (end - start + 1 > longestLength) { longestIndex = index; longestLength = end - start + 1; }
+      });
+      if (longestIndex < 0) break;
+      const [start, end] = numericDisplay[longestIndex].name.split("–").map(Number);
+      const midpoint = Math.floor((start + end) / 2);
+      numericDisplay.splice(longestIndex, 1,
+        { name: rangeLabel(start, midpoint), filled: true },
+        { name: rangeLabel(midpoint + 1, end), filled: true });
+    }
+    if (numericDisplay.length > 12 - other.length) {
+      const available = Math.max(1, 12 - other.length);
+      const span = last - first + 1;
+      numericDisplay = Array.from({ length: available }, (_, index) => {
+        const start = first + Math.floor(span * index / available);
+        const end = first + Math.floor(span * (index + 1) / available) - 1;
+        const count = ordered.filter(number => number >= start && number <= end).length;
+        return { name: rangeLabel(start, end), filled: count > 0, detail: `${count} filled, ${end - start + 1 - count} empty` };
+      });
+    }
+  }
+  if (other.length + numericDisplay.length > 12) {
+    return [{ name: `${lots.length} lots`, filled: true, detail: lots.map(lot => lot.name).join(", ") }];
+  }
+  return [...numericDisplay, ...other];
+}
 
 export type PlatBlock = {
   lots: PlatLot[];
   name: string;
 };
 
-export type PlatPhase = {
+export type PlatDivision = {
+  unit: string;
+  phase: string;
+  section: string;
   blocks: PlatBlock[];
-  name: string;
-};
-
-export type PlatTrack = {
-  name: string;
-  phases: PlatPhase[];
 };
 
 export type PlatSubdivision = {
+  state: string;
+  county: string;
   subdivision: string;
-  tract: string;
-  tracks: PlatTrack[];
+  rightsOfWay: string[];
+  divisions: PlatDivision[];
 };
 
 export type LegalLocation = {
@@ -98,6 +173,7 @@ export type LegalViewModel = {
   platName?: string;
   presentLayers: Set<string>;
   subdivisions: PlatSubdivision[];
+  summary?: string;
 };
 
 type NodeRecord = Record<string, unknown>;
@@ -134,6 +210,17 @@ function normName(value: unknown): string {
   return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
+const blockCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
+function compareBlocks(left: PlatBlock, right: PlatBlock): number {
+  const name = (block: PlatBlock) => block.name.replace(/^\s*block\b\s*(?:no\.?\s*)?/i, "").trim();
+  const leftName = name(left);
+  const rightName = name(right);
+  if (!leftName) return rightName ? 1 : 0;
+  if (!rightName) return -1;
+  return blockCollator.compare(leftName, rightName);
+}
+
 export function getElements(node: unknown): LegalElement[] {
   if (!node || typeof node !== "object") return [];
   if (Array.isArray(node)) return node as LegalElement[];
@@ -154,14 +241,6 @@ export function getVal(elements: LegalElement[], aspect: string): string {
   const key = String(aspect || "").toLowerCase();
   const match = elements.find((element) => typeof element.aspect === "string" && element.aspect.toLowerCase() === key);
   return match?.value || "";
-}
-
-function getUnitValue(elements: LegalElement[]): string {
-  for (const key of unitKeys) {
-    const value = getVal(elements, key);
-    if (!isBlank(value)) return value;
-  }
-  return "";
 }
 
 function collectLotBlockEntries(input: unknown): LegalGroup[] {
@@ -185,66 +264,115 @@ function collectLotBlockEntries(input: unknown): LegalGroup[] {
   return out;
 }
 
+function mergeLotBlocks(groups: LegalGroup[], count: number): LegalGroup[] {
+  if (groups.length <= count) return groups;
+  const entries = groups.map(group => {
+    const values = new Map<string, string[]>();
+    for (const element of getElements(group)) {
+      const aspect = normName(element.aspect);
+      const value = element.value?.trim();
+      if (!aspect || !value) continue;
+      const existing = values.get(aspect) || [];
+      if (!existing.some(entry => normName(entry) === normName(value))) existing.push(value);
+      values.set(aspect, existing);
+    }
+    return values;
+  });
+
+  while (entries.length > count) {
+    let left = 0;
+    let right = 1;
+    let weight = -1;
+    for (let i = 0; i < entries.length - 1; i += 1) {
+      for (let j = i + 1; j < entries.length; j += 1) {
+        let score = 0;
+        for (const [aspect, values] of entries[i]) {
+          for (const value of values) {
+            if (entries[j].get(aspect)?.some(entry => normName(entry) === normName(value))) score += 1;
+          }
+        }
+        if (score > weight) {
+          left = i;
+          right = j;
+          weight = score;
+        }
+      }
+    }
+    for (const [aspect, values] of entries[right]) {
+      const existing = entries[left].get(aspect) || [];
+      for (const value of values) {
+        if (!existing.some(entry => normName(entry) === normName(value))) existing.push(value);
+      }
+      entries[left].set(aspect, existing);
+    }
+    entries.splice(right, 1);
+  }
+
+  return entries.map(values => ({
+    type: "lot_block",
+    elements: [...values].flatMap(([aspect, names]) => {
+      const labels = aspect === "right_of_way" ? names : [names.join(aspect === "block" ? "/" : ",")];
+      return labels.map(value => ({ aspect, value }));
+    }),
+  }));
+}
+
 export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
-  const subdivisions = new Map<string, PlatSubdivision & { trackMap: Map<string, PlatTrack & { phaseMap: Map<string, PlatPhase & { blockMap: Map<string, PlatBlock> }> }> }>();
-  const norm = (value: unknown) => String(value || "").trim();
+  const groups = resolveGroups(legalJSON);
+  const entries = collectLotBlockEntries(groups.length ? groups : legalJSON);
+  const count = isRecord(legalJSON) && typeof legalJSON.parcels_num === "number" && legalJSON.parcels_num > 0 ? legalJSON.parcels_num : entries.length;
+  const subdivisions = new Map<string, Omit<PlatSubdivision, "divisions"> & {
+    divisions: Map<string, Omit<PlatDivision, "blocks"> & { blocks: Map<string, PlatBlock> }>;
+  }>();
 
-  for (const legal of collectLotBlockEntries(legalJSON)) {
+  for (const legal of mergeLotBlocks(entries, count)) {
     const elements = getElements(legal);
-    const subdivision = norm(getVal(elements, "subdivision") || getVal(elements, "subdivision_name"));
-    const part = norm(getVal(elements, "part"));
-    const phase = norm(getVal(elements, "phase"));
-    const block = norm(getVal(elements, "block"));
-    const lot = norm(getVal(elements, "lot"));
-    const condoUnit = norm(getUnitValue(elements));
+    const state = getVal(elements, "state").trim();
+    const county = getVal(elements, "county").trim();
+    const subdivision = getVal(elements, "subdivision").trim();
+    const unit = getVal(elements, "unit").trim();
+    const phase = getVal(elements, "phase").trim();
+    const section = getVal(elements, "section").trim();
+    const block = getVal(elements, "block").trim();
+    const lot = getVal(elements, "lot").trim();
+    const rightsOfWay = elements.filter(element => element.aspect?.toLowerCase() === "right_of_way")
+      .map(element => element.value?.trim()).filter((value): value is string => Boolean(value));
+    if (![subdivision, unit, phase, section, block, lot, ...rightsOfWay].some(Boolean)) continue;
 
-    if (!subdivisions.has(subdivision)) {
-      subdivisions.set(subdivision, { subdivision, tract: "", tracks: [], trackMap: new Map() });
+    const subdivisionKey = JSON.stringify([state, county, subdivision].map(normName));
+    let subNode = subdivisions.get(subdivisionKey);
+    if (!subNode) {
+      subNode = { state, county, subdivision, rightsOfWay: [], divisions: new Map() };
+      subdivisions.set(subdivisionKey, subNode);
+    }
+    for (const rightOfWay of rightsOfWay) {
+      if (!subNode.rightsOfWay.some(value => normName(value) === normName(rightOfWay))) subNode.rightsOfWay.push(rightOfWay);
     }
 
-    const subNode = subdivisions.get(subdivision);
-    if (!subNode) continue;
-
-    if (!subNode.trackMap.has(part)) {
-      subNode.trackMap.set(part, { name: part, phases: [], phaseMap: new Map() });
-      subNode.tracks.push(subNode.trackMap.get(part) as PlatTrack);
+    const divisionKey = JSON.stringify([unit, phase, section].map(normName));
+    let division = subNode.divisions.get(divisionKey);
+    if (!division) {
+      division = { unit, phase, section, blocks: new Map() };
+      subNode.divisions.set(divisionKey, division);
     }
 
-    const track = subNode.trackMap.get(part);
-    if (!track) continue;
-
-    const phaseName = phase || part || "";
-    if (!track.phaseMap.has(phaseName)) {
-      track.phaseMap.set(phaseName, { name: phaseName, blocks: [], blockMap: new Map() });
-      track.phases.push(track.phaseMap.get(phaseName) as PlatPhase);
+    if (!block && !lot) continue;
+    const blockKey = normName(block);
+    let blockNode = division.blocks.get(blockKey);
+    if (!blockNode) {
+      blockNode = { name: block, lots: [] };
+      division.blocks.set(blockKey, blockNode);
     }
-
-    const phaseNode = track.phaseMap.get(phaseName);
-    if (!phaseNode) continue;
-
-    if (!phaseNode.blockMap.has(block)) {
-      phaseNode.blockMap.set(block, { name: block, lots: [] });
-      phaseNode.blocks.push(phaseNode.blockMap.get(block) as PlatBlock);
-    }
-
-    const blockNode = phaseNode.blockMap.get(block);
-    if (blockNode) {
-      blockNode.lots.push(condoUnit ? { name: lot, condominium_unit: condoUnit } : { name: lot });
+    if (lot && !blockNode.lots.some(entry => normName(entry.name) === normName(lot))) {
+      blockNode.lots.push({ name: lot });
     }
   }
 
-  return Array.from(subdivisions.values()).map(({ subdivision, tract, tracks }) => ({
-    subdivision,
-    tract,
-    tracks: tracks.map((track) => ({
-      name: track.name,
-      phases: track.phases.map((phase) => ({
-        name: phase.name,
-        blocks: phase.blocks.map((block) => ({
-          name: block.name,
-          lots: block.lots,
-        })),
-      })),
+  return Array.from(subdivisions.values(), ({ divisions, ...subdivision }) => ({
+    ...subdivision,
+    divisions: Array.from(divisions.values(), ({ blocks, ...division }) => ({
+      ...division,
+      blocks: Array.from(blocks.values()).sort(compareBlocks),
     })),
   }));
 }
@@ -253,18 +381,14 @@ export function getPresentLayers(subdivisions: PlatSubdivision[]): Set<string> {
   const present = new Set<string>();
   for (const sub of subdivisions) {
     if (!isBlank(sub.subdivision)) present.add("subdivision");
-    if (!isBlank(sub.tract)) present.add("tract");
-    for (const track of sub.tracks) {
-      for (const phase of track.phases) {
-        if (!isBlank(phase.name)) present.add("phase");
-        for (const block of phase.blocks) {
-          if (!isBlank(block.name)) present.add("block");
-          for (const lot of block.lots) {
-            if (!isBlank(lot.name)) present.add("lot");
-            if (isBlank(lot.name)) present.add("lot_empty");
-            if (!isBlank(lot.condominium_unit)) present.add("condo_unit");
-          }
-        }
+    if (sub.rightsOfWay.length > 0) present.add("right_of_way");
+    for (const division of sub.divisions) {
+      for (const kind of divisionKinds) {
+        if (!isBlank(division[kind])) present.add(kind);
+      }
+      for (const block of division.blocks) {
+        if (!isBlank(block.name)) present.add("block");
+        if (block.lots.some(lot => !isBlank(lot.name))) present.add("lot");
       }
     }
   }
@@ -272,24 +396,7 @@ export function getPresentLayers(subdivisions: PlatSubdivision[]): Set<string> {
 }
 
 export function isAllEmptyStructure(subdivisions: PlatSubdivision[]): boolean {
-  if (!Array.isArray(subdivisions) || subdivisions.length === 0) return true;
-  for (const sub of subdivisions) {
-    if (!isBlank(sub.subdivision)) return false;
-    if (!isBlank(sub.tract)) return false;
-    for (const track of sub.tracks) {
-      for (const phase of track.phases) {
-        if (!isBlank(phase.name)) return false;
-        for (const block of phase.blocks) {
-          if (!isBlank(block.name)) return false;
-          for (const lot of block.lots) {
-            if (!isBlank(lot.name)) return false;
-            if (!isBlank(lot.condominium_unit)) return false;
-          }
-        }
-      }
-    }
-  }
-  return true;
+  return getPresentLayers(subdivisions).size === 0;
 }
 
 export function formatLocation(location: LegalLocation): string {
@@ -372,11 +479,10 @@ function extractCityCountyState(legalJSON: unknown): LegalLocation {
   return out;
 }
 
-function resolveGroups(legalJSON: unknown): { groups: unknown[]; raw: unknown } {
-  if (Array.isArray(legalJSON)) return { raw: legalJSON, groups: legalJSON };
-  if (!isRecord(legalJSON)) return { raw: legalJSON, groups: [] };
-  const groups = [legalJSON.LegalGroups, legalJSON.legalGroups, legalJSON.groups, legalJSON.items].find(Array.isArray);
-  return { raw: legalJSON, groups: groups || [] };
+function resolveGroups(legalJSON: unknown): unknown[] {
+  if (Array.isArray(legalJSON)) return legalJSON;
+  if (!isRecord(legalJSON)) return [];
+  return [legalJSON.LegalGroups, legalJSON.legalGroups, legalJSON.groups, legalJSON.items].find(Array.isArray) || [];
 }
 
 function allSubsMatchPlat(subdivisions: PlatSubdivision[], platName?: string): boolean {
@@ -391,11 +497,9 @@ function allSubsMatchPlat(subdivisions: PlatSubdivision[], platName?: string): b
   return found;
 }
 
-export function normalizeLegalData(legalJSON: LegalPayload | LegalGroup[] | null | undefined): LegalViewModel {
-  const { raw, groups } = resolveGroups(legalJSON);
-  const source = groups.length ? groups : raw;
-  const subdivisions = toPlatJSON(source);
-  const location = extractCityCountyState(raw);
+export function normalizeLegalData(legalJSON: LegalMapPayload | LegalGroup[] | null | undefined): LegalViewModel {
+  const subdivisions = toPlatJSON(legalJSON);
+  const location = extractCityCountyState(legalJSON);
   const platName = extractPlatName(subdivisions);
   const presentLayers = getPresentLayers(subdivisions);
 
@@ -407,5 +511,6 @@ export function normalizeLegalData(legalJSON: LegalPayload | LegalGroup[] | null
     matchPlatSubdivision: allSubsMatchPlat(subdivisions, platName),
     isEmptyStructure: isAllEmptyStructure(subdivisions),
     locationLabel: formatLocation(location),
+    summary: isRecord(legalJSON) && typeof legalJSON.summary === "string" ? legalJSON.summary.trim() : undefined,
   };
 }

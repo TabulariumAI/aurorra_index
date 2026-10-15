@@ -24,12 +24,15 @@ it("retains the last SAS path across reloads and isolates owners", async () => {
   const first = await load();
   first.queueStoreApi.getState().restore("user-one", runtime());
   first.queueStoreApi.getState().setPath("session", "https://blob/metadata.json?sig=test");
+  first.queueStoreApi.getState().setEtag("session", "metadata-etag");
   vi.resetModules();
   const restored = await load();
   restored.queueStoreApi.getState().restore("user-two", runtime());
   expect(restored.queueStoreApi.getState().paths).toEqual({});
+  expect(restored.queueStoreApi.getState().etags).toEqual({});
   restored.queueStoreApi.getState().restore("user-one", runtime());
   expect(restored.queueStoreApi.getState().paths.session).toBe("https://blob/metadata.json?sig=test");
+  expect(restored.queueStoreApi.getState().etags.session).toBe("metadata-etag");
 });
 
 it.each([false, true])("restores reprocess with acknowledged=%s without resending", async (acknowledged) => {
@@ -63,7 +66,7 @@ it.each([false, true])("restores unacknowledged requests with enrichment=%s and 
   first.queueStoreApi.getState().restore("user-one", config);
   first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [] }));
   await first.queueStoreApi.getState().enqueue({ batch: "batch", session: "session", segment: "property", data: JSON.stringify([{
-    action: "add", allow_enrichment, explanation: "Index created by user.", new_index_page: "1", new_index_source: "Source", new_index_label: "Parcel Id", new_index_aspect: "parcel_id", new_index_value: "Parcel",
+    action: "add", allow_enrichment, explanation: "Index created by user.", new_index_page: "1", new_index_source: "Source", new_index_label: "Parcel Id", new_index_aspect: "property_id", new_index_value: "Parcel",
     new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
   }]) }, config);
   const saved = localStorage.getItem("aurorra-index:queue")!;
@@ -80,7 +83,7 @@ it.each([false, true])("restores unacknowledged requests with enrichment=%s and 
   expect(next.client.patchIndex).not.toHaveBeenCalled();
   await restored.queueStoreApi.getState().retry(restored.queueStoreApi.getState().tasks[0].id);
   expect(next.client.patchIndex).toHaveBeenCalledOnce();
-  expect(next.client.patchIndex).toHaveBeenCalledWith("private-token", "session", "property", expect.objectContaining({ new_index_aspect: "parcel_id", allow_enrichment, new_index_page: "1", new_index_source: "Source", explanation: "Index created by user." }));
+  expect(next.client.patchIndex).toHaveBeenCalledWith("private-token", "session", "property", expect.objectContaining({ new_index_aspect: "property_id", allow_enrichment, new_index_page: "1", new_index_source: "Source", explanation: "Index created by user." }));
 });
 
 it.each(["processing", "completed"] as const)("restores a %s addition with its original code until server metadata replaces it", async (status) => {
@@ -202,6 +205,6 @@ it("persists refreshed baselines and ignores responses after approved cancellati
   respond({ status: "completed", data: "", version: 7 });
   await Promise.resolve();
   expect(config.client.indexData).not.toHaveBeenCalled();
-  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {}, paths: {} });
+  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {}, paths: {}, etags: {} });
   expect(JSON.stringify(storeApi.getState().getJSON("session"))).toContain("Fresh");
 });

@@ -28,7 +28,7 @@ export type MetdataMetadataRefresh = {
 };
 
 export type MetdataWorkerResult<T> =
-  | { ok: true; data: T; path?: string }
+  | { ok: true; data: T; path?: string; etag?: string }
   | ({ ok: false } & MetadataError);
 
 export type MetdataPatchResult = {

@@ -1,9 +1,56 @@
+import { pageSize } from "../../../test/pageSize";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ViewerState } from "@tabulariumai/aurora-lens";
 import { loadImagePackage } from "../data/loadImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 describe("loadImagePackage", () => {
+  it.each(["packageImage", "imageStatus", "imageData", "downloadPackage"] as const)("ignores session A after switching to B during %s", async stage => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "completed", data: "" })),
+      imageStatus: vi.fn(async () => ({ status: "error", data: "A failed" })),
+      imageData: vi.fn(async () => ({ status: "completed" as const, data: { data: "https://storage.test/A.json", tiff: "https://storage.test/A.tiff" } })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    if (stage !== "imageStatus") workerClient.imageStatus.mockResolvedValue({ status: "completed", data: "" });
+    const original = workerClient[stage].getMockImplementation()!;
+    workerClient[stage].mockImplementation((async () => { await gate; return original(); }) as never);
+    const onError = vi.fn();
+    const loading = loadImagePackage({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "A", workerClient });
+    await vi.waitFor(() => expect(workerClient[stage]).toHaveBeenCalledOnce());
+    imageViewerStoreApi.getState().setHostInput({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "B", pageMap: new Map(), request: null, selectedIndex: null });
+    release(); await loading;
+    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "B", status: "idle", packageStatus: null, error: null, tiffBytes: null });
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("does not run a queued restart after the host switches sessions", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const workerClient = { packageImage: vi.fn(async () => { await gate; return { status: "completed", data: "" }; }), imageStatus: vi.fn(async () => ({ status: "error", data: "A" })), imageData: vi.fn(), downloadPackage: vi.fn() };
+    const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(), session: "A", workerClient };
+    const loading = loadImagePackage(input);
+    const restart = loadImagePackage({ ...input, restart: true });
+    imageViewerStoreApi.getState().setHostInput({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(), session: "B", pageMap: new Map(), request: null, selectedIndex: null });
+    release(); await Promise.all([loading, restart]);
+    expect(workerClient.packageImage).toHaveBeenCalledOnce();
+    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "B", status: "idle", error: null });
+  });
+
+  it("does not report a rejected previous-session request to the host", async () => {
+    let reject!: (error: Error) => void;
+    const gate = new Promise<never>((_, fail) => { reject = fail; });
+    const onError = vi.fn();
+    const workerClient = { packageImage: vi.fn(() => gate), imageStatus: vi.fn(), imageData: vi.fn(), downloadPackage: vi.fn() };
+    const loading = loadImagePackage({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "A", workerClient });
+    imageViewerStoreApi.getState().setHostInput({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "B", pageMap: new Map(), request: null, selectedIndex: null });
+    reject(new Error("A failed")); await loading;
+    expect(onError).not.toHaveBeenCalled();
+    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "B", status: "idle", error: null });
+  });
+
   afterEach(() => {
     imageViewerStoreApi.getState().resetViewer();
     vi.useRealTimers();
@@ -21,13 +68,14 @@ describe("loadImagePackage", () => {
         },
       })),
       downloadPackage: vi.fn(async () => ({
-        packageMetadata: { pages: [{ page: 1 }] },
+        packageMetadata: { pages: [{ pageNumber: 1 }] },
         tiffBytes: new ArrayBuffer(4),
         tiffType: "image/tiff",
       })),
     };
 
     await loadImagePackage({
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -43,9 +91,10 @@ describe("loadImagePackage", () => {
       tiffUrl: "https://storage.test/image.tiff",
     });
     expect(imageViewerStoreApi.getState()).toMatchObject({
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
-      packageMetadata: { pages: [{ page: 1 }] },
+      packageMetadata: { pages: [{ pageNumber: 1 }] },
       packageStatus: "completed",
       session: "session-1",
       status: "ready",
@@ -72,6 +121,7 @@ describe("loadImagePackage", () => {
       })),
     };
     const input = {
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -105,6 +155,7 @@ describe("loadImagePackage", () => {
       })),
     };
     const input = {
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -129,11 +180,10 @@ describe("loadImagePackage", () => {
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
-      choices: [{ service: "Recognition", level: 6 }],
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
-      pageCount: 2,
       pageMap: new Map(),
       request: null,
       selectedIndex: null,
@@ -154,7 +204,6 @@ describe("loadImagePackage", () => {
       canShowThumbnails: true,
       canZoomIn: true,
       canZoomOut: true,
-      pageCount: 2,
       pageIndex: 0,
       status: "ready",
       viewMode: "page",
@@ -162,6 +211,7 @@ describe("loadImagePackage", () => {
     imageViewerStoreApi.getState().setReady();
 
     await loadImagePackage({
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError: vi.fn(),
@@ -185,6 +235,7 @@ describe("loadImagePackage", () => {
     };
 
     await loadImagePackage({
+      pageSize,
       apiGatewayUrl: "https://gateway",
       authToken: "token",
       onError,

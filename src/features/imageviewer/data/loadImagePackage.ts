@@ -8,11 +8,10 @@ const activeLoads = new Map<string, Promise<void>>();
 async function runImagePackage(input: LoadPackageInput): Promise<void> {
   const state = imageViewerStoreApi.getState();
   const hostInput: HostInput = {
+    pageSize: input.pageSize,
     apiGatewayUrl: input.apiGatewayUrl,
     authToken: input.authToken,
-    choices: state.session === input.session ? state.choices : null,
     onError: input.onError,
-    pageCount: state.pageCount,
     pageMap: state.pageMap,
     packagePollIntervalMs: input.packagePollIntervalMs,
     request: state.request,
@@ -30,12 +29,16 @@ async function runImagePackage(input: LoadPackageInput): Promise<void> {
   try {
     imageViewerStoreApi.getState().setStatus("packaging");
     await client.packageImage(input.authToken, input.session);
+    if (imageViewerStoreApi.getState().session !== input.session) return;
     let current = await client.imageStatus(input.authToken, input.session);
+    if (imageViewerStoreApi.getState().session !== input.session) return;
     while (current.status === "pending" || current.status === "processing") {
       imageViewerStoreApi.getState().setStatus("polling");
       imageViewerStoreApi.getState().setPackageStatus(current.status);
       await new Promise((resolve) => setTimeout(resolve, imageViewerStoreApi.getState().packagePollIntervalMs));
+      if (imageViewerStoreApi.getState().session !== input.session) return;
       current = await client.imageStatus(input.authToken, input.session);
+      if (imageViewerStoreApi.getState().session !== input.session) return;
     }
     imageViewerStoreApi.getState().setPackageStatus(current.status === "completed" ? "completed" : "error");
     if (current.status !== "completed") {
@@ -44,6 +47,7 @@ async function runImagePackage(input: LoadPackageInput): Promise<void> {
     }
     imageViewerStoreApi.getState().setStatus("downloading");
     const data = await client.imageData(input.authToken, input.session);
+    if (imageViewerStoreApi.getState().session !== input.session) return;
     const urls = parsePackageUrls(data.data);
     const localPackage = await client.downloadPackage(input.authToken, urls);
     if (imageViewerStoreApi.getState().session === input.session) {
@@ -53,8 +57,6 @@ async function runImagePackage(input: LoadPackageInput): Promise<void> {
     const workerError = toViewerError(error, "image package request failed.");
     if (imageViewerStoreApi.getState().session === input.session) {
       imageViewerStoreApi.getState().setError(workerError);
-    } else {
-      input.onError(workerError);
     }
   }
 }
@@ -63,7 +65,9 @@ export async function loadImagePackage(input: LoadPackageInput): Promise<void> {
   const activeLoad = activeLoads.get(input.session);
   if (activeLoad && !input.restart) return activeLoad;
 
-  const load = activeLoad ? activeLoad.then(() => runImagePackage(input)) : runImagePackage(input);
+  const load = activeLoad ? activeLoad.then(() => {
+    if (imageViewerStoreApi.getState().session === input.session) return runImagePackage(input);
+  }) : runImagePackage(input);
   activeLoads.set(input.session, load);
   try {
     await load;

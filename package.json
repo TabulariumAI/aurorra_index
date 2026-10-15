@@ -43,7 +43,7 @@
     "@radix-ui/react-collapsible": "^1.1.14",
     "@radix-ui/react-popover": "^1.1.17",
     "@radix-ui/react-tooltip": "^1.2.10",
-    "@tabulariumai/aurora-lens": "file:../aurora_lens_workspace/packages/aurora-lens",
+    "@tabulariumai/aurora-lens": "file:../aurora-lens",
     "aurora-core": "file:../aurora_core",
     "fuse.js": "7.5.0",
     "pdfjs-dist": "6.3.289",
@@ -52,16 +52,17 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "fake-indexeddb": "^6.2.5",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
-    "@playwright/test": "^1.56.0",
     "vitest": "^4.1.9"
   },
   "peerDependencies": {

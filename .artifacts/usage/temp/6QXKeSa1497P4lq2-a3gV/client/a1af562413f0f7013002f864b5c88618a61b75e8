@@ -1,0 +1,14 @@
+__vite_ssr_exportName__("DEFAULT_ADDRESS_MAP_ZOOM", () => { try { return DEFAULT_ADDRESS_MAP_ZOOM } catch {} });
+__vite_ssr_exportName__("buildAddressMapEmbedUrl", () => { try { return buildAddressMapEmbedUrl } catch {} });
+__vite_ssr_exportName__("appendAddressMapZoom", () => { try { return appendAddressMapZoom } catch {} });
+const DEFAULT_ADDRESS_MAP_ZOOM = 14;
+function buildAddressMapEmbedUrl(address) {
+	return `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed&maptype=roadmap`;
+};
+function appendAddressMapZoom(url, zoom) {
+	return `${url}&z=${zoom}`;
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7O0FBQU8sTUFBTSwyQkFBMkI7QUFFakMsU0FBUyx3QkFBd0IsU0FBeUI7Q0FDL0QsT0FBTyxpQ0FBaUMsbUJBQW1CLE9BQU8sRUFBRTtBQUN0RTtBQUVPLFNBQVMscUJBQXFCLEtBQWEsTUFBc0I7Q0FDdEUsT0FBTyxHQUFHLElBQUksS0FBSztBQUNyQiIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiYWRkcmVzc01hcC50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJleHBvcnQgY29uc3QgREVGQVVMVF9BRERSRVNTX01BUF9aT09NID0gMTQ7XG5cbmV4cG9ydCBmdW5jdGlvbiBidWlsZEFkZHJlc3NNYXBFbWJlZFVybChhZGRyZXNzOiBzdHJpbmcpOiBzdHJpbmcge1xuICByZXR1cm4gYGh0dHBzOi8vd3d3Lmdvb2dsZS5jb20vbWFwcz9xPSR7ZW5jb2RlVVJJQ29tcG9uZW50KGFkZHJlc3MpfSZvdXRwdXQ9ZW1iZWQmbWFwdHlwZT1yb2FkbWFwYDtcbn1cblxuZXhwb3J0IGZ1bmN0aW9uIGFwcGVuZEFkZHJlc3NNYXBab29tKHVybDogc3RyaW5nLCB6b29tOiBudW1iZXIpOiBzdHJpbmcge1xuICByZXR1cm4gYCR7dXJsfSZ6PSR7em9vbX1gO1xufVxuIl0sImZpbGUiOiIvc3JjL2ZlYXR1cmVzL2FkZHJlc3NtYXAvZGF0YS9hZGRyZXNzTWFwLnRzIn0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL2ZlYXR1cmVzL2FkZHJlc3NtYXAvZGF0YS9hZGRyZXNzTWFwLnRzIiwiL3NyYy9mZWF0dXJlcy9hZGRyZXNzbWFwL2RhdGEvYWRkcmVzc01hcC50cyIsW11d

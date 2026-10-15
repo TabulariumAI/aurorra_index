@@ -1,0 +1,23 @@
+
+> aurorra-index@0.0.0 build
+> vite build
+
+vite v8.0.16 building client environment for production...
+[2K
+[plugin rolldown:vite-resolve] Module "node:module" has been externalized for browser compatibility, imported by "C:/GitHub/Tabularium/aurorra_index/node_modules/@tabulariumai/aurora-lens/dist/core/decoder/vendor/auroraTiff.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+transforming...✓ 128 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/assets/UsageWorker-CFUG4YFk.js             1.43 kB
+dist/assets/PageSegmentsWorker-c1fNTunF.js      2.18 kB
+dist/assets/IqWorker-D5kYt77p.js                4.24 kB
+dist/assets/ImageWorker-COdFb-Sf.js             4.36 kB
+dist/assets/AuditWorker-DhH3VF5A.js             5.03 kB
+dist/assets/metdataWorker-BBjJEDPr.js           8.24 kB
+dist/assets/tiffExportWorker-cj8RvdPd.js      712.18 kB
+dist/loadImagePackage-Dlo8KJsA.js              71.52 kB │ gzip:  20.94 kB
+dist/aurorra-index.js                         113.31 kB │ gzip:  29.57 kB
+dist/dist-DmlfWGd7.js                         714.42 kB │ gzip: 188.15 kB
+dist/ImageViewerPanel-LbdfRTpI.js           3,011.77 kB │ gzip: 757.42 kB
+
+✓ built in 795ms

@@ -5,7 +5,7 @@ import type { SelectedGroup } from "@tabulariumai/aurora-lens";
 
 export type AddIndexSelection = {
   groups: SelectedGroup[];
-  pageNumber: number;
+  pageName: string;
 };
 
 export type AddIndexRequest = AddIndexSelection | { segment: string };

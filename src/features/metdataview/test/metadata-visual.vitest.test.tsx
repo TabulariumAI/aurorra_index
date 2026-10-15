@@ -6,7 +6,7 @@ import { MetadataPanel, IndexValue, getPanelData, type MetadataSegments, type Me
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
@@ -395,6 +395,47 @@ describe("metadata visual surface", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("keeps index values aligned when row actions differ", async () => {
+    const metadata: MetadataPayload = {
+      fees: [],
+      funds: [],
+      heading: { class: "deed", title: "Warranty Deed" },
+      indexes: [
+        { ambiguous: "YES", code: "idx-1", label: "grantor", segment: "party", value: "Alice" },
+        { code: "idx-2", label: "grantee", segment: "party", value: "Bob" },
+      ],
+      pages: { num_of_pages: 1, recordables: [] },
+      secrets: [],
+    };
+
+    render(
+      <MetadataPanel
+        {...panelDefaults}
+        callbacks={{}}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+        metadata={metadata}
+        onConfirm={vi.fn()}
+        onDrop={vi.fn()}
+        onReprocess={vi.fn()}
+        openSegment="party"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-alignment"
+        setSectionOpen={vi.fn()}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+
+    await screen.findByText("Alice");
+    const ambiguousActions = screen.getByRole("button", { name: "Copy value Alice" }).parentElement;
+    const regularActions = screen.getByRole("button", { name: "Copy value Bob" }).parentElement;
+
+    expect(ambiguousActions).toHaveStyle({ justifyContent: "flex-end", minWidth: "10.5rem" });
+    expect(regularActions).toHaveStyle({ justifyContent: "flex-end", minWidth: "10.5rem" });
+  });
+
   it("forwards metadata index fields without mutating image viewer state", async () => {
     const metadata: MetadataPayload = {
       fees: [],
@@ -541,13 +582,13 @@ describe("metadata visual surface", () => {
       />,
     );
 
-    await waitFor(() => expect(screen.getByText("1 : Title page")).toBeInTheDocument());
-    const pageRow = screen.getByText("1 : Title page").closest("article");
+    await waitFor(() => expect(screen.getByText("1 : Text page")).toBeInTheDocument());
+    const pageRow = screen.getByText("1 : Text page").closest("article");
     expect(pageRow).toBeTruthy();
     expect(pageRow).toHaveStyle({
       gap: "0.25rem",
       gridTemplateColumns: "minmax(0, 1fr) auto",
-      padding: "0.45rem 0.72rem",
+      padding: "0.45rem 0.72rem 0.45rem 0",
     });
     expect(pageRow).not.toHaveTextContent("Recordable");
     expect(pageRow).not.toHaveTextContent("Pages");
@@ -590,7 +631,7 @@ describe("metadata visual surface", () => {
 
     const { rerender } = render(<MetadataPanel {...props} openSegment="page" />);
 
-    await screen.findByText("1 : Title page");
+    await screen.findByText("1 : Text page");
     fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
     expect(onEditPage).toHaveBeenCalledWith(expect.objectContaining({
       code: "page-1",
@@ -604,7 +645,7 @@ describe("metadata visual surface", () => {
     expect(screen.queryByRole("button", { name: "Edit index" })).not.toBeInTheDocument();
   });
 
-  it("uses row-level action controls for legal actions", async () => {
+  it("keeps legal groups read-only and preserves the summary plat action", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -647,21 +688,21 @@ describe("metadata visual surface", () => {
     expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Open legal page" })).not.toBeInTheDocument();
     const legalCard = screen.getByRole("link", { name: "Lot Block" }).closest("article");
-    expect(legalCard).toHaveStyle({ alignItems: "start", display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto" });
-    expect(legalCard?.firstElementChild).toHaveStyle({ display: "flex", flexDirection: "column", gap: "0.25rem" });
-    expect(legalCard?.firstElementChild?.firstElementChild).toHaveStyle({ display: "block", minWidth: "0px" });
-    expect(screen.getByRole("button", { name: "Copy value Lot Block" }).parentElement).toHaveStyle({ alignSelf: "start" });
-    const copyButton = screen.getByRole("button", { name: "Copy value Lot Block" });
-    expect(copyButton).toHaveStyle({ alignItems: "center" });
+    expect(legalCard).not.toContainElement(legalActionButtons[0]);
+    expect(legalCard).toHaveStyle({ alignItems: "start", display: "grid" });
+    expect(screen.getByText("Legal Description", { exact: true })).toHaveStyle({ gridColumn: "2", gridRow: "1", fontWeight: 700 });
+    expect(screen.getByRole("link", { name: "Lot Block" }).parentElement?.parentElement).toHaveStyle({ gridColumn: "3", gridRow: "1" });
+    expect(legalCard?.querySelector('svg[data-status-icon="success"]')).toHaveAttribute("width", "0.7rem");
+    expect(legalCard?.querySelector("button")).toBeNull();
     legalActionButtons.forEach((button) => {
       expect(button).toHaveTextContent("Show plat");
       expect(button).toHaveStyle({ alignItems: "center", width: "auto", height: "2rem", minHeight: "2rem", padding: "0px" });
     });
-    expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "underline" });
+    expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "none" });
     fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));
     expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
       code: "legal-2",
-      page: 3,
+      page: "3",
       segment: "legal",
       session: "session-2",
     }));
@@ -709,7 +750,7 @@ describe("metadata visual surface", () => {
   });
 
 
-  it("spaces legal cards apart", async () => {
+  it("uses contiguous legal rows with shared dividers", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -757,6 +798,9 @@ describe("metadata visual surface", () => {
     const legalCards = container.querySelectorAll('article[data-index-segment="legal"]');
     expect(legalCards).toHaveLength(2);
     const legalList = legalCards[0].parentElement;
-    expect(legalList).toHaveStyle({ display: "grid", gap: "0.35rem" });
+    expect(legalList).toHaveStyle({ display: "grid", gap: "0px" });
+    for (const row of legalCards) {
+      expect(row).toHaveStyle({ borderLeftWidth: "0px", borderRightWidth: "0px", borderRadius: "0px" });
+    }
   });
 });

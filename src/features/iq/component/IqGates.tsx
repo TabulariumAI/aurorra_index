@@ -1,5 +1,5 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { ConfButton } from "aurora-core";
+import { ConfButton, SuccessIcon } from "aurora-core";
 import type { JSX } from "react";
 import { UI_FAIL, UI_PASS, UI_WARNING } from "../data/iqData";
 import { iqStyles } from "../style/iqStyles";
@@ -48,7 +48,7 @@ export function IqGates({
           {gates.items.map((gate) => (
             <li data-gate-code={gate.code} key={gate.code} style={iqStyles.gateRow}>
               <div style={iqStyles.gateStatus}>
-                <span aria-hidden="true" style={iqStyles.gateFlag(gate.status)} />
+                {gate.status === UI_PASS ? <SuccessIcon /> : <span aria-hidden="true" style={iqStyles.gateFlag(gate.status)} />}
                 <span>{statusLabel(gate.status)}</span>
               </div>
               <span style={iqStyles.gateText}>{gate.description}</span>
@@ -57,10 +57,16 @@ export function IqGates({
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
                       <ConfButton
+                        aria-label="Clear gate"
                         disabled={ackingCodes.has(gate.code)}
-                        label="Clear gate"
+                        label={
+                          <svg aria-hidden="true" viewBox="0 0 24 24" width="1.15rem" height="1.15rem" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                            <path d="m16 3 5 5a2 2 0 0 1 0 3l-9 9H7l-4-4a2 2 0 0 1 0-3L13 3a2 2 0 0 1 3 0Z" />
+                            <path d="m8 8 8 8M12 20h9" />
+                          </svg>
+                        }
                         onConfirm={() => onAck(gate.code)}
-                        size="sm"
+                        size="icon"
                         variant="danger"
                       />
                     </Tooltip.Trigger>

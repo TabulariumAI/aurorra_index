@@ -22,6 +22,8 @@ if (scenario === "legal-gap") {
   await import("./metadata.visual.tsx");
 } else if (scenario === "metadata-address-row") {
   await import("./metadata.visual.tsx");
+} else if (scenario === "metadata-property-alignment") {
+  await import("./metadata.visual.tsx");
 } else if (scenario === "metadata-pages") {
   await import("./metadata.visual.tsx");
 } else if (scenario === "pagesegments-fail") {

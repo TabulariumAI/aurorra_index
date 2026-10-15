@@ -56,8 +56,9 @@ export type QueueTask = {
 };
 
 export type QueueState = {
-  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload>; paths: Record<string, string> }>;
+  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload>; paths: Record<string, string>; etags: Record<string, string> }>;
   paths: Record<string, string>;
+  etags: Record<string, string>;
   generation: number;
   tasks: QueueTask[];
   queues: QueueStatus[];
@@ -67,5 +68,6 @@ export type QueueState = {
   cancel(id: string, code?: string): void;
   setMetadata(session: string, metadata: MetadataPayload): void;
   setPath(session: string, path: string): void;
+  setEtag(session: string, etag: string): void;
   reset(): void;
 };

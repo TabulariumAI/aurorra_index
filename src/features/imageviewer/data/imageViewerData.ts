@@ -15,23 +15,19 @@ function toStringValue(value: unknown): string {
   return typeof value === "string" ? value : String(value ?? "");
 }
 
-export function toPositivePage(value: unknown): number {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : 1;
-}
-
-export function resolvePageCode(pageMap: ReadonlyMap<string, string>, page: number, fallbackCode: string): string {
+export function resolvePageCode(pageMap: ReadonlyMap<string, string>, page: string | number, fallbackCode: string): string {
   return pageMap.get(String(page)) || fallbackCode;
 }
 
 export function toPageRequest(
   input: PageRequest,
   pageMap: ReadonlyMap<string, string>,
-  page: number,
+  page: string | number,
 ): PageRequest {
   return {
     ...input,
     code: resolvePageCode(pageMap, page, input.code),
-    page: toPositivePage(page),
+    page,
   };
 }
 
@@ -52,12 +48,12 @@ export function toViewerError(error: unknown, fallback: string): ViewerError {
   return { error: typeof error === "string" && error ? error : fallback };
 }
 
-function resolveRow(row: MetadataIndex | undefined): { ambiguous: string; label: string; pageNumber: number; source: string; value: string } | null {
+function resolveRow(row: MetadataIndex | undefined): { ambiguous: string; label: string; pageNumber: string | number; source: string; value: string } | null {
   if (!row || row.label == null || row.value == null || row.page_number == null) return null;
   return {
     ambiguous: toStringValue(row.ambiguous),
     label: toStringValue(row.label),
-    pageNumber: Number(row.page_number),
+    pageNumber: row.page_number,
     source: toStringValue(row.source),
     value: toStringValue(row.value),
   };
@@ -66,7 +62,7 @@ function resolveRow(row: MetadataIndex | undefined): { ambiguous: string; label:
 export function resolveSelectedIndex(
   metadata: MetadataPayload | null,
   selectedIndex: MetadataSelected | null,
-): { ambiguous: string; label: string; pageNumber: number; source: string; value: string } | null {
+): { ambiguous: string; label: string; pageNumber: string | number; source: string; value: string } | null {
   if (!metadata || !selectedIndex?.code) return null;
   const groups = [metadata.indexes, metadata.parties, metadata.secrets];
   for (const group of groups) {
@@ -101,4 +97,8 @@ export function parsePackageMetadata(value: unknown): PackageMetadata {
     } satisfies ViewerError;
   }
   return { ...value, pages: value.pages };
+}
+
+export function isPageError(error: ViewerError | null): boolean {
+  return error?.code === "page_out_of_range";
 }

@@ -15,13 +15,17 @@ const report = {
     },
   ],
   segments: [
+    { segment_name: "transaction", expected_weight: 10, actual_weight: 10, iq: 100, explanations: [] },
     {
       segment_name: "party",
-      expected_weight: 50,
-      actual_weight: 45,
+      expected_weight: 6,
+      actual_weight: 5,
       iq: 90,
       explanations: ["Party clause indexing quality is acceptable."],
     },
+    { segment_name: "sides", expected_weight: 12, actual_weight: 12, iq: 100, explanations: [] },
+    { segment_name: "legal", expected_weight: 6, actual_weight: 0, iq: 0, explanations: [] },
+    { segment_name: "reference", expected_weight: 2, actual_weight: 2, iq: 100, explanations: [] },
   ],
   explanation: ["Report explanation"],
 } as unknown as IqReport;
@@ -33,12 +37,7 @@ const workerClient: IqWorkerClient = {
   async loadReport() {
     return report;
   },
-  async pollReport() {
-    return { status: "completed", data: report, isComplete: true };
-  },
-  async startReport() {
-    return { status: "completed", data: {}, isComplete: true };
-  },
+
 };
 
 const stage = document.getElementById("visual-stage");

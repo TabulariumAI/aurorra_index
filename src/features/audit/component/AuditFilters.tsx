@@ -1,12 +1,10 @@
+import { formatLabel } from "aurora-core";
 import { auditStyles } from "../style/auditStyles";
-import type { AuditReportView } from "../type/audit.types";
+import type { AuditFilters as AuditFiltersState, AuditReportView } from "../type/audit.types";
 
 type AuditFiltersProps = {
-  onFiltersChange: (filters: { changeType: string; process: string }) => void;
-  filters: {
-    changeType: string;
-    process: string;
-  };
+  onFiltersChange: (filters: AuditFiltersState) => void;
+  filters: AuditFiltersState;
   report: AuditReportView;
 };
 
@@ -70,6 +68,20 @@ export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersP
                   value === "VERIFICATION" ? "verification" : value === "ENRICHMENT" ? "enrichment" : value === "Reprocess |" ? "reprocess" : value === "USER" ? "user" : "other"
                 ]})`}
               </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ ...auditStyles.filterLabel, ...auditStyles.filterSelectGroup }}>
+          <span>Segment</span>
+          <select
+            aria-label="Segment"
+            onChange={(event) => onFiltersChange({ ...filters, segment: event.target.value })}
+            style={auditStyles.filterSelect}
+            value={filters.segment}
+          >
+            <option value="">{`All (${report.segmentTotal})`}</option>
+            {Object.entries(report.segmentCounts).map(([segment, count]) => (
+              <option key={segment} value={segment}>{`${formatLabel(segment)} (${count})`}</option>
             ))}
           </select>
         </label>

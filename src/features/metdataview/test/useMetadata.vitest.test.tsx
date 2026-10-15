@@ -10,7 +10,7 @@ import { splitMetadataJSON, type MetadataActionPayload, type MetadataPayload } f
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",

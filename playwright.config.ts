@@ -21,6 +21,16 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "visual edge",
+      testMatch: ["**/audit*.visual.spec.ts", "**/imageviewer.visual.spec.ts", "**/addindex.visual.spec.ts", "**/legalmap.visual.spec.ts"],
+      use: {
+        ...devices["Desktop Edge"],
+        channel: "msedge",
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 1,
+      },
+    },
+    {
       name: "visual chromium",
       use: {
         ...devices["Desktop Chrome"],

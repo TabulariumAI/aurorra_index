@@ -55,11 +55,14 @@ stage.innerHTML = "";
 
 createRoot(stage).render(
   <AuditPanel
+    onResource={() => fetch("https://doc.example.com/v1/model/aspects").then(response => response.json())}
     apiGatewayUrl="https://doc.example.com"
     authToken="token"
     callbacks={{}}
     onReadyChange={() => undefined}
     session="session-1"
-    workerClient={workerClient}
+    retryLimit={1}
+    retryIntervalMs={0}
+    workerClient={new URLSearchParams(location.search).has("details") ? undefined : workerClient}
   />,
 );

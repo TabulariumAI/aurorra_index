@@ -44,12 +44,15 @@ export function useAuditReport({
   useEffect(() => () => callbacksRef.current.onAuditCanceled?.(), []);
 
   const loadReport = useCallback(async () => {
-    auditStoreApi.getState().setLoading(session);
+    const request = auditStoreApi.getState().setLoading(session, false);
     try {
       const report = await client.loadReport(authToken ?? "", session);
+      if (auditStoreApi.getState().requests[session] !== request) return;
       auditStoreApi.getState().setLoaded(session, report);
       callbacksRef.current.onAuditLoaded?.(report);
     } catch (error) {
+      const state = auditStoreApi.getState();
+      if (state.requests[session] !== request || state.activeSession !== session) return;
       const workerError = normalizeError(error);
       auditStoreApi.getState().setError(workerError);
       callbacksRef.current.onAuditError?.(workerError);

@@ -1,0 +1,30 @@
+__vite_ssr_exportName__("auditPatch", () => { try { return auditPatch } catch {} });
+__vite_ssr_exportName__("auditGap", () => { try { return auditGap } catch {} });
+const auditPatch = {
+	code: null,
+	solution: "add",
+	field: "",
+	explanation: "Index created by user.",
+	identifier: null,
+	value: "2026-001",
+	label: "Recording number",
+	aspect: "recording_number",
+	ambiguous: null,
+	source: "Recorded as 2026-001",
+	page: "7",
+	segment: "transaction",
+	owner: "RefineManager"
+};
+const auditGap = {
+	solution: "add",
+	explanation: "Index created by user.",
+	page: "7",
+	owner: "User",
+	timestamp: "2026-10-03T15:30:00Z",
+	segment: "transaction",
+	patch: auditPatch
+};
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTs7QUFBTyxNQUFNLGFBQWE7Q0FDeEIsTUFBTTtDQUNOLFVBQVU7Q0FDVixPQUFPO0NBQ1AsYUFBYTtDQUNiLFlBQVk7Q0FDWixPQUFPO0NBQ1AsT0FBTztDQUNQLFFBQVE7Q0FDUixXQUFXO0NBQ1gsUUFBUTtDQUNSLE1BQU07Q0FDTixTQUFTO0NBQ1QsT0FBTztBQUNUO0FBRU8sTUFBTSxXQUFXO0NBQ3RCLFVBQVU7Q0FDVixhQUFhO0NBQ2IsTUFBTTtDQUNOLE9BQU87Q0FDUCxXQUFXO0NBQ1gsU0FBUztDQUNULE9BQU87QUFDVCIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsiYXVkaXRGaXh0dXJlLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImV4cG9ydCBjb25zdCBhdWRpdFBhdGNoID0ge1xuICBjb2RlOiBudWxsLFxuICBzb2x1dGlvbjogXCJhZGRcIixcbiAgZmllbGQ6IFwiXCIsXG4gIGV4cGxhbmF0aW9uOiBcIkluZGV4IGNyZWF0ZWQgYnkgdXNlci5cIixcbiAgaWRlbnRpZmllcjogbnVsbCxcbiAgdmFsdWU6IFwiMjAyNi0wMDFcIixcbiAgbGFiZWw6IFwiUmVjb3JkaW5nIG51bWJlclwiLFxuICBhc3BlY3Q6IFwicmVjb3JkaW5nX251bWJlclwiLFxuICBhbWJpZ3VvdXM6IG51bGwsXG4gIHNvdXJjZTogXCJSZWNvcmRlZCBhcyAyMDI2LTAwMVwiLFxuICBwYWdlOiBcIjdcIixcbiAgc2VnbWVudDogXCJ0cmFuc2FjdGlvblwiLFxuICBvd25lcjogXCJSZWZpbmVNYW5hZ2VyXCIsXG59O1xuXG5leHBvcnQgY29uc3QgYXVkaXRHYXAgPSB7XG4gIHNvbHV0aW9uOiBcImFkZFwiLFxuICBleHBsYW5hdGlvbjogXCJJbmRleCBjcmVhdGVkIGJ5IHVzZXIuXCIsXG4gIHBhZ2U6IFwiN1wiLFxuICBvd25lcjogXCJVc2VyXCIsXG4gIHRpbWVzdGFtcDogXCIyMDI2LTEwLTAzVDE1OjMwOjAwWlwiLFxuICBzZWdtZW50OiBcInRyYW5zYWN0aW9uXCIsXG4gIHBhdGNoOiBhdWRpdFBhdGNoLFxufTtcbiJdLCJmaWxlIjoiL3NyYy9mZWF0dXJlcy9hdWRpdC90ZXN0L2F1ZGl0Rml4dHVyZS50cyJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL2ZlYXR1cmVzL2F1ZGl0L3Rlc3QvYXVkaXRGaXh0dXJlLnRzIiwiL3NyYy9mZWF0dXJlcy9hdWRpdC90ZXN0L2F1ZGl0Rml4dHVyZS50cyIsW11d

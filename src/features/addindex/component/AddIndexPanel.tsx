@@ -1,7 +1,6 @@
-import { ConfButton, formatLabel } from "aurora-core";
+import { formStyles, ConfButton, formatLabel } from "aurora-core";
 import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import { formatSelection } from "../data/addIndexData";
-import { indexStyles } from "../../../shared/style/indexStyles";
 import type { AddIndexPanelProps } from "../type/addIndex.types";
 import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
@@ -45,7 +44,7 @@ export function AddIndexPanel({
   const initial = useMemo(() => {
     if ("groups" in request) {
       const summary = formatSelection(request);
-      return { index: summary.values, label: "", page: String(request.pageNumber), source: summary.context };
+      return { index: summary.values, label: "", page: request.pageName, source: summary.context };
     } else {
       return { index: "", label: "", page: "", source: "" };
     }
@@ -95,17 +94,17 @@ export function AddIndexPanel({
   };
 
   return (
-    <section aria-label="Add selected index form" style={indexStyles.root}>
-      <div inert={submitting} style={indexStyles.fields}>
+    <section aria-label="Add selected index form" style={formStyles.root}>
+      <div inert={submitting} style={formStyles.fields}>
         <IndexInput key={session} value={fields.index} aspects={aspects} segment={segment} selected={selected} onChange={(index) => setFields({ ...fields, index })} onSelect={setSelected} allowEnrichment={allowEnrichment} onEnrichmentChange={setAllowEnrichment} />
         <IndexDetails fields={fields} onChange={setFields} />
       </div>
-      <div data-testid="add-index-actions" style={indexStyles.actions}>
+      <div data-testid="add-index-actions" style={formStyles.actions}>
         <ConfButton
           disabled={submitting || !ready || !selected.length || !fields.index.trim()}
           label="Add"
           onConfirm={() => void submit()}
-          style={indexStyles.button("primary")}
+          style={formStyles.button}
           variant="primary"
         />
       </div>

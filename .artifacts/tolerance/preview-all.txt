@@ -1,0 +1,487 @@
+
+ RUN  v4.1.9 C:/GitHub/Tabularium/aurorra_index
+
+stderr | src/features/imageviewer/test/useImageViewer.vitest.test.tsx
+Warning: Please use the `legacy` build in Node.js environments.
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > hands page and title clicks to the host and viewer with distinct search data
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > shows added rows with recovery and pending overlays until refresh with enrichment=false
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > shows added rows with recovery and pending overlays until refresh with enrichment=true
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > fetches metadata, renders visible sections, and emits lifecycle callbacks
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > confirms an index through the worker
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > opens the selected image and routes index, page, and legal edits
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > adds and reprocesses the open segment while preserving header actions
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > keeps a dropped index pending until completion and removes it after animation
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > renders worker errors through callbacks only
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/indexing/test/IndexContainer.vitest.test.tsx > IndexContainer > retains visible metadata while a refresh is loading
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to IndexContainer inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+···································································stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > completes the package flow through the host
+imageviewer package load start {
+  hasPackage: false,
+  page: null,
+  reason: 'initial_or_missing_package',
+  reloadId: 0,
+  requestVersion: 0,
+  session: 'session-1',
+  status: 'idle'
+}
+
+stderr | src/features/addindex/test/AddIndexPanel.vitest.test.tsx > AddIndexPanel > defaults Enhancement off for party
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/addindex/test/AddIndexPanel.vitest.test.tsx > AddIndexPanel > defaults Enhancement off for property
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/addindex/test/AddIndexPanel.vitest.test.tsx > AddIndexPanel > defaults Enhancement off for transaction
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > keeps image mode when preview becomes compact
+Removing a style property during rerender (flexBasis) when a conflicting property is set (flex) can lead to styling bugs. To avoid this, don't mix shorthand and non-shorthand properties for the same value; instead, replace the shorthand with separate values.
+
+·······stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > opens Add Index with the exported selection
+imageviewer toolbar action { action: 'select' }
+imageviewer toolbar action { action: 'export' }
+
+stderr | src/features/addindex/test/AddIndexPanel.vitest.test.tsx > AddIndexPanel > clears Enhancement when another request opens
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+···stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > copies selected value without opening Add Index
+imageviewer toolbar action { action: 'copy' }
+
+···stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > matches selected text against cached metadata and focuses the winning index
+imageviewer package load start {
+  hasPackage: false,
+  page: null,
+  reason: 'initial_or_missing_package',
+  reloadId: 0,
+  requestVersion: 0,
+  session: 'session-1',
+  status: 'idle'
+}
+imageviewer toolbar action { action: 'match' }
+
+·stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > shows a clear status when selected text has no matching index and clears it on a new match
+imageviewer toolbar action { action: 'match' }
+
+stderr | src/features/addindex/test/AddIndexPanel.vitest.test.tsx > AddIndexPanel > clears image fields and selected types when opening without an image, then restores image prefilling
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+···stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > shows a clear status when selected text has no matching index and clears it on a new match
+imageviewer toolbar action { action: 'match' }
+
+···stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > shows the no-match result when cached metadata is unavailable
+imageviewer toolbar action { action: 'match' }
+
+··stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > does not restart package download when same-session panel remounts with cached package
+imageviewer package load start {
+  hasPackage: false,
+  page: null,
+  reason: 'initial_or_missing_package',
+  reloadId: 0,
+  requestVersion: 0,
+  session: 'session-1',
+  status: 'idle'
+}
+
+········stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > starts package flow when ready status has no local package
+imageviewer package load start {
+  hasPackage: false,
+  page: null,
+  reason: 'initial_or_missing_package',
+  reloadId: 0,
+  requestVersion: 0,
+  session: 'session-1',
+  status: 'ready'
+}
+
+·stdout | src/features/imageviewer/test/ImageViewerPanel.vitest.test.tsx > ImageViewerPanel > bubbles package errors without rendering a package alert
+imageviewer package load start {
+  hasPackage: false,
+  page: null,
+  reason: 'initial_or_missing_package',
+  reloadId: 0,
+  requestVersion: 0,
+  session: 'session-1',
+  status: 'idle'
+}
+
+stderr | src/features/addindex/test/AddIndexPanel.vitest.test.tsx > AddIndexPanel > has no Cancel action and does not queue on open
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to AddIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/editindex/test/EditIndexPanel.vitest.test.tsx > EditIndexPanel > resets Enhancement when another index opens
+An update to EditIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to EditIndexPanel inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/editindex/test/metadataEdit.vitest.test.tsx > keeps copy, delete confirmation, and edit icons compact without changing confirmation behavior
+An update to MetadataRow inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ConfButton inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | src/features/imageviewer/test/imageViewerData.vitest.test.ts
+Warning: Please use the `legacy` build in Node.js environments.
+
+·····················································································································································································································································································································································································································································································································································
+
+ Test Files  66 passed (66)
+      Tests  631 passed (631)
+   Start at  17:12:03
+   Duration  128.27s (transform 3.03s, setup 13.55s, import 14.55s, tests 63.34s, environment 140.77s)
+

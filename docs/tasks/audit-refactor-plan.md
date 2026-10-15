@@ -171,7 +171,6 @@ export type AuditReportView = {
     verification: number;
   };
   total: number;
-  usageCosts: string[];
 };
 
 export type AuditWorkerError = {
@@ -316,7 +315,7 @@ Audit panel rules:
 
 Summary rules:
 - `AuditSummary` renders the `Audit report` title.
-- `AuditSummary` renders costs only when present.
+- `AuditPanel` renders service usage below the gaps and omits standalone total-cost text.
 - `AuditSummary` renders the filtered count and the `Out of {total}` badge text.
 
 Filter rules:
@@ -355,7 +354,7 @@ Visual harness:
   - one usage block with costs
 - Browser test must verify:
   - `Audit report` is visible.
-  - The costs text is visible.
+  - The standalone total-cost text is absent.
   - The badge count and `Out of` text are visible.
   - The change type and process filters are visible.
   - The visible sort order is `Newest addition message`, then the long correction message, then `Old remove message`.
@@ -491,8 +490,8 @@ Run from `document_web`:
 2. `npm run typecheck`
 3. `npm run build`
 4. `npm run test:visual`
-5. Browser verification for audit preview placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `STUDIOMODE`; verify `Audit report`, costs, filters, gaps, and refresh after `refineSegmentComplete`.
-6. Browser verification for audit dialog placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `TABLETMODE`; verify `Audit report`, costs, filters, gaps, close behavior, and refresh after `refineSegmentComplete`.
+5. Browser verification for audit preview placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `STUDIOMODE`; verify `Audit report`, service usage below gaps, filters, gaps, and refresh after `refineSegmentComplete`.
+6. Browser verification for audit dialog placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `TABLETMODE`; verify `Audit report`, service usage below gaps, filters, gaps, close behavior, and refresh after `refineSegmentComplete`.
 
 Grep gates:
 1. `rg -n "globalThis|\\bUI\\b|EventBus|\\bEVENTS\\b|\\bENV\\b|\\bAPI\\b|WorkerHelper|AlertHelper|ALERT_MESSAGES|document_web|AuditController|AuditView|AuditAdapter|AuditViewer|document\\.createElement|appendChild|innerHTML" aurorra_index/src/features/audit`

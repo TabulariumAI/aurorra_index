@@ -1,4 +1,5 @@
-import type { AuroraLens, DecodeDocOptions, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
+import type { AuroraLens, DecodeDocOptions, PageSizeConfig, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
+import type { ReactNode } from "react";
 import type { MetadataSelected } from "aurora-core";
 
 export type PageRequest = {
@@ -6,7 +7,7 @@ export type PageRequest = {
   highlightOptions: { scroll: boolean };
   index: string;
   metadataIndex: LensMetadataIndex | null;
-  page: number;
+  page: string | number;
   quote: string;
   segment: string | null;
   session: string;
@@ -27,14 +28,14 @@ export type PackageData = {
 
 export type PackageMetadata = {
   pages: unknown[];
+  pageMap?: Record<string, number>;
 };
 
 export type HostInput = {
+  pageSize: PageSizeConfig;
   apiGatewayUrl: string;
   authToken: string;
-  choices: unknown;
   onError: (error: ViewerError) => void;
-  pageCount: number;
   pageMap: ReadonlyMap<string, string>;
   packagePollIntervalMs?: number;
   request: PageRequest | null;
@@ -43,9 +44,13 @@ export type HostInput = {
   workerClient?: WorkerClient;
 };
 
+export type ToleranceRenderer = (props: { anchor: HTMLElement; children: ReactNode; onClose(): void }) => ReactNode;
+
 export type PanelProps = {
+  renderTolerance: ToleranceRenderer;
   compact: boolean;
   hostInput?: HostInput;
+  onIndexFocus?(selected: MetadataSelected): void;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
 };
@@ -97,6 +102,7 @@ export type WorkerClient = {
 };
 
 export type LoadPackageInput = {
+  pageSize: PageSizeConfig;
   apiGatewayUrl: string;
   authToken: string;
   onError: (error: ViewerError) => void;
@@ -107,13 +113,12 @@ export type LoadPackageInput = {
 };
 
 export type StoreState = {
+  pageSize: PageSizeConfig | null;
   apiGatewayUrl: string;
   authToken: string | null;
-  choices: unknown;
   error: ViewerError | null;
   fitPageVersion: number;
   onError: ((error: ViewerError) => void) | null;
-  pageCount: number;
   pageMap: ReadonlyMap<string, string>;
   packageMetadata: PackageMetadata | null;
   packagePollIntervalMs: number;
@@ -155,6 +160,7 @@ export type LensApi = Pick<
   | "close"
   | "copySelection"
   | "decodeDoc"
+  | "exportSelection"
   | "firstPage"
   | "fitHeight"
   | "fitPage"
@@ -165,6 +171,8 @@ export type LensApi = Pick<
   | "nextPage"
   | "previousPage"
   | "readPageInfo"
+  | "readPageName"
+  | "resolvePage"
   | "restoreSession"
   | "search"
   | "searchIndex"

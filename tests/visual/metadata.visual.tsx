@@ -7,7 +7,7 @@ import type { MetadataSegments, MetadataPayload } from "aurora-core";
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
   CHAIN: "chain",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
@@ -96,7 +96,7 @@ const rowPanelData = getPanelData(rowMetadata);
 const partyRowMetadata: MetadataPayload = {
   ...shortMetadata,
   indexes: [
-    { aspect: "person-direct", code: "party-1", label: "borrower", page_number: "1", segment: "party", value: "GALINDO MANUEL GUEL" },
+    { ambiguous: "YES", aspect: "person-direct", code: "party-1", label: "borrower", page_number: "1", segment: "party", value: "GALINDO MANUEL GUEL" },
     { aspect: "person-direct", code: "party-2", label: "borrower", page_number: "1", segment: "party", value: "GUEL ALMA E" },
     { aspect: "person-other", code: "party-3", label: "trustee", page_number: "1", segment: "party", value: "IRVINE TIMOTHY K" },
     { aspect: "organization-indirect", code: "party-4", label: "beneficiary", page_number: "1", segment: "party", value: "BANK OF NEW YORK MELLON TRUST CO" },
@@ -146,8 +146,19 @@ const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
 
 const scenario = new URLSearchParams(window.location.search).get("scenario");
-const activeMetadata = scenario === "metadata-pages" ? pageMetadata : scenario === "metadata-address-row" ? addressRowMetadata : scenario === "metadata-party-rows" ? partyRowMetadata : scenario === "metadata-row" ? rowMetadata : scenario === "metadata-short" ? shortMetadata : metadata;
-const activePanelData = scenario === "metadata-pages" ? pagePanelData : scenario === "metadata-address-row" ? addressRowPanelData : scenario === "metadata-party-rows" ? partyRowPanelData : scenario === "metadata-row" ? rowPanelData : scenario === "metadata-short" ? shortPanelData : panelData;
+const propertyMetadata: MetadataPayload = {
+  ...shortMetadata,
+  indexes: [{ code: "property-1", segment: "property", aspect: "property_city", label: "property", page_number: "1", value: "Roanoke" }],
+  legals: {
+    summary: "One parcel in Green Acres Estates, Denton County, Texas.",
+    groups: [{ code: "legal-1", type: "lot_block", elements: [
+      { aspect: "subdivision", value: "GREEN ACRES ESTATES", explanation: "Subdivision identified in the legal description." },
+      { aspect: "lot", value: "6" },
+    ] }],
+  },
+};
+const activeMetadata = scenario === "metadata-property-alignment" ? propertyMetadata : scenario === "metadata-pages" ? pageMetadata : scenario === "metadata-address-row" ? addressRowMetadata : scenario === "metadata-party-rows" ? partyRowMetadata : scenario === "metadata-row" ? rowMetadata : scenario === "metadata-short" ? shortMetadata : metadata;
+const activePanelData = scenario === "metadata-property-alignment" ? getPanelData(propertyMetadata) : scenario === "metadata-pages" ? pagePanelData : scenario === "metadata-address-row" ? addressRowPanelData : scenario === "metadata-party-rows" ? partyRowPanelData : scenario === "metadata-row" ? rowPanelData : scenario === "metadata-short" ? shortPanelData : panelData;
 
 stage.style.display = "flex";
 stage.style.flexDirection = "column";
@@ -157,7 +168,7 @@ stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 
 function MetadataPreview() {
-  const [openSegment, setOpenSegment] = useState<string | null>(scenario === "metadata-pages" ? segments.PAGE : scenario === "metadata-row" ? segments.ENDORSEMENT : scenario === "metadata-address-row" ? segments.TRANSACTION : segments.PARTY);
+  const [openSegment, setOpenSegment] = useState<string | null>(scenario === "metadata-property-alignment" ? segments.PROPERTY : scenario === "metadata-pages" ? segments.PAGE : scenario === "metadata-row" ? segments.ENDORSEMENT : scenario === "metadata-address-row" ? segments.TRANSACTION : segments.PARTY);
   return (
   <MetadataPanel
     actions={{ confirm: true, drop: true, reprocess: true }}

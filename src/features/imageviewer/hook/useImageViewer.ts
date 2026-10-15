@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
+import type { PageMetadataHits, PageSizeConfig, PageSizeFailure, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import type { AddIndexSelection } from "../../addindex";
-import { toPositivePage, toViewerError } from "../data/imageViewerData";
-import { isRecognitionPageError, resolveImagePage } from "../data/recognitionPages";
+import { isPageError, toViewerError } from "../data/imageViewerData";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import type { LensApi, PageRequest } from "../type/imageViewer.types";
-
-function toLensPage(page: number): number {
-  return Math.max(0, toPositivePage(page) - 1);
-}
 
 function requestKey(request: PageRequest, requestVersion: number): string {
   const searchKey = request.metadataIndex
@@ -18,7 +13,7 @@ function requestKey(request: PageRequest, requestVersion: number): string {
   return `${request.session}:${requestVersion}:${request.page}:${request.code}:${request.index}:${request.segment}:${searchKey}:${request.highlightOptions.scroll}`;
 }
 
-function applySearch(lens: LensApi, request: PageRequest, imagePage: number): void {
+function applySearch(lens: LensApi, request: PageRequest): boolean | PageMetadataHits | null {
   if (request.metadataIndex) {
     console.info("imageviewer lens search index request", {
       page: request.page,
@@ -26,8 +21,7 @@ function applySearch(lens: LensApi, request: PageRequest, imagePage: number): vo
       sourceLength: request.metadataIndex.source.length,
       valueLength: request.metadataIndex.value.length,
     });
-    lens.searchIndex(imagePage, request.metadataIndex, { additive: false });
-    return;
+    return lens.searchIndex(request.page, request.metadataIndex, { additive: false });
   }
   if (request.value) {
     console.info("imageviewer lens search request", {
@@ -36,7 +30,7 @@ function applySearch(lens: LensApi, request: PageRequest, imagePage: number): vo
       session: request.session,
       valueLength: request.value.length,
     });
-    lens.search(request.value, { additive: false, context: request.quote || null });
+    return lens.search(request.value, { additive: false, context: request.quote || null });
   } else if (request.quote) {
     console.info("imageviewer lens search request", {
       contextLength: 0,
@@ -44,11 +38,17 @@ function applySearch(lens: LensApi, request: PageRequest, imagePage: number): vo
       session: request.session,
       valueLength: request.quote.length,
     });
-    lens.search(request.quote, { additive: false, context: null });
+    return lens.search(request.quote, { additive: false, context: null });
   }
+  lens.clearSelection();
+  return null;
 }
 
 export function useImageViewer() {
+  const pageSize = useImageViewerStore(state => state.pageSize);
+  const [sizeOverride, setSizeOverride] = useState<{ session: string; base: PageSizeConfig; config: PageSizeConfig } | null>(null);
+  const [sizeFailure, setSizeFailure] = useState<PageSizeFailure | null>(null);
+  const [sizeBlocked, setSizeBlocked] = useState(false);
   const lensHostRef = useRef<HTMLDivElement | null>(null);
   const lensRef = useRef<LensApi | null>(null);
   const decodingPackageKeyRef = useRef<string | null>(null);
@@ -60,6 +60,7 @@ export function useImageViewer() {
   const retryVersionRef = useRef(0);
   const [decodedVersion, setDecodedVersion] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [noMatch, setNoMatch] = useState<string | null>(null);
   const [lensReady, setLensReady] = useState(false);
   const [reloadId, setReloadId] = useState(0);
   const [restoreDone, setRestoreDone] = useState(false);
@@ -67,10 +68,7 @@ export function useImageViewer() {
   const packageVersion = useImageViewerStore((state) => state.packageVersion);
   const fitPageVersion = useImageViewerStore((state) => state.fitPageVersion);
   const request = useImageViewerStore((state) => state.request);
-  const choices = useImageViewerStore((state) => state.choices);
-  const pageCount = useImageViewerStore((state) => state.pageCount);
   const error = useImageViewerStore((state) => state.error);
-  const requestSession = request?.session;
   const requestVersion = useImageViewerStore((state) => state.requestVersion);
   const session = useImageViewerStore((state) => state.session);
   const packageMetadata = useImageViewerStore((state) => state.packageMetadata);
@@ -80,42 +78,68 @@ export function useImageViewer() {
   const viewerState = useImageViewerStore((state) => state.viewerState);
   const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
   const status = useImageViewerStore((state) => state.status);
+  const lensSize = sizeOverride?.session === session && sizeOverride.base === pageSize ? sizeOverride.config : pageSize;
+  const reportFailure = useCallback((error: unknown, message: string) => {
+    const failure = toViewerError(error, message);
+    if (failure.code === "page_size" && failure.details) {
+      setSizeFailure(failure.details as PageSizeFailure);
+      setSizeBlocked(true);
+      setLoaded(false);
+      imageViewerStoreApi.getState().setViewerStatus("idle");
+      return;
+    }
+    imageViewerStoreApi.getState().setError(failure);
+  }, []);
+  const acceptSize = useCallback(() => {
+    if (!sizeFailure || !pageSize || !session || imageViewerStoreApi.getState().session !== session) return;
+    setSizeOverride({ session, base: pageSize, config: { ...pageSize, tolerance: sizeFailure.requiredTolerance } });
+  }, [pageSize, session, sizeFailure]);
+  const cancelSize = useCallback(() => {
+    setSizeFailure(null);
+  }, []);
   const resolution = useMemo(() => {
-    if (!request || request.session !== session) return { page: null, error: null };
+    if (!request || request.session !== session || !loaded || !lensRef.current) return { page: null, error: null };
     try {
-      return { page: resolveImagePage(request.page, pageCount, choices), error: null };
+      return { page: lensRef.current.resolvePage(request.page), error: null };
     } catch (error) {
       return { page: null, error: toViewerError(error, "Document page is unavailable.") };
     }
-  }, [choices, pageCount, request, session]);
+  }, [loaded, request, session, viewerState?.pageCount]);
   const imagePage = resolution.page;
-  const validRequest = imagePage !== null;
   const pageReady = Boolean(!resolution.error && loaded && viewerState?.status === "ready" && viewerState.pageIndex >= 0);
   const metadataReady = Boolean(pageReady && viewerState?.pageInfo);
 
   useEffect(() => {
     const state = imageViewerStoreApi.getState();
-    if (state.request !== request || state.choices !== choices || state.pageCount !== pageCount || state.session !== session) return;
+    if (state.request !== request || state.packageMetadata !== packageMetadata || state.session !== session) return;
     if (resolution.error) {
       lastRequestKeyRef.current = "";
       if (error !== resolution.error) state.setError(resolution.error);
     }
-  }, [choices, error, pageCount, request, resolution, session]);
+  }, [error, packageMetadata, request, resolution, session]);
+
+  useLayoutEffect(() => {
+    setSizeOverride(null);
+  }, [pageSize, session]);
 
   useLayoutEffect(() => {
     const lensHost = lensHostRef.current;
-    if (!lensHost || !session) return undefined;
+    if (!lensHost || !session || !lensSize) return undefined;
+    setSizeFailure(null);
+    setSizeBlocked(false);
     const activeLensHost = lensHost;
+    const sessionId = session;
     let canceled = false;
     let createdLens: LensApi | null = null;
     let activeLens: LensApi | null = null;
 
-    async function createLens() {
+    async function createLens(pageSize: PageSizeConfig) {
       const { AuroraLens, IndexedDbViewerSessionStore, configurePdfWorker } = await import("@tabulariumai/aurora-lens");
       if (canceled) return;
       configurePdfWorker(pdfWorkerUrl);
       console.info("imageviewer lens create", { session });
       createdLens = new AuroraLens(activeLensHost, {
+        pageSize,
         allowEdit: false,
         selectionTheme: {
           intelligence: {
@@ -124,9 +148,10 @@ export function useImageViewer() {
           },
         },
         sessionStore: new IndexedDbViewerSessionStore(),
+        sessionId,
         onError: (error) => {
           if (canceled || lensRef.current !== activeLens) return;
-          imageViewerStoreApi.getState().setError(toViewerError(error, "Image viewer failed."));
+          reportFailure(error, "Image viewer failed.");
         },
         onStateChange: (state: ViewerState) => {
           if (canceled || lensRef.current !== activeLens) return;
@@ -142,7 +167,7 @@ export function useImageViewer() {
       setLensReady(true);
     }
 
-    void createLens();
+    void createLens(lensSize);
     return () => {
       console.info("imageviewer lens close", {
         decodedPackageVersion: decodedPackageVersionRef.current,
@@ -167,7 +192,7 @@ export function useImageViewer() {
       setDecodedVersion(0);
       setReloadId(0);
     };
-  }, [session]);
+  }, [lensSize, reportFailure, session]);
 
   useEffect(() => {
     const lens = lensRef.current;
@@ -189,6 +214,8 @@ export function useImageViewer() {
           setRestoredSession(true);
           state.setReady();
         }
+      } catch (error) {
+        if (!canceled && lensRef.current === activeLens) reportFailure(error, "Image session could not be restored.");
       } finally {
         if (!canceled && lensRef.current === activeLens) setRestoreDone(true);
       }
@@ -198,12 +225,12 @@ export function useImageViewer() {
     return () => {
       canceled = true;
     };
-  }, [lensReady, session]);
+  }, [lensReady, reportFailure, session]);
 
   useEffect(() => {
     const lens = lensRef.current;
     const request = imageViewerStoreApi.getState().request;
-    if (!restoreDone || !lensReady || !lens || !request || !validRequest || !packageMetadata || !tiffBytes || tiffType === null) return;
+    if (sizeBlocked || !restoreDone || !lensReady || !lens || !request || !packageMetadata || !tiffBytes || tiffType === null) return;
     if (decodedSessionRef.current === request.session && decodedPackageVersionRef.current === packageVersion) return;
     const packageKey = `${request.session}:${packageVersion}`;
     if (decodingPackageKeyRef.current === packageKey) return;
@@ -236,8 +263,7 @@ export function useImageViewer() {
           tiffBytes: activeTiffBytes.byteLength,
           tiffType: activeTiffType,
         });
-        const imagePage = resolveImagePage(activeRequest.page, pageCount, choices);
-        await activeLens.decodeDoc(file, { page: toLensPage(imagePage), viewMode: "page" });
+        await activeLens.decodeDoc(file, { page: activeRequest.page, viewMode: "page" });
         const state = imageViewerStoreApi.getState();
         if (lensRef.current !== activeLens || state.session !== activeRequest.session || state.packageVersion !== activePackageVersion) return;
         decodedSessionRef.current = activeRequest.session;
@@ -249,7 +275,7 @@ export function useImageViewer() {
           packageVersion: activePackageVersion,
           session: activeRequest.session,
         });
-        if (!isRecognitionPageError(state.error)) state.setReady();
+        if (!isPageError(state.error)) state.setReady();
       } catch (error) {
         console.info("imageviewer lens error", {
           packageVersion: activePackageVersion,
@@ -257,7 +283,7 @@ export function useImageViewer() {
         });
         const state = imageViewerStoreApi.getState();
         if (lensRef.current === activeLens && state.session === activeRequest.session && state.packageVersion === activePackageVersion) {
-          state.setError(toViewerError(error, "Image package failed to load."));
+          reportFailure(error, "Image package failed to load.");
         }
       } finally {
         if (decodingPackageKeyRef.current === packageKey) {
@@ -267,7 +293,7 @@ export function useImageViewer() {
     }
 
     void decodePackage();
-  }, [choices, lensReady, packageMetadata, packageVersion, pageCount, requestSession, restoreDone, tiffBytes, tiffType, validRequest]);
+  }, [lensReady, packageMetadata, packageVersion, reportFailure, request, restoreDone, sizeBlocked, tiffBytes, tiffType]);
 
   useEffect(() => {
     if (
@@ -276,7 +302,7 @@ export function useImageViewer() {
       !request ||
       imagePage === null ||
       requestVersion === 0 ||
-      viewerState?.pageIndex !== toLensPage(imagePage) ||
+      viewerState?.pageIndex !== imagePage ||
       viewerState.pageInfo
     ) return;
     if (retryVersionRef.current !== requestVersion) {
@@ -306,19 +332,20 @@ export function useImageViewer() {
     if (!lens || !pageReady || !request || imagePage === null || decodingPackageKeyRef.current) return;
     const key = `${requestKey(request, requestVersion)}:${imagePage}`;
     if (lastRequestKeyRef.current === key) return;
-    if (viewerState?.viewMode !== "page" || viewerState.pageIndex !== toLensPage(imagePage)) {
+    if (viewerState?.viewMode !== "page" || viewerState.pageIndex !== imagePage) {
       console.info("imageviewer lens sync request", {
         code: request.code,
         page: request.page,
         segment: request.segment,
         session: request.session,
       });
-      void lens.goToPage(toLensPage(imagePage));
+      void lens.goToPage(request.page);
       return;
     }
     lastRequestKeyRef.current = key;
-    if (isRecognitionPageError(imageViewerStoreApi.getState().error)) imageViewerStoreApi.getState().setReady();
-    applySearch(lens, request, imagePage);
+    if (isPageError(imageViewerStoreApi.getState().error)) imageViewerStoreApi.getState().setReady();
+    const result = applySearch(lens, request);
+    setNoMatch(request.metadataIndex && result === false ? key : null);
   }, [imagePage, pageReady, request, requestVersion, viewerState?.pageIndex, viewerState?.viewMode]);
 
   useEffect(() => {
@@ -370,13 +397,24 @@ export function useImageViewer() {
     if (!pageReady || !viewerState?.canCopy) return null;
     console.info("imageviewer lens action", { action: "exportSelection" });
     try {
-      const result = await lensRef.current?.copySelection();
-      const pageInfo = lensRef.current?.readPageInfo();
-      if (!result?.copied || !pageInfo) return null;
-      return { groups: result.groups, pageNumber: pageInfo.pageNumber };
+      const groups = lensRef.current?.exportSelection();
+      if (!groups?.length) return null;
+      const pageName = lensRef.current?.readPageName();
+      if (!pageName) throw new Error("Document page name is unavailable.");
+      return { groups, pageName };
     } catch (error) {
       imageViewerStoreApi.getState().setError(toViewerError(error, "Could not export selected values."));
       return null;
+    }
+  }, [pageReady, viewerState?.canCopy]);
+
+  const copySelection = useCallback(async (): Promise<void> => {
+    if (!pageReady || !viewerState?.canCopy) return;
+    console.info("imageviewer lens action", { action: "copySelection" });
+    try {
+      await lensRef.current?.copySelection();
+    } catch (error) {
+      imageViewerStoreApi.getState().setError(toViewerError(error, "Could not copy selected values."));
     }
   }, [pageReady, viewerState?.canCopy]);
 
@@ -430,6 +468,9 @@ export function useImageViewer() {
   }, [pageReady, viewerState?.canActualSize]);
 
   return {
+    acceptSize,
+    cancelSize,
+    sizeFailure,
     actualSize,
     canActualSize: Boolean(pageReady && viewerState?.canActualSize),
     canClearSearch: Boolean(searchText || (pageReady && viewerState?.canClearSelection)),
@@ -448,19 +489,22 @@ export function useImageViewer() {
     canZoomOut: Boolean(pageReady && viewerState?.canZoomOut),
     clearSearch,
     exportSelection,
+    copySelection,
     firstPage,
     fitHeight,
     fitPage,
     fitWidth,
-    isLoading: Boolean(!resolution.error && !pageReady && viewerState?.status !== "copyingSelection" && request && packageMetadata && tiffBytes && tiffType !== null),
-    hasRequestError: Boolean(resolution.error),
-    isNavigating: loaded && (viewerStatus === "loadingPage" || viewerState?.status === "loadingPage"),
+    isLoading: Boolean(!sizeBlocked && !resolution.error && !pageReady && viewerState?.status !== "copyingSelection" && request && packageMetadata && tiffBytes && tiffType !== null),
+    hasRequestError: Boolean(sizeBlocked || resolution.error),
+    isNavigating: !sizeBlocked && loaded && (viewerStatus === "loadingPage" || viewerState?.status === "loadingPage"),
     isRestoredSession: restoredSession,
     isRestoring: Boolean(session && (!lensReady || !restoreDone)),
     isThumbs: viewerState?.viewMode === "thumbnails",
     lastPage,
     lensHostRef,
     nextPage,
+    noMatch: Boolean(noMatch && request && request.session === session && pageReady && noMatch === `${requestKey(request, requestVersion)}:${imagePage}`),
+    setNoMatch,
     page: viewerState && viewerState.pageIndex >= 0 ? viewerState.pageIndex + 1 : 0,
     pageCount: viewerState?.pageCount ?? 0,
     previousPage,

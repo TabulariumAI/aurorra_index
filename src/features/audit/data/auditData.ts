@@ -1,4 +1,4 @@
-import type { AuditFilters, AuditGap, AuditGapView, AuditReport, AuditReportView } from "../type/audit.types";
+import type { AuditFilters, AuditGap, AuditGapView, AuditPatch, AuditReport, AuditReportView, AuditUsage } from "../type/audit.types";
 
 export const CHANGE_ADD = "ADD";
 export const CHANGE_REMOVE = "REMOVE";
@@ -11,6 +11,7 @@ export const PROCESS_OTHER = "OTHER";
 
 type RawUsage = {
   costs?: unknown;
+  services?: unknown;
 };
 
 type RawReport = {
@@ -48,11 +49,13 @@ function normalizeProcess(value: unknown): string {
   return PROCESS_OTHER;
 }
 
-function normalizeUsage(value: unknown): { usage?: { costs: string[] } } {
+function normalizeUsage(value: unknown): { usage?: AuditUsage } {
   if (!isObject(value)) return {};
   const source = value as RawUsage;
-  if (!Array.isArray(source.costs)) return {};
-  return { usage: { costs: source.costs.map((cost) => String(cost)) } };
+  const usage: AuditUsage = {};
+  if (Array.isArray(source.costs)) usage.costs = source.costs.map(cost => String(cost));
+  if (Array.isArray(source.services)) usage.services = source.services as AuditUsage["services"];
+  return usage.costs || usage.services ? { usage } : {};
 }
 
 function toAuditGap(raw: unknown): AuditGap | null {
@@ -71,6 +74,19 @@ function toAuditGap(raw: unknown): AuditGap | null {
   const explanation = normalizeText(source.explanation);
   if (!solution && !explanation) return null;
 
+  if (source.patch != null) {
+    if (!isObject(source.patch)) return null;
+    const patch = source.patch;
+    if (!["solution", "field", "explanation", "owner"].every(key => typeof patch[key] === "string") ||
+      !["code", "value", "label", "aspect", "ambiguous", "source", "page", "segment"]
+        .every(key => patch[key] === null || typeof patch[key] === "string")) return null;
+    if (patch.identifier !== null) {
+      if (!isObject(patch.identifier)) return null;
+      const identifier = patch.identifier;
+      if (!["value", "label", "aspect"].every(key => identifier[key] === null || typeof identifier[key] === "string")) return null;
+    }
+  }
+
   const normalized = {
     solution: normalizeChangeType(solution),
     explanation,
@@ -78,6 +94,7 @@ function toAuditGap(raw: unknown): AuditGap | null {
     owner: normalizeProcess(source.owner),
     timestamp: normalizeText(source.timestamp),
     segment: source.segment === null ? null : normalizeText(source.segment),
+    ...(source.patch != null ? { patch: source.patch as AuditPatch } : {}),
   };
   return normalized;
 }
@@ -149,6 +166,8 @@ function toGapView(gap: AuditGap): AuditGapView {
     page: gap.page,
     process: gap.owner,
     processLabel: processLabel(gap.owner),
+    segment: gap.segment,
+    ...(gap.patch ? { patch: gap.patch } : {}),
   };
 }
 
@@ -186,7 +205,7 @@ export function normalizeAuditReport(raw: unknown): AuditReport {
   return report;
 }
 
-export function prepareAuditReport(raw: unknown, filters: AuditFilters): AuditReportView {
+export function prepareAuditReport(raw: unknown, filters: AuditFilters, segments: string[]): AuditReportView {
   const report = normalizeAuditReport(raw);
   const selectedChangeType = filters.changeType ? normalizeChangeType(filters.changeType) : "";
   const selectedProcess = filters.process ? normalizeProcess(filters.process) : "";
@@ -207,19 +226,30 @@ export function prepareAuditReport(raw: unknown, filters: AuditFilters): AuditRe
     verification: 0,
   };
 
+  const segmentCounts = Object.fromEntries(segments.map(segment => [segment, 0]));
+  let segmentTotal = 0;
+
   const filtered = report.gaps.filter((entry) => {
     const passProcess = !hasProcessFilter || entry.owner === selectedProcess;
     const passChange = !hasChangeFilter || entry.solution === selectedChangeType;
 
-    if (passProcess) {
+    const passSegment = !filters.segment || entry.segment === filters.segment;
+
+    if (passProcess && passSegment) {
       const key = changeTypeCounts(entry.solution);
       changeCounts[key] += 1;
     }
-    if (passChange) {
+    if (passChange && passSegment) {
       const key = getProcessCountKey(entry.owner);
       processCounts[key] += 1;
     }
-    return passProcess && passChange;
+    if (passProcess && passChange) {
+      segmentTotal += 1;
+      if (entry.segment !== null && Object.hasOwn(segmentCounts, entry.segment)) {
+        segmentCounts[entry.segment] += 1;
+      }
+    }
+    return passProcess && passChange && passSegment;
   });
 
   return {
@@ -227,7 +257,8 @@ export function prepareAuditReport(raw: unknown, filters: AuditFilters): AuditRe
     filtered: filtered.length,
     gaps: filtered.map(toGapView),
     processCounts,
+    segmentCounts,
+    segmentTotal,
     total: report.gaps.length,
-    usageCosts: report.usage?.costs ?? [],
   };
 }

@@ -11,6 +11,35 @@ describe("ImageViewerToolbar", () => {
     vi.restoreAllMocks();
   });
 
+  it("keeps search inside its border and exposes selection actions through More", () => {
+    const onAction = vi.fn();
+    render(<ImageViewerTopToolbar
+      canActualSize canClearSearch canExport canFitHeight canFitPage canFitWidth
+      canSearch canSelect canZoomIn canZoomOut compact={false} selecting={false}
+      onAction={onAction} onSearchText={vi.fn()} searchText="APN" zoom={1}
+    />);
+
+    const searchBox = screen.getByRole("searchbox", { name: "Search image text" });
+    const searchButton = screen.getByRole("button", { name: "Search" });
+    expect(searchBox.parentElement).toContainElement(searchButton);
+    expect(searchBox.parentElement?.style.border).toBe("1px solid var(--border-card)");
+    const select = screen.getByRole("button", { name: "Select" });
+    const clear = screen.getByRole("button", { name: "Clear selections" });
+    expect(select.compareDocumentPosition(clear)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(clear.compareDocumentPosition(screen.getByRole("button", { name: "More" }))).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    for (const action of ["Export", "Copy", "Match"]) {
+      expect(screen.getByRole("button", { name: action })).toBeVisible();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    expect(onAction).toHaveBeenCalledWith("copy");
+    expect(screen.queryByRole("button", { name: "Copy" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "More" }));
+    fireEvent.click(screen.getByRole("button", { name: "Match" }));
+    expect(onAction).toHaveBeenCalledWith("match");
+  });
+
   it("renders top search and view controls", () => {
     const onAction = vi.fn();
     render(
@@ -51,17 +80,18 @@ describe("ImageViewerToolbar", () => {
     const searchBox = screen.getByRole("searchbox", { name: "Search image text" });
     const search = screen.getByRole("button", { name: "Search" });
     const select = screen.getByRole("button", { name: /^Select$/ });
-    const exportButton = screen.getByRole("button", { name: "Export" });
     const clear = screen.getByRole("button", { name: "Clear selections" });
+    const more = screen.getByRole("button", { name: "More" });
     expect(searchBox.compareDocumentPosition(search)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(search.compareDocumentPosition(select)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(select.compareDocumentPosition(exportButton)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(exportButton.compareDocumentPosition(clear)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(select.compareDocumentPosition(clear)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(clear.compareDocumentPosition(more)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 
     fireEvent.click(search);
     fireEvent.click(clear);
     fireEvent.click(select);
-    fireEvent.click(exportButton);
+    fireEvent.click(more);
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
     fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
     const scaleOptions = screen.getByRole("button", { name: "Scale options" });
@@ -98,7 +128,7 @@ describe("ImageViewerToolbar", () => {
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });
 
-  it("keeps view and search controls in one row in compact mode", () => {
+  it("keeps compact controls in one row", () => {
     render(
       <ImageViewerTopToolbar
         canActualSize
@@ -156,7 +186,7 @@ describe("ImageViewerToolbar", () => {
     const searchButton = screen.getByRole("button", { name: "Search" });
     expect(searchBox).toBeEnabled();
     expect(searchButton).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "More" })).toBeDisabled();
 
     fireEvent.change(searchBox, { target: { value: "Cedar Street" } });
 
@@ -244,7 +274,10 @@ describe("ImageViewerToolbar", () => {
 
     const exitSelect = screen.getByRole("button", { name: "Exit select mode" });
     expect(exitSelect).toHaveAttribute("aria-pressed", "true");
-    expect(exitSelect).toHaveAttribute("data-variant", "primary");
+    expect(exitSelect).toHaveAttribute("data-variant", "secondary");
+    expect(exitSelect.style.background).toBe("var(--white)");
+    expect(exitSelect.style.boxShadow).toBe("inset 0 0 0 2px var(--primary)");
+    expect(exitSelect).toHaveStyle({ color: "var(--primary-dark)" });
     expect(exitSelect).toHaveAttribute("title", "Exit select mode");
     expect(screen.queryByRole("button", { name: "Select" })).not.toBeInTheDocument();
 

@@ -1,4 +1,22 @@
+import type { ResourceRequest } from "aurora-core";
+
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
+
+export type AuditPatch = {
+  code: string | null;
+  solution: string;
+  field: string;
+  explanation: string;
+  identifier: { value: string | null; label: string | null; aspect: string | null } | null;
+  value: string | null;
+  label: string | null;
+  aspect: string | null;
+  ambiguous: string | null;
+  source: string | null;
+  page: string | null;
+  segment: string | null;
+  owner: string;
+};
 
 export type AuditGap = {
   solution: string;
@@ -7,10 +25,21 @@ export type AuditGap = {
   owner: string;
   timestamp: string;
   segment: string | null;
+  patch?: AuditPatch;
+};
+
+export type AuditUsageService = {
+  name: "extraction" | "iq_refinement" | "refinement" | "model_generation";
+  cost: number;
+  time?: number;
+  page_num: number;
+  code: string;
+  timestamp: string;
 };
 
 export type AuditUsage = {
-  costs: string[];
+  costs?: string[] | null;
+  services?: AuditUsageService[] | null;
 };
 
 export type AuditReport = {
@@ -21,6 +50,7 @@ export type AuditReport = {
 export type AuditFilters = {
   changeType: string;
   process: string;
+  segment: string;
 };
 
 export type AuditGapView = {
@@ -34,6 +64,8 @@ export type AuditGapView = {
   page: number | string;
   process: string;
   processLabel: string;
+  segment: string | null;
+  patch?: AuditPatch;
 };
 
 export type AuditReportView = {
@@ -52,8 +84,9 @@ export type AuditReportView = {
     user: number;
     verification: number;
   };
+  segmentCounts: Record<string, number>;
+  segmentTotal: number;
   total: number;
-  usageCosts: string[];
 };
 
 export type AuditWorkerError = {
@@ -91,6 +124,7 @@ export type AuditPanelProps = {
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: AuditCallbacks;
+  onResource(request: ResourceRequest): Promise<unknown>;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
   retryLimit: number;
@@ -103,6 +137,8 @@ export type AuditStoreState = {
   activeSession: string | null;
   error: AuditWorkerError | null;
   report: AuditReport | null;
+  reportsBySession: Record<string, AuditReport>;
+  requests: Record<string, string>;
   refresh: { id: number; session: string } | null;
   refreshId: number;
   retryAttempt: number;
@@ -111,7 +147,7 @@ export type AuditStoreState = {
   resetAudit(): void;
   setError(error: AuditWorkerError): void;
   setLoaded(session: string, report: AuditReport): void;
-  setLoading(session: string): void;
+  setLoading(session: string, background: boolean): string;
   setRetryAttempt(attempt: number): void;
   setRefreshing(session: string): void;
 };

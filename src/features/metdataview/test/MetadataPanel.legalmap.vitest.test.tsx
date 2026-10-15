@@ -8,7 +8,7 @@ import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayloa
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",
@@ -69,15 +69,26 @@ describe("MetadataPanel legal map trigger", () => {
     storeApi.getState().resetAllState();
   });
 
-  it("delegates legal view clicks to callbacks.onLegalView and does not open dialog", async () => {
+  it("opens one summary plat for all matching groups and keeps legal rows separate", async () => {
     const onLegalView = vi.fn();
+    const legals: MetadataPayload = {
+      ...metadata,
+      legals: {
+        summary: "Metadata legal summary.",
+        groups: [
+          ...metadata.legals!.groups!,
+          { code: "legal-2", elements: [{ aspect: "lot", value: "Lot 2" }], page: "4", type: "lot_block" },
+          { code: "legal-3", elements: [{ aspect: "description", value: "Boundary" }], page: "5", type: "metes_bounds" },
+        ],
+      },
+    };
     render(
       <MetadataPanel
         {...panelDefaults}
         callbacks={{ onLegalView }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "LegalEnrichment" }]}
-        metadata={metadata}
+        metadata={legals}
         onConfirm={vi.fn()}
         onDrop={vi.fn()}
         onReprocess={vi.fn()}
@@ -87,31 +98,71 @@ describe("MetadataPanel legal map trigger", () => {
         segments={segments}
         session="session-legal"
         setSectionOpen={vi.fn()}
-        panelData={getPanelData(metadata)}
+        panelData={getPanelData(legals)}
       />,
     );
 
     const openButton = screen.getByRole("button", { name: "Open legal view" });
-    const value = screen.getByText("Lot Block");
-    expect(openButton.parentElement?.firstElementChild).toBe(openButton);
-    expect(openButton.parentElement?.lastElementChild).toBe(value);
+    const summary = screen.getByText("Metadata legal summary.");
+    expect(summary).toContainElement(openButton);
+    expect(screen.getAllByRole("button", { name: "Open legal view" })).toHaveLength(1);
+    expect(screen.getAllByText("Lot Block")).toHaveLength(2);
+    expect(screen.getByText("Metes Bounds")).toBeInTheDocument();
+    expect(screen.getAllByRole("article")).toHaveLength(3);
     expect(openButton).toHaveStyle({ padding: "0px" });
-    expect(openButton.parentElement).toHaveStyle({ display: "block" });
-    expect(value).toHaveStyle({ display: "inline", whiteSpace: "normal", overflowWrap: "anywhere" });
     expect(openButton).toHaveTextContent("Show plat");
     expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
 
-    await waitFor(() => expect(onLegalView).toHaveBeenCalledWith(expect.objectContaining({
-      code: "legal-1",
-      page: 3,
-      segment: "legal",
-      session: "session-legal",
-      type: "lot_block",
-      value: "Lot Block",
-    })));
+    await waitFor(() => expect(onLegalView).toHaveBeenCalledOnce());
+    expect(onLegalView).toHaveBeenCalledWith();
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the summary plat action when matching groups have no summary text", () => {
+    render(
+      <MetadataPanel
+        {...panelDefaults}
+        callbacks={{ onLegalView: vi.fn() }}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "LegalEnrichment" }]}
+        metadata={{ ...metadata, legals: { groups: metadata.legals!.groups } }}
+        openSegment="legal"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-legal"
+        setSectionOpen={vi.fn()}
+        panelData={getPanelData(metadata)}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
+  });
+
+  it("hides the plat action when no legal group matches", () => {
+    const legals: MetadataPayload = {
+      ...metadata,
+      legals: { summary: "Boundary description.", groups: [{ code: "legal-3", elements: [{ aspect: "description", value: "Boundary" }], type: "metes_bounds" }] },
+    };
+    render(
+      <MetadataPanel
+        {...panelDefaults}
+        callbacks={{ onLegalView: vi.fn() }}
+        confirmedCodes={new Set()}
+        choices={[{ level: 1, service: "LegalEnrichment" }]}
+        metadata={legals}
+        openSegment="legal"
+        removedCodes={new Set()}
+        selectedIndex={null}
+        segments={segments}
+        session="session-legal"
+        setSectionOpen={vi.fn()}
+        panelData={getPanelData(legals)}
+      />,
+    );
+    expect(screen.getByText("Boundary description.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open legal view" })).not.toBeInTheDocument();
   });
 
   it("keeps legalmap package files free of dialog ownership", () => {

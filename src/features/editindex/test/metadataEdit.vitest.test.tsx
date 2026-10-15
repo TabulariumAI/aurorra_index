@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { MetadataRow } from "aurora-core";
 
-it.each(["party", "property", "reference", "endorsement", "monetary", "acknowledgment", "transaction", "vital", "court", "secrets"])("opens the raw %s index without requiring an image page or code", (segment) => {
+it.each(["party", "property", "reference", "endorsement", "monetary", "acknowledgment", "transaction", "vital", "judgment", "secrets"])("opens the raw %s index without requiring an image page or code", (segment) => {
   const onEdit = vi.fn();
   const index = { aspect: "first,second", label: "raw_label", value: " Original  value ", source: " Source " };
   render(<Tooltip.Provider><MetadataRow callbacks={{}} confirmed={false} item={index} selected={false} segment={segment} session="session" onEdit={onEdit} /></Tooltip.Provider>);

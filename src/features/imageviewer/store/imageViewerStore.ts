@@ -1,17 +1,16 @@
 import { create } from "zustand";
 import type { StoreState } from "../type/imageViewer.types";
-import { isRecognitionPageError } from "../data/recognitionPages";
+import { isPageError } from "../data/imageViewerData";
 
 const DEFAULT_POLL_INTERVAL_MS = 1500;
 
 export const useImageViewerStore = create<StoreState>()((set, get) => ({
+  pageSize: null,
   apiGatewayUrl: "",
   authToken: null,
-  choices: null,
   error: null,
   fitPageVersion: 0,
   onError: null,
-  pageCount: 1,
   pageMap: new Map(),
   packageMetadata: null,
   packagePollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
@@ -45,13 +44,12 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
   },
   resetViewer() {
     set({
+      pageSize: null,
       apiGatewayUrl: "",
       authToken: null,
-      choices: null,
       error: null,
       fitPageVersion: 0,
       onError: null,
-      pageCount: 1,
       pageMap: new Map(),
       packageMetadata: null,
       packagePollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
@@ -82,13 +80,12 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     const current = get();
     const sameSession = current.session === input.session;
     set({
+      pageSize: input.pageSize,
       apiGatewayUrl: input.apiGatewayUrl,
       authToken: input.authToken,
-      choices: input.choices,
-      error: sameSession && isRecognitionPageError(current.error) ? current.error : null,
+      error: sameSession && isPageError(current.error) ? current.error : null,
       fitPageVersion: sameSession ? current.fitPageVersion : 0,
       onError: input.onError,
-      pageCount: input.pageCount,
       pageMap: new Map(input.pageMap),
       packageMetadata: sameSession ? current.packageMetadata : null,
       packagePollIntervalMs: input.packagePollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,

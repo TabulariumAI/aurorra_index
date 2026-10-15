@@ -19,6 +19,7 @@ export type {
   AuditFilters,
   AuditGap,
   AuditGapView,
+  AuditPatch,
   AuditPanelProps,
   AuditReport,
   AuditReportView,
@@ -29,5 +30,6 @@ export type {
   AuditWorkerConfig,
   AuditWorkerError,
   AuditUsage,
+  AuditUsageService,
   AuditWorkerResult,
 } from "./type/audit.types";

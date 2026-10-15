@@ -1,8 +1,10 @@
+import { pageSize } from "../../src/test/pageSize";
 import { QueueActions } from "../../src/features/queue/component/QueueActions";
 import { useQueueStore } from "../../src/features/queue/store/queueStore";
 import { createRoot } from "react-dom/client";
 import { AddIndexPanel, addIndexStoreApi, useAddIndexStore } from "../../src/features/addindex";
 import { ImageViewerPanel } from "../../src/features/imageviewer";
+import { imageViewerStoreApi } from "../../src/features/imageviewer/store/imageViewerStore";
 import { storeApi } from "../../src/store/state/store";
 import type { WorkerClient } from "../../src/features/imageviewer";
 import packageMetadata from "../../src/test/package/image.json";
@@ -20,6 +22,8 @@ stage.innerHTML = "";
 declare global {
   interface Window {
     completeDocumentPackage?: boolean;
+    clearVisualMatches?: () => void;
+    searchVisualIndex?: (value: string) => void;
   }
 }
 
@@ -59,6 +63,9 @@ storeApi.getState().setJSON("visual-session-001", {
     ],
   },
 });
+window.clearVisualMatches = () => storeApi.getState().setJSON("visual-session-001", {
+  indexJSON: { indexes: [{ code: "other", segment: "property", value: "Unrelated words", source: "Different context" }] },
+});
 
 const hostInput = {
   apiGatewayUrl: "https://gateway.example.test",
@@ -81,6 +88,12 @@ const hostInput = {
   workerClient,
 };
 
+window.searchVisualIndex = value => imageViewerStoreApi.getState().setRequest({
+  ...hostInput.request,
+  value,
+  metadataIndex: { label: "Address", value, source: "Unmatched source", ambiguous: "NO" },
+});
+
 function VisualImageViewer() {
   const tasks = useQueueStore((state) => state.tasks);
   const completed = useQueueStore((state) => state.queues.some((queue) => queue.completed > 0));
@@ -89,9 +102,10 @@ function VisualImageViewer() {
 
   return (
     <>
-      <ImageViewerPanel
+      <ImageViewerPanel renderTolerance={({ children }) => children}
         compact={compact}
         hostInput={{
+          pageSize,
           choices: [{ service: "Recognition", level: 6 }],
           ...hostInput,
           onError(error) {

@@ -19,7 +19,7 @@ Remove dialog and display ownership from `aurorra_index/src/features/legalmap`. 
 - `aurorra_index` must not import `Dialog` for legal map.
 - `aurorra_index` must not own legal map open state.
 - `aurorra_index` must not render a legal map dialog.
-- Legal row clicks must leave the package through `callbacks.onLegalView(payload)`.
+- The legal summary action must leave the package through `callbacks.onLegalView()`.
 
 ## Exact implementation
 1. Delete `aurorra_index/src/features/legalmap/component/LegalMapDialog.tsx`.
@@ -28,7 +28,8 @@ Remove dialog and display ownership from `aurorra_index/src/features/legalmap`. 
 4. Update `aurora_core/src/features/metadata/component/MetadataPanel.tsx` to remove `LegalMapDialog`, `legalOpen`, `setLegalOpen`, and the package-local `legalPayload` lookup used only by the dialog.
 5. Update the legal row action in `MetadataPanel` so `lot_block` click calls `callbacks.onLegalView?.(payload)` only.
 6. Update `aurorra_index/src/public-api.ts` to export `LegalMapContent` and to avoid exporting any legal dialog symbol.
-7. Keep `LegalMapContent` rendering unchanged: empty state, subdivision, phase, block, lot, condominium unit, legend, and location label.
+7. `LegalMapContent` groups plats by state, county, subdivision, Unit / Phase / Section, block, and lot. Drawing starts at subdivision. Matching ancestors render once; each block retains its own distinct lots. Unit / Phase / Section share one enclosing tier with named labels. Lot Block `right_of_way` values belong to their subdivision and render as separate horizontal HTML/CSS corridors with centered extracted labels, light teal fill, diagonal hatch, square corners, and thin teal top/bottom boundaries. Bands are `3rem` high; subdivision content has a `24rem` minimum height when ROWs exist. Each band center is `(i + 1) * innerHeight / (rowCount + 1)`, independent of acreage. The legend includes Right Of Way when present. Identifiers retain letters and ranges. The map scrolls independently while parcel information remains in the right column.
+8. Before building that hierarchy, `toPlatJSON` uses `legals.parcels_num` as the target lot-block group count. A missing or nonpositive count uses the number of source lot-block groups. When the target is smaller, merge the pair with the most matching nonblank elements, using source order for equal weights, and recalculate weights until the target is reached. Matching values use the existing case and whitespace normalization. Retain distinct block values in slash-separated labels, preserve each right-of-way label as a separate corridor, and retain other distinct values in comma-separated labels. Leave the source payload unchanged. The one-parcel Iron Horse example renders one Lot 32 under block `1/4482C`. `LegalMapPayload` declares the count within `aurorra_index`; this change requires no service or host edits.
 
 ## Tests
 - Keep and update `aurorra_index/src/features/legalmap/test/LegalMapContent.vitest.test.tsx`.

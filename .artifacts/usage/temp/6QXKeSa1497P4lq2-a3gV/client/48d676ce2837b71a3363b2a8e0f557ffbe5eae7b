@@ -1,0 +1,172 @@
+__vite_ssr_exportName__("QueueActions", () => { try { return QueueActions } catch {} });
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/@radix-ui/react-popover/dist/index.js");
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/@fs/C:/GitHub/Tabularium/aurora_core/src/public-api.ts", {"importedNames":["ConfButton","Icon"]});
+const __vite_ssr_import_2__ = await __vite_ssr_import__("/src/features/queue/store/queueStore.ts", {"importedNames":["useQueueStore"]});
+const __vite_ssr_import_3__ = await __vite_ssr_import__("/src/features/queue/style/queueStyles.ts", {"importedNames":["queueStyles"]});
+const __vite_ssr_import_4__ = await __vite_ssr_import__("/node_modules/react/jsx-dev-runtime.js", {"importedNames":["jsxDEV","Fragment"]});
+
+
+
+
+var _jsxFileName = "C:/GitHub/Tabularium/aurorra_index/src/features/queue/component/QueueActions.tsx";
+
+function QueueActions({ id, code }) {
+	const task = (0,__vite_ssr_import_2__.useQueueStore)((state) => state.tasks.find((task) => task.id === id));
+	const retry = (0,__vite_ssr_import_2__.useQueueStore)((state) => state.retry);
+	const cancel = (0,__vite_ssr_import_2__.useQueueStore)((state) => state.cancel);
+	if (!task || task.status !== "failed") return null;
+	return /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("div", {
+		style: __vite_ssr_import_3__.queueStyles.recovery,
+		children: [
+			/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_1__.ConfButton), {
+				"aria-label": "Retry change",
+				onConfirm: () => void retry(id),
+				requireConfirmation: false,
+				showPrompt: false,
+				flat: true,
+				size: "sm",
+				style: __vite_ssr_import_3__.queueStyles.button,
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_1__.Icon), { name: "refresh" }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 12,
+					columnNumber: 165
+				}, this), "Retry"]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 12,
+				columnNumber: 5
+			}, this),
+			task.changes.slice(task.cursor).some((change) => change.action === "reprocess" ? code === undefined : change.code === code) ? /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_4__.Fragment), { children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("span", {
+				"aria-hidden": "true",
+				style: __vite_ssr_import_3__.queueStyles.separator
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 14,
+				columnNumber: 7
+			}, this), /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_1__.ConfButton), {
+				"aria-label": "Cancel change",
+				onConfirm: () => cancel(id, code),
+				requireConfirmation: false,
+				showPrompt: false,
+				flat: true,
+				size: "sm",
+				style: __vite_ssr_import_3__.queueStyles.button,
+				children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_1__.Icon), { name: "close" }, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 15,
+					columnNumber: 170
+				}, this), "Cancel"]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 15,
+				columnNumber: 7
+			}, this)] }, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 13,
+				columnNumber: 132
+			}, this) : null,
+			task.error ? /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_4__.Fragment), { children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("div", {
+				role: "alert",
+				style: __vite_ssr_import_3__.queueStyles.announcement,
+				children: task.error
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 18,
+				columnNumber: 7
+			}, this), /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)(__vite_ssr_import_0__.Root, { children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)(__vite_ssr_import_0__.Trigger, {
+				asChild: true,
+				children: /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("button", {
+					"aria-label": "Error details",
+					style: __vite_ssr_import_3__.queueStyles.info,
+					type: "button",
+					children: /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_1__.Icon), { name: "info" }, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 21,
+						columnNumber: 85
+					}, this)
+				}, void 0, false, {
+					fileName: _jsxFileName,
+					lineNumber: 21,
+					columnNumber: 11
+				}, this)
+			}, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 20,
+				columnNumber: 9
+			}, this), /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)(__vite_ssr_import_0__.Portal, { children: /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)(__vite_ssr_import_0__.Content, {
+				"aria-label": "Error details",
+				side: "top",
+				align: "end",
+				sideOffset: 8,
+				collisionPadding: 8,
+				style: __vite_ssr_import_3__.queueStyles.callout,
+				children: [
+					/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("span", {
+						style: __vite_ssr_import_3__.queueStyles.errorIcon,
+						children: /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)((0,__vite_ssr_import_1__.Icon), { name: "alert" }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 25,
+							columnNumber: 49
+						}, this)
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 25,
+						columnNumber: 13
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("div", {
+						style: __vite_ssr_import_3__.queueStyles.message,
+						children: [/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("strong", { children: task.error }, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 27,
+							columnNumber: 15
+						}, this), /* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)("p", {
+							style: __vite_ssr_import_3__.queueStyles.description,
+							children: "The request could not be completed. Please retry."
+						}, void 0, false, {
+							fileName: _jsxFileName,
+							lineNumber: 28,
+							columnNumber: 15
+						}, this)]
+					}, void 0, true, {
+						fileName: _jsxFileName,
+						lineNumber: 26,
+						columnNumber: 13
+					}, this),
+					/* @__PURE__ */ (0,__vite_ssr_import_4__.jsxDEV)(__vite_ssr_import_0__.Arrow, {
+						width: 16,
+						height: 8,
+						style: __vite_ssr_import_3__.queueStyles.arrow
+					}, void 0, false, {
+						fileName: _jsxFileName,
+						lineNumber: 30,
+						columnNumber: 13
+					}, this)
+				]
+			}, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 24,
+				columnNumber: 11
+			}, this) }, void 0, false, {
+				fileName: _jsxFileName,
+				lineNumber: 23,
+				columnNumber: 9
+			}, this)] }, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 19,
+				columnNumber: 7
+			}, this)] }, void 0, true, {
+				fileName: _jsxFileName,
+				lineNumber: 17,
+				columnNumber: 19
+			}, this) : null
+		]
+	}, void 0, true, {
+		fileName: _jsxFileName,
+		lineNumber: 11,
+		columnNumber: 10
+	}, this);
+}
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUEsQ0FBQTtBQUFBO0FBQ0E7QUFDQTtBQUNBOzs7Ozs7OztBQUVPLFNBQVMsYUFBYSxFQUFFLElBQUksUUFBdUM7Q0FDeEUsTUFBTSxVQUFPLHNDQUFlLFVBQVUsTUFBTSxNQUFNLE1BQU0sU0FBUyxLQUFLLE9BQU8sRUFBRSxDQUFDO0NBQ2hGLE1BQU0sV0FBUSxzQ0FBZSxVQUFVLE1BQU0sS0FBSztDQUNsRCxNQUFNLFlBQVMsc0NBQWUsVUFBVSxNQUFNLE1BQU07Q0FDcEQsSUFBSSxDQUFDLFFBQVEsS0FBSyxXQUFXLFVBQVUsT0FBTztDQUM5QyxPQUFPLGlEQUFDLE9BQUQ7RUFBSyxPQUFPLGtDQUFZO1lBQXhCO0dBQ0wsb0RBQUMsbUNBQUQ7SUFBWSxjQUFXO0lBQWUsaUJBQWlCLEtBQUssTUFBTSxFQUFFO0lBQUcscUJBQXFCO0lBQU8sWUFBWTtJQUFPO0lBQUssTUFBSztJQUFLLE9BQU8sa0NBQVk7Y0FBeEosQ0FBZ0ssb0RBQUMsNkJBQUQsRUFBTSxNQUFLLFVBQVc7Ozs7Y0FBQyxPQUFpQjs7Ozs7O0dBQ3ZNLEtBQUssUUFBUSxNQUFNLEtBQUssTUFBTSxFQUFFLE1BQU0sV0FBVyxPQUFPLFdBQVcsY0FBYyxTQUFTLFlBQVksT0FBTyxTQUFTLElBQUksSUFBSSxrR0FDN0gsaURBQUMsUUFBRDtJQUFNLGVBQVk7SUFBTyxPQUFPLGtDQUFZO0dBQVk7Ozs7YUFDeEQsb0RBQUMsbUNBQUQ7SUFBWSxjQUFXO0lBQWdCLGlCQUFpQixPQUFPLElBQUksSUFBSTtJQUFHLHFCQUFxQjtJQUFPLFlBQVk7SUFBTztJQUFLLE1BQUs7SUFBSyxPQUFPLGtDQUFZO2NBQTNKLENBQW1LLG9EQUFDLDZCQUFELEVBQU0sTUFBSyxRQUFTOzs7O2NBQUMsUUFBa0I7Ozs7O1dBQzFNOzs7O2NBQUk7R0FDTCxLQUFLLFFBQVEsa0dBQ1osaURBQUMsT0FBRDtJQUFLLE1BQUs7SUFBUSxPQUFPLGtDQUFZO2NBQWUsS0FBSztHQUFXOzs7O2FBQ3BFLGlEQUFDLHNCQUFRLE1BQVQsYUFDRSxpREFBQyxzQkFBUSxTQUFUO0lBQWlCO2NBQ2YsaURBQUMsVUFBRDtLQUFRLGNBQVc7S0FBZ0IsT0FBTyxrQ0FBWTtLQUFNLE1BQUs7ZUFBUyxvREFBQyw2QkFBRCxFQUFNLE1BQUssT0FBUTs7Ozs7SUFBUzs7Ozs7R0FDdkY7Ozs7YUFDakIsaURBQUMsc0JBQVEsUUFBVCxZQUNFLGlEQUFDLHNCQUFRLFNBQVQ7SUFBaUIsY0FBVztJQUFnQixNQUFLO0lBQU0sT0FBTTtJQUFNLFlBQVk7SUFBRyxrQkFBa0I7SUFBRyxPQUFPLGtDQUFZO2NBQTFIO0tBQ0UsaURBQUMsUUFBRDtNQUFNLE9BQU8sa0NBQVk7Z0JBQVcsb0RBQUMsNkJBQUQsRUFBTSxNQUFLLFFBQVM7Ozs7O0tBQU87Ozs7O0tBQy9ELGlEQUFDLE9BQUQ7TUFBSyxPQUFPLGtDQUFZO2dCQUF4QixDQUNFLGlEQUFDLFVBQUQsWUFBUyxLQUFLLE1BQWM7Ozs7Z0JBQzVCLGlEQUFDLEtBQUQ7T0FBRyxPQUFPLGtDQUFZO2lCQUFhO01BQW9EOzs7O2NBQ3BGOzs7Ozs7S0FDTCxpREFBQyxzQkFBUSxPQUFUO01BQWUsT0FBTztNQUFJLFFBQVE7TUFBRyxPQUFPLGtDQUFZO0tBQVE7Ozs7O0lBQ2pEOzs7OztZQUNIOzs7O1dBQ0o7Ozs7V0FDZDs7OztjQUFJO0VBQ0g7Ozs7OztBQUNQIiwibmFtZXMiOltdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJRdWV1ZUFjdGlvbnMudHN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCAqIGFzIFBvcG92ZXIgZnJvbSBcIkByYWRpeC11aS9yZWFjdC1wb3BvdmVyXCI7XHJcbmltcG9ydCB7IENvbmZCdXR0b24sIEljb24gfSBmcm9tIFwiYXVyb3JhLWNvcmVcIjtcclxuaW1wb3J0IHsgdXNlUXVldWVTdG9yZSB9IGZyb20gXCIuLi9zdG9yZS9xdWV1ZVN0b3JlXCI7XHJcbmltcG9ydCB7IHF1ZXVlU3R5bGVzIH0gZnJvbSBcIi4uL3N0eWxlL3F1ZXVlU3R5bGVzXCI7XHJcblxyXG5leHBvcnQgZnVuY3Rpb24gUXVldWVBY3Rpb25zKHsgaWQsIGNvZGUgfTogeyBpZDogc3RyaW5nOyBjb2RlPzogc3RyaW5nIH0pIHtcclxuICBjb25zdCB0YXNrID0gdXNlUXVldWVTdG9yZSgoc3RhdGUpID0+IHN0YXRlLnRhc2tzLmZpbmQoKHRhc2spID0+IHRhc2suaWQgPT09IGlkKSk7XHJcbiAgY29uc3QgcmV0cnkgPSB1c2VRdWV1ZVN0b3JlKChzdGF0ZSkgPT4gc3RhdGUucmV0cnkpO1xyXG4gIGNvbnN0IGNhbmNlbCA9IHVzZVF1ZXVlU3RvcmUoKHN0YXRlKSA9PiBzdGF0ZS5jYW5jZWwpO1xyXG4gIGlmICghdGFzayB8fCB0YXNrLnN0YXR1cyAhPT0gXCJmYWlsZWRcIikgcmV0dXJuIG51bGw7XHJcbiAgcmV0dXJuIDxkaXYgc3R5bGU9e3F1ZXVlU3R5bGVzLnJlY292ZXJ5fT5cclxuICAgIDxDb25mQnV0dG9uIGFyaWEtbGFiZWw9XCJSZXRyeSBjaGFuZ2VcIiBvbkNvbmZpcm09eygpID0+IHZvaWQgcmV0cnkoaWQpfSByZXF1aXJlQ29uZmlybWF0aW9uPXtmYWxzZX0gc2hvd1Byb21wdD17ZmFsc2V9IGZsYXQgc2l6ZT1cInNtXCIgc3R5bGU9e3F1ZXVlU3R5bGVzLmJ1dHRvbn0+PEljb24gbmFtZT1cInJlZnJlc2hcIiAvPlJldHJ5PC9Db25mQnV0dG9uPlxyXG4gICAge3Rhc2suY2hhbmdlcy5zbGljZSh0YXNrLmN1cnNvcikuc29tZSgoY2hhbmdlKSA9PiBjaGFuZ2UuYWN0aW9uID09PSBcInJlcHJvY2Vzc1wiID8gY29kZSA9PT0gdW5kZWZpbmVkIDogY2hhbmdlLmNvZGUgPT09IGNvZGUpID8gPD5cclxuICAgICAgPHNwYW4gYXJpYS1oaWRkZW49XCJ0cnVlXCIgc3R5bGU9e3F1ZXVlU3R5bGVzLnNlcGFyYXRvcn0gLz5cclxuICAgICAgPENvbmZCdXR0b24gYXJpYS1sYWJlbD1cIkNhbmNlbCBjaGFuZ2VcIiBvbkNvbmZpcm09eygpID0+IGNhbmNlbChpZCwgY29kZSl9IHJlcXVpcmVDb25maXJtYXRpb249e2ZhbHNlfSBzaG93UHJvbXB0PXtmYWxzZX0gZmxhdCBzaXplPVwic21cIiBzdHlsZT17cXVldWVTdHlsZXMuYnV0dG9ufT48SWNvbiBuYW1lPVwiY2xvc2VcIiAvPkNhbmNlbDwvQ29uZkJ1dHRvbj5cclxuICAgIDwvPiA6IG51bGx9XHJcbiAgICB7dGFzay5lcnJvciA/IDw+XHJcbiAgICAgIDxkaXYgcm9sZT1cImFsZXJ0XCIgc3R5bGU9e3F1ZXVlU3R5bGVzLmFubm91bmNlbWVudH0+e3Rhc2suZXJyb3J9PC9kaXY+XHJcbiAgICAgIDxQb3BvdmVyLlJvb3Q+XHJcbiAgICAgICAgPFBvcG92ZXIuVHJpZ2dlciBhc0NoaWxkPlxyXG4gICAgICAgICAgPGJ1dHRvbiBhcmlhLWxhYmVsPVwiRXJyb3IgZGV0YWlsc1wiIHN0eWxlPXtxdWV1ZVN0eWxlcy5pbmZvfSB0eXBlPVwiYnV0dG9uXCI+PEljb24gbmFtZT1cImluZm9cIiAvPjwvYnV0dG9uPlxyXG4gICAgICAgIDwvUG9wb3Zlci5UcmlnZ2VyPlxyXG4gICAgICAgIDxQb3BvdmVyLlBvcnRhbD5cclxuICAgICAgICAgIDxQb3BvdmVyLkNvbnRlbnQgYXJpYS1sYWJlbD1cIkVycm9yIGRldGFpbHNcIiBzaWRlPVwidG9wXCIgYWxpZ249XCJlbmRcIiBzaWRlT2Zmc2V0PXs4fSBjb2xsaXNpb25QYWRkaW5nPXs4fSBzdHlsZT17cXVldWVTdHlsZXMuY2FsbG91dH0+XHJcbiAgICAgICAgICAgIDxzcGFuIHN0eWxlPXtxdWV1ZVN0eWxlcy5lcnJvckljb259PjxJY29uIG5hbWU9XCJhbGVydFwiIC8+PC9zcGFuPlxyXG4gICAgICAgICAgICA8ZGl2IHN0eWxlPXtxdWV1ZVN0eWxlcy5tZXNzYWdlfT5cclxuICAgICAgICAgICAgICA8c3Ryb25nPnt0YXNrLmVycm9yfTwvc3Ryb25nPlxyXG4gICAgICAgICAgICAgIDxwIHN0eWxlPXtxdWV1ZVN0eWxlcy5kZXNjcmlwdGlvbn0+VGhlIHJlcXVlc3QgY291bGQgbm90IGJlIGNvbXBsZXRlZC4gUGxlYXNlIHJldHJ5LjwvcD5cclxuICAgICAgICAgICAgPC9kaXY+XHJcbiAgICAgICAgICAgIDxQb3BvdmVyLkFycm93IHdpZHRoPXsxNn0gaGVpZ2h0PXs4fSBzdHlsZT17cXVldWVTdHlsZXMuYXJyb3d9IC8+XHJcbiAgICAgICAgICA8L1BvcG92ZXIuQ29udGVudD5cclxuICAgICAgICA8L1BvcG92ZXIuUG9ydGFsPlxyXG4gICAgICA8L1BvcG92ZXIuUm9vdD5cclxuICAgIDwvPiA6IG51bGx9XHJcbiAgPC9kaXY+O1xyXG59XHJcbiJdLCJmaWxlIjoiL3NyYy9mZWF0dXJlcy9xdWV1ZS9jb21wb25lbnQvUXVldWVBY3Rpb25zLnRzeCJ9
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL2ZlYXR1cmVzL3F1ZXVlL2NvbXBvbmVudC9RdWV1ZUFjdGlvbnMudHN4IiwiL3NyYy9mZWF0dXJlcy9xdWV1ZS9jb21wb25lbnQvUXVldWVBY3Rpb25zLnRzeCIsW11d

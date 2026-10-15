@@ -5,7 +5,7 @@ import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayloa
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
-  COURT: "court",
+  JUDGMENT: "judgment",
   ENDORSEMENT: "endorsement",
   FEE: "fee",
   FEEFACTOR: "factor",

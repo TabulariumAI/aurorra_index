@@ -1,0 +1,160 @@
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { JSX } from "react";
+import { addIndexStoreApi } from "../../addindex";
+import { composeMetadataJSON } from "aurora-core";
+import { storeApi } from "../../../store/state/store";
+import { loadImagePackage } from "../data/loadImagePackage";
+import { matchSelection } from "../data/matchSelection";
+import { isPageError } from "../data/imageViewerData";
+import { useImageViewer } from "../hook/useImageViewer";
+import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
+import { imageViewerStyles } from "../style/imageViewerStyles";
+import type { PanelProps } from "../type/imageViewer.types";
+import { ImageViewerFooterToolbar, ImageViewerTopToolbar } from "./ImageViewerToolbar";
+
+function progressLabel(status: string): string {
+  return status === "downloading" ? "Loading image package" : "Generating the image package";
+}
+
+function lensProgressLabel(status: string): string {
+  if (status === "loadingPage") return "Decoding document page...";
+  return "Loading...";
+}
+
+export function ImageViewerPanel({ compact, hostInput, onIndexFocus, onLoaderChange, onReadyChange }: PanelProps): JSX.Element {
+  useLayoutEffect(() => {
+    if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
+  }, [hostInput]);
+
+  const apiGatewayUrl = useImageViewerStore((state) => state.apiGatewayUrl);
+  const authToken = useImageViewerStore((state) => state.authToken);
+  const searchText = useImageViewerStore((state) => state.searchText);
+  const session = useImageViewerStore((state) => state.session);
+  const requestVersion = useImageViewerStore((state) => state.requestVersion);
+  const status = useImageViewerStore((state) => state.status);
+  const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
+  const workerClient = useImageViewerStore((state) => state.workerClient);
+  const viewer = useImageViewer();
+  const reloadRef = useRef(0);
+  const [noMatchSession, setNoMatchSession] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring || viewer.hasRequestError) return;
+    const state = imageViewerStoreApi.getState();
+    const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
+    const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
+    if (state.status === "packaging" || state.status === "polling" || state.status === "downloading") return;
+    if (!state.onError) return;
+    const restart = viewer.reloadId > reloadRef.current;
+    if (!restart && viewer.isRestoredSession) return;
+    if (!restart && ((hasPackage && (state.status === "ready" || isPageError(state.error))) || restoredLensReady)) return;
+    if (restart) reloadRef.current = viewer.reloadId;
+    console.info("imageviewer package load start", {
+      hasPackage,
+      page: state.request?.page ?? null,
+      reason: restart ? "lens_page_metadata_missing" : "initial_or_missing_package",
+      reloadId: viewer.reloadId,
+      requestVersion,
+      session,
+      status: state.status,
+    });
+    void loadImagePackage({
+      apiGatewayUrl,
+      authToken,
+      onError: state.onError,
+      packagePollIntervalMs: state.packagePollIntervalMs,
+      restart,
+      session,
+      workerClient: workerClient ?? undefined,
+    });
+  }, [apiGatewayUrl, authToken, requestVersion, session, viewer.hasRequestError, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
+
+  const loading = status === "packaging" || status === "polling" || status === "downloading";
+  const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage");
+  const progress = loading || lensLoading;
+
+  useEffect(() => {
+    onReadyChange(status === "ready" && !lensLoading);
+  }, [lensLoading, onReadyChange, status]);
+
+  useEffect(() => {
+    onLoaderChange?.(progress ? [loading ? progressLabel(status) : lensProgressLabel(viewerStatus)] : null);
+  }, [loading, onLoaderChange, progress, status, viewerStatus]);
+
+  return (
+    <section aria-label="Image viewer" style={imageViewerStyles.root}>
+      {!viewer.isThumbs || compact ? (
+        <ImageViewerTopToolbar
+          canActualSize={viewer.canActualSize}
+          canClearSearch={viewer.canClearSearch}
+          canExport={viewer.canExport}
+          canFitHeight={viewer.canFitHeight}
+          canFitPage={viewer.canFitPage}
+          canFitWidth={viewer.canFitWidth}
+          canSearch={viewer.canSearch}
+          canSelect={viewer.canSelect}
+          canZoomIn={viewer.canZoomIn}
+          canZoomOut={viewer.canZoomOut}
+          compact={compact}
+          selecting={viewer.selecting}
+          onAction={(action) => {
+            if (action !== "match") setNoMatchSession(null);
+            if (action === "actualSize") viewer.actualSize();
+            if (action === "clearSearch") viewer.clearSearch();
+            if (action === "copy") void viewer.copySelection();
+            if (action === "export") {
+              void viewer.exportSelection().then((selection) => {
+                if (selection) addIndexStoreApi.getState().open(selection);
+              });
+            }
+            if (action === "fitHeight") viewer.fitHeight();
+            if (action === "fitPage") viewer.fitPage();
+            if (action === "fitWidth") viewer.fitWidth();
+            if (action === "match") {
+              void viewer.exportSelection().then((selection) => {
+                if (!selection || !session) return;
+                const metadata = composeMetadataJSON(storeApi.getState().getJSON(session));
+                if (!metadata) {
+                  setNoMatchSession(session);
+                  return;
+                }
+                const match = matchSelection(selection, metadata);
+                setNoMatchSession(match ? null : session);
+                if (match) onIndexFocus?.(match);
+              });
+            }
+            if (action === "search") viewer.search();
+            if (action === "select") viewer.select();
+            if (action === "zoomIn") viewer.zoomIn();
+            if (action === "zoomOut") viewer.zoomOut();
+          }}
+          onSearchText={(value) => imageViewerStoreApi.getState().setSearchText(value)}
+          searchText={searchText}
+          zoom={viewer.zoom}
+        />
+      ) : null}
+      <div style={imageViewerStyles.body}>
+        <div data-document-lens-host="true" ref={viewer.lensHostRef} style={imageViewerStyles.lensHost} />
+        {noMatchSession !== null && noMatchSession === session ? <div role="status" aria-label="Index match result" style={imageViewerStyles.matchStatus}>No matching index found</div> : null}
+      </div>
+      {progress || viewer.isThumbs ? null : (
+        <ImageViewerFooterToolbar
+          canGoFirst={viewer.canGoFirst}
+          canGoLast={viewer.canGoLast}
+          canGoNext={viewer.canGoNext}
+          canGoPrevious={viewer.canGoPrevious}
+          canShowThumbnails={viewer.canShowThumbnails}
+          onAction={(action) => {
+            if (action === "first") viewer.firstPage();
+            if (action === "last") viewer.lastPage();
+            if (action === "next") viewer.nextPage();
+            if (action === "previous") viewer.previousPage();
+            if (action === "thumbs") viewer.showThumbnails();
+          }}
+          page={viewer.page}
+          pageCount={viewer.pageCount}
+        />
+      )}
+    </section>
+  );
+}

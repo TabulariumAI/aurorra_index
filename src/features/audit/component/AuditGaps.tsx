@@ -69,6 +69,17 @@ export function AuditGaps({ gaps }: AuditGapsProps): JSX.Element {
         const key = buildKey(gap, index);
         const isOpen = expanded[key] === true;
         const safeMessage = normalizeMessage(gap.message);
+        const patch = gap.patch;
+        const hasIndex = patch?.value != null && patch.value.trim() !== "";
+        const details = [
+          ["Target label", patch?.identifier?.label],
+          ["Target aspect", patch?.identifier?.aspect],
+          ["Target index", patch?.identifier?.value],
+          ["Index", hasIndex && patch?.field.trim() ? `${patch.value} (${patch.field})` : patch?.value],
+          ["Field", hasIndex ? null : patch?.field],
+          ["Page", gap.page],
+          ["Source", patch?.source],
+        ].filter(([, value]) => value != null && String(value).trim() !== "");
 
         return (
           <article key={key} style={auditStyles.gapCard}>
@@ -76,12 +87,25 @@ export function AuditGaps({ gaps }: AuditGapsProps): JSX.Element {
               <div style={auditStyles.gapAspect}>{gap.aspectLabel}</div>
               <div style={auditStyles.gapDate}>{gap.dateLabel}</div>
             </div>
+            {details.length > 0 && (
+              <dl style={auditStyles.details}>
+                {details.map(([label, value]) => (
+                  <div key={label} style={auditStyles.detailRow}>
+                    <dt style={auditStyles.detailLabel}>{label}</dt>
+                    <dd style={auditStyles.detailValue}>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
             <MessageText
               isOpen={isOpen}
               message={safeMessage}
               onToggle={() => toggle(key)}
             />
-            <div style={auditStyles.gapProcess}>{gap.processLabel}</div>
+            <div style={auditStyles.gapFooter}>
+              <div style={auditStyles.gapProcess}>{gap.processLabel}</div>
+              {gap.segment && <div style={auditStyles.gapSegment}>{gap.segment}</div>}
+            </div>
           </article>
         );
       })}

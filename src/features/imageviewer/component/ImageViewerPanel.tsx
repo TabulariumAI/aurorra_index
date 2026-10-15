@@ -1,8 +1,11 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { addIndexStoreApi } from "../../addindex";
+import { ConfButton, composeMetadataJSON } from "aurora-core";
+import { storeApi } from "../../../store/state/store";
 import { loadImagePackage } from "../data/loadImagePackage";
-import { isRecognitionPageError } from "../data/recognitionPages";
+import { matchSelection } from "../data/matchSelection";
+import { isPageError } from "../data/imageViewerData";
 import { useImageViewer } from "../hook/useImageViewer";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import { imageViewerStyles } from "../style/imageViewerStyles";
@@ -10,7 +13,7 @@ import type { PanelProps } from "../type/imageViewer.types";
 import { ImageViewerFooterToolbar, ImageViewerTopToolbar } from "./ImageViewerToolbar";
 
 function progressLabel(status: string): string {
-  return status === "downloading" ? "Loading image package" : "Backend is generating the image package";
+  return status === "downloading" ? "Loading image package" : "Generating the image package";
 }
 
 function lensProgressLabel(status: string): string {
@@ -18,11 +21,12 @@ function lensProgressLabel(status: string): string {
   return "Loading...";
 }
 
-export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyChange }: PanelProps): JSX.Element {
+export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexFocus, onLoaderChange, onReadyChange }: PanelProps): JSX.Element {
   useLayoutEffect(() => {
     if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
   }, [hostInput]);
 
+  const pageSize = useImageViewerStore(state => state.pageSize);
   const apiGatewayUrl = useImageViewerStore((state) => state.apiGatewayUrl);
   const authToken = useImageViewerStore((state) => state.authToken);
   const searchText = useImageViewerStore((state) => state.searchText);
@@ -32,10 +36,12 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
   const viewerStatus = useImageViewerStore((state) => state.viewerStatus);
   const workerClient = useImageViewerStore((state) => state.workerClient);
   const viewer = useImageViewer();
+  const [sizeAnchor, setSizeAnchor] = useState<HTMLButtonElement | null>(null);
   const reloadRef = useRef(0);
+  const [matchFailure, setMatchFailure] = useState<{ session: string; version: number } | null>(null);
 
   useEffect(() => {
-    if (!apiGatewayUrl || !authToken || !session || viewer.isRestoring || viewer.hasRequestError) return;
+    if (!pageSize || !apiGatewayUrl || !authToken || !session || viewer.isRestoring || viewer.hasRequestError) return;
     const state = imageViewerStoreApi.getState();
     const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
     const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
@@ -43,7 +49,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
     if (!state.onError) return;
     const restart = viewer.reloadId > reloadRef.current;
     if (!restart && viewer.isRestoredSession) return;
-    if (!restart && ((hasPackage && (state.status === "ready" || isRecognitionPageError(state.error))) || restoredLensReady)) return;
+    if (!restart && ((hasPackage && (state.status === "ready" || isPageError(state.error))) || restoredLensReady)) return;
     if (restart) reloadRef.current = viewer.reloadId;
     console.info("imageviewer package load start", {
       hasPackage,
@@ -55,6 +61,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
       status: state.status,
     });
     void loadImagePackage({
+      pageSize,
       apiGatewayUrl,
       authToken,
       onError: state.onError,
@@ -63,7 +70,7 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
       session,
       workerClient: workerClient ?? undefined,
     });
-  }, [apiGatewayUrl, authToken, requestVersion, session, viewer.hasRequestError, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
+  }, [pageSize, apiGatewayUrl, authToken, requestVersion, session, viewer.hasRequestError, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
   const loading = status === "packaging" || status === "polling" || status === "downloading";
   const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage");
@@ -79,8 +86,28 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
 
   return (
     <section aria-label="Image viewer" style={imageViewerStyles.root}>
-      {!viewer.isThumbs || compact ? (
+      {sizeAnchor && viewer.sizeFailure ? renderTolerance({
+        anchor: sizeAnchor,
+        onClose: viewer.cancelSize,
+        children: (
+          <section style={imageViewerStyles.sizePrompt}>
+            <p style={imageViewerStyles.sizeMessage}><strong>{viewer.sizeFailure.sourceName}</strong></p>
+            <p style={imageViewerStyles.sizeMessage}>Page {viewer.sizeFailure.pageNumber}: {viewer.sizeFailure.width} × {viewer.sizeFailure.height} px</p>
+            <p style={imageViewerStyles.sizeMessage}>
+              This page exceeds the configured size tolerance of {Number((viewer.sizeFailure.tolerance * 100).toFixed(2))}%.
+              Processing requires a higher tolerance of {Number((viewer.sizeFailure.requiredTolerance * 100).toFixed(2))}%.
+              This change applies only to this preview.
+            </p>
+            <div style={imageViewerStyles.sizeActions}>
+              <ConfButton label="Cancel" variant="secondary" requireConfirmation={false} onConfirm={viewer.cancelSize} />
+              <ConfButton label="Process anyway" variant="primary" requireConfirmation={false} onConfirm={viewer.acceptSize} />
+            </div>
+          </section>
+        ),
+      }) : null}
+      {viewer.sizeFailure || !viewer.isThumbs || compact ? (
         <ImageViewerTopToolbar
+          scaleRef={setSizeAnchor}
           canActualSize={viewer.canActualSize}
           canClearSearch={viewer.canClearSearch}
           canExport={viewer.canExport}
@@ -94,8 +121,11 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
           compact={compact}
           selecting={viewer.selecting}
           onAction={(action) => {
+            viewer.setNoMatch(null);
+            if (action !== "match") setMatchFailure(null);
             if (action === "actualSize") viewer.actualSize();
             if (action === "clearSearch") viewer.clearSearch();
+            if (action === "copy") void viewer.copySelection();
             if (action === "export") {
               void viewer.exportSelection().then((selection) => {
                 if (selection) addIndexStoreApi.getState().open(selection);
@@ -104,6 +134,16 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
             if (action === "fitHeight") viewer.fitHeight();
             if (action === "fitPage") viewer.fitPage();
             if (action === "fitWidth") viewer.fitWidth();
+            if (action === "match") {
+              void viewer.exportSelection().then((selection) => {
+                const state = imageViewerStoreApi.getState();
+                if (!selection || !session || state.session !== session || state.requestVersion !== requestVersion) return;
+                const metadata = composeMetadataJSON(storeApi.getState().getJSON(session));
+                const match = metadata ? matchSelection(selection, metadata) : null;
+                setMatchFailure(match ? null : { session, version: requestVersion });
+                if (match) onIndexFocus?.(match);
+              });
+            }
             if (action === "search") viewer.search();
             if (action === "select") viewer.select();
             if (action === "zoomIn") viewer.zoomIn();
@@ -116,6 +156,11 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
       ) : null}
       <div style={imageViewerStyles.body}>
         <div data-document-lens-host="true" ref={viewer.lensHostRef} style={imageViewerStyles.lensHost} />
+        {viewer.noMatch || matchFailure !== null && matchFailure.session === session && matchFailure.version === requestVersion ? (
+          <div role="status" aria-label="Index match result" style={imageViewerStyles.matchStatus}>
+            {viewer.noMatch ? "Cant match the requested text." : "No matching index found"}
+          </div>
+        ) : null}
       </div>
       {progress || viewer.isThumbs ? null : (
         <ImageViewerFooterToolbar
@@ -125,6 +170,8 @@ export function ImageViewerPanel({ compact, hostInput, onLoaderChange, onReadyCh
           canGoPrevious={viewer.canGoPrevious}
           canShowThumbnails={viewer.canShowThumbnails}
           onAction={(action) => {
+            viewer.setNoMatch(null);
+            setMatchFailure(null);
             if (action === "first") viewer.firstPage();
             if (action === "last") viewer.lastPage();
             if (action === "next") viewer.nextPage();

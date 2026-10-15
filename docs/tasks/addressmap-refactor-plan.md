@@ -32,7 +32,7 @@ Remove dialog and display ownership from `aurorra_index/src/features/addressmap`
 7. Update `aurorra_index/src/features/metdataview/hook/useMetadata.ts` to remove `useAddressMap` and all address map open/source/zoom return fields.
 8. Update `aurora_core/src/features/metadata/component/MetadataPanel.tsx` to remove `AddressMapDialog`, `addressMapOpen`, `addressMapSource`, `addressMapZoom`, `closeAddressMap`, and `openAddressMap`.
 9. Update `aurorra_index/src/features/metdataview/component/MetadataRows.tsx` so the address action renders only when `callbacks.onAddressClick` exists and calls `callbacks.onAddressClick(value)`.
-10. Keep `AddressMapContent` iframe behavior unchanged: lazy loading, `referrerPolicy="no-referrer"`, fullscreen enabled, delayed source assignment, and source reset when `source` changes to empty.
+10. `AddressMapContent` assigns the map source immediately with eager loading, `referrerPolicy="no-referrer"`, and fullscreen enabled. It reports loading through `onLoaderChange` and readiness on the iframe load event. After ten seconds it shows slow-load feedback with an Open Google Maps link; a late load replaces that feedback with the map. Address or zoom changes reset navigation and the timeout; closing or clearing the source cancels the timeout.
 
 ## Tests
 - Keep and update `aurorra_index/src/features/addressmap/test/AddressMapContent.vitest.test.tsx`.

@@ -69,6 +69,7 @@ export class AuroraLens {
   private readonly host: HTMLElement;
   private readonly options: AuroraLensOptions;
   private pageIndex = 1;
+  private pageMap: Record<string, number> = { "1": 0, "2": 1, "3": 2, "4": 3 };
   private drawMode = false;
   private zoom = 1;
 
@@ -109,13 +110,8 @@ export class AuroraLens {
     this.host.dataset.closed = "true";
   }
 
-  async copySelection() {
-    this.options.onStatusChange?.("copyingSelection");
-    this.host.dataset.selection = "copied";
-    this.options.onStatusChange?.("ready");
-    return {
-      copied: true,
-      groups: [
+  exportSelection() {
+    return [
         {
           value: {
             context: ["JOHN SMITH, RESIDING AT 69-55 62ND STREET, RIDGEWOOD, NEW YORK 11385 PARTY OF THE FIRST PART, AND"],
@@ -144,9 +140,17 @@ export class AuroraLens {
             token: ["JOHN M. SMITH"],
           },
         },
-      ],
-      text: "JOHN SMITH\nJOHN M. SMITH",
-    };
+    ];
+  }
+
+  async copySelection() {
+    this.options.onStatusChange?.("copyingSelection");
+    const groups = this.exportSelection();
+    const text = "JOHN SMITH JOHN M. SMITH";
+    await navigator.clipboard.writeText(text);
+    this.host.dataset.selection = "copied";
+    this.options.onStatusChange?.("ready");
+    return { copied: true, groups, text };
   }
 
   readPageInfo() {
@@ -158,19 +162,23 @@ export class AuroraLens {
     };
   }
 
-  async decodeDoc(file: File, options: { page: number }) {
+  readPageName() {
+    return Object.entries(this.pageMap).find(([, index]) => index === this.pageIndex)?.[0] ?? null;
+  }
+
+  async decodeDoc(file: File, options: { page: string | number }) {
     this.options.onStatusChange?.("loadingPage");
-    this.pageIndex = options.page;
-    this.host.dataset.decodedPage = String(options.page + 1);
-    this.host.dataset.decodedPageIndex = String(options.page);
+    this.pageIndex = this.resolvePage(options.page);
+    this.host.dataset.decodedPage = String(this.pageIndex + 1);
+    this.host.dataset.decodedPageIndex = String(this.pageIndex);
     this.host.dataset.fileSize = String(file.size);
     this.host.dataset.fileType = file.type;
-    this.setPage(options.page);
+    this.setPage(this.pageIndex);
     this.options.onStatusChange?.("ready");
   }
 
   async firstPage() {
-    await this.goToPage(0);
+    await this.goToPage(1);
   }
 
   fitHeight() {
@@ -191,18 +199,25 @@ export class AuroraLens {
     this.options.onStateChange?.(viewerState(this.pageIndex, this.drawMode, this.zoom));
   }
 
-  async goToPage(page: number) {
+  resolvePage(name: string | number) {
+    const index = this.pageMap[String(name)];
+    if (index === undefined) throw { code: "page_out_of_range", error: "Page is unavailable." };
+    return index;
+  }
+
+  async goToPage(page: string | number) {
     this.options.onStatusChange?.("loadingPage");
-    this.setPage(page);
+    this.setPage(this.resolvePage(page));
     this.options.onStatusChange?.("ready");
   }
 
   async lastPage() {
-    await this.goToPage(3);
+    await this.goToPage(4);
   }
 
   loadMetadata(metadata: unknown) {
     this.host.dataset.metadataLoaded = "true";
+    this.pageMap = { "1": 0, "2": 1, "3": 2, "4": 3, ...(metadata as { pageMap?: Record<string, number> }).pageMap };
     if (metadata && typeof metadata === "object" && Array.isArray((metadata as { pages?: unknown }).pages)) {
       this.host.dataset.metadataPages = String((metadata as { pages: unknown[] }).pages.length);
     }
@@ -212,8 +227,9 @@ export class AuroraLens {
     this.host.dataset.searchText = text;
   }
 
-  searchIndex(page: number, index: { value: string }, _options?: unknown) {
+  searchIndex(page: string | number, index: { value: string; source: string }, _options?: unknown): boolean {
     this.host.dataset.searchIndex = `${page}:${index.value}`;
+    return index.value !== "Missing text";
   }
 
   setDrawMode(enabled: boolean) {
@@ -223,11 +239,11 @@ export class AuroraLens {
   }
 
   async nextPage() {
-    await this.goToPage(this.pageIndex + 1);
+    await this.goToPage(this.pageIndex + 2);
   }
 
   async previousPage() {
-    await this.goToPage(this.pageIndex - 1);
+    await this.goToPage(this.pageIndex);
   }
 
   async restoreSession() {

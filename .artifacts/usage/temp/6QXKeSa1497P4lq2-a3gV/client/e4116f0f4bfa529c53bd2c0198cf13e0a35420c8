@@ -1,0 +1,13 @@
+const __vite_ssr_import_0__ = await __vite_ssr_import__("/node_modules/@testing-library/jest-dom/dist/vitest.mjs");
+const __vite_ssr_import_1__ = await __vite_ssr_import__("/node_modules/vitest/dist/index.js", {"importedNames":["vi"]});
+
+
+__vite_ssr_import_1__.vi.stubGlobal("ResizeObserver", class {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+});
+//# sourceMappingSource=vite-generated
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTs7O0FBRUEseUJBQUcsV0FBVyxrQkFBa0IsTUFBTTtDQUNwQyxVQUFVLENBQUM7Q0FDWCxZQUFZLENBQUM7Q0FDYixhQUFhLENBQUM7QUFDaEIsQ0FBQyIsIm5hbWVzIjpbXSwiaWdub3JlTGlzdCI6W10sInNvdXJjZXMiOlsic2V0dXAudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IFwiQHRlc3RpbmctbGlicmFyeS9qZXN0LWRvbS92aXRlc3RcIjtcbmltcG9ydCB7IHZpIH0gZnJvbSBcInZpdGVzdFwiO1xuXG52aS5zdHViR2xvYmFsKFwiUmVzaXplT2JzZXJ2ZXJcIiwgY2xhc3Mge1xuICBvYnNlcnZlKCkge31cbiAgdW5vYnNlcnZlKCkge31cbiAgZGlzY29ubmVjdCgpIHt9XG59KTtcbiJdLCJmaWxlIjoiL3NyYy90ZXN0L3NldHVwLnRzIn0=
+
+//# vitestCache=W3siZmlsZSI6IjEiLCJpZCI6IjEiLCJ1cmwiOiIyIiwiaW1wb3J0ZWRVcmxzIjoiMyIsIm1hcHBpbmdzIjpmYWxzZX0sIkM6L0dpdEh1Yi9UYWJ1bGFyaXVtL2F1cm9ycmFfaW5kZXgvc3JjL3Rlc3Qvc2V0dXAudHMiLCIvc3JjL3Rlc3Qvc2V0dXAudHMiLFtdXQ==

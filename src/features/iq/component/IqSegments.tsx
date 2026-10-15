@@ -3,7 +3,8 @@ import { iqStyles } from "../style/iqStyles";
 import type { IqSegmentView } from "../type/iq.types";
 
 export function IqSegments({ segments }: { segments: IqSegmentView[] }): JSX.Element {
-  const segmentsWithExplanations = segments.filter((segment) => segment.explanations.length > 0);
+  const orderedSegments = [...segments].sort((left, right) => right.expectedWeight - left.expectedWeight);
+  const segmentsWithExplanations = orderedSegments.filter((segment) => segment.explanations.length > 0);
 
   return (
     <>
@@ -17,7 +18,7 @@ export function IqSegments({ segments }: { segments: IqSegmentView[] }): JSX.Ele
           </tr>
         </thead>
         <tbody>
-          {segments.map((segment) => (
+          {orderedSegments.map((segment) => (
             <tr key={segment.id}>
               <td style={iqStyles.segmentCell("left")}>{segment.displayId}</td>
               <td style={iqStyles.segmentCell("right")}>{segment.expectedDisplay}</td>

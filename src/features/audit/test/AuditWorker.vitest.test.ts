@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuditWorker } from "../worker/AuditWorker";
 import type { AuditWorkerCommand } from "../type/audit.types";
+import { auditGap, auditPatch } from "./auditFixture";
 
 function jsonResponse(payload: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(payload), {
@@ -22,6 +23,15 @@ const auditFixture = {
 };
 
 describe("AuditWorker", () => {
+  it("preserves patch details fetched from the audit artifact", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://storage/audit.json" }))
+      .mockResolvedValueOnce(jsonResponse({ gaps: [auditGap] })));
+    const result = await new AuditWorker().run({ apiBaseUrl: "https://api", session: "session-1", token: "token", type: "auditData" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.gaps[0].patch).toEqual(auditPatch);
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
   });

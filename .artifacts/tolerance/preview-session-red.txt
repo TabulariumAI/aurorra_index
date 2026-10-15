@@ -1,0 +1,44 @@
+
+ RUN  v4.1.9 C:/GitHub/Tabularium/aurorra_index
+
+stderr | src/features/imageviewer/test/useImageViewer.vitest.test.tsx
+Warning: Please use the `legacy` build in Node.js environments.
+
+---x-----------------------------------------------
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/imageviewer/test/useImageViewer.vitest.test.tsx > useImageViewer > discards approval on session without changing the host policy
+AssertionError: expected { pageSize: { …(2) }, …(7) } to match object { pageSize: { …(2) } }
+(10 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -15,8 +15,8 @@
+          "height": 11.69,
+          "name": "a4",
+          "width": 8.27,
+        },
+      ],
+-     "tolerance": 0.02,
++     "tolerance": 0.0348,
+    },
+  }
+
+ ❯ src/features/imageviewer/test/useImageViewer.vitest.test.tsx:295:55
+    293|         await act(async () => { setHost(); setRequest(); setPackage();…
+    294|         await waitFor(() => expect(lensInstances).toHaveLength(4));
+    295|         expect(auroraLensCtor.mock.calls.at(-1)?.[1]).toMatchObject({ …
+       |                                                       ^
+    296|       }
+    297|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 50 skipped (51)
+   Start at  17:06:17
+   Duration  3.87s (transform 638ms, setup 208ms, import 1.10s, tests 336ms, environment 1.89s)
+

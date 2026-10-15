@@ -1,0 +1,511 @@
+--- src/features/legalmap/data/legalData.ts
++++ src/features/legalmap/data/legalData.ts
+@@ -1,4 +1,6 @@
+ import type { LegalElement, LegalGroup, LegalPayload } from "aurora-core";
++
++export type LegalMapPayload = LegalPayload & { parcels_num?: number };
+ 
+ const stateAbbr: Record<string, string> = {
+   AL: "Alabama",
+@@ -65,7 +67,7 @@
+ export type DisplayLot = { name: string; filled: boolean; detail?: string };
+ 
+ function numericLots(value: string): number[] | null {
+-  const cleaned = value.replace(/^\s*lots?\b\s*(?:no\.?\s*)?/i, "").trim().replace(/,\s*(?=&|\band\b)/gi, "");
++  const cleaned = value.replace(/(^|,|&|\band\b)\s*lots?\b\s*(?:no\.?\s*)?/gi, "$1").trim().replace(/,\s*(?=&|\band\b)/gi, "");
+   if (!/^\d+(?:\s*[-–]\s*\d+)?(?:\s*(?:,|&|\band\b)\s*\d+(?:\s*[-–]\s*\d+)?)*$/i.test(cleaned)) return null;
+   const numbers = new Set<number>();
+   for (const part of cleaned.split(/\s*(?:,|&|\band\b)\s*/i)) {
+@@ -262,12 +264,63 @@
+   return out;
+ }
+ 
++function mergeLotBlocks(groups: LegalGroup[], count: number): LegalGroup[] {
++  if (groups.length <= count) return groups;
++  const entries = groups.map(group => {
++    const values = new Map<string, string[]>();
++    for (const element of getElements(group)) {
++      const aspect = normName(element.aspect);
++      const value = element.value?.trim();
++      if (!aspect || !value) continue;
++      const existing = values.get(aspect) || [];
++      if (!existing.some(entry => normName(entry) === normName(value))) existing.push(value);
++      values.set(aspect, existing);
++    }
++    return values;
++  });
++
++  while (entries.length > count) {
++    let left = 0;
++    let right = 1;
++    let weight = -1;
++    for (let i = 0; i < entries.length - 1; i += 1) {
++      for (let j = i + 1; j < entries.length; j += 1) {
++        let score = 0;
++        for (const [aspect, values] of entries[i]) {
++          score += values.filter(value => entries[j].get(aspect)?.some(entry => normName(entry) === normName(value))).length;
++        }
++        if (score > weight) {
++          left = i;
++          right = j;
++          weight = score;
++        }
++      }
++    }
++    for (const [aspect, values] of entries[right]) {
++      const existing = entries[left].get(aspect) || [];
++      for (const value of values) {
++        if (!existing.some(entry => normName(entry) === normName(value))) existing.push(value);
++      }
++      entries[left].set(aspect, existing);
++    }
++    entries.splice(right, 1);
++  }
++
++  return entries.map(values => ({
++    type: "lot_block",
++    elements: Array.from(values, ([aspect, values]) => ({ aspect, value: values.join(",") })),
++  }));
++}
++
+ export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
++  const { raw, groups } = resolveGroups(legalJSON);
++  const entries = collectLotBlockEntries(groups.length ? groups : raw);
++  const count = isRecord(raw) && typeof raw.parcels_num === "number" && raw.parcels_num > 0 ? raw.parcels_num : entries.length;
+   const subdivisions = new Map<string, Omit<PlatSubdivision, "divisions"> & {
+     divisions: Map<string, Omit<PlatDivision, "blocks"> & { blocks: Map<string, PlatBlock> }>;
+   }>();
+ 
+-  for (const legal of collectLotBlockEntries(legalJSON)) {
++  for (const legal of mergeLotBlocks(entries, count)) {
+     const elements = getElements(legal);
+     const state = getVal(elements, "state").trim();
+     const county = getVal(elements, "county").trim();
+@@ -439,11 +492,9 @@
+   return found;
+ }
+ 
+-export function normalizeLegalData(legalJSON: LegalPayload | LegalGroup[] | null | undefined): LegalViewModel {
+-  const { raw, groups } = resolveGroups(legalJSON);
+-  const source = groups.length ? groups : raw;
+-  const subdivisions = toPlatJSON(source);
+-  const location = extractCityCountyState(raw);
++export function normalizeLegalData(legalJSON: LegalMapPayload | LegalGroup[] | null | undefined): LegalViewModel {
++  const subdivisions = toPlatJSON(legalJSON);
++  const location = extractCityCountyState(legalJSON);
+   const platName = extractPlatName(subdivisions);
+   const presentLayers = getPresentLayers(subdivisions);
+ 
+@@ -455,6 +506,6 @@
+     matchPlatSubdivision: allSubsMatchPlat(subdivisions, platName),
+     isEmptyStructure: isAllEmptyStructure(subdivisions),
+     locationLabel: formatLocation(location),
+-    summary: isRecord(raw) && typeof raw.summary === "string" ? raw.summary.trim() : undefined,
++    summary: isRecord(legalJSON) && typeof legalJSON.summary === "string" ? legalJSON.summary.trim() : undefined,
+   };
+ }
+--- src/features/legalmap/test/LegalMapContent.vitest.test.tsx
++++ src/features/legalmap/test/LegalMapContent.vitest.test.tsx
+@@ -1,6 +1,55 @@
+ import { render, screen, within } from "@testing-library/react";
+ import { describe, expect, it, vi } from "vitest";
+ import { LegalMapContent } from "../component/LegalMapContent";
++
++describe("parcel count rendering", () => {
++  const groups = ["1", "4482C"].map(block => ({ type: "lot_block", elements: [
++    { aspect: "subdivision", value: "THE RANCH AT IRON HORSE" },
++    { aspect: "phase", value: "II" }, { aspect: "block", value: block }, { aspect: "lot", value: "32" },
++  ] }));
++
++  it("renders one lot and both block identifiers for the approved one-parcel example", () => {
++    const legal = { groups, parcels_num: 1, summary: "One parcel: Lot 32, Block 1, County Block 4482C." };
++    render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
++    expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(1);
++    expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(1);
++    expect(screen.getByText("1,4482C")).toBeInTheDocument();
++    expect(screen.getByText("32").parentElement).toHaveTextContent("32Lot");
++    expect(screen.getByText("Phase II")).toBeInTheDocument();
++    expect(screen.getByText(legal.summary)).toBeInTheDocument();
++  });
++
++  it("uses the existing label formatting for each combined identifier", () => {
++    const legal = { parcels_num: 1, groups: ["Block 1", "Block 4482C"].map(block => ({ type: "lot_block", elements: [
++      { aspect: "block", value: block }, { aspect: "lot", value: "Lot 32" },
++    ] })) };
++    render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
++    expect(screen.getByText("1,4482C")).toBeInTheDocument();
++    expect(screen.getByText("32").parentElement).toHaveTextContent("32Lot");
++  });
++
++  it.each([undefined, 0, -1, 2, 3])("retains both blocks for parcels_num %s", parcels_num => {
++    const legal = { groups, parcels_num };
++    render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
++    expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(2);
++    expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(2);
++    expect(screen.getByText("1")).toBeInTheDocument();
++    expect(screen.getByText("4482C")).toBeInTheDocument();
++  });
++
++  it("rebuilds the map when only the parcel count changes without mutating the source", () => {
++    const onReadyChange = vi.fn();
++    const before = structuredClone(groups);
++    const legal = { groups, parcels_num: 1 };
++    const { rerender } = render(<LegalMapContent legal={legal} onReadyChange={onReadyChange} />);
++    expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(1);
++    rerender(<LegalMapContent legal={{ ...legal, parcels_num: 2 }} onReadyChange={onReadyChange} />);
++    expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(2);
++    expect(screen.queryByText("1,4482C")).not.toBeInTheDocument();
++    expect(onReadyChange).toHaveBeenCalledTimes(2);
++    expect(groups).toEqual(before);
++  });
++});
+ 
+ describe("LegalMapContent", () => {
+   it("renders the pure legal map hierarchy without shell dialog controls", () => {
+--- src/features/legalmap/component/LegalMapContent.tsx
++++ src/features/legalmap/component/LegalMapContent.tsx
+@@ -1,6 +1,5 @@
+ import { useEffect, type JSX } from "react";
+-import type { LegalPayload } from "aurora-core";
+-import { displayLots, divisionKinds, isBlank, normalizeLegalData, type DisplayLot, type PlatBlock, type PlatDivision } from "../data/legalData";
++import { displayLots, divisionKinds, isBlank, normalizeLegalData, type DisplayLot, type LegalMapPayload, type PlatBlock, type PlatDivision } from "../data/legalData";
+ import {
+   blockLabelStyle,
+   blockStyle,
+@@ -15,7 +14,7 @@
+ } from "../style/legalMapStyles";
+ 
+ function labelValue(value: string, kind: string): string {
+-  return value.replace(new RegExp(`^\\s*${kind}\\b\\s*(?:no\\.?\\s*)?`, "i"), "").trim();
++  return value.replace(new RegExp(`(^|,)\\s*${kind}\\b\\s*(?:no\\.?\\s*)?`, "gi"), "$1").trim();
+ }
+ 
+ function countNumbers(value: unknown): number {
+@@ -106,7 +105,7 @@
+   );
+ }
+ 
+-export function LegalMapContent({ legal, onReadyChange }: { legal: LegalPayload | null | undefined; onReadyChange(ready: boolean): void }): JSX.Element {
++export function LegalMapContent({ legal, onReadyChange }: { legal: LegalMapPayload | null | undefined; onReadyChange(ready: boolean): void }): JSX.Element {
+   const view = normalizeLegalData(legal);
+ 
+   useEffect(() => {
+--- docs/tasks/legalmap-refactor-plan.md
++++ docs/tasks/legalmap-refactor-plan.md
+@@ -29,6 +29,7 @@
+ 5. Update the legal row action in `MetadataPanel` so `lot_block` click calls `callbacks.onLegalView?.(payload)` only.
+ 6. Update `aurorra_index/src/public-api.ts` to export `LegalMapContent` and to avoid exporting any legal dialog symbol.
+ 7. `LegalMapContent` groups plats by state, county, subdivision, Unit / Phase / Section, block, and lot. Drawing starts at subdivision. Matching ancestors render once; each block retains its own distinct lots. Unit / Phase / Section share one enclosing tier with named labels. Lot Block `right_of_way` values belong to their subdivision and render as separate horizontal HTML/CSS corridors with centered extracted labels, light teal fill, diagonal hatch, square corners, and thin teal top/bottom boundaries. Bands are `3rem` high; subdivision content has a `24rem` minimum height when ROWs exist. Each band center is `(i + 1) * innerHeight / (rowCount + 1)`, independent of acreage. The legend includes Right Of Way when present. Identifiers retain letters and ranges. The map scrolls independently while parcel information remains in the right column.
++8. Before building that hierarchy, `toPlatJSON` uses `legals.parcels_num` as the target lot-block group count. A missing or nonpositive count uses the number of source lot-block groups. When the target is smaller, merge the pair with the most matching nonblank elements, using source order for equal weights, and recalculate weights until the target is reached. Matching values use the existing case and whitespace normalization. Retain distinct values in comma-separated labels and leave the source payload unchanged. The one-parcel Iron Horse example renders one Lot 32 under block `1,4482C`. `LegalMapPayload` declares the count within `aurorra_index`; this change requires no service or host edits.
+ 
+ ## Tests
+ - Keep and update `aurorra_index/src/features/legalmap/test/LegalMapContent.vitest.test.tsx`.
+--- src/public-api.ts
++++ src/public-api.ts
+@@ -20,6 +20,7 @@
+   toPlatJSON,
+ } from "./features/legalmap/data/legalData";
+ export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
++export type { LegalMapPayload } from "./features/legalmap/data/legalData";
+ export { createDeferredState } from "./features/indexing/data/deferredState";
+ export { indexStoreApi, useIndexStore } from "./features/metdataview/store/metadataStore";
+ export { AddressMapContent } from "./features/addressmap";
+--- tests/visual/legalmap.visual.tsx
++++ tests/visual/legalmap.visual.tsx
+@@ -14,12 +14,14 @@
+ 
+ const params = new URLSearchParams(window.location.search);
+ const rows = params.get("rows") === "true";
++const parcels = params.has("parcels");
+ const rowLabels = ["2.669 ACRE DRAINAGE RIGHT OF WAY", "5.455 ACRE DRAINAGE RIGHT OF WAY"];
+ 
+ createRoot(main).render(
+   <LegalMapContent
+     onReadyChange={() => undefined}
+     legal={{
++      ...(parcels ? { parcels_num: Number(params.get("parcels")), summary: "One parcel: Lot 32, Block 1, County Block 4482C, The Ranch at Iron Horse, Phase II, in Bexar County, Texas. PLATTED." } : {}),
+       ...(rows ? { summary: "Two drainage rights of way, 2.669 and 5.455 acres, in Inwood Place Subdivision Unit 1, an addition to San Antonio, Bexar County, Texas. Plat Book 9563, pages 56–59. PLATTED." } : {}),
+       groups: rows ? rowLabels.slice(0, params.get("count") === "1" ? 1 : 2).map(value => ({
+         type: "lot_block", elements: [
+@@ -29,6 +31,11 @@
+           { aspect: "city", value: "SAN ANTONIO" },
+           { aspect: "state", value: "TEXAS" },
+           { aspect: "county", value: "BEXAR COUNTY" },
++        ],
++      })) : parcels ? (params.get("ties") === "true" ? ["1", "2", "4482C"] : ["1", "4482C"]).map(block => ({
++        type: "lot_block", elements: [
++          { aspect: "subdivision", value: "THE RANCH AT IRON HORSE" },
++          { aspect: "phase", value: "II" }, { aspect: "block", value: block }, { aspect: "lot", value: "32" },
+         ],
+       })) : [
+         {
+--- src/features/legalmap/test/legalData.vitest.test.ts
++++ src/features/legalmap/test/legalData.vitest.test.ts
+@@ -1,12 +1,181 @@
+ import type { LegalGroup } from "aurora-core";
+ import { describe, expect, it } from "vitest";
+-import { displayLots, normalizeLegalData } from "../data/legalData";
++import { displayLots, normalizeLegalData, toPlatJSON } from "../data/legalData";
+ 
+ function plat(values: Record<string, string>): LegalGroup {
+   return { type: "lot_block", elements: Object.entries(values).map(([aspect, value]) => ({ aspect, value })) };
+ }
+ 
+ const seale = { state: "TEXAS", county: "BEXAR COUNTY", subdivision: "SEALE SUBDIVISION", unit: "1" };
++
++describe("parcel count merging", () => {
++  const ironHorse = { state: "TEXAS", county: "BEXAR COUNTY", subdivision: "THE RANCH AT IRON HORSE", phase: "II", lot: "32" };
++  const groups = ["1", "4482C"].map(block => plat({ ...ironHorse, block }));
++
++  it("merges the supplied one-parcel example and preserves both block identifiers", () => {
++    const legal = { groups, parcels_num: 1, summary: "One parcel.", plat: { county: "Bexar", state: "TX" } };
++    const view = normalizeLegalData(legal);
++    expect(view.subdivisions).toEqual([{
++      state: "TEXAS", county: "BEXAR COUNTY", subdivision: "THE RANCH AT IRON HORSE", rightsOfWay: [],
++      divisions: [{ unit: "", phase: "II", section: "", blocks: [{ name: "1,4482C", lots: [{ name: "32" }] }] }],
++    }]);
++    expect(view.summary).toBe("One parcel.");
++    expect(view.locationLabel).toBe("Bexar County | Texas");
++    expect(view.presentLayers).toEqual(new Set(["subdivision", "phase", "block", "lot"]));
++    expect(toPlatJSON(legal)).toEqual(view.subdivisions);
++  });
++
++  it.each([undefined, 0, -1, 2, 3])("retains separate source blocks for parcels_num %s", parcels_num => {
++    const legal = { groups, parcels_num };
++    expect(normalizeLegalData(legal).subdivisions).toEqual(normalizeLegalData({ groups }).subdivisions);
++    expect(toPlatJSON(legal)).toEqual(normalizeLegalData({ groups }).subdivisions);
++  });
++
++  it("keeps array input unchanged without a parcel count", () => {
++    expect(normalizeLegalData(groups).subdivisions).toEqual(normalizeLegalData({ groups }).subdivisions);
++    expect(toPlatJSON(groups)).toEqual(normalizeLegalData({ groups }).subdivisions);
++  });
++
++  it.each(["groups", "legalGroups", "LegalGroups", "items"])("retains parcel counts with the existing %s container", key => {
++    const legal = { [key]: groups, parcels_num: 1 };
++    expect(toPlatJSON(legal)[0].divisions[0].blocks).toEqual([{ name: "1,4482C", lots: [{ name: "32" }] }]);
++  });
++
++  it("retains the existing group-container precedence", () => {
++    const legal = { parcels_num: 1, groups, legalGroups: [plat({ subdivision: "SELECTED", block: "3", lot: "7" })] };
++    expect(normalizeLegalData(legal).subdivisions[0].subdivision).toBe("SELECTED");
++    expect(toPlatJSON(legal)).toEqual(normalizeLegalData(legal).subdivisions);
++  });
++
++  it("selects the highest matching-element weight before an earlier pair", () => {
++    const legal = { parcels_num: 2, groups: [
++      plat({ subdivision: "A", phase: "I", block: "1", lot: "9" }),
++      plat({ subdivision: "B", phase: "II", block: "2", lot: "32" }),
++      plat({ subdivision: "B", phase: "II", block: "4482C", lot: "32" }),
++    ] };
++    expect(normalizeLegalData(legal).subdivisions.map(sub => sub.divisions[0].blocks)).toEqual([
++      [{ name: "1", lots: [{ name: "9" }] }], [{ name: "2,4482C", lots: [{ name: "32" }] }],
++    ]);
++  });
++
++  it.each([
++    [["1", "2", "4482C"], ["1,2", "4482C"]],
++    [["4482C", "2", "1"], ["1", "4482C,2"]],
++  ])("breaks equal weights using source order %j", (blocks, expected) => {
++    const legal = { parcels_num: 2, groups: blocks.map(block => plat({ ...ironHorse, block })) };
++    expect(normalizeLegalData(legal).subdivisions[0].divisions[0].blocks.map(block => block.name)).toEqual(expected);
++  });
++
++  it("recalculates matching weights after each merge", () => {
++    const legal = { parcels_num: 2, groups: [
++      plat({ subdivision: "A", block: "1", lot: "1" }),
++      plat({ subdivision: "A", block: "2", lot: "1" }),
++      plat({ subdivision: "A", block: "2", lot: "2" }),
++      plat({ subdivision: "B", block: "3", lot: "3" }),
++    ] };
++    expect(normalizeLegalData(legal).subdivisions.map(sub => sub.divisions[0].blocks)).toEqual([
++      [{ name: "1,2", lots: [{ name: "1,2" }] }], [{ name: "3", lots: [{ name: "3" }] }],
++    ]);
++  });
++
++  it.each([1, 2, 3, 4])("stops at the requested %i groups", parcels_num => {
++    const legal = { parcels_num, groups: ["1", "2", "3", "4"].map(block => plat({ ...ironHorse, block })) };
++    const blocks = normalizeLegalData(legal).subdivisions[0].divisions[0].blocks;
++    expect(blocks).toHaveLength(parcels_num);
++    expect(blocks.flatMap(block => block.name.split(",")).sort()).toEqual(["1", "2", "3", "4"]);
++    expect(blocks.every(block => block.lots.length === 1 && block.lots[0].name === "32")).toBe(true);
++  });
++
++  it.each(["lot", "block", "unit", "phase", "section", "subdivision"])("retains differing %s values while merging upward", aspect => {
++    const values = { ...ironHorse, block: "1", unit: "1", section: "A" };
++    const legal = { parcels_num: 1, groups: [plat(values), plat({ ...values, [aspect]: "OTHER" })] };
++    const sub = normalizeLegalData(legal).subdivisions[0];
++    const division = sub.divisions[0];
++    const block = division.blocks[0];
++    const value = aspect === "lot" ? block.lots[0].name : aspect === "block" ? block.name :
++      aspect === "subdivision" ? sub.subdivision : division[aspect as "unit" | "phase" | "section"];
++    expect(value).toBe(`${values[aspect as keyof typeof values]},OTHER`);
++    expect(sub.divisions).toHaveLength(1);
++    expect(division.blocks).toHaveLength(1);
++  });
++
++  it("does not count blanks as matching elements", () => {
++    const legal = { parcels_num: 2, groups: [
++      plat({ subdivision: "A", block: "1", lot: "", phase: "", unit: "", section: "" }),
++      plat({ subdivision: "B", block: "2", lot: "7", phase: "", unit: "", section: "" }),
++      plat({ subdivision: "B", block: "3", lot: "7" }),
++    ] };
++    expect(normalizeLegalData(legal).subdivisions.map(sub => sub.divisions[0].blocks)).toEqual([
++      [{ name: "1", lots: [] }], [{ name: "2,3", lots: [{ name: "7" }] }],
++    ]);
++  });
++
++  it("deduplicates matching values using existing case and whitespace conventions", () => {
++    const legal = { parcels_num: 1, groups: [
++      plat({ subdivision: "THE RANCH AT IRON HORSE", phase: "II", block: "4482C", lot: "32" }),
++      plat({ subdivision: " the   ranch at iron horse ", phase: " ii ", block: "4482c", lot: " 32 " }),
++    ] };
++    expect(normalizeLegalData(legal).subdivisions[0]).toMatchObject({
++      subdivision: "THE RANCH AT IRON HORSE",
++      divisions: [{ phase: "II", blocks: [{ name: "4482C", lots: [{ name: "32" }] }] }],
++    });
++  });
++
++  it("counts only lot_block groups and preserves non-plat summary data", () => {
++    const legal = { parcels_num: 2, summary: "Two parcels.", groups: [
++      ...groups,
++      { type: "metes_bounds", elements: [{ aspect: "lot", value: "99" }] },
++      { type: "plat_reference", elements: [{ aspect: "plat_page", value: "32" }] },
++    ] };
++    const view = normalizeLegalData(legal);
++    expect(view.subdivisions[0].divisions[0].blocks.map(block => block.name)).toEqual(["1", "4482C"]);
++    expect(view.summary).toBe("Two parcels.");
++  });
++
++  it("keeps right-of-way labels and numeric lot gaps when merging blocks", () => {
++    const legal = { parcels_num: 1, groups: [
++      plat({ ...ironHorse, block: "1", lot: "1, 3", right_of_way: "DRAINAGE RIGHT OF WAY" }),
++      plat({ ...ironHorse, block: "4482C", lot: "5" }),
++    ] };
++    const sub = normalizeLegalData(legal).subdivisions[0];
++    expect(sub.rightsOfWay).toEqual(["DRAINAGE RIGHT OF WAY"]);
++    expect(displayLots(sub.divisions[0].blocks[0].lots)).toEqual([
++      { name: "1", filled: true }, { name: "2", filled: false }, { name: "3", filled: true },
++      { name: "4", filled: false }, { name: "5", filled: true },
++    ]);
++  });
++
++  it("retains prefixed numeric lots in separate filled positions after merging", () => {
++    const legal = { parcels_num: 1, groups: [
++      plat({ ...ironHorse, block: "Block 1", lot: "Lot 1" }),
++      plat({ ...ironHorse, block: "Block 4482C", lot: "Lot 3" }),
++    ] };
++    expect(displayLots(normalizeLegalData(legal).subdivisions[0].divisions[0].blocks[0].lots)).toEqual([
++      { name: "1", filled: true }, { name: "2", filled: false }, { name: "3", filled: true },
++    ]);
++  });
++
++  it("does not mutate source groups or elements", () => {
++    const legal = { groups: structuredClone(groups), parcels_num: 1 };
++    const before = structuredClone(legal);
++    legal.groups.forEach(group => {
++      group.elements?.forEach(Object.freeze);
++      Object.freeze(group.elements);
++      Object.freeze(group);
++    });
++    Object.freeze(legal.groups);
++    Object.freeze(legal);
++    normalizeLegalData(legal);
++    toPlatJSON(legal);
++    expect(legal).toEqual(before);
++  });
++
++  it.each([{ groups: [] }, { groups: [{ type: "metes_bounds", elements: [{ aspect: "lot", value: "9" }] }] }])("keeps empty maps empty with a positive count", ({ groups }) => {
++    const legal = { groups, parcels_num: 1 };
++    expect(normalizeLegalData(legal).isEmptyStructure).toBe(true);
++    expect(toPlatJSON(legal)).toEqual([]);
++  });
++});
+ 
+ describe("legal data normalization", () => {
+   it("sorts blocks naturally within each subdivision and division", () => {
+--- tests/visual/legalmap.visual.spec.ts
++++ tests/visual/legalmap.visual.spec.ts
+@@ -1,4 +1,49 @@
+ import { expect, test } from "@playwright/test";
++
++for (const width of [1440, 900]) {
++  test(`one parcel retains both block identifiers and one lot at ${width}px`, async ({ page }) => {
++    await page.setViewportSize({ width, height: 900 });
++    await page.goto("/?scenario=legal-map&parcels=1");
++    await expect(page.locator("[data-legal-map-block]")).toHaveCount(1);
++    await expect(page.locator("[data-legal-map-lot]")).toHaveCount(1);
++    const label = page.locator("[data-legal-map-block-label]");
++    await expect(label).toHaveText("1,4482C");
++    await expect(page.locator("[data-legal-map-lot]")).toHaveText("32Lot");
++    await expect(page.getByText("Phase II", { exact: true })).toBeVisible();
++    await expect(page.locator("[data-legal-map-info]")).toContainText("One parcel: Lot 32, Block 1, County Block 4482C");
++    await expect(page.getByText("Subdivision", { exact: true })).toBeVisible();
++    const layout = await label.evaluate(node => {
++      const range = document.createRange();
++      range.selectNodeContents(node);
++      const text = range.getBoundingClientRect();
++      const block = node.parentElement!.getBoundingClientRect();
++      const lot = document.querySelector("[data-legal-map-lot]")!.getBoundingClientRect();
++      const grid = document.querySelector("[data-legal-map-grid]")!.getBoundingClientRect();
++      const info = document.querySelector("[data-legal-map-info]")!.getBoundingClientRect();
++      return {
++        textFits: text.x >= block.x && text.right <= block.right && text.y >= block.y && text.bottom <= block.bottom,
++        centered: Math.abs(text.x + text.width / 2 - block.x - block.width / 2) < 1,
++        lotVisible: lot.x >= grid.x && lot.right <= grid.right && lot.y >= grid.y && lot.bottom <= grid.bottom,
++        infoToRight: info.x >= grid.right,
++      };
++    });
++    expect(layout).toEqual({ textFits: true, centered: true, lotVisible: true, infoToRight: true });
++    await page.screenshot({ path: `artifacts/legalmap-parcel-${width}.png`, fullPage: true });
++    await page.reload();
++    await expect(label).toHaveText("1,4482C");
++    await page.goto("/?scenario=legal-map&parcels=2");
++    await expect(page.locator("[data-legal-map-block-label]")).toHaveText(["1", "4482C"]);
++    await expect(page.locator("[data-legal-map-lot]")).toHaveCount(2);
++    await page.goto("/?scenario=legal-map&parcels=0");
++    await expect(page.locator("[data-legal-map-block-label]")).toHaveText(["1", "4482C"]);
++  });
++}
++
++test("equal merge weights follow source order and stop at the parcel count", async ({ page }) => {
++  await page.goto("/?scenario=legal-map&parcels=2&ties=true");
++  await expect(page.locator("[data-legal-map-block-label]")).toHaveText(["1,2", "4482C"]);
++  await expect(page.locator("[data-legal-map-lot]")).toHaveCount(2);
++});
+ 
+ test("legal map content renders plat grid", async ({ page }) => {
+   await page.goto("/?scenario=legal-map");
+--- src/features/indexing/test/indexStore.vitest.test.ts
++++ src/features/indexing/test/indexStore.vitest.test.ts
+@@ -2,11 +2,30 @@
+ import { indexStoreApi } from "../../metdataview/store/metadataStore";
+ import { composeMetadataJSON, splitMetadataJSON, type MetadataPayload } from "aurora-core";
+ import { storeApi } from "../../../store/state/store";
++import { normalizeLegalData } from "../../legalmap/data/legalData";
+ 
+ describe("index store", () => {
+   afterEach(() => {
+     indexStoreApi.getState().resetMetadata();
+     storeApi.getState().resetAllState();
++  });
++
++  it("preserves parcel counts through metadata storage and recomposition into the legal map", () => {
++    const payload = { legals: { parcels_num: 1, summary: "One parcel.", groups: ["1", "4482C"].map(block => ({
++      type: "lot_block", elements: [
++        { aspect: "subdivision", value: "THE RANCH AT IRON HORSE" },
++        { aspect: "phase", value: "II" }, { aspect: "block", value: block }, { aspect: "lot", value: "32" },
++      ],
++    })) } };
++    storeApi.getState().setJSON("session-1", splitMetadataJSON(payload));
++    const parts = storeApi.getState().getJSON("session-1");
++    expect(parts?.legalJSON.legals).toEqual(payload.legals);
++    expect(composeMetadataJSON(parts)).toEqual(payload);
++    expect(normalizeLegalData(parts?.legalJSON.legals).subdivisions[0].divisions[0].blocks).toEqual([
++      { name: "1,4482C", lots: [{ name: "32" }] },
++    ]);
++    expect(payload.legals.groups).toHaveLength(2);
++    expect(payload.legals.groups.map(group => group.elements[2].value)).toEqual(["1", "4482C"]);
+   });
+ 
+   it("stores split metadata JSON in the package store and reports metadata status updates", () => {

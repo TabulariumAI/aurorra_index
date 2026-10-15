@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { iqStoreApi } from "../store/iqStore";
 import { useIqReport } from "../hook/useIqReport";
+import * as iqWorker from "../worker/iqWorkerClient";
 import type { IqReport, IqWorkerClient } from "../type/iq.types";
 
 const report: IqReport = {
@@ -16,13 +17,12 @@ function createClient(): IqWorkerClient {
   return {
     ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
     loadReport: vi.fn(async () => report),
-    pollReport: vi.fn(async () => ({ status: "completed" as const, data: report, isComplete: true as const })),
-    startReport: vi.fn(async () => ({ status: "completed", data: {}, isComplete: true })),
   };
 }
 
 
 describe("useIqReport", () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => {
     iqStoreApi.getState().resetIq();
   });
@@ -33,24 +33,23 @@ describe("useIqReport", () => {
 
     renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
-    await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1"));
+    await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1", false));
     expect(iqStoreApi.getState().report).toEqual(report);
     expect(callbacks.onIqLoaded).toHaveBeenCalledWith(report);
   });
 
-  it("refreshes and starts reports", async () => {
+  it("refreshes through GET without metadata etag", async () => {
     const client = createClient();
-    const callbacks = { onIqRefresh: vi.fn(), onIqStarted: vi.fn() };
+    const callbacks = { onIqRefresh: vi.fn() };
     const { result } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
     await waitFor(() => expect(client.loadReport).toHaveBeenCalledTimes(1));
     await act(async () => {
       await result.current.loadReport(true);
-      await result.current.startReport();
     });
 
     expect(callbacks.onIqRefresh).toHaveBeenCalledWith(report);
-    expect(callbacks.onIqStarted).toHaveBeenCalledWith({ status: "completed", data: {}, isComplete: true });
+    expect(client.loadReport).toHaveBeenLastCalledWith("token", "session-1", true);
   });
 
   it("acks a gate, removes it from store, and calls onIqAck", async () => {
@@ -78,4 +77,24 @@ describe("useIqReport", () => {
     unmount();
     expect(callbacks.onIqCanceled).toHaveBeenCalledTimes(1);
   });
+  it("discards retries from the default client after unmount and reopening the same session", async () => {
+    const client = createClient();
+    let resolve!: (value: IqReport) => void;
+    vi.mocked(client.loadReport).mockReturnValueOnce(new Promise<IqReport>(yes => { resolve = yes; }));
+    const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(client);
+    const callbacks = { onIqLoaded: vi.fn() };
+    const { unmount } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks,
+      onReadyChange: vi.fn(), retryLimit: 5, retryIntervalMs: 0, session: "session-1" }));
+    const retry = factory.mock.calls.find(([config]) => config.onRetry)![0].onRetry!;
+    act(() => retry(2));
+    expect(iqStoreApi.getState().retryAttempt).toBe(2);
+    unmount();
+    iqStoreApi.getState().resetIq();
+    iqStoreApi.getState().setLoaded("session-1", { ...report, iq_doc: 55 });
+    retry(3);
+    await act(async () => resolve(report));
+    expect(iqStoreApi.getState()).toMatchObject({ report: { iq_doc: 55 }, retryAttempt: 0, status: "success" });
+    expect(callbacks.onIqLoaded).not.toHaveBeenCalled();
+  });
+
 });

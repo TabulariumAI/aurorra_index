@@ -1,0 +1,222 @@
+{
+  "metadataPath": "C:/DataHub/sessions/demo/eb89446a-1302-49bc-b6e6-b4045ea71d62/metadata/out/metadata#v10.json",
+  "sourceUnchanged": true,
+  "results": [
+    {
+      "mode": "actual",
+      "width": 1440,
+      "parcels_num": null,
+      "labels": [
+        "1",
+        "4482C"
+      ],
+      "lots": [
+        "32Lot",
+        "32Lot"
+      ],
+      "layout": {
+        "infoToRight": true,
+        "blocks": [
+          {
+            "textFits": true,
+            "centered": true
+          },
+          {
+            "textFits": true,
+            "centered": true
+          }
+        ],
+        "scrollHeight": 910,
+        "clientHeight": 874
+      },
+      "view": [
+        {
+          "state": "TEXAS",
+          "county": "BEXAR COUNTY",
+          "subdivision": "THE RANCH AT IRON HORSE",
+          "rightsOfWay": [],
+          "divisions": [
+            {
+              "unit": "",
+              "phase": "II",
+              "section": "",
+              "blocks": [
+                {
+                  "name": "1",
+                  "lots": [
+                    {
+                      "name": "32"
+                    }
+                  ]
+                },
+                {
+                  "name": "4482C",
+                  "lots": [
+                    {
+                      "name": "32"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "count-1-control",
+      "width": 1440,
+      "parcels_num": 1,
+      "labels": [
+        "1,4482C"
+      ],
+      "lots": [
+        "32Lot"
+      ],
+      "layout": {
+        "infoToRight": true,
+        "blocks": [
+          {
+            "textFits": true,
+            "centered": true
+          }
+        ],
+        "scrollHeight": 874,
+        "clientHeight": 874
+      },
+      "view": [
+        {
+          "state": "TEXAS",
+          "county": "BEXAR COUNTY",
+          "subdivision": "THE RANCH AT IRON HORSE",
+          "rightsOfWay": [],
+          "divisions": [
+            {
+              "unit": "",
+              "phase": "II",
+              "section": "",
+              "blocks": [
+                {
+                  "name": "1,4482C",
+                  "lots": [
+                    {
+                      "name": "32"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "actual",
+      "width": 900,
+      "parcels_num": null,
+      "labels": [
+        "1",
+        "4482C"
+      ],
+      "lots": [
+        "32Lot",
+        "32Lot"
+      ],
+      "layout": {
+        "infoToRight": true,
+        "blocks": [
+          {
+            "textFits": true,
+            "centered": true
+          },
+          {
+            "textFits": true,
+            "centered": true
+          }
+        ],
+        "scrollHeight": 910,
+        "clientHeight": 874
+      },
+      "view": [
+        {
+          "state": "TEXAS",
+          "county": "BEXAR COUNTY",
+          "subdivision": "THE RANCH AT IRON HORSE",
+          "rightsOfWay": [],
+          "divisions": [
+            {
+              "unit": "",
+              "phase": "II",
+              "section": "",
+              "blocks": [
+                {
+                  "name": "1",
+                  "lots": [
+                    {
+                      "name": "32"
+                    }
+                  ]
+                },
+                {
+                  "name": "4482C",
+                  "lots": [
+                    {
+                      "name": "32"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "count-1-control",
+      "width": 900,
+      "parcels_num": 1,
+      "labels": [
+        "1,4482C"
+      ],
+      "lots": [
+        "32Lot"
+      ],
+      "layout": {
+        "infoToRight": true,
+        "blocks": [
+          {
+            "textFits": true,
+            "centered": true
+          }
+        ],
+        "scrollHeight": 874,
+        "clientHeight": 874
+      },
+      "view": [
+        {
+          "state": "TEXAS",
+          "county": "BEXAR COUNTY",
+          "subdivision": "THE RANCH AT IRON HORSE",
+          "rightsOfWay": [],
+          "divisions": [
+            {
+              "unit": "",
+              "phase": "II",
+              "section": "",
+              "blocks": [
+                {
+                  "name": "1,4482C",
+                  "lots": [
+                    {
+                      "name": "32"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
