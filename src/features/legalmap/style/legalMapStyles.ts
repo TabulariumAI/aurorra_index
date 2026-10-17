@@ -32,12 +32,35 @@ export const rowFillStyle: CSSProperties = {
   backgroundImage: "repeating-linear-gradient(135deg, transparent 0, transparent 7px, rgba(58, 124, 140, 0.15) 7px, rgba(58, 124, 140, 0.15) 8px)",
 };
 
+export const legalMapCss = `
+.legal-map-reference th, .legal-map-reference td { border: 0; }
+.legal-map-reference tr + tr > * { border-top: 1px solid var(--border-subtle); }
+.legal-map-reference td { border-left: 1px solid var(--border-subtle); }
+@media (max-width: 48rem) {
+  .legal-map {
+    display: flex !important;
+    flex-direction: column;
+    overflow: auto !important;
+  }
+  .legal-map-info { display: contents !important; }
+  .legal-map-summary { order: 0; }
+  .legal-map-column {
+    order: 1;
+    flex: 0 0 auto;
+    height: 24rem;
+  }
+  .legal-map-column:empty { display: none !important; }
+  .legal-map-reference { order: 3; }
+}
+`;
+
 export const legalMapStyles = {
   shell: {
     alignItems: "stretch",
     boxSizing: "border-box",
     color: legalMapColors.text,
     display: "grid",
+    gap: "0.75rem",
     gridTemplateColumns: "minmax(0, 5fr) minmax(0, 3fr)",
     fontFamily: "var(--font-ui)",
     height: "100%",
@@ -53,7 +76,6 @@ export const legalMapStyles = {
     flexDirection: "column",
     minHeight: 0,
     minWidth: 0,
-    padding: "0.75rem",
   },
   infoColumn: {
     boxSizing: "border-box",
@@ -64,7 +86,6 @@ export const legalMapStyles = {
     minWidth: 0,
     overflow: "auto",
     overflowWrap: "anywhere",
-    padding: "0.75rem",
     textAlign: "left",
   },
   infoHeading: {
@@ -75,7 +96,7 @@ export const legalMapStyles = {
   },
   infoCard: {
     background: "#f3f9fe",
-    border: "1px solid #e2eff9",
+    border: "none",
     borderRadius: "var(--radius-card)",
     color: legalMapColors.text,
     fontSize: "clamp(0.875rem, 1.2vw, 1.125rem)",
@@ -84,15 +105,24 @@ export const legalMapStyles = {
     padding: "clamp(0.5rem, 1.4vw, 1.25rem)",
 
   },
-  emptyMessage: {
-    color: legalMapColors.text,
-    fontSize: "1.25em",
-    fontWeight: 700,
-    margin: "2.25rem 0",
-    textAlign: "center",
+  infoSection: {
+    display: "flex",
+    flex: "0 0 auto",
+    flexDirection: "column",
+    gap: "0.75rem",
+    minWidth: 0,
   },
-  grid: {
-    alignItems: "stretch",
+  referenceTable: {
+    border: "none",
+    borderCollapse: "collapse",
+    width: "100%",
+  },
+  referenceCell: {
+    padding: "0.5rem 0.75rem",
+    textAlign: "left",
+    verticalAlign: "top",
+  },
+  mapSurface: {
     backgroundColor: legalMapColors.mapBg,
     backgroundImage: `url("${legalMapBackdrop}")`,
     backgroundPosition: "center",
@@ -100,6 +130,24 @@ export const legalMapStyles = {
     backgroundSize: "cover",
     border: `1px solid ${legalMapColors.gridLine}`,
     borderRadius: "var(--radius-card)",
+    boxSizing: "border-box",
+    display: "flex",
+    flex: "1 1 auto",
+    flexDirection: "column",
+    minHeight: 0,
+    minWidth: 0,
+    overflow: "hidden",
+    width: "100%",
+  },
+  mapFooter: {
+    alignItems: "flex-end",
+    display: "flex",
+    flex: "0 0 auto",
+    gap: "0.75rem",
+    padding: "0.75rem",
+  },
+  grid: {
+    alignItems: "stretch",
     boxSizing: "border-box",
     color: legalMapColors.text,
     display: "flex",
@@ -113,26 +161,22 @@ export const legalMapStyles = {
     minHeight: "0",
     overflow: "auto",
     padding: "2rem 1rem",
-    position: "relative",
     width: "100%",
   },
   northMarker: {
     alignItems: "center",
     background: "#fff",
     borderRadius: "var(--radius-control)",
-    bottom: "0.75rem",
     boxShadow: "var(--shadow-card)",
     color: legalMapColors.text,
     display: "flex",
     flexDirection: "column",
+    flexShrink: 0,
     fontSize: "1rem",
     fontWeight: 700,
     justifyContent: "center",
-    left: "0.75rem",
     minHeight: "3.25rem",
-    position: "absolute",
     width: "2.5rem",
-    zIndex: 1,
   },
   gridContent: {
     alignItems: "center",
@@ -244,15 +288,15 @@ export const legalMapStyles = {
   legendItems: {
     alignItems: "center",
     display: "flex",
-    flex: "0 0 auto",
+    flex: "1 1 auto",
     flexWrap: "wrap",
     gap: "1.5rem",
-    justifyContent: "flex-start",
+    justifyContent: "flex-end",
     minHeight: "2.5rem",
+    minWidth: 0,
     overflow: "visible",
     textAlign: "center",
-    marginRight: "0.75rem",
-    marginLeft: "0.75rem",
+
   },
   legendItem: {
     alignItems: "center",

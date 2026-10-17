@@ -1,10 +1,12 @@
 import { useEffect, type JSX } from "react";
+import { formatLabel } from "aurora-core";
 import { displayLots, divisionKinds, isBlank, normalizeLegalData, type DisplayLot, type LegalMapPayload, type PlatBlock, type PlatDivision } from "../data/legalData";
 import {
   blockLabelStyle,
   blockStyle,
   legalMapColors,
   legalMapConstants,
+  legalMapCss,
   legalMapStyles,
   legendBoxStyle,
   lotStyle,
@@ -94,7 +96,7 @@ function Legend({ presentLayers }: { presentLayers: Set<string> }): JSX.Element 
   if (items.length === 0) return null;
 
   return (
-    <div style={legalMapStyles.legendItems}>
+    <div className="legal-map-legend" style={legalMapStyles.legendItems}>
       {items.map((item) => (
         <span key={item.key} style={legalMapStyles.legendItem}>
           <span style={{ ...legendBoxStyle(item.color, item.borderColor), ...(item.key === "right_of_way" ? rowFillStyle : {}) }} />
@@ -112,55 +114,69 @@ export function LegalMapContent({ legal, onReadyChange }: { legal: LegalMapPaylo
     onReadyChange(true);
   }, [legal, onReadyChange]);
 
-  if (view.isEmptyStructure) {
-    return (
-      <div style={legalMapStyles.shell}>
-        <div style={legalMapStyles.emptyMessage}>No valid property hierarchy data found.</div>
-      </div>
-    );
-  }
-
   return (
-    <div style={legalMapStyles.shell}>
-      <div style={legalMapStyles.mapColumn}>
-        <div data-legal-map-grid="true" style={legalMapStyles.grid}>
-          <div style={legalMapStyles.gridContent}>
-            {view.subdivisions.map((subdivision, index) => (
-              <div key={`${subdivision.subdivision}-${index}`} style={legalMapStyles.subdivisionWrapper}>
-                {!isBlank(subdivision.subdivision) ? <div style={legalMapStyles.subdivisionLabel}>{subdivision.subdivision}</div> : null}
-                <div data-legal-map-subdivision="true" style={legalMapStyles.subdivisionBoundary}>
-                  <div style={{ ...legalMapStyles.subdivisionContent, ...(subdivision.rightsOfWay.length > 0 ? legalMapStyles.rowContent : {}) }}>
-                    {subdivision.divisions.map((division, divisionIndex) => <DivisionView key={divisionIndex} division={division} />)}
-                    {subdivision.rightsOfWay.map((value, rowIndex) => (
-                      <div key={value} data-legal-map-row="true" style={{ ...legalMapStyles.rowBand, top: `${(rowIndex + 1) * 100 / (subdivision.rightsOfWay.length + 1)}%` }}>
-                        {value}
+    <>
+      <style>{legalMapCss}</style>
+      <div className="legal-map" style={legalMapStyles.shell}>
+        <div className="legal-map-column" style={legalMapStyles.mapColumn}>
+          {!view.isEmptyStructure ? <div data-legal-map-surface="true" style={legalMapStyles.mapSurface}>
+            <div data-legal-map-grid="true" style={legalMapStyles.grid}>
+              <div style={legalMapStyles.gridContent}>
+                {view.subdivisions.map((subdivision, index) => (
+                  <div key={`${subdivision.subdivision}-${index}`} style={legalMapStyles.subdivisionWrapper}>
+                    {!isBlank(subdivision.subdivision) ? <div style={legalMapStyles.subdivisionLabel}>{subdivision.subdivision}</div> : null}
+                    <div data-legal-map-subdivision="true" style={legalMapStyles.subdivisionBoundary}>
+                      <div style={{ ...legalMapStyles.subdivisionContent, ...(subdivision.rightsOfWay.length > 0 ? legalMapStyles.rowContent : {}) }}>
+                        {subdivision.divisions.map((division, divisionIndex) => <DivisionView key={divisionIndex} division={division} />)}
+                        {subdivision.rightsOfWay.map((value, rowIndex) => (
+                          <div key={value} data-legal-map-row="true" style={{ ...legalMapStyles.rowBand, top: `${(rowIndex + 1) * 100 / (subdivision.rightsOfWay.length + 1)}%` }}>
+                            {value}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {view.locationLabel ? (
-            <div id="plat-location-bottom" style={legalMapStyles.location}>
-              {view.locationLabel}
+              {view.locationLabel ? (
+                <div id="plat-location-bottom" style={legalMapStyles.location}>
+                  {view.locationLabel}
+                </div>
+              ) : null}
             </div>
-          ) : null}
-          <div data-legal-map-north="true" aria-hidden="true" style={legalMapStyles.northMarker}>
-            <svg width="16" height="20" viewBox="0 0 24 28" fill="currentColor">
-              <path d="M12 1 3 24l9-5 9 5z" />
-            </svg>
-            <span>N</span>
-          </div>
+            <div data-legal-map-footer="true" style={legalMapStyles.mapFooter}>
+              <div data-legal-map-north="true" aria-hidden="true" style={legalMapStyles.northMarker}>
+                <svg width="16" height="20" viewBox="0 0 24 28" fill="currentColor">
+                  <path d="M12 1 3 24l9-5 9 5z" />
+                </svg>
+                <span>N</span>
+              </div>
+              <Legend presentLayers={view.presentLayers} />
+            </div>
+          </div> : null}
         </div>
+        <aside className="legal-map-info" data-legal-map-info="true" style={legalMapStyles.infoColumn}>
+          {view.summary ? <section className="legal-map-summary" style={legalMapStyles.infoSection}>
+            <h3 style={legalMapStyles.infoHeading}>Summary</h3>
+            <div style={legalMapStyles.infoCard}>{view.summary}</div>
+          </section> : null}
+          {view.references.length > 0 ? <section className="legal-map-reference" style={legalMapStyles.infoSection}>
+            <h3 style={legalMapStyles.infoHeading}>Reference</h3>
+            <div style={legalMapStyles.infoCard}>
+              <table aria-label="Reference" style={legalMapStyles.referenceTable}>
+                <tbody>
+                  {view.references.map((element, index) => (
+                    <tr key={index}>
+                      <th scope="row" style={{ ...legalMapStyles.referenceCell, fontWeight: 600, paddingLeft: 0, whiteSpace: "nowrap", width: "1%" }}>{formatLabel(element.aspect?.replace(/^plat_/, ""))}</th>
+                      <td style={legalMapStyles.referenceCell}>{element.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section> : null}
+        </aside>
       </div>
-      <aside data-legal-map-info="true" style={legalMapStyles.infoColumn}>
-        {view.summary ? <>
-          <h3 style={legalMapStyles.infoHeading}>Description</h3>
-          <div style={legalMapStyles.infoCard}>{view.summary}</div>
-        </> : null}
-        <Legend presentLayers={view.presentLayers} />
-      </aside>
-    </div>
+    </>
   );
 }

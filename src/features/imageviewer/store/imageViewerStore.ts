@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { StoreState } from "../type/imageViewer.types";
 import { isPageError } from "../data/imageViewerData";
 
-const DEFAULT_POLL_INTERVAL_MS = 1500;
+const DEFAULT_POLL_INTERVAL_MS = 500;
 
 export const useImageViewerStore = create<StoreState>()((set, get) => ({
   pageSize: null,

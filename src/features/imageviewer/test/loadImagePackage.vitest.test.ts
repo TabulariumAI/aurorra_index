@@ -5,6 +5,45 @@ import { loadImagePackage } from "../data/loadImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 describe("loadImagePackage", () => {
+  it.each([
+    ["pending", "completed"], ["processing", "completed"],
+    ["pending", "error"], ["processing", "error"],
+  ])("polls %s packages every 500 ms until %s without restarting", async (initial, terminal) => {
+    vi.useFakeTimers();
+    const onError = vi.fn();
+    const session = `${initial}-${terminal}`;
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: initial, data: "" })),
+      imageStatus: vi.fn()
+        .mockResolvedValueOnce({ status: initial, data: "" })
+        .mockResolvedValueOnce({ status: "processing", data: "" })
+        .mockResolvedValueOnce({ status: terminal, data: terminal === "error" ? "Package failed" : "" }),
+      imageData: vi.fn(async () => ({ status: "completed" as const, data: { data: "https://storage.test/image.json", tiff: "https://storage.test/image.tiff" } })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    const loading = loadImagePackage({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session, workerClient });
+    await vi.advanceTimersByTimeAsync(499);
+    expect(workerClient.imageStatus).toHaveBeenCalledExactlyOnceWith("token", session);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(workerClient.imageStatus).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(499);
+    expect(workerClient.imageStatus).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await loading;
+    expect(workerClient.packageImage).toHaveBeenCalledExactlyOnceWith("token", session);
+    expect(workerClient.imageStatus).toHaveBeenCalledTimes(3);
+    if (terminal === "completed") {
+      expect(imageViewerStoreApi.getState().status).toBe("ready");
+      expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
+      expect(onError).not.toHaveBeenCalled();
+    } else {
+      expect(imageViewerStoreApi.getState().status).toBe("error");
+      expect(onError).toHaveBeenCalledWith({ code: "image_package_error", details: { status: "error", data: "Package failed" }, error: "Package failed" });
+      expect(workerClient.imageData).not.toHaveBeenCalled();
+      expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+    }
+  });
+
   it.each(["packageImage", "imageStatus", "imageData", "downloadPackage"] as const)("ignores session A after switching to B during %s", async stage => {
     let release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });

@@ -369,3 +369,24 @@ describe("right of way normalization", () => {
     expect(view.presentLayers).toEqual(new Set(["subdivision", "unit"]));
   });
 });
+
+
+describe("plat reference normalization", () => {
+  const first = { aspect: "plat", value: "HARBOUR POINTE" };
+  const second = { aspect: "plat_page", value: "37 THROUGH 40" };
+  const groups = [
+    { type: "plat_reference", elements: [first] },
+    { type: "lot_block", elements: [{ aspect: "lot", value: "3" }] },
+    { type: "plat_reference", elements: [second] },
+  ];
+  it.each(["groups", "legalGroups", "LegalGroups", "items"])("retains ordered reference elements from %s without mutation", (key) => {
+    const payload = { [key]: groups, summary: "One parcel." };
+    const before = JSON.stringify(payload);
+    expect(normalizeLegalData(payload).references).toEqual([first, second]);
+    expect(JSON.stringify(payload)).toBe(before);
+  });
+  it("does not create reference values for missing data", () => {
+    expect(normalizeLegalData(null).references).toEqual([]);
+    expect(normalizeLegalData({ groups: [{ type: "metes_bounds", elements: [first] }] }).references).toEqual([]);
+  });
+});

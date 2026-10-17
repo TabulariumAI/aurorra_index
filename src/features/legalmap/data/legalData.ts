@@ -172,6 +172,7 @@ export type LegalViewModel = {
   matchPlatSubdivision: boolean;
   platName?: string;
   presentLayers: Set<string>;
+  references: LegalElement[];
   subdivisions: PlatSubdivision[];
   summary?: string;
 };
@@ -504,6 +505,7 @@ export function normalizeLegalData(legalJSON: LegalMapPayload | LegalGroup[] | n
   const presentLayers = getPresentLayers(subdivisions);
 
   return {
+    references: resolveGroups(legalJSON).filter(group => isRecord(group) && group.type === "plat_reference").flatMap(getElements),
     subdivisions,
     location,
     platName,
