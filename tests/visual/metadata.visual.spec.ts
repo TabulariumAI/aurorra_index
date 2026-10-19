@@ -94,7 +94,14 @@ test("metadata keeps row actions and fixed header scrolling with expanded detail
   await expect(header).toHaveCSS("position", "static");
   await expect(accordion).toHaveCSS("overflow-y", "auto");
   await expect(row).toHaveCSS("box-shadow", "none");
-  await expect(copy).toHaveCSS("color", "rgb(0, 139, 163)");
+  await expect(copy).toHaveCSS("color", "rgb(100, 116, 139)");
+  await copy.hover();
+  await expect(copy).toHaveCSS("color", "rgb(100, 116, 139)");
+  await expect(copy).toHaveCSS("background-color", "rgb(224, 243, 255)");
+  await page.mouse.move(0, 0);
+  await copy.focus();
+  await expect(copy).toHaveCSS("color", "rgb(100, 116, 139)");
+  await accordion.getByRole("button", { name: "Parties(Party Clause)", exact: true }).focus();
   await expect(drop).toHaveCSS("color", "rgb(0, 139, 163)");
   await expect(drop).toHaveAttribute("title", "Delete index");
   await expect(copy).toHaveCSS("background-color", "rgb(255, 255, 255)");
@@ -131,6 +138,8 @@ for (const width of [1440, 480]) {
     const value = row.getByRole("link").filter({ hasText: "All that certain lot" });
     await expect(edit).toBeVisible();
     await expect(expand).toHaveAttribute("aria-expanded", "false");
+    await expect(expand.locator("svg path")).toHaveAttribute("d", "m6 9 6 6 6-6");
+    await expect(expand.locator("svg rect")).toHaveCount(0);
     await expect(row.getByText("Explanation:")).toHaveCount(0);
     await expect(row.getByText("Quote:")).toHaveCount(0);
     const [editBox, toggleBox, collapsedBox] = await Promise.all([edit.boundingBox(), expand.boundingBox(), row.boundingBox()]);
@@ -142,7 +151,8 @@ for (const width of [1440, 480]) {
     await page.keyboard.press("Enter");
     const collapse = row.getByRole("button", { name: "Collapse details" });
     await expect(collapse).toHaveAttribute("aria-expanded", "true");
-    await expect(collapse.locator("svg path")).toHaveCount(1);
+    await expect(collapse.locator("svg path")).toHaveAttribute("d", "m6 15 6-6 6 6");
+    await expect(collapse.locator("svg rect")).toHaveCount(0);
     const content = page.locator(`[id="${await collapse.getAttribute("aria-controls")}"]`);
     const explanation = content.getByText(/This explanation is intentionally long/);
     const quote = content.getByText(/full quoted source/);

@@ -190,7 +190,7 @@ describe("metadata visual surface", () => {
     expect(popButton).toHaveClass("metadata-row-action");
     expect(popButton).toHaveStyle({ color: "var(--primary)" });
     expect(popButton).toHaveStyle({ boxShadow: "none" });
-    expect(copyButton).toHaveStyle({ color: "var(--primary)" });
+    expect(copyButton).toHaveStyle({ color: "var(--slate-500)" });
     fireEvent.click(confirmButton);
     expect(onConfirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));

@@ -1,27 +1,26 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PageMetadataHits, PageSizeConfig, PageSizeFailure, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
-import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import type { AddIndexSelection } from "../../addindex";
 import { isPageError, toViewerError } from "../data/imageViewerData";
 import { imageViewerStoreApi, useImageViewerStore } from "../store/imageViewerStore";
 import type { LensApi, PageRequest } from "../type/imageViewer.types";
 
 function requestKey(request: PageRequest, requestVersion: number): string {
-  const searchKey = request.metadataIndex
+  const contentKey = request.metadataIndex
     ? `${request.metadataIndex.label}:${request.metadataIndex.value}:${request.metadataIndex.source}:${request.metadataIndex.ambiguous}`
     : `${request.value}:${request.quote}`;
-  return `${request.session}:${requestVersion}:${request.page}:${request.code}:${request.index}:${request.segment}:${searchKey}:${request.highlightOptions.scroll}`;
+  return `${request.session}:${requestVersion}:${request.page}:${request.code}:${request.index}:${request.segment}:${contentKey}:${request.highlightOptions.scroll}`;
 }
 
-function applySearch(lens: LensApi, request: PageRequest): boolean | PageMetadataHits | null {
+function applyRequest(lens: LensApi, request: PageRequest): boolean | PageMetadataHits | null {
   if (request.metadataIndex) {
-    console.info("imageviewer lens search index request", {
+    console.info("imageviewer lens highlight index request", {
       page: request.page,
       session: request.session,
       sourceLength: request.metadataIndex.source.length,
       valueLength: request.metadataIndex.value.length,
     });
-    return lens.searchIndex(request.page, request.metadataIndex, { additive: false });
+    return lens.highlightIndex(request.page, request.metadataIndex, { additive: false });
   }
   if (request.value) {
     console.info("imageviewer lens search request", {
@@ -134,9 +133,8 @@ export function useImageViewer() {
     let activeLens: LensApi | null = null;
 
     async function createLens(pageSize: PageSizeConfig) {
-      const { AuroraLens, IndexedDbViewerSessionStore, configurePdfWorker } = await import("@tabulariumai/aurora-lens");
+      const { AuroraLens, IndexedDbViewerSessionStore } = await import("@tabulariumai/aurora-lens");
       if (canceled) return;
-      configurePdfWorker(pdfWorkerUrl);
       console.info("imageviewer lens create", { session });
       createdLens = new AuroraLens(activeLensHost, {
         pageSize,
@@ -161,13 +159,15 @@ export function useImageViewer() {
           if (canceled || lensRef.current !== activeLens) return;
           imageViewerStoreApi.getState().setViewerStatus(status);
         },
-      }) as unknown as LensApi;
+      });
       activeLens = createdLens;
       lensRef.current = createdLens;
       setLensReady(true);
     }
 
-    void createLens(lensSize);
+    void createLens(lensSize).catch(error => {
+      if (!canceled) reportFailure(error, "Image viewer could not be initialized.");
+    });
     return () => {
       console.info("imageviewer lens close", {
         decodedPackageVersion: decodedPackageVersionRef.current,
@@ -339,12 +339,13 @@ export function useImageViewer() {
         segment: request.segment,
         session: request.session,
       });
-      void lens.goToPage(request.page);
+      // Lens reports navigation failures through its onError callback.
+      void lens.goToPage(request.page).catch(() => undefined);
       return;
     }
     lastRequestKeyRef.current = key;
     if (isPageError(imageViewerStoreApi.getState().error)) imageViewerStoreApi.getState().setReady();
-    const result = applySearch(lens, request);
+    const result = applyRequest(lens, request);
     setNoMatch(request.metadataIndex && result === false ? key : null);
   }, [imagePage, pageReady, request, requestVersion, viewerState?.pageIndex, viewerState?.viewMode]);
 
@@ -359,25 +360,25 @@ export function useImageViewer() {
   const previousPage = useCallback(() => {
     if (!pageReady || !viewerState?.canGoPrevious) return;
     console.info("imageviewer lens action", { action: "previousPage" });
-    void lensRef.current?.previousPage();
+    void lensRef.current?.previousPage().catch(() => undefined);
   }, [pageReady, viewerState?.canGoPrevious]);
 
   const nextPage = useCallback(() => {
     if (!pageReady || !viewerState?.canGoNext) return;
     console.info("imageviewer lens action", { action: "nextPage" });
-    void lensRef.current?.nextPage();
+    void lensRef.current?.nextPage().catch(() => undefined);
   }, [pageReady, viewerState?.canGoNext]);
 
   const firstPage = useCallback(() => {
     if (!pageReady || !viewerState?.canGoFirst) return;
     console.info("imageviewer lens action", { action: "firstPage" });
-    void lensRef.current?.firstPage();
+    void lensRef.current?.firstPage().catch(() => undefined);
   }, [pageReady, viewerState?.canGoFirst]);
 
   const lastPage = useCallback(() => {
     if (!pageReady || !viewerState?.canGoLast) return;
     console.info("imageviewer lens action", { action: "lastPage" });
-    void lensRef.current?.lastPage();
+    void lensRef.current?.lastPage().catch(() => undefined);
   }, [pageReady, viewerState?.canGoLast]);
 
   const search = useCallback(() => {
@@ -428,7 +429,7 @@ export function useImageViewer() {
     if (!pageReady || !viewerState?.canShowThumbnails) return;
     console.info("imageviewer lens action", { action: "showThumbnails" });
     imageViewerStoreApi.getState().setThumbsOpen(true);
-    void lensRef.current?.showThumbnails();
+    void lensRef.current?.showThumbnails().catch(() => undefined);
   }, [pageReady, viewerState?.canShowThumbnails]);
 
   const zoomIn = useCallback(() => {

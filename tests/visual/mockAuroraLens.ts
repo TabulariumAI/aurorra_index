@@ -227,8 +227,8 @@ export class AuroraLens {
     this.host.dataset.searchText = text;
   }
 
-  searchIndex(page: string | number, index: { value: string; source: string }, _options?: unknown): boolean {
-    this.host.dataset.searchIndex = `${page}:${index.value}`;
+  highlightIndex(page: string | number, index: { value: string; source: string }, _options?: unknown): boolean {
+    this.host.dataset.highlightIndex = `${page}:${index.value}`;
     return index.value !== "Missing text";
   }
 

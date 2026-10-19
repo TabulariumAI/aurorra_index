@@ -1,4 +1,4 @@
-import type { AuroraLens, DecodeDocOptions, PageSizeConfig, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
+import type { AuroraLens, PageSizeConfig, MetadataIndex as LensMetadataIndex, ViewerState, ViewerStatus } from "@tabulariumai/aurora-lens";
 import type { ReactNode } from "react";
 import type { MetadataSelected } from "aurora-core";
 
@@ -175,11 +175,9 @@ export type LensApi = Pick<
   | "resolvePage"
   | "restoreSession"
   | "search"
-  | "searchIndex"
+  | "highlightIndex"
   | "setDrawMode"
   | "showThumbnails"
   | "zoomIn"
   | "zoomOut"
-> & {
-  decodeDoc(file: File, options: DecodeDocOptions): Promise<void>;
-};
+>;

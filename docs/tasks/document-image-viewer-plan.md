@@ -29,7 +29,7 @@ The document image viewer is owned by `aurorra_index/src/features/imageviewer`.
 
 8. `ImageWorker` downloads the TIFF and JSON URLs.
 9. `ImageWorker` parses the JSON metadata and returns TIFF bytes plus metadata to `imageViewerStore`.
-10. `useImageViewer` creates read-only `AuroraLens`, loads metadata, decodes the multipage TIFF, navigates to the requested page, and invokes Aurora Lens Search or Select.
+10. `useImageViewer` creates read-only `AuroraLens`, loads metadata, decodes the multipage TIFF, navigates to the requested page, and invokes Aurora Lens Search or index Highlight.
 11. Export opens Add Index with selected value, source context, and the current page name. Copy writes only the selected value to the clipboard. Match scores metadata value and source tokens at 80% confidence, uses page name to break ties, and focuses the winning visible index.
 
 ## Ownership Rules
@@ -42,7 +42,7 @@ The document image viewer is owned by `aurorra_index/src/features/imageviewer`.
 - Toolbar rendering, forwarding Search and Select inputs to Aurora Lens, zoom, fit, page navigation, thumbnails, and visual tests.
 - Matching exported image selections back to metadata rows and rendering the visible no-match result.
 
-`aurora-lens` owns image-text Search, index Select, selection export without clipboard writes, value-only copy, and current page-name lookup. Index Select receives the index value and source from `aurorra_index`, uses the shared Search matcher with token order disabled, selects the candidate with the most source-term matches, and returns a boolean. `aurorra_index` displays `Cant match the requested text.` when Select returns `false`. Aurora Lens does not depend on `aurorra_index`.
+`aurora-lens` owns image-text Search, index Highlight, selection export without clipboard writes, value-only copy, and current page-name lookup. Search returns all complete exact and fuzzy occurrences. Index Highlight receives the index value and source from `aurorra_index` and uses the shared matcher with value token order disabled. It returns one result, ranking complete value matches first, then source-term coverage, then lowest Fuse score; ties retain the first metadata occurrence. Highlight returns a boolean. `aurorra_index` displays its no-match status when Highlight returns `false`. Aurora Lens does not depend on `aurorra_index`.
 
 `document_web` owns:
 - The named `showDocumentPage` orchestration operation.
