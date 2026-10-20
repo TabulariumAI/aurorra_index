@@ -65,6 +65,7 @@ function PanelHarness(): JSX.Element {
         {...panelDefaults}
         callbacks={{
           onAddressClick: (value) => setAddress(value),
+          onLegalView: () => setAddress("combined-map"),
         }}
         confirmedCodes={new Set()}
         choices={[{ level: 1, service: "ExhibitIndexing" }]}
@@ -86,21 +87,20 @@ function PanelHarness(): JSX.Element {
 }
 
 describe("MetadataPanel address map integration", () => {
-  it("forwards address row click to callbacks.onAddressClick", async () => {
+  it("opens the combined map once above the property rows", async () => {
     render(<PanelHarness />);
 
-    const openButton = await screen.findByRole("button", { name: "Open address 123 Main Street, Austin, TX 78701" });
+    const openButton = await screen.findByRole("button", { name: "Open legal view" });
     const value = screen.getByText("123 Main Street, Austin, TX 78701");
-    expect(openButton.parentElement?.firstElementChild).toBe(value);
-    expect(openButton.parentElement?.lastElementChild).toBe(openButton);
+    expect(openButton.parentElement).not.toContainElement(value);
     expect(openButton).toHaveStyle({ padding: "0px" });
-    expect(openButton.parentElement).toHaveStyle({ alignItems: "flex-start", display: "flex", flexDirection: "column", gap: "0.15rem" });
     expect(value).toHaveStyle({ display: "inline", whiteSpace: "normal", overflowWrap: "anywhere" });
-    expect(openButton).toHaveTextContent("Show map");
+    expect(openButton).toHaveTextContent("Show Map");
     expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
 
-    await waitFor(() => expect(screen.getByTestId("address-clicked").textContent).toBe("123 Main Street, Austin, TX 78701"));
+    await waitFor(() => expect(screen.getByTestId("address-clicked").textContent).toBe("combined-map"));
+    expect(screen.queryByRole("button", { name: /^Open address/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

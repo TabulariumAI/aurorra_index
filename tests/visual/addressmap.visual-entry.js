@@ -1,4 +1,4 @@
-import "../../../document_web/assets/root.css";
+import "../../../document_web/src/bootstrap/style/root.css";
 
 const scenario = new URLSearchParams(window.location.search).get("scenario");
 

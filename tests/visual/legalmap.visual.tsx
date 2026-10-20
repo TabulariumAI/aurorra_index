@@ -1,5 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { LegalMapContent } from "../../src/features/legalmap/component/LegalMapContent";
+import { buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "../../src/features/addressmap/data/addressMap";
+import { AddressMapContent } from "../../src/features/addressmap/component/AddressMapContent";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
@@ -20,6 +22,15 @@ const rowLabels = ["2.669 ACRE DRAINAGE RIGHT OF WAY", "5.455 ACRE DRAINAGE RIGH
 createRoot(main).render(
   <LegalMapContent
     onReadyChange={() => undefined}
+    addressMap={params.has("address") ? {
+      address: "123 Main St, Austin, TX 78701",
+      content: <AddressMapContent
+        source={buildAddressMapEmbedUrl("123 Main St, Austin, TX 78701")}
+        zoom={DEFAULT_ADDRESS_MAP_ZOOM}
+        onLoaderChange={() => undefined}
+        onReadyChange={() => undefined}
+      />,
+    } : undefined}
     legal={{
       ...(parcels ? { parcels_num: Number(params.get("parcels")), summary: "One parcel: Lot 32, Block 1, County Block 4482C, The Ranch at Iron Horse, Phase II, in Bexar County, Texas. PLATTED." } : {}),
       ...(rows ? { summary: "Two drainage rights of way, 2.669 and 5.455 acres, in Inwood Place Subdivision Unit 1, an addition to San Antonio, Bexar County, Texas. Plat Book 9563, pages 56–59. PLATTED." } : {}),

@@ -1,5 +1,50 @@
 import { expect, test } from "@playwright/test";
 
+for (const width of [1440, 900, 390]) {
+  test(`property map tabs and address fit at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.route("https://www.google.com/maps**", route => route.fulfill({ contentType: "text/html", body: "<html><body>Google map test response</body></html>" }));
+    await page.goto("/?scenario=legal-map&address=true&parcels=1");
+    const plat = page.getByRole("tab", { name: "Plat" });
+    const address = page.getByRole("tab", { name: "Address" });
+    await expect(plat).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("heading", { name: "Address" })).toBeVisible();
+    const layout = await page.locator(".legal-map").evaluate(node => {
+      const tabs = node.querySelector("[role=tablist]")!.getBoundingClientRect();
+      const map = node.querySelector("[data-legal-map-surface]")!.getBoundingClientRect();
+      const label = node.querySelector("[data-legal-map-grid]")!.querySelector("[data-legal-map-subdivision]")!.previousElementSibling!.getBoundingClientRect();
+      return {
+        fits: node.scrollWidth <= node.clientWidth,
+        tabsFit: tabs.right <= map.right && tabs.left >= map.left && tabs.top >= map.top && tabs.bottom <= map.bottom,
+        titleClear: label.top >= tabs.bottom,
+        mapHeight: map.height,
+      };
+    });
+    expect(layout).toMatchObject({ fits: true, tabsFit: true, titleClear: true });
+    expect(layout.mapHeight).toBeGreaterThan(200);
+    await page.screenshot({ path: testInfo.outputPath(`map-plat-${width}.png`), fullPage: true });
+    await plat.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(address).toBeFocused();
+    await expect(page.getByRole("tabpanel")).toHaveAccessibleName("Address");
+    const iframe = page.getByTitle("Address map");
+    await expect(iframe).toBeVisible();
+    const overlay = await page.getByRole("tablist").boundingBox();
+    await expect(iframe).toHaveAttribute("src", /www\.google\.com\/maps\?q=123%20Main.*&z=14$/);
+    const bounds = await iframe.boundingBox();
+    expect(bounds!.width).toBeGreaterThan(250);
+    expect(bounds!.height).toBeGreaterThan(200);
+    expect(overlay!.y).toBeGreaterThanOrEqual(bounds!.y);
+    expect(overlay!.x + overlay!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    await page.screenshot({ path: testInfo.outputPath(`map-address-${width}.png`), fullPage: true });
+    await address.focus();
+    await page.keyboard.press("Home");
+    await expect(plat).toBeFocused();
+    await expect(page.locator("[data-legal-map-lot]")).toHaveCount(1);
+    await expect(page.getByTitle("Address map")).toHaveCount(0);
+  });
+}
+
 for (const width of [1440, 900]) {
   test(`one parcel retains both block identifiers and one lot at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
@@ -87,7 +132,7 @@ test("legal map content renders plat grid", async ({ page }) => {
   const location = page.locator("#plat-location-bottom");
   const legend = page.getByText("Subdivision", { exact: true });
   await expect(legend).toBeVisible();
-  await expect(page.locator("[data-legal-map-info='true']")).toContainText("Subdivision");
+  await expect(page.locator("[data-legal-map-footer='true']")).toContainText("Subdivision");
   expect(await location.evaluate(node => getComputedStyle(node).fontSize)).toBe(
     await page.getByText("MISSION DEL LAGO UNIT 16A", { exact: true }).evaluate(node => getComputedStyle(node).fontSize),
   );
@@ -103,7 +148,7 @@ for (const width of [1440, 900]) {
     await expect(bands).toHaveText(["2.669 ACRE DRAINAGE RIGHT OF WAY", "5.455 ACRE DRAINAGE RIGHT OF WAY"]);
     await expect(page.getByText("Unit 1", { exact: true })).toBeVisible();
     await expect(page.locator("[data-legal-map-block], [data-legal-map-lot]")).toHaveCount(0);
-    await expect(page.locator("[data-legal-map-info]")).toContainText("Description");
+    await expect(page.locator("[data-legal-map-info]")).toContainText("Summary");
     await expect(page.getByText("Right Of Way", { exact: true })).toBeVisible();
     const geometry = await bands.evaluateAll(nodes => nodes.map(node => {
       const band = node.getBoundingClientRect();

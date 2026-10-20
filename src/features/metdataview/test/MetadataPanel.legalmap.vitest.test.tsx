@@ -110,7 +110,7 @@ describe("MetadataPanel legal map trigger", () => {
     expect(screen.getByText("Metes Bounds")).toBeInTheDocument();
     expect(screen.getAllByRole("article")).toHaveLength(3);
     expect(openButton).toHaveStyle({ padding: "0px" });
-    expect(openButton).toHaveTextContent("Show plat");
+    expect(openButton).toHaveTextContent("Show Map");
     expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
 

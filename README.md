@@ -34,6 +34,8 @@ import { IndexContainer, ImageViewerPanel } from "aurorra-index";
 
 `ImageViewerPanel` requires the host `renderTolerance` callout renderer. Page-size rejection shows the source, page dimensions, and required tolerance. **Process anyway** retries the cached image package with a temporary tolerance; **Cancel**, Close, or Escape dismisses approval. The override is not persisted and is discarded when preview unmounts or its document changes.
 
+`LegalMapContent` displays Plat and Address tabs with shared Summary, Address, and Reference sections. Supply `legal` and, when a property address exists, `addressMap: { address, content }`. The host supplies `AddressMapContent` as the address content and wraps only that content in its loading boundary. Unavailable tabs are hidden; Plat opens first when lot/block data exists, otherwise Address opens first. The metadata **Show Map** action calls `onLegalView()` when either lot/block data or a property address exists; reference-only data does not enable it.
+
 See the exported prop types in [`src/public-api.ts`](src/public-api.ts). The host must supply valid credentials and compatible gateway endpoints.
 
 ## Development

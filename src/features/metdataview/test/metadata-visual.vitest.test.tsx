@@ -695,7 +695,7 @@ describe("metadata visual surface", () => {
     expect(legalCard?.querySelector('svg[data-status-icon="success"]')).toHaveAttribute("width", "0.7rem");
     expect(legalCard?.querySelector("button")).toBeNull();
     legalActionButtons.forEach((button) => {
-      expect(button).toHaveTextContent("Show plat");
+      expect(button).toHaveTextContent("Show Map");
       expect(button).toHaveStyle({ alignItems: "center", width: "auto", height: "2rem", minHeight: "2rem", padding: "0px" });
     });
     expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "none" });

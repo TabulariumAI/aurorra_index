@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { iconButtonStyle } from "aurora-core";
 import legalMapBackdrop from "../assets/legal-map-backdrop.svg?url";
 
 export const legalMapColors = {
@@ -33,6 +34,9 @@ export const rowFillStyle: CSSProperties = {
 };
 
 export const legalMapCss = `
+.legal-map-tabs button[aria-selected="true"] { --icon-surface: var(--accent-surface); }
+.legal-map-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.legal-map [role="tabpanel"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .legal-map-reference th, .legal-map-reference td { border: 0; }
 .legal-map-reference tr + tr > * { border-top: 1px solid var(--border-subtle); }
 .legal-map-reference td { border-left: 1px solid var(--border-subtle); }
@@ -44,6 +48,7 @@ export const legalMapCss = `
   }
   .legal-map-info { display: contents !important; }
   .legal-map-summary { order: 0; }
+  .legal-map-address { order: 2; }
   .legal-map-column {
     order: 1;
     flex: 0 0 auto;
@@ -76,6 +81,34 @@ export const legalMapStyles = {
     flexDirection: "column",
     minHeight: 0,
     minWidth: 0,
+    position: "relative",
+  },
+  tabs: {
+    background: "var(--white)",
+    border: "1px solid var(--border-subtle)",
+    borderRadius: "var(--radius-control)",
+    display: "flex",
+    gap: "0.125rem",
+    padding: "0.125rem",
+    position: "absolute",
+    right: "0.75rem",
+    top: "0.75rem",
+    zIndex: 1,
+  },
+  tabButton: {
+    ...iconButtonStyle,
+    fontFamily: "inherit",
+    fontSize: "0.875rem",
+    fontWeight: 600,
+    outline: undefined,
+    padding: "0.25rem 0.65rem",
+    width: "auto",
+  },
+  panel: {
+    flex: "1 1 0",
+    minHeight: 0,
+    minWidth: 0,
+    display: "flex",
   },
   infoColumn: {
     boxSizing: "border-box",
@@ -160,7 +193,7 @@ export const legalMapStyles = {
     maxHeight: "100%",
     minHeight: "0",
     overflow: "auto",
-    padding: "2rem 1rem",
+    padding: "3.75rem 1rem 2rem",
     width: "100%",
   },
   northMarker: {
