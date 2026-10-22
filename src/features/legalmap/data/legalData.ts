@@ -2,6 +2,13 @@ import type { LegalElement, LegalGroup, LegalPayload } from "aurora-core";
 
 export type LegalMapPayload = LegalPayload & { parcels_num?: number };
 
+export function labelValue(value: string, kind: string): string {
+  return value.replace(new RegExp(`(^|[,/])\\s*(?:${kind})\\b\\s*(?:no\\.?\\s*)?`, "gi"), "$1").trim();
+}
+
+export const legalMapViews = ["Plat", "Metes & Bounds", "PLSS"] as const;
+export type LegalMapView = typeof legalMapViews[number];
+
 const stateAbbr: Record<string, string> = {
   AL: "Alabama",
   AK: "Alaska",
@@ -480,7 +487,7 @@ function extractCityCountyState(legalJSON: unknown): LegalLocation {
   return out;
 }
 
-function resolveGroups(legalJSON: unknown): unknown[] {
+export function resolveGroups(legalJSON: unknown): unknown[] {
   if (Array.isArray(legalJSON)) return legalJSON;
   if (!isRecord(legalJSON)) return [];
   return [legalJSON.LegalGroups, legalJSON.legalGroups, legalJSON.groups, legalJSON.items].find(Array.isArray) || [];

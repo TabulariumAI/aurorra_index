@@ -10,6 +10,8 @@ export const ImageViewerPanel = lazy(async () => {
 });
 
 export { IndexContainer, IndexContainer as IndexMetadata } from "./features/indexing/component/IndexContainer";
+export { MetadataPanel } from "./features/metdataview/component/MetadataPanel";
+export type { MetadataPanelProps, MetadataPanelActions, MetadataPanelSections } from "./features/metdataview/component/MetadataPanel";
 
 export {
   formatLocation,
@@ -21,6 +23,7 @@ export {
   normalizeLegalData,
   toPlatJSON,
 } from "./features/legalmap/data/legalData";
+export { getMapGroups } from "./features/legalmap/data/surveyData";
 export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
 export type { LegalMapPayload } from "./features/legalmap/data/legalData";
 export { createDeferredState } from "./features/indexing/data/deferredState";

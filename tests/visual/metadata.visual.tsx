@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { useState } from "react";
-import { MetadataPanel } from "aurora-core";
+import { MetadataPanel } from "../../src/features/metdataview/component/MetadataPanel";
 import { getPanelData } from "aurora-core";
 import type { MetadataSegments, MetadataPayload } from "aurora-core";
 

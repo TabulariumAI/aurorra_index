@@ -11,6 +11,8 @@ export const legalMapColors = {
   divisionText: "#6b6256",
   gridLine: "#d5dee2",
   mapBg: "#f7f8f6",
+  parcelFill: "#63b5d5",
+  parcelLine: "#2496c8",
   secondaryText: "#62727d",
   lotBg: "#fbe9e3",
   lotBorder: "#cf7258",
@@ -24,8 +26,14 @@ export const legalMapColors = {
 export const legalMapConstants = {
   amp: 1.15,
   blockBaseFontSize: 16,
+  closureRatio: 0.001,
   gridSize: 24,
   lotBaseFontSize: 16,
+  labelInset: 32,
+  parcelScale: 0.675,
+  plssCenter: 0.4,
+  plssScale: 0.9,
+  surveyHeight: "22rem",
 } as const;
 
 export const rowFillStyle: CSSProperties = {
@@ -37,9 +45,16 @@ export const legalMapCss = `
 .legal-map-tabs button[aria-selected="true"] { --icon-surface: var(--accent-surface); }
 .legal-map-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .legal-map [role="tabpanel"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.survey-layout { display: flex; flex: 1 0 auto; flex-direction: column; gap: 0.75rem; min-height: 100%; min-width: 0; }
+.survey-calls { flex: 0 0 auto; min-width: 0; }
+.survey-boundary { flex: 1 1 0; min-height: 0; overflow: hidden; }
+.survey-boundary .survey-calls { display: flex; flex: 0 1 30%; flex-direction: column; min-height: 5rem; overflow: hidden; }
+.survey-boundary .survey-calls th { background: var(--white); position: sticky; top: 0; z-index: 1; }
+.legal-map-surveys:has(.survey-boundary) { flex: 1 1 0 !important; overflow: hidden !important; }
 .legal-map-reference th, .legal-map-reference td { border: 0; }
 .legal-map-reference tr + tr > * { border-top: 1px solid var(--border-subtle); }
 .legal-map-reference td { border-left: 1px solid var(--border-subtle); }
+.legal-map-acreage li + li { border-top: 1px solid var(--border-subtle); margin-top: 0.5rem; padding-top: 0.5rem; }
 @media (max-width: 48rem) {
   .legal-map {
     display: flex !important;
@@ -48,14 +63,24 @@ export const legalMapCss = `
   }
   .legal-map-info { display: contents !important; }
   .legal-map-summary { order: 0; }
-  .legal-map-address { order: 2; }
   .legal-map-column {
     order: 1;
     flex: 0 0 auto;
-    height: 24rem;
+    height: 28rem;
   }
   .legal-map-column:empty { display: none !important; }
-  .legal-map-reference { order: 3; }
+  .legal-map-column:has(.legal-map-surveys) { height: auto; }
+  .legal-map-column:has(.legal-map-surveys) [role="tabpanel"] { flex: 0 0 auto !important; }
+  .legal-map-surveys, .legal-map-surveys:has(.survey-boundary) { flex: 0 0 auto !important; overflow: visible !important; }
+  .legal-map-surveys .survey-layout { flex: 0 0 auto; min-height: 0; overflow: visible; }
+  .legal-map-surveys [data-legal-map-surface] { flex: 1 0 auto !important; min-height: ${legalMapConstants.surveyHeight} !important; }
+  .legal-map-surveys .survey-calls { flex: 0 0 auto; overflow: visible; }
+  .legal-map-surveys .survey-calls [role="region"] { flex: 0 0 auto !important; }
+  .legal-map-reference, .legal-map-easement { order: 3; }
+  .legal-map-acreage { order: 2; }
+  .legal-map-acreage [aria-label] { font-size: 0.75rem !important; line-height: 1.4 !important; }
+  .legal-map-acreage li + li { margin-top: 0.25rem; padding-top: 0.25rem; }
+  .legal-map-header:has([data-survey-tie-label]) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
 }
 `;
 
@@ -88,13 +113,23 @@ export const legalMapStyles = {
     border: "1px solid var(--border-subtle)",
     borderRadius: "var(--radius-control)",
     display: "flex",
+    flexWrap: "wrap",
     gap: "0.125rem",
+    gridColumn: 2,
+    justifySelf: "end",
+    maxWidth: "100%",
     padding: "0.125rem",
-    position: "absolute",
-    right: "0.75rem",
-    top: "0.75rem",
-    zIndex: 1,
+    zIndex: 2,
   },
+  mapActions: { position: "absolute", right: "0.75rem", top: "0.75rem", maxWidth: "calc(100% - 1.5rem)", zIndex: 2 },
+  mapHeader: { alignItems: "start", display: "grid", flex: "0 0 auto", gap: "0.75rem", gridTemplateColumns: "minmax(0, 1fr) auto", minWidth: 0, padding: "0.75rem" },
+  mapDrawing: { display: "flex", flex: "1 1 0", minHeight: "6rem", minWidth: 0, position: "relative" },
+  mapNorth: { position: "absolute", left: "0.75rem", bottom: "0.75rem", zIndex: 1 },
+  infoTitle: { fontSize: "inherit", margin: "0 0 0.5rem" },
+  infoNote: { color: legalMapColors.secondaryText, fontSize: "0.875em", lineHeight: 1.4, margin: "0.5rem 0 0", whiteSpace: "pre-wrap" },
+  acreageList: { listStyle: "none", margin: 0, padding: 0, textAlign: "left" },
+  acreageFirst: { display: "flex", alignItems: "baseline", gap: "0.5rem", fontWeight: 600 },
+  acreageSwatch: { flex: "0 0 auto", alignSelf: "center" },
   tabButton: {
     ...iconButtonStyle,
     fontFamily: "inherit",
@@ -170,6 +205,7 @@ export const legalMapStyles = {
     minHeight: 0,
     minWidth: 0,
     overflow: "hidden",
+    position: "relative",
     width: "100%",
   },
   mapFooter: {
@@ -177,7 +213,7 @@ export const legalMapStyles = {
     display: "flex",
     flex: "0 0 auto",
     gap: "0.75rem",
-    padding: "0.75rem",
+    padding: "0.75rem 0.75rem 0.75rem 4rem",
   },
   grid: {
     alignItems: "stretch",
@@ -193,7 +229,7 @@ export const legalMapStyles = {
     maxHeight: "100%",
     minHeight: "0",
     overflow: "auto",
-    padding: "3.75rem 1rem 2rem",
+    padding: "1rem 1rem 2rem",
     width: "100%",
   },
   northMarker: {

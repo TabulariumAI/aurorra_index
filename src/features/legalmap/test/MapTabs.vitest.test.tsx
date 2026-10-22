@@ -28,7 +28,7 @@ describe("combined property map", () => {
     for (const tab of screen.getAllByRole("tab")) {
       expect(tab).toHaveStyle({ boxShadow: "none", transform: "none", height: "2rem" });
     }
-    expect(screen.getByRole("tablist")).toHaveStyle({ position: "absolute" });
+    expect(screen.getByRole("tablist").parentElement).toHaveStyle({ display: "grid", padding: "0.75rem" });
     expect(document.querySelector(".legal-map-column")).toHaveStyle({ position: "relative" });
     fireEvent.click(screen.getByRole("tab", { name: "Address" }));
     for (const tab of screen.getAllByRole("tab")) {
@@ -36,15 +36,15 @@ describe("combined property map", () => {
     }
   });
 
-  it("opens Plat first, shows address between summary and reference, and switches only the map", () => {
+  it("opens Plat first, retains summary and reference without the address card, and switches only the map", () => {
     const onReadyChange = vi.fn();
     render(<LegalMapContent legal={legal} addressMap={addressMap} onReadyChange={onReadyChange} />);
     const plat = screen.getByRole("tab", { name: "Plat" });
     expect(plat).toHaveAttribute("aria-selected", "true");
     expect(document.querySelector("[data-legal-map-lot]")).toHaveTextContent("8Lot");
     const info = document.querySelector("[data-legal-map-info]") as HTMLElement;
-    expect(within(info).getAllByRole("heading").map(node => node.textContent)).toEqual(["Summary", "Address", "Reference"]);
-    expect(within(info).getByText(addressMap.address)).toBeVisible();
+    expect(within(info).getAllByRole("heading").map(node => node.textContent)).toEqual(["Summary", "Reference"]);
+    expect(within(info).queryByText(addressMap.address)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Address" }));
     expect(screen.getByRole("tab", { name: "Address" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Address");
@@ -55,7 +55,7 @@ describe("combined property map", () => {
     fireEvent.load(screen.getByTitle("Address map"));
     expect(onMapReady).toHaveBeenLastCalledWith(true);
     expect(within(info).getByRole("table", { name: "Reference" })).toBeVisible();
-    fireEvent.click(plat);
+    fireEvent.click(screen.getByRole("tab", { name: "Plat" }));
     expect(screen.queryByTitle("Address map")).not.toBeInTheDocument();
     expect(document.querySelector("[data-legal-map-lot]")).toHaveTextContent("8Lot");
     expect(onLoaderChange).toHaveBeenLastCalledWith(null);
@@ -63,18 +63,12 @@ describe("combined property map", () => {
 
   it("supports arrow, Home and End keyboard navigation", () => {
     render(<LegalMapContent legal={legal} addressMap={addressMap} onReadyChange={vi.fn()} />);
-    const plat = screen.getByRole("tab", { name: "Plat" });
-    const address = screen.getByRole("tab", { name: "Address" });
-    plat.focus();
-    fireEvent.keyDown(plat, { key: "ArrowRight" });
-    expect(address).toHaveFocus();
-    expect(address).toHaveAttribute("aria-selected", "true");
-    fireEvent.keyDown(address, { key: "Home" });
-    expect(plat).toHaveFocus();
-    fireEvent.keyDown(plat, { key: "End" });
-    expect(address).toHaveFocus();
-    fireEvent.keyDown(address, { key: "ArrowLeft" });
-    expect(plat).toHaveFocus();
+    screen.getByRole("tab", { name: "Plat" }).focus();
+    for (const [key, target] of [["ArrowRight", "Address"], ["Home", "Plat"], ["End", "Address"], ["ArrowLeft", "Plat"]]) {
+      fireEvent.keyDown(document.activeElement!, { key });
+      expect(screen.getByRole("tab", { name: target })).toHaveFocus();
+      expect(screen.getByRole("tab", { name: target })).toHaveAttribute("aria-selected", "true");
+    }
   });
 
   it("hides unavailable tabs and selects Address for address-only data", () => {
@@ -111,7 +105,7 @@ describe("combined property map", () => {
     /> };
     rerender(<LegalMapContent legal={legal} addressMap={next} onReadyChange={vi.fn()} />);
     expect(screen.queryByText(addressMap.address)).not.toBeInTheDocument();
-    expect(screen.getByText(next.address)).toBeVisible();
+    expect(screen.queryByText(next.address)).not.toBeInTheDocument();
     expect(screen.getByTitle("Address map").getAttribute("src")).toContain("456%20Oak");
     rerender(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
     expect(screen.getByRole("tab", { name: "Plat" })).toHaveAttribute("aria-selected", "true");

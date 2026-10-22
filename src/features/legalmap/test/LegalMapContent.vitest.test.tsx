@@ -99,9 +99,9 @@ describe("LegalMapContent", () => {
     expect(location.compareDocumentPosition(screen.getByText("Subdivision")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(location.style.fontSize).toBe(screen.getByText("WILLOW CREEK").style.fontSize);
     const grid = document.querySelector("[data-legal-map-grid='true']");
-    expect(grid?.parentElement).toHaveStyle({ borderRadius: "var(--radius-card)" });
-    expect((grid?.parentElement as HTMLElement).style.backgroundImage).toMatch(/svg\+xml|legal-map-backdrop/);
-    const north = grid?.parentElement?.querySelector("[data-legal-map-north='true']");
+    expect(grid?.closest("[data-legal-map-surface]")).toHaveStyle({ borderRadius: "var(--radius-card)" });
+    expect((grid?.closest("[data-legal-map-surface]") as HTMLElement).style.backgroundImage).toMatch(/svg\+xml|legal-map-backdrop/);
+    const north = grid?.closest("[data-legal-map-surface]")?.querySelector("[data-legal-map-north='true']");
     expect(north).toHaveTextContent("N");
     expect(north).toHaveAttribute("aria-hidden", "true");
     expect(north).toHaveStyle({ borderRadius: "var(--radius-control)", boxShadow: "var(--shadow-card)" });
@@ -138,7 +138,7 @@ describe("LegalMapContent", () => {
     expect(screen.getByText("1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.")).toHaveStyle({ borderRadius: "var(--radius-card)" });
     const legend = document.querySelector("[data-legal-map-footer] .legal-map-legend") as HTMLElement;
     for (const label of ["Subdivision", "Block", "Lot"]) expect(within(legend).getByText(label, { exact: true })).toBeVisible();
-    expect(legend.previousElementSibling).toHaveAttribute("data-legal-map-north", "true");
+    expect(legend.closest("[data-legal-map-surface]")!.querySelector("[data-legal-map-north]")).toHaveAttribute("data-legal-map-north", "true");
     expect(within(info as HTMLElement).getByRole("heading", { name: "Reference" })).toBeVisible();
     expect(within(info as HTMLElement).getByRole("table", { name: "Reference" })).toHaveTextContent("COUNTRY CLUB MANOR NO. 3, REPLAT NO. 2");
     expect(screen.getByText("7")).toBeInTheDocument();
@@ -285,7 +285,7 @@ describe("LegalMapContent", () => {
     const unit = grid.querySelector("[data-legal-map-division]")!;
     const block = grid.querySelector("[data-legal-map-block-label]")!.parentElement!;
     const lot = grid.querySelector("[data-legal-map-lot]")!;
-    expect(grid.parentElement).toHaveStyle({ backgroundColor: "#f7f8f6" });
+    expect(grid.closest("[data-legal-map-surface]")).toHaveStyle({ backgroundColor: "#f7f8f6" });
     expect(grid).toHaveStyle({ color: "#183247" });
     expect(grid.querySelector("[data-legal-map-subdivision]")).toHaveStyle({ borderColor: "#3a7c8c" });
     expect(screen.getByText("SEALE SUBDIVISION")).toHaveStyle({ color: "#274f59" });

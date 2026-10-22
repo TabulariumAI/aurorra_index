@@ -4,7 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { storeApi } from "../../../store/state/store";
-import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { MetadataPanel } from "../component/MetadataPanel";
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",
@@ -140,10 +141,10 @@ describe("MetadataPanel legal map trigger", () => {
     expect(screen.getByRole("button", { name: "Open legal view" })).toBeInTheDocument();
   });
 
-  it("hides the plat action when no legal group matches", () => {
+  it("offers the map for metes and bounds without a lot/block group", () => {
     const legals: MetadataPayload = {
       ...metadata,
-      legals: { summary: "Boundary description.", groups: [{ code: "legal-3", elements: [{ aspect: "description", value: "Boundary" }], type: "metes_bounds" }] },
+      legals: { summary: "Boundary description.", groups: [{ code: "legal-3", elements: [{ aspect: "bearings", value: "N" }, { aspect: "distances", value: "100 ft" }], type: "metes_bounds" }] },
     };
     render(
       <MetadataPanel
@@ -162,7 +163,7 @@ describe("MetadataPanel legal map trigger", () => {
       />,
     );
     expect(screen.getByText("Boundary description.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Open legal view" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open legal view" })).toHaveTextContent("Show Map");
   });
 
   it("keeps legalmap package files free of dialog ownership", () => {

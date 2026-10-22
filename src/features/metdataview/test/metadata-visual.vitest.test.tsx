@@ -2,7 +2,8 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
-import { MetadataPanel, IndexValue, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { IndexValue, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { MetadataPanel } from "../component/MetadataPanel";
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",

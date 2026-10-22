@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
-import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { MetadataPanel } from "../component/MetadataPanel";
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",

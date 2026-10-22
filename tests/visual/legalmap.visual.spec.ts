@@ -8,7 +8,7 @@ for (const width of [1440, 900, 390]) {
     const plat = page.getByRole("tab", { name: "Plat" });
     const address = page.getByRole("tab", { name: "Address" });
     await expect(plat).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByRole("heading", { name: "Address" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Address" })).toHaveCount(0);
     const layout = await page.locator(".legal-map").evaluate(node => {
       const tabs = node.querySelector("[role=tablist]")!.getBoundingClientRect();
       const map = node.querySelector("[data-legal-map-surface]")!.getBoundingClientRect();

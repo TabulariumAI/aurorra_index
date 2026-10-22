@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState, type JSX } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { MetadataPanel, getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { getPanelData, type MetadataSegments, type MetadataPayload } from "aurora-core";
+import { MetadataPanel } from "../component/MetadataPanel";
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment",

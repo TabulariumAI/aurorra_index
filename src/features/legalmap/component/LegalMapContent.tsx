@@ -1,6 +1,10 @@
-import { useEffect, useId, useState, type JSX, type ReactNode } from "react";
-import { formatLabel, hasPlatMap } from "aurora-core";
-import { displayLots, divisionKinds, isBlank, normalizeLegalData, type DisplayLot, type LegalMapPayload, type PlatBlock, type PlatDivision } from "../data/legalData";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { formatLabel } from "aurora-core";
+import { displayLots, divisionKinds, isBlank, labelValue, legalMapViews, normalizeLegalData, type DisplayLot, type LegalMapPayload, type PlatBlock, type PlatDivision } from "../data/legalData";
+import { getMapGroups } from "../data/surveyData";
+import { SurveyMap } from "./SurveyMap";
+import { MapSurface } from "./MapSurface";
+import { surveyStyles } from "../style/surveyStyles";
 import {
   blockLabelStyle,
   blockStyle,
@@ -14,10 +18,6 @@ import {
   divisionStyle,
   rowFillStyle,
 } from "../style/legalMapStyles";
-
-function labelValue(value: string, kind: string): string {
-  return value.replace(new RegExp(`(^|[,/])\\s*${kind}\\b\\s*(?:no\\.?\\s*)?`, "gi"), "$1").trim();
-}
 
 function countNumbers(value: unknown): number {
   const nums = String(value || "").match(/\d+/g);
@@ -114,9 +114,48 @@ export function LegalMapContent({ legal, addressMap, onReadyChange }: {
 }): JSX.Element {
   const view = normalizeLegalData(legal);
   const id = useId();
-  const tabs = [...(hasPlatMap(legal) ? ["Plat"] : []), ...(addressMap ? ["Address"] : [])];
+  const mapGroups = getMapGroups(legal);
+  const tabs: string[] = [...legalMapViews.filter(view => mapGroups.some(entry => entry.view === view)), ...(addressMap ? ["Address"] : [])];
   const [selected, setSelected] = useState(tabs[0]);
+  const focusTab = useRef(false);
   const active = tabs.includes(selected) ? selected : tabs[0];
+
+  const surveys = mapGroups.filter(entry => entry.view === active).map((entry, index, entries) => ({
+    ...entry.scene!, title: entries.length === 1 ? active : `${active} ${index + 1}`,
+  }));
+  const controls = <div role="tablist" aria-label="Map views" className="legal-map-tabs" style={legalMapStyles.tabs}>
+    {tabs.map((tab, index) => <button
+      key={tab}
+      type="button"
+      role="tab"
+      id={`${id}-tab-${index}`}
+      aria-controls={`${id}-panel`}
+      aria-selected={active === tab}
+      style={{ ...legalMapStyles.tabButton, color: active === tab ? "var(--primary-dark)" : "var(--body-ink)" }}
+      tabIndex={active === tab ? 0 : -1}
+      onClick={() => { focusTab.current = active !== tab; setSelected(tab); }}
+      onKeyDown={event => {
+        let next: number;
+        switch (event.key) {
+          case "ArrowRight": next = (index + 1) % tabs.length; break;
+          case "ArrowLeft": next = (index + tabs.length - 1) % tabs.length; break;
+          case "Home": next = 0; break;
+          case "End": next = tabs.length - 1; break;
+          default: return;
+        }
+        event.preventDefault();
+        focusTab.current = true;
+        setSelected(tabs[next]);
+      }}
+    >{tab}</button>)}
+  </div>;
+
+  useLayoutEffect(() => {
+    if (focusTab.current) {
+      document.getElementById(`${id}-tab-${tabs.indexOf(active)}`)?.focus();
+      focusTab.current = false;
+    }
+  }, [active, id]);
 
   useEffect(() => {
     onReadyChange?.(true);
@@ -129,34 +168,10 @@ export function LegalMapContent({ legal, addressMap, onReadyChange }: {
         <div className="legal-map-column" style={legalMapStyles.mapColumn}>
           {tabs.length > 0 ? (
             <>
-              <div role="tablist" aria-label="Map views" className="legal-map-tabs" style={legalMapStyles.tabs}>
-                {tabs.map((tab, index) => <button
-                  key={tab}
-                  type="button"
-                  role="tab"
-                  id={`${id}-${tab}`}
-                  aria-controls={`${id}-panel`}
-                  aria-selected={active === tab}
-                  style={{ ...legalMapStyles.tabButton, color: active === tab ? "var(--primary-dark)" : "var(--body-ink)" }}
-                  tabIndex={active === tab ? 0 : -1}
-                  onClick={() => setSelected(tab)}
-                  onKeyDown={event => {
-                    let next: number;
-                    switch (event.key) {
-                      case "ArrowRight": next = (index + 1) % tabs.length; break;
-                      case "ArrowLeft": next = (index + tabs.length - 1) % tabs.length; break;
-                      case "Home": next = 0; break;
-                      case "End": next = tabs.length - 1; break;
-                      default: return;
-                    }
-                    event.preventDefault();
-                    setSelected(tabs[next]);
-                    document.getElementById(`${id}-${tabs[next]}`)?.focus();
-                  }}
-                >{tab}</button>)}
-              </div>
-              <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${active}`} tabIndex={0} style={legalMapStyles.panel}>
-                {active === "Address" && addressMap ? addressMap.content : !view.isEmptyStructure ? <div data-legal-map-surface="true" style={legalMapStyles.mapSurface}>
+              <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-tab-${tabs.indexOf(active)}`} tabIndex={0} style={legalMapStyles.panel}>
+                {active === "Address" && addressMap ? <><div style={legalMapStyles.mapActions}>{controls}</div>{addressMap.content}</> : active === "PLSS" || active === "Metes & Bounds" ? <div className="legal-map-surveys" style={surveyStyles.list}>
+                  {surveys.map((scene, index) => <SurveyMap key={`${active}-${index}-${JSON.stringify(scene)}`} scene={scene} controls={index === 0 ? controls : undefined} />)}
+                </div> : !view.isEmptyStructure ? <MapSurface controls={controls} footer={<Legend presentLayers={view.presentLayers} />}>
                   <div data-legal-map-grid="true" style={legalMapStyles.grid}>
                     <div style={legalMapStyles.gridContent}>
                       {view.subdivisions.map((subdivision, index) => (
@@ -181,16 +196,7 @@ export function LegalMapContent({ legal, addressMap, onReadyChange }: {
                       </div>
                     ) : null}
                   </div>
-                  <div data-legal-map-footer="true" style={legalMapStyles.mapFooter}>
-                    <div data-legal-map-north="true" aria-hidden="true" style={legalMapStyles.northMarker}>
-                      <svg width="16" height="20" viewBox="0 0 24 28" fill="currentColor">
-                        <path d="M12 1 3 24l9-5 9 5z" />
-                      </svg>
-                      <span>N</span>
-                    </div>
-                    <Legend presentLayers={view.presentLayers} />
-                  </div>
-                </div> : null}
+                </MapSurface> : null}
               </div>
             </>
           ) : null}
@@ -200,9 +206,38 @@ export function LegalMapContent({ legal, addressMap, onReadyChange }: {
             <h3 style={legalMapStyles.infoHeading}>Summary</h3>
             <div style={legalMapStyles.infoCard}>{view.summary}</div>
           </section> : null}
-          {addressMap ? <section className="legal-map-address" style={legalMapStyles.infoSection}>
-            <h3 style={legalMapStyles.infoHeading}>Address</h3>
-            <div style={legalMapStyles.infoCard}>{addressMap.address}</div>
+          {active === "Metes & Bounds" && surveys.some(scene => scene.notes.some(note => note.label === "Acreage")) ? <section className="legal-map-acreage" style={legalMapStyles.infoSection}>
+            <h3 style={legalMapStyles.infoHeading}>Acreage</h3>
+            {surveys.map(scene => {
+              const acreage = scene.notes.find(note => note.label === "Acreage")?.value;
+              return acreage ? <div key={scene.title} aria-label={surveys.length === 1 ? "Reported acreage" : `${scene.title} acreage`} style={legalMapStyles.infoCard}>
+                {surveys.length > 1 ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
+                <ul style={legalMapStyles.acreageList}>
+                  {acreage.split(";").map((entry, index) => <li key={index}>
+                    {index === 0 ? <strong style={legalMapStyles.acreageFirst}>
+                      <svg data-survey-swatch="true" aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={legalMapStyles.acreageSwatch}>
+                        <rect x="0.5" y="0.5" width="11" height="11" fill={legalMapColors.parcelFill} fillOpacity="0.25" stroke={legalMapColors.parcelLine} />
+                      </svg>
+                      {entry.trim()}
+                    </strong> : entry.trim()}
+                  </li>)}
+                </ul>
+              </div> : null;
+            })}
+          </section> : null}
+          {active === "Metes & Bounds" && surveys.some(scene => scene.notes.some(note => note.label === "Easement")) ? <section className="legal-map-easement" style={legalMapStyles.infoSection}>
+            <h3 style={legalMapStyles.infoHeading}>Easement</h3>
+            {surveys.map(scene => {
+              const easements = scene.notes.filter(note => note.label === "Easement");
+              return easements.length > 0 ? <div key={scene.title} aria-label={surveys.length === 1 ? "Easement details" : `${scene.title} easement details`} style={{ ...legalMapStyles.infoCard, ...legalMapStyles.infoSection }}>
+                {surveys.length > 1 ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
+                {easements.map((note, index) => <div key={index}>
+                  <div>{note.value}</div>
+                  {note.explanation ? <p style={legalMapStyles.infoNote}>{note.explanation}</p> : null}
+                </div>)}
+                <p style={legalMapStyles.infoNote}>Location not specified in this clause — not plotted.</p>
+              </div> : null;
+            })}
           </section> : null}
           {view.references.length > 0 ? <section className="legal-map-reference" style={legalMapStyles.infoSection}>
             <h3 style={legalMapStyles.infoHeading}>Reference</h3>

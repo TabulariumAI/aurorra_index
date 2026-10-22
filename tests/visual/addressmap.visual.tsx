@@ -1,6 +1,6 @@
 import { useMemo, useState, type JSX } from "react";
 import { createRoot } from "react-dom/client";
-import { MetadataPanel } from "aurora-core";
+import { MetadataPanel } from "../../src/features/metdataview/component/MetadataPanel";
 import { buildAddressMapEmbedUrl } from "../../src/features/addressmap/data/addressMap";
 import { getPanelData } from "aurora-core";
 import type { MetadataSegments, MetadataPayload } from "aurora-core";
