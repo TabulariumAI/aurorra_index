@@ -5,7 +5,7 @@ for (const width of [1440, 900, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.route("https://www.google.com/maps**", route => route.fulfill({ contentType: "text/html", body: "<html><body>Google map test response</body></html>" }));
     await page.goto("/?scenario=legal-map&address=true&parcels=1");
-    const plat = page.getByRole("tab", { name: "Plat" });
+    const plat = page.getByRole("tab", { name: "Lot & block" });
     const address = page.getByRole("tab", { name: "Address" });
     await expect(plat).toHaveAttribute("aria-selected", "true");
     await expect(page.getByRole("heading", { name: "Address" })).toHaveCount(0);
@@ -119,7 +119,7 @@ test("legal map content renders plat grid", async ({ page }) => {
   await page.goto("/?scenario=legal-map");
 
   await expect(page.locator("[data-legal-map-grid='true']")).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "Plat" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Lot & block" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Close" })).toHaveCount(0);
 
   const layout = await page.locator("[data-legal-map-grid='true']").evaluate((node) => ({

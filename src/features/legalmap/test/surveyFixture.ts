@@ -44,6 +44,25 @@ export const tieFixture: LegalPayload = {
   ] }],
 };
 
+export const incompleteFixture: LegalPayload = {
+  summary: "Two parcels are described: a 1.589-acre tract and a 2.005-acre tract.",
+  groups: [{ type: "metes_bounds", elements: [
+    { aspect: "bearings", value: "SOUTH 85 DEGREES 30 MINUTES EAST; NORTH 11 DEGREES 21 MINUTES EAST; NORTH 82 DEGREES 06 MINUTES WEST; NORTH 70 DEGREES 06 MINUTES WEST; SOUTH 26 DEGREES 15 MINUTES WEST" },
+    { aspect: "distances", value: "320.07 FEET; 276.00 FEET; 249.89 FEET; 37.41 FEET; 108.75 FEET; 79.75 FEET; 23.13 FEET; 313.73 FEET" },
+    { aspect: "acreage", value: "1.589 ACRES, MORE OR LESS" },
+    { aspect: "right_of_way", value: "LEGAL HIGHWAYS AND RIGHTS-OF-WAY" },
+    { aspect: "easement", value: "EASEMENTS OF RECORD", explanation: "Subject to easements of record." },
+  ] }, ...tieFixture.groups!],
+};
+
+export const invalidFixture: LegalPayload = {
+  ...quarterFixture,
+  groups: [...quarterFixture.groups!, { type: "metes_bounds", elements: [
+    { aspect: "bearings", value: "SOUTH 0 DEGREES, 14 MINUTES EAST; NORTH 89 DEGREES, 57 MINUTES EAST; NORTH 89 DEGREES 67 MINUTES EAST; SOUTH 0 DEGREES, 14 MINUTES EAST; SOUTH 89 DEGREES, 57 MINUTES WEST; NORTH 0 DEGREES 14 MINUTES WEST" },
+    { aspect: "distances", value: "788.0 FEET; 420.0 FEET; 239.4 FEET; 96.0 FEET" },
+  ] }],
+};
+
 export const clusterFixture: LegalPayload = {
   summary: "A schematic parcel with closely spaced commencement and boundary points.",
   groups: [{ type: "metes_bounds", elements: [

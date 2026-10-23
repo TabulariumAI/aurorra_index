@@ -11,11 +11,12 @@ describe("parcel count rendering", () => {
   it("renders one lot and both block identifiers for the approved one-parcel example", () => {
     const legal = { groups, parcels_num: 1, summary: "One parcel: Lot 32, Block 1, County Block 4482C." };
     render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(1);
     expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(1);
-    expect(screen.getByText("1/4482C")).toBeInTheDocument();
-    expect(screen.getByText("32").parentElement).toHaveTextContent("32Lot");
-    expect(screen.getByText("Phase II")).toBeInTheDocument();
+    expect(map.getByText("1/4482C")).toBeInTheDocument();
+    expect(map.getByText("32").parentElement).toHaveTextContent("32Lot");
+    expect(map.getByText("Phase II")).toBeInTheDocument();
     expect(screen.getByText(legal.summary)).toBeInTheDocument();
   });
 
@@ -24,8 +25,9 @@ describe("parcel count rendering", () => {
       { aspect: "block", value: block }, { aspect: "lot", value: "Lot 32" },
     ] })) };
     render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
-    expect(screen.getByText("1/4482C")).toBeInTheDocument();
-    expect(screen.getByText("32").parentElement).toHaveTextContent("32Lot");
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
+    expect(map.getByText("1/4482C")).toBeInTheDocument();
+    expect(map.getByText("32").parentElement).toHaveTextContent("32Lot");
   });
 
   it("renders separate right-of-way corridors within a merged parcel", () => {
@@ -34,20 +36,22 @@ describe("parcel count rendering", () => {
       ...group.elements, { aspect: "right_of_way", value: labels[index] },
     ] })) };
     render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     expect(Array.from(document.querySelectorAll("[data-legal-map-row]"), node => node.textContent)).toEqual(labels);
     expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(1);
     expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(1);
-    expect(screen.getByText("1/4482C")).toBeInTheDocument();
-    expect(screen.getByText("Right Of Way", { exact: true })).toBeInTheDocument();
+    expect(map.getByText("1/4482C")).toBeInTheDocument();
+    expect(map.getByText("Right Of Way", { exact: true })).toBeInTheDocument();
   });
 
   it.each([undefined, 0, -1, 2, 3])("retains both blocks for parcels_num %s", parcels_num => {
     const legal = { groups, parcels_num };
     render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(2);
     expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(2);
-    expect(screen.getByText("1")).toBeInTheDocument();
-    expect(screen.getByText("4482C")).toBeInTheDocument();
+    expect(map.getByText("1")).toBeInTheDocument();
+    expect(map.getByText("4482C")).toBeInTheDocument();
   });
 
   it("rebuilds the map when only the parcel count changes without mutating the source", () => {
@@ -58,7 +62,7 @@ describe("parcel count rendering", () => {
     expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(1);
     rerender(<LegalMapContent legal={{ ...legal, parcels_num: 2 }} onReadyChange={onReadyChange} />);
     expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(2);
-    expect(screen.queryByText("1/4482C")).not.toBeInTheDocument();
+    expect(within(document.querySelector<HTMLElement>(".legal-map-column")!).queryByText("1/4482C")).not.toBeInTheDocument();
     expect(onReadyChange).toHaveBeenCalledTimes(2);
     expect(groups).toEqual(before);
   });
@@ -87,43 +91,44 @@ describe("LegalMapContent", () => {
         onReadyChange={onReadyChange}
       />,
     );
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
-    expect(screen.getByText("WILLOW CREEK")).toBeInTheDocument();
-    expect(screen.getByText("Phase 1")).toBeInTheDocument();
-    expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("7").parentElement).toHaveTextContent("Lot");
-    expect(screen.getByText("Subdivision")).toBeInTheDocument();
-    expect(screen.queryByText("Condominium Unit")).not.toBeInTheDocument();
-    expect(screen.getByText("Austin | Travis County | Texas")).toBeInTheDocument();
-    const location = screen.getByText("Austin | Travis County | Texas");
-    expect(location.compareDocumentPosition(screen.getByText("Subdivision")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(location.style.fontSize).toBe(screen.getByText("WILLOW CREEK").style.fontSize);
+    expect(map.getByText("WILLOW CREEK")).toBeInTheDocument();
+    expect(map.getByText("Phase 1")).toBeInTheDocument();
+    expect(map.getByText("12")).toBeInTheDocument();
+    expect(map.getByText("7").parentElement).toHaveTextContent("Lot");
+    expect(map.getByText("Subdivision")).toBeInTheDocument();
+    expect(map.queryByText("Condominium Unit")).not.toBeInTheDocument();
+    expect(map.getByText("Austin | Travis County | Texas")).toBeInTheDocument();
+    const location = map.getByText("Austin | Travis County | Texas");
+    expect(location.compareDocumentPosition(map.getByText("Subdivision")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(location.style.fontSize).toBe(map.getByText("WILLOW CREEK").style.fontSize);
     const grid = document.querySelector("[data-legal-map-grid='true']");
     expect(grid?.closest("[data-legal-map-surface]")).toHaveStyle({ borderRadius: "var(--radius-card)" });
-    expect((grid?.closest("[data-legal-map-surface]") as HTMLElement).style.backgroundImage).toMatch(/svg\+xml|legal-map-backdrop/);
+    expect((grid?.closest("[data-legal-map-surface]") as HTMLElement).style.backgroundImage).toMatch(/svg\+xml|survey-grid/);
     const north = grid?.closest("[data-legal-map-surface]")?.querySelector("[data-legal-map-north='true']");
     expect(north).toHaveTextContent("N");
     expect(north).toHaveAttribute("aria-hidden", "true");
     expect(north).toHaveStyle({ borderRadius: "var(--radius-control)", boxShadow: "var(--shadow-card)" });
     expect(grid?.querySelector("[data-legal-map-subdivision='true']")).toHaveStyle({ borderRadius: "var(--radius-card)", borderStyle: "dashed" });
-    const block = screen.getByText("12").parentElement;
+    const block = map.getByText("12").parentElement;
     expect(block).toHaveStyle({ backgroundColor: "#e8f0f4", gridColumn: "2 / 4", gridRow: "2 / 4" });
-    expect(screen.getByText("7").parentElement).toHaveStyle({ backgroundColor: "#fbe9e3" });
-    expect(screen.getByText("7").parentElement).toHaveStyle({ fontSize: "18.4px" });
-    expect(screen.getByText("7").parentElement?.style.fontSize).toBe(screen.getByText("12").style.fontSize);
+    expect(map.getByText("7").parentElement).toHaveStyle({ backgroundColor: "#fbe9e3" });
+    expect(map.getByText("7").parentElement).toHaveStyle({ fontSize: "18.4px" });
+    expect(map.getByText("7").parentElement?.style.fontSize).toBe(map.getByText("12").style.fontSize);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
     expect(onReadyChange).toHaveBeenCalledWith(true);
   });
 
-  it("keeps both columns for empty legal data", () => {
+  it("omits details and map data for empty legal data", () => {
     render(<LegalMapContent legal={null} onReadyChange={vi.fn()} />);
 
-    expect(document.querySelector("[data-legal-map-info]")).toBeInTheDocument();
+    expect(document.querySelector("[data-legal-map-info]")).not.toBeInTheDocument();
     expect(document.querySelector("[data-legal-map-grid]")).not.toBeInTheDocument();
   });
 
-  it("shows the summary, legend and plat reference table", () => {
+  it("shows the full-width summary and legend without a reference table", () => {
     render(<LegalMapContent legal={{
       groups: [
         { type: "lot_block", elements: [{ aspect: "subdivision", value: "COUNTRY CLUB MANOR NO. 3" }, { aspect: "block", value: "Block 110" }, { aspect: "lot", value: "Lot 7" }] },
@@ -131,21 +136,22 @@ describe("LegalMapContent", () => {
       ],
       summary: "1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.",
     }} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
-    const info = document.querySelector("[data-legal-map-info='true']");
-    expect(info).toHaveTextContent("Summary");
+    const info = document.querySelector(".legal-map");
+    expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
     expect(info).toHaveTextContent("1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.");
     expect(screen.getByText("1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.")).toHaveStyle({ borderRadius: "var(--radius-card)" });
     const legend = document.querySelector("[data-legal-map-footer] .legal-map-legend") as HTMLElement;
     for (const label of ["Subdivision", "Block", "Lot"]) expect(within(legend).getByText(label, { exact: true })).toBeVisible();
     expect(legend.closest("[data-legal-map-surface]")!.querySelector("[data-legal-map-north]")).toHaveAttribute("data-legal-map-north", "true");
-    expect(within(info as HTMLElement).getByRole("heading", { name: "Reference" })).toBeVisible();
-    expect(within(info as HTMLElement).getByRole("table", { name: "Reference" })).toHaveTextContent("COUNTRY CLUB MANOR NO. 3, REPLAT NO. 2");
-    expect(screen.getByText("7")).toBeInTheDocument();
-    expect(screen.getByText("7").parentElement).toHaveStyle({ backgroundColor: "#fbe9e3", gridColumn: "1", gridRow: "1" });
-    expect(screen.getByText("7").parentElement).toHaveTextContent("Lot");
-    expect(screen.getByText("110").parentElement).toHaveStyle({ gridColumn: "2 / 4", gridRow: "2 / 4" });
-    expect(screen.queryByText("8")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Reference" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Reference" })).not.toBeInTheDocument();
+    expect(map.getByText("7")).toBeInTheDocument();
+    expect(map.getByText("7").parentElement).toHaveStyle({ backgroundColor: "#fbe9e3", gridColumn: "1", gridRow: "1" });
+    expect(map.getByText("7").parentElement).toHaveTextContent("Lot");
+    expect(map.getByText("110").parentElement).toHaveStyle({ gridColumn: "2 / 4", gridRow: "2 / 4" });
+    expect(map.queryByText("8")).not.toBeInTheDocument();
   });
 
   it("keeps the legend in the map footer without a summary", () => {
@@ -153,8 +159,8 @@ describe("LegalMapContent", () => {
       { type: "lot_block", elements: [{ aspect: "lot", value: "Lot 7" }] },
       { type: "plat_reference", elements: [{ aspect: "plat_book", value: "12" }] },
     ] }} onReadyChange={vi.fn()} />);
-    expect(screen.getByRole("table", { name: "Reference" })).toHaveTextContent("Book12");
-    const info = document.querySelector("[data-legal-map-info='true']");
+    expect(screen.queryByRole("table", { name: "Reference" })).not.toBeInTheDocument();
+    const info = document.querySelector(".legal-map");
     expect(document.querySelector("[data-legal-map-footer] .legal-map-legend")).toHaveTextContent("Lot");
     expect(info).not.toHaveTextContent("Summary");
   });
@@ -179,15 +185,16 @@ describe("LegalMapContent", () => {
         onReadyChange={vi.fn()}
       />,
     );
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
     const largeBlock = document.querySelector("[data-legal-map-block]")!;
     expect(largeBlock.querySelectorAll("[data-legal-map-lot]")).toHaveLength(12);
     expect(largeBlock).toHaveTextContent("1–");
     expect(largeBlock).toHaveTextContent("–101");
-    expect(screen.getByText("102")).toBeInTheDocument();
-    expect(screen.queryByText("103")).not.toBeInTheDocument();
-    expect(screen.getAllByText("CEDAR HEIGHTS")).toHaveLength(1);
-    expect(screen.getAllByText("MAPLE RIDGE")).toHaveLength(1);
+    expect(map.getByText("102")).toBeInTheDocument();
+    expect(map.queryByText("103")).not.toBeInTheDocument();
+    expect(map.getAllByText("CEDAR HEIGHTS")).toHaveLength(1);
+    expect(map.getAllByText("MAPLE RIDGE")).toHaveLength(1);
   });
 
   it("keeps lot identities visible when excluded condominium data is present", () => {
@@ -200,10 +207,11 @@ describe("LegalMapContent", () => {
         onReadyChange={vi.fn()}
       />,
     );
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
-    expect(screen.getByText("21")).toBeInTheDocument();
-    expect(screen.queryByText("2,3")).not.toBeInTheDocument();
-    expect(screen.getByText("22")).toBeInTheDocument();
+    expect(map.getByText("21")).toBeInTheDocument();
+    expect(map.queryByText("2,3")).not.toBeInTheDocument();
+    expect(map.getByText("22")).toBeInTheDocument();
   });
 
   it("renders consecutive lots without skipping or replacing any lot", () => {
@@ -217,11 +225,12 @@ describe("LegalMapContent", () => {
         onReadyChange={vi.fn()}
       />,
     );
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
-    expect(screen.getByText("31")).toBeInTheDocument();
-    expect(screen.getByText("32")).toBeInTheDocument();
-    expect(screen.getByText("33")).toBeInTheDocument();
-    expect(screen.getByText("34")).toBeInTheDocument();
+    expect(map.getByText("31")).toBeInTheDocument();
+    expect(map.getByText("32")).toBeInTheDocument();
+    expect(map.getByText("33")).toBeInTheDocument();
+    expect(map.getByText("34")).toBeInTheDocument();
   });
 
   it("draws named lots and missing positions in separate cubes", () => {
@@ -260,10 +269,11 @@ describe("LegalMapContent", () => {
         { aspect: "block", value: block }, { aspect: "lot", value: "4" },
       ],
     })) }} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
-    expect(screen.getAllByText("SEALE SUBDIVISION")).toHaveLength(1);
-    expect(screen.getAllByText("Unit 1")).toHaveLength(1);
-    const unit = screen.getByText("Unit 1").closest("[data-legal-map-division]")!;
+    expect(map.getAllByText("SEALE SUBDIVISION")).toHaveLength(1);
+    expect(map.getAllByText("Unit 1")).toHaveLength(1);
+    const unit = map.getByText("Unit 1").closest("[data-legal-map-division]")!;
     const blocks = unit.querySelectorAll("[data-legal-map-block]");
     expect(blocks).toHaveLength(2);
     expect(blocks[0].querySelector("[data-legal-map-block-label]")).toHaveTextContent("4");
@@ -273,7 +283,7 @@ describe("LegalMapContent", () => {
       expect(lots).toHaveLength(1);
       expect(lots[0]).toHaveTextContent("4Lot");
     }
-    expect(screen.queryByText("4335", { exact: true })).not.toBeInTheDocument();
+    expect(map.queryByText("4335", { exact: true })).not.toBeInTheDocument();
   });
 
   it("uses the supplied palette for map layers, captions and legend without rendering palette tables", () => {
@@ -281,6 +291,7 @@ describe("LegalMapContent", () => {
       { aspect: "subdivision", value: "SEALE SUBDIVISION" }, { aspect: "unit", value: "1" },
       { aspect: "block", value: "4335A" }, { aspect: "lot", value: "4" },
     ] }] }} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     const grid = document.querySelector("[data-legal-map-grid]")!;
     const unit = grid.querySelector("[data-legal-map-division]")!;
     const block = grid.querySelector("[data-legal-map-block-label]")!.parentElement!;
@@ -288,13 +299,13 @@ describe("LegalMapContent", () => {
     expect(grid.closest("[data-legal-map-surface]")).toHaveStyle({ backgroundColor: "#f7f8f6" });
     expect(grid).toHaveStyle({ color: "#183247" });
     expect(grid.querySelector("[data-legal-map-subdivision]")).toHaveStyle({ borderColor: "#3a7c8c" });
-    expect(screen.getByText("SEALE SUBDIVISION")).toHaveStyle({ color: "#274f59" });
+    expect(map.getByText("SEALE SUBDIVISION")).toHaveStyle({ color: "#274f59" });
     expect(unit).toHaveStyle({ backgroundColor: "#f4f1ea", borderColor: "#c8bdaa" });
-    expect(screen.getByText("Unit 1")).toHaveStyle({ color: "#6b6256" });
+    expect(map.getByText("Unit 1")).toHaveStyle({ color: "#6b6256" });
     expect(block).toHaveStyle({ backgroundColor: "#e8f0f4", borderStyle: "none", color: "#294d60" });
     expect(lot).toHaveStyle({ backgroundColor: "#fbe9e3", borderColor: "#cf7258", color: "#9d4934", aspectRatio: "1" });
     expect(within(lot as HTMLElement).getByText("Lot")).toHaveStyle({ color: "#9d4934" });
-    const info = document.querySelector("[data-legal-map-info]")!;
+    const info = document.querySelector(".legal-map")!;
     for (const [label, fill, border] of [
       ["Subdivision", "rgba(0, 0, 0, 0)", "#3a7c8c"], ["Unit", "#f4f1ea", "#c8bdaa"],
       ["Block", "#e8f0f4", "#91aebe"], ["Lot", "#fbe9e3", "#cf7258"],
@@ -302,11 +313,11 @@ describe("LegalMapContent", () => {
       const swatch = within(document.querySelector(".legal-map-legend") as HTMLElement).getByText(label, { exact: true }).previousElementSibling;
       expect(swatch).toHaveStyle({ backgroundColor: fill, borderColor: border });
     }
-    expect(info).toHaveTextContent("Summary");
+    expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
     expect(info).toHaveTextContent("One parcel.");
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByText("Color Palette")).not.toBeInTheDocument();
-    expect(screen.queryByText("Map Colors")).not.toBeInTheDocument();
+    expect(map.queryByRole("table")).not.toBeInTheDocument();
+    expect(map.queryByText("Color Palette")).not.toBeInTheDocument();
+    expect(map.queryByText("Map Colors")).not.toBeInTheDocument();
   });
 
   it.each(["unit", "phase", "section"])("renders the full %s designation above the block", (aspect) => {
@@ -314,23 +325,25 @@ describe("LegalMapContent", () => {
       { aspect, value: `${aspect} 16A` }, { aspect: "block", value: "Block 4335A" },
       { aspect: "lot", value: "Lot 4A-4C" },
     ] }] }} onReadyChange={vi.fn()} />);
-    expect(screen.getByText(`${aspect[0].toUpperCase()}${aspect.slice(1)} 16A`)).toBeInTheDocument();
-    expect(screen.getByText("4335A")).toBeInTheDocument();
-    expect(screen.getByText("4A-4C").parentElement).toHaveTextContent("Lot");
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
+    expect(map.getByText(`${aspect[0].toUpperCase()}${aspect.slice(1)} 16A`)).toBeInTheDocument();
+    expect(map.getByText("4335A")).toBeInTheDocument();
+    expect(map.getByText("4A-4C").parentElement).toHaveTextContent("Lot");
   });
 
   it("updates the hierarchy when the selected legal payload changes", () => {
     const { rerender } = render(<LegalMapContent legal={{ groups: [{ type: "lot_block", elements: [
       { aspect: "subdivision", value: "FIRST" }, { aspect: "lot", value: "7" },
     ] }] }} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     rerender(<LegalMapContent legal={{ groups: [{ type: "lot_block", elements: [
       { aspect: "subdivision", value: "SECOND" }, { aspect: "lot", value: "8" },
     ] }] }} onReadyChange={vi.fn()} />);
     const grid = document.querySelector("[data-legal-map-grid]")!;
     expect(within(grid as HTMLElement).queryByText("FIRST")).not.toBeInTheDocument();
     expect(within(grid as HTMLElement).getByText("SECOND")).toBeInTheDocument();
-    expect(screen.queryByText("7")).not.toBeInTheDocument();
-    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(map.queryByText("7")).not.toBeInTheDocument();
+    expect(map.getByText("8")).toBeInTheDocument();
   });
 });
 
@@ -343,12 +356,13 @@ describe("right of way rendering", () => {
 
   it("renders separate square hatched corridors and their legend without creating lots or blocks", () => {
     render(<LegalMapContent legal={{ groups, summary: "Two drainage rights of way." }} onReadyChange={vi.fn()} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     const subdivision = document.querySelector("[data-legal-map-subdivision]")!;
     const bands = subdivision.querySelectorAll<HTMLElement>("[data-legal-map-row]");
     expect(Array.from(bands, band => band.textContent)).toEqual(labels);
     expect(subdivision.querySelectorAll("[data-legal-map-division]")).toHaveLength(1);
     expect(subdivision.querySelectorAll("[data-legal-map-block], [data-legal-map-lot]")).toHaveLength(0);
-    expect(screen.getByText("Unit 1")).toBeInTheDocument();
+    expect(map.getByText("Unit 1")).toBeInTheDocument();
     for (const band of bands) {
       expect(band).toHaveStyle({ position: "absolute", height: "3rem", width: "100%", borderRadius: "0", transform: "translateY(-50%)", textAlign: "center" });
       expect(band.style.backgroundImage).toContain("repeating-linear-gradient");
@@ -358,7 +372,7 @@ describe("right of way rendering", () => {
     }
     expect(parseFloat(bands[0].style.top)).toBeCloseTo(100 / 3);
     expect(parseFloat(bands[1].style.top)).toBeCloseTo(200 / 3);
-    const legend = screen.getByText("Right Of Way");
+    const legend = map.getByText("Right Of Way");
     expect(legend.closest("[data-legal-map-footer]")).toBeTruthy();
     expect((legend.previousElementSibling as HTMLElement).style.backgroundImage).toBe(bands[0].style.backgroundImage);
     expect(screen.getByText("Two drainage rights of way.")).toBeInTheDocument();
@@ -400,65 +414,34 @@ describe("right of way rendering", () => {
   it("removes ROW geometry, height and legend when the selected payload has no ROW", () => {
     const onReadyChange = vi.fn();
     const { rerender } = render(<LegalMapContent legal={{ groups }} onReadyChange={onReadyChange} />);
+    const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     rerender(<LegalMapContent legal={{ groups: [{ type: "lot_block", elements: [
       { aspect: "subdivision", value: "ORDINARY" }, { aspect: "lot", value: "7" },
     ] }] }} onReadyChange={onReadyChange} />);
     expect(document.querySelector("[data-legal-map-row]")).toBeNull();
-    expect(screen.queryByText("Right Of Way")).not.toBeInTheDocument();
+    expect(map.queryByText("Right Of Way")).not.toBeInTheDocument();
     expect(document.querySelector<HTMLElement>("[data-legal-map-subdivision]")!.firstElementChild).not.toHaveStyle({ minHeight: "24rem" });
-    expect(screen.getByText("7").parentElement).toHaveTextContent("Lot");
+    expect(map.getByText("7").parentElement).toHaveTextContent("Lot");
     expect(onReadyChange).toHaveBeenCalledTimes(2);
   });
 });
 
-describe("plat reference rendering", () => {
-  const references = [{ type: "plat_reference", elements: [
-    { aspect: "plat", value: "HARBOUR POINTE SUBDIVISION" },
-    { aspect: "plat_volume", value: "105" },
-    { aspect: "plat_page", value: "37 THROUGH 40" },
-    { aspect: "plat_jurisdiction", value: "WAYNE COUNTY" },
-  ] }];
-
-  it.each([{ lots: [] }, { lots: [{ type: "lot_block", elements: [{ aspect: "lot", value: "3" }] }] }])(
-    "renders references with and without lot blocks: %j", ({ lots }) => {
-      render(<LegalMapContent legal={{ summary: "One parcel.", groups: [...lots, ...references] }} onReadyChange={vi.fn()} />);
-      const info = document.querySelector("[data-legal-map-info]") as HTMLElement;
-      expect(within(info).getByRole("heading", { name: "Summary" })).toBeVisible();
-      expect(within(info).getByRole("heading", { name: "Reference" })).toBeVisible();
-      const table = within(info).getByRole("table", { name: "Reference" });
-      expect(within(table).getAllByRole("row").map(row => row.textContent)).toEqual([
-        "PlatHARBOUR POINTE SUBDIVISION", "Volume105", "Page37 THROUGH 40", "JurisdictionWAYNE COUNTY",
-      ]);
-      expect(table).toHaveStyle({ borderCollapse: "collapse" });
-      expect(table.style.borderStyle).toBe("none");
-      for (const label of within(table).getAllByRole("rowheader")) expect(label).toHaveAttribute("scope", "row");
-      if (!lots.length) {
-        expect(info.previousElementSibling).toBeEmptyDOMElement();
-        expect(document.querySelector("[data-legal-map-grid]")).not.toBeInTheDocument();
-        expect(document.querySelector("[data-legal-map-north]")).not.toBeInTheDocument();
-      }
-    },
-  );
-
-  it("renders reference-only data without a summary and updates when the payload changes", () => {
-    const { rerender } = render(<LegalMapContent legal={{ groups: references }} onReadyChange={vi.fn()} />);
-    expect(screen.getByRole("table", { name: "Reference" })).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Summary" })).not.toBeInTheDocument();
-    rerender(<LegalMapContent legal={{ summary: "Updated summary.", groups: [] }} onReadyChange={vi.fn()} />);
+describe("reference removal", () => {
+  const references = [{ type: "plat_reference", elements: [{ aspect: "plat_book", value: "42" }] }];
+  it.each([{ lots: [] }, { lots: [{ type: "lot_block", elements: [{ aspect: "lot", value: "3" }] }] }])("omits References while preserving summary and available maps %j", ({ lots }) => {
+    render(<LegalMapContent legal={{ summary: "One parcel.", groups: [...lots, ...references] }} />);
+    expect(screen.getByText("One parcel.")).toBeVisible();
+    expect(screen.queryByRole("table", { name: "Reference" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Reference" })).not.toBeInTheDocument();
+  });
+  it("preserves source reference data and updates a reference-only view to a summary", () => {
+    const legal = { groups: references };
+    const original = JSON.stringify(legal);
+    const { rerender } = render(<LegalMapContent legal={legal} />);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(JSON.stringify(legal)).toBe(original);
+    rerender(<LegalMapContent legal={{ summary: "Updated summary.", groups: [] }} />);
     expect(screen.getByText("Updated summary.")).toBeVisible();
   });
-});
-
-it("shortens reference labels while preserving Plat and source aspect keys", () => {
-  const aspects = ["plat", "plat_number", "plat_volume", "plat_page", "plat_book", "plat_cabinet", "plat_slide", "plat_jurisdiction"];
-  const legal = { groups: [{ type: "plat_reference", elements: aspects.map((aspect, index) => ({ aspect, value: String(index) })) }] };
-  const original = JSON.stringify(legal);
-  render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
-  const table = screen.getByRole("table", { name: "Reference" });
-  expect(within(table).getAllByRole("rowheader").map(cell => cell.textContent)).toEqual([
-    "Plat", "Number", "Volume", "Page", "Book", "Cabinet", "Slide", "Jurisdiction",
-  ]);
-  expect(within(table).getAllByRole("cell").map(cell => cell.textContent)).toEqual(aspects.map((_, index) => String(index)));
-  expect(JSON.stringify(legal)).toBe(original);
 });

@@ -214,12 +214,14 @@ it.each([
   expect(onAddressClick).not.toHaveBeenCalled();
 });
 
-it("retains an undrawable legal description without a map action", () => {
+it("opens the available data for an incomplete legal description", () => {
   const data: MetadataPayload = { ...metadata, legals: { summary: "Metes and bounds.", groups: [
     { type: "metes_bounds", elements: [{ aspect: "description", value: "A tract." }] },
   ] } };
-  render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
-  expect(screen.queryByRole("button", { name: "Open legal view" })).not.toBeInTheDocument();
+  const onLegalView = vi.fn();
+  render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} callbacks={{ onLegalView }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Open legal view" }));
+  expect(onLegalView).toHaveBeenCalledExactlyOnceWith();
   expect(screen.getByText("A tract.")).toBeVisible();
 });
 

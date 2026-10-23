@@ -1,4 +1,4 @@
-import { formatLabel, type LegalGroup, type LegalPayload } from "aurora-core";
+import { formatLabel, type LegalElement, type LegalGroup, type LegalPayload } from "aurora-core";
 import { getElements, resolveGroups, type LegalMapView } from "./legalData";
 
 type SurveyPoint = { x: number; y: number };
@@ -11,17 +11,29 @@ export type SurveyScene = {
   title: string;
   items: SurveyItem[];
   notes: { label: string; value: string; explanation?: string }[];
+  issue?: string;
 };
+
+function getNotes(elements: LegalElement[]): SurveyScene["notes"] {
+  return elements.map(element => ({ label: formatLabel(element.aspect), value: element.value!, explanation: element.explanation }));
+}
 
 const directions: Record<string, number> = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
 
+function bearingText(source: string): string {
+  return source.trim().toUpperCase().replace(/['’′]{2}|[”″]/g, '"').replace(/[’′]/g, "'").replace(/[º˚]/g, "°")
+    .replace(/NORTH/g, "N").replace(/SOUTH/g, "S").replace(/EAST/g, "E").replace(/WEST/g, "W")
+    .replace(/,\s*(?=\d+(?:\.\d+)?\s*(?:MIN(?:UTES)?|SEC(?:ONDS)?|['"]))/g, " ")
+    .replace(/DEG(?:REES)?/g, "°").replace(/MIN(?:UTES)?/g, "'").replace(/SEC(?:ONDS)?/g, '"')
+    .replace(/\s*([°'"])\s*/g, "$1");
+}
+
 export function parseBearing(source: string): number | null {
-  const value = source.trim().toUpperCase().replace(/['’′]{2}|[”″]/g, '"').replace(/[’′]/g, "'").replace(/[º˚]/g, "°")
-    .replace(/NORTH/g, "N").replace(/SOUTH/g, "S").replace(/EAST/g, "E").replace(/WEST/g, "W");
+  const value = bearingText(source);
   if (Object.hasOwn(directions, value)) return directions[value];
   const quadrant = value.match(/^([NS])\s*(.+?)\s*([EW])$/);
   const angle = (quadrant ? quadrant[2] : value.replace(/^AZIMUTH\s+/, "")).trim();
-  const parts = angle.match(/^(\d+(?:\.\d+)?)\s*(?:°|DEG(?:REES)?)?\s*(?:(\d+(?:\.\d+)?)\s*(?:'|MIN(?:UTES)?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:"|SEC(?:ONDS)?)\s*)?$/)
+  const parts = angle.match(/^(\d+(?:\.\d+)?)\s*°?\s*(?:(\d+(?:\.\d+)?)\s*'\s*)?(?:(\d+(?:\.\d+)?)\s*"\s*)?$/)
     ?? angle.match(/^(\d+(?:\.\d+)?)(?:\s+(\d+)(?:\s+(\d+(?:\.\d+)?))?)?$/);
   if (!parts) return null;
   const degrees = Number(parts[1]);
@@ -56,39 +68,52 @@ export function parseDistance(source: string): { length: number; specified: bool
   return Number.isFinite(converted) ? { length: converted, specified: true } : null;
 }
 
-function readList(values: string[], distances: boolean): string[] | null {
+function readList(values: string[], distances: boolean): string[] {
   const entries: string[] = [];
   for (const value of values) {
     if (value.trim().startsWith("[")) {
       let parsed: unknown;
-      try { parsed = JSON.parse(value); } catch { return null; }
-      if (!Array.isArray(parsed) || parsed.some(item => typeof item !== "string" && !(distances && typeof item === "number"))) return null;
+      try { parsed = JSON.parse(value); } catch { entries.push(value); continue; }
+      if (!Array.isArray(parsed) || parsed.some(item => typeof item !== "string" && !(distances && typeof item === "number"))) {
+        entries.push(value);
+        continue;
+      }
       entries.push(...parsed.map(String));
     } else {
       const text = distances ? value.replace(/(\d),(?=\d{3}(?:\D|$))/g, "$1") : value;
-      entries.push(...text.split(/\s*(?:[,;\n|]|\band\b)\s*/i));
+      entries.push(...text.split(distances ? /\s*(?:[,;\n|]|\band\b)\s*/i
+        : /\s*(?:,(?!\s*\d+(?:\.\d+)?\s*(?:MIN(?:UTES)?|SEC(?:ONDS)?|['"′″]))|[;\n|]|\band\b)\s*/i));
     }
   }
-  return entries.length && entries.every(entry => entry.trim()) ? entries : null;
+  return entries;
 }
 
 export function buildBoundary(group: LegalGroup, title: string): SurveyScene {
   const elements = getElements(group).filter(element => element.value?.trim());
-  const notes = elements.map(element => ({ label: formatLabel(element.aspect), value: element.value!, explanation: element.explanation }));
+  const notes = getNotes(elements);
   const bearings = readList(elements.filter(element => element.aspect === "bearings").map(element => element.value!), false);
   const distances = readList(elements.filter(element => element.aspect === "distances").map(element => element.value!), true);
-  const angles = bearings?.map(parseBearing);
-  const lengths = distances?.map(parseDistance);
-  if (!bearings || !distances || bearings.length !== distances.length || angles?.some(angle => angle === null) || lengths?.some(length => length === null)
-    || (lengths?.some(length => length?.specified) && lengths.some(length => !length?.specified))) return { title, items: [], notes };
+  const angles = bearings.map(parseBearing);
+  const lengths = distances.map(parseDistance);
+  let issue: string | undefined;
+  if (!bearings.length && !distances.length) issue = "Cannot map: no bearing and distance pairs were provided.";
+  else if (bearings.length !== distances.length) issue = `Cannot map: ${bearings.length} bearing${bearings.length === 1 ? "" : "s"} and ${distances.length} distance${distances.length === 1 ? "" : "s"} cannot be paired.`;
+  else if (angles.includes(null)) {
+    const index = angles.indexOf(null);
+    issue = `Cannot map: bearing ${index + 1} could not be read ("${bearings[index]}").`;
+  } else if (lengths.includes(null)) {
+    const index = lengths.indexOf(null);
+    issue = `Cannot map: distance ${index + 1} could not be read ("${distances[index]}").`;
+  } else if (lengths.some(length => length!.specified) && lengths.some(length => !length!.specified)) issue = "Cannot map: some distances have units and others do not.";
+  if (issue) return { title, items: [], notes, issue };
   const items: SurveyItem[] = [];
-  const scale = lengths!.reduce((maximum, length) => Math.max(maximum, length!.length), 0);
+  const scale = lengths.reduce((maximum, length) => Math.max(maximum, length!.length), 0);
   let from: SurveyPoint = { x: 0, y: 0 };
   for (let index = 0; index < bearings.length; index += 1) {
-    const radians = angles![index]! * Math.PI / 180;
-    const length = scale > 0 ? lengths![index]!.length / scale : 0;
+    const radians = angles[index]! * Math.PI / 180;
+    const length = scale > 0 ? lengths[index]!.length / scale : 0;
     const to = { x: from.x + Math.sin(radians) * length, y: from.y - Math.cos(radians) * length };
-    items.push({ kind: "line", from, to, bearing: bearings[index], distance: distances[index], label: `Course ${index + 1}`, detail: `${bearings[index]} · ${distances[index]}` });
+    items.push({ kind: "line", from, to, bearing: bearingText(bearings[index]), distance: distances[index].trim(), label: `Course ${index + 1}`, detail: `${bearings[index]} · ${distances[index]}` });
     from = to;
   }
   return { title, items, notes };
@@ -124,7 +149,7 @@ function divideSection(parent: Extract<SurveyItem, { kind: "rect" }>, descriptio
 
 export function buildPlss(group: LegalGroup, title: string, summary?: string): SurveyScene {
   const elements = getElements(group).filter(element => element.value?.trim());
-  const notes = elements.map(element => ({ label: formatLabel(element.aspect), value: element.value! }));
+  const notes = getNotes(elements);
   const items: SurveyItem[] = Array.from({ length: 36 }, (_, index) => {
     const row = Math.floor(index / 6);
     const column = index % 6;
@@ -165,31 +190,30 @@ export function buildPlss(group: LegalGroup, title: string, summary?: string): S
       items.splice(0, items.length, parent, ...divideSection(parent, aliquots, symbolic, aliquots));
       areas = items.filter(item => item.kind === "rect" && item.role === "area");
     } else {
-      return { title, notes, items: [] };
+      return { title, notes, items: [], issue: "Cannot map: no section or aliquot could be resolved." };
     }
   }
   const sections = items.filter((item): item is Extract<SurveyItem, { kind: "rect" }> => item.kind === "rect" && item.role === "section" && areas.some(area => area.label === item.detail));
-  const left = Math.min(...sections.map(section => section.x - section.width));
   const top = Math.min(...sections.map(section => section.y - section.height));
-  const right = Math.max(...sections.map(section => section.x + section.width * 2));
   const bottom = Math.max(...sections.map(section => section.y + section.height * 2));
   return {
     title, notes,
-    items: items.filter(item => item.kind !== "rect" || item.role !== "section" || (item.x >= left && item.y >= top && item.x + item.width <= right && item.y + item.height <= bottom))
+    items: items.filter(item => item.kind !== "rect" || item.role !== "section" || (item.y >= top && item.y + item.height <= bottom))
       .map(item => item.kind === "rect" && item.role === "section" ? { ...item, highlighted: sections.includes(item) } : item),
   };
 }
 
-export function getMapGroups(legal: LegalPayload | null | undefined): { view: LegalMapView; group: LegalGroup; scene?: SurveyScene }[] {
-  const views: Record<string, LegalMapView> = { lot_block: "Plat", plss: "PLSS", government_lot: "PLSS", fractional_section: "PLSS", metes_bounds: "Metes & Bounds" };
+export function getMapGroups(legal: LegalPayload | null | undefined): { view: LegalMapView; group: LegalGroup; scene?: SurveyScene; notes: SurveyScene["notes"] }[] {
+  const views: Record<string, LegalMapView> = { lot_block: "Lot & block", plss: "PLSS", government_lot: "PLSS", fractional_section: "PLSS", metes_bounds: "Metes & Bounds" };
   const groups = resolveGroups(legal).filter((group): group is LegalGroup => typeof group === "object" && group !== null);
   const plssCount = groups.filter(group => views[group.type?.trim() ?? ""] === "PLSS").length;
   return groups.flatMap(group => {
     const type = group.type?.trim() ?? "";
-    if (!Object.hasOwn(views, type) || !getElements(group).some(element => element.value?.trim())) return [];
+    if (!Object.hasOwn(views, type)) return [];
+    const elements = getElements(group).filter(element => element.value?.trim());
+    if (elements.length === 0) return [];
     const view = views[type];
     const scene = view === "PLSS" ? buildPlss(group, view, plssCount === 1 ? legal?.summary : undefined) : view === "Metes & Bounds" ? buildBoundary(group, view) : undefined;
-    if (scene && !scene.items.length) return [];
-    return [{ view, group, scene }];
+    return [{ view, group, scene, notes: view === "Lot & block" ? getNotes(elements) : scene!.notes }];
   });
 }

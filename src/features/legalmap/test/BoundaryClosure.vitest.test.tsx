@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
 import { getMapGroups } from "../data/surveyData";
@@ -25,6 +25,11 @@ describe("schematic boundary closure", () => {
     const lines = getMapGroups(legal)[0].scene!.items.filter(item => item.kind === "line");
     render(<LegalMapContent legal={legal} />);
     const drawing = screen.getByRole("img", { name: "Metes & Bounds schematic" });
+    const legend = screen.getByLabelText("Map legend");
+    expect(within(legend).getByText("Parcel boundary")).toBeVisible();
+    expect(within(legend).queryByText("Tie line (Commencement)") !== null).toBe(beginning === 2);
+    expect(legend.closest("[data-legal-map-footer]")).not.toBeNull();
+    expect(legend).toHaveStyle({ marginLeft: "auto" });
     const courses = drawing.querySelectorAll("[data-survey-line]");
     const [x, y, width, height] = drawing.getAttribute("viewBox")!.split(" ").map(Number);
     const points = lines.flatMap(line => [line.from, line.to]);
@@ -64,6 +69,7 @@ describe("schematic boundary closure", () => {
         bearings.split("; ")[index], distances.split("; ")[index],
       ]);
     }
+    fireEvent.click(screen.getByRole("tab", { name: "Acreage" }));
     expect(screen.getByText("2.005 ACRES OF LAND, MORE OR LESS")).toBeVisible();
     expect(JSON.stringify(legal)).toBe(original);
   });
@@ -84,7 +90,7 @@ describe("schematic boundary closure", () => {
       { type: "metes_bounds", elements: [{ aspect: "bearings", value: "N; E; S; W" }, { aspect: "distances", value: "100 ft; 50 ft; 100 ft; 50 ft" }] },
       { type: "metes_bounds", elements: [{ aspect: "bearings", value: "E; N; E; S; W" }, { aspect: "distances", value: "10 ft; 100 ft; 50 ft; 100 ft; 50 ft" }] },
     ] }} />);
-    const [parcel, tract] = screen.getAllByRole("img", { name: /Metes & Bounds.*schematic/ });
+    const [parcel, tract] = screen.getAllByRole("img", { name: /Parcel .*schematic/ });
     expect(within(parcel).queryByText("POC", { exact: true })).not.toBeInTheDocument();
     expect(within(parcel).getByText("POB", { exact: true }).parentElement!.querySelector("[data-survey-vertex]")).toHaveTextContent("1");
     expect(within(tract).getByText("POC", { exact: true })).toBeVisible();
@@ -107,20 +113,19 @@ describe("schematic boundary closure", () => {
   });
 
   it.each([
-    { distances: "100 m; 50 m; 100 m; 50.2 m", gap: "0.2 m", tolerance: "0.3002 m", percent: "0.0666%", closed: true },
-    { distances: "100; 50; 100; 50.2", gap: "0.2 units", tolerance: "0.3002 units", percent: "0.0666%", closed: true },
-    { distances: "100 ft; 50 ft; 100 ft; 51 ft", gap: "0.3048 m", tolerance: "0.0917 m", percent: "0.3322%", closed: false },
-    { distances: "100 m; 50 m; 100 m; 164.6981627296588 ft", gap: "0.2 m", tolerance: "0.3002 m", percent: "0.0666%", closed: true },
-  ])("shows the actual closure gap and threshold for $distances", ({ distances, gap, tolerance, percent, closed }) => {
+    { distances: "100 m; 50 m; 100 m; 50.2 m", closed: true },
+    { distances: "100; 50; 100; 50.2", closed: true },
+    { distances: "100 ft; 50 ft; 100 ft; 51 ft", closed: false },
+    { distances: "100 m; 50 m; 100 m; 164.6981627296588 ft", closed: true },
+  ])("keeps closure geometry without a diagnostic row for $distances", ({ distances, closed }) => {
     const legal = { groups: [{ type: "metes_bounds", elements: [
       { aspect: "bearings", value: "N; E; S; W" }, { aspect: "distances", value: distances },
     ] }] };
     const lines = getMapGroups(legal)[0].scene!.items.filter(item => item.kind === "line");
     render(<LegalMapContent legal={legal} />);
-    const details = screen.getByLabelText("Closure details");
-    expect(details).toHaveTextContent(closed ? "Within tolerance" : "Open");
-    expect(details).toHaveTextContent(`Gap: ${gap} (${percent})`);
-    expect(details).toHaveTextContent(`Tolerance: ${tolerance} (0.1%)`);
+    expect(screen.queryByLabelText("Closure details")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Closure:|Gap:|Tolerance:/);
+    expect(Boolean(document.querySelector("[data-boundary-fill]"))).toBe(closed);
     const gapLine = document.querySelector("[data-survey-gap]")!;
     expect(gapLine).toHaveAttribute("x1", String(lines.at(-1)!.to.x));
     expect(gapLine).toHaveAttribute("y1", String(lines.at(-1)!.to.y));
@@ -133,8 +138,7 @@ describe("schematic boundary closure", () => {
   it("recognizes the nine-course sample without moving the endpoint to POB", () => {
     const lines = getMapGroups(tieFixture)[0].scene!.items.filter(item => item.kind === "line");
     render(<LegalMapContent legal={tieFixture} />);
-    expect(screen.getByLabelText("Closure details")).toHaveTextContent("Gap: 0.0021 m (0.0004%)");
-    expect(screen.getByLabelText("Closure details")).toHaveTextContent("Tolerance: 0.4793 m (0.1%)");
+    expect(screen.queryByLabelText("Closure details")).toBeNull();
     expect(screen.getByText("POB", { exact: true }).parentElement!.querySelector("[data-survey-vertex]")).toHaveTextContent("2");
     expect(document.querySelector("[data-survey-gap]")).toHaveAttribute("x2", String(lines[1].from.x));
     expect(document.querySelector("[data-survey-gap]")).toHaveAttribute("x1", String(lines.at(-1)!.to.x));

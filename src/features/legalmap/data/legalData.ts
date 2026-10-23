@@ -6,7 +6,7 @@ export function labelValue(value: string, kind: string): string {
   return value.replace(new RegExp(`(^|[,/])\\s*(?:${kind})\\b\\s*(?:no\\.?\\s*)?`, "gi"), "$1").trim();
 }
 
-export const legalMapViews = ["Plat", "Metes & Bounds", "PLSS"] as const;
+export const legalMapViews = ["Lot & block", "Address", "Metes & Bounds", "PLSS"] as const;
 export type LegalMapView = typeof legalMapViews[number];
 
 const stateAbbr: Record<string, string> = {

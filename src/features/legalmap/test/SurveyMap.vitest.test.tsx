@@ -16,22 +16,25 @@ describe("schematic map integration", () => {
     expect(screen.getByRole("img", { name: "PLSS schematic" })).toBeVisible();
     expect(document.querySelector("[data-survey-reference]")).toBeNull();
     expect(screen.queryByText("Schematic - Not to Scale")).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "Plat" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Lot & block" })).not.toBeInTheDocument();
   });
 
   it("uses the approved tab order, keyboard navigation and original Plat content", () => {
     render(<LegalMapContent legal={{ groups: [metes, plss, { type: "lot_block", elements: [{ aspect: "lot", value: "8" }] }] }} addressMap={{ address: "123 Main Street", content: <div>Address map content</div> }} />);
-    expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Plat", "Metes & Bounds", "PLSS", "Address"]);
-    const plat = screen.getByRole("tab", { name: "Plat" });
+    expect(within(screen.getByRole("tablist", { name: "Map views" })).getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Lot & block", "Address", "Metes & Bounds", "PLSS"]);
+    const plat = screen.getByRole("tab", { name: "Lot & block" });
     expect(plat).toHaveAttribute("aria-selected", "true");
     expect(document.querySelector("[data-legal-map-lot]")).toHaveTextContent("8Lot");
     fireEvent.keyDown(plat, { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: "Address" })).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Address" }), { key: "ArrowRight" });
     expect(screen.getByRole("tab", { name: "Metes & Bounds" })).toHaveFocus();
     expect(screen.getByRole("img", { name: "Metes & Bounds schematic" })).toBeVisible();
     fireEvent.keyDown(screen.getByRole("tab", { name: "Metes & Bounds" }), { key: "ArrowRight" });
     expect(screen.getByRole("tab", { name: "PLSS" })).toHaveFocus();
-    expect(screen.getByRole("tabpanel")).toHaveAccessibleName("PLSS");
-    fireEvent.keyDown(screen.getByRole("tab", { name: "PLSS" }), { key: "End" });
+    expect(screen.getByRole("tabpanel", { name: "PLSS" })).toHaveAccessibleName("PLSS");
+    fireEvent.keyDown(screen.getByRole("tab", { name: "PLSS" }), { key: "Home" });
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Lot & block" }), { key: "ArrowRight" });
     expect(screen.getByText("Address map content")).toBeVisible();
     expect(screen.queryByRole("heading", { name: "Address" })).not.toBeInTheDocument();
     expect(screen.queryByText("123 Main Street")).not.toBeInTheDocument();
@@ -39,7 +42,7 @@ describe("schematic map integration", () => {
 
   it.each([[plss, metes], [metes, plss]])("opens Metes & Bounds before PLSS regardless of source order %#", (...groups) => {
     render(<LegalMapContent legal={{ groups }} />);
-    expect(screen.getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Metes & Bounds", "PLSS"]);
+    expect(within(screen.getByRole("tablist", { name: "Map views" })).getAllByRole("tab").map(tab => tab.textContent)).toEqual(["Metes & Bounds", "PLSS"]);
     expect(screen.getByRole("tab", { name: "Metes & Bounds" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("img", { name: "Metes & Bounds schematic" })).toBeVisible();
   });
@@ -50,6 +53,7 @@ describe("schematic map integration", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     const svg = screen.getByRole("img", { name: "Metes & Bounds schematic" });
     expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Acreage" }));
     expect(screen.getByText("2 acres")).toBeVisible();
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(3);
     expect(svg.querySelector('path[data-boundary-fill]')).toBeNull();
@@ -87,6 +91,7 @@ describe("schematic map integration", () => {
 
   it("shows acreage once in the information column", () => {
     render(<LegalMapContent legal={{ groups: [metes] }} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Acreage" }));
     const acreage = screen.getByLabelText("Reported acreage");
     expect(acreage).toContainElement(screen.getByText("2 acres"));
     expect(acreage.closest("[data-legal-map-info]")).not.toBeNull();
@@ -104,7 +109,7 @@ describe("schematic map integration", () => {
     ] }] }} />);
     expect(screen.queryByRole("heading", { name: "Boundary Calls" })).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Boundary Calls" })).toBeVisible();
-    expect(screen.getByRole("region", { name: "Boundary Calls" })).toHaveStyle({ overflowY: "auto" });
+    expect(screen.getByRole("tabpanel", { name: "Boundary Calls" })).toHaveStyle({ overflowY: "auto" });
     const drawing = screen.getByRole("img", { name: "Metes & Bounds schematic" });
     const reference = drawing.querySelector("[data-survey-reference]")!;
     const course = drawing.querySelector("[data-survey-line]")!;
@@ -120,18 +125,20 @@ describe("schematic map integration", () => {
     expect(drawing.querySelector("[data-boundary-fill]")).toBeNull();
   });
 
-  it("does not offer an undrawable boundary view", () => {
+  it("retains an undrawable boundary without inventing a schematic", () => {
     render(<LegalMapContent legal={{ groups: [{ type: "metes_bounds", elements: [{ aspect: "bearings", value: "curve along river" }] }] }} />);
     expect(screen.queryByRole("img", { name: "Metes & Bounds schematic" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Metes & Bounds" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("alert", { name: "Metes & Bounds" })).toHaveTextContent("Cannot map: 1 bearing and 0 distances cannot be paired.");
+    expect(screen.queryByRole("table")).toBeNull();
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(0);
   });
 
   it("renders independent groups without connecting their courses", () => {
     render(<LegalMapContent legal={{ groups: [metes, metes] }} />);
-    expect(screen.getAllByRole("img", { name: /Metes & Bounds.*schematic/ })).toHaveLength(2);
+    expect(screen.getAllByRole("img", { name: /Parcel .*schematic/ })).toHaveLength(2);
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(6);
-    for (const drawing of screen.getAllByRole("img", { name: /Metes & Bounds.*schematic/ })) {
+    for (const drawing of screen.getAllByRole("img", { name: /Parcel .*schematic/ })) {
       expect(Array.from(drawing.querySelectorAll("[data-survey-vertex]"), node => node.textContent)).toEqual(["1", "2", "3", "4"]);
       expect(drawing.querySelectorAll("[data-survey-reference]")).toHaveLength(1);
       expect(drawing.querySelector("[data-survey-line]")).toHaveAttribute("stroke", "#2496c8");
@@ -142,6 +149,6 @@ describe("schematic map integration", () => {
     const { rerender } = render(<LegalMapContent legal={{ groups: [plss] }} />);
     rerender(<LegalMapContent legal={{ groups: [metes] }} />);
     expect(screen.getByRole("tab", { name: "Metes & Bounds" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByRole("img", { name: "PLSS schematic" })).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Metes & Bounds schematic" })).toBeVisible();
   });
 });

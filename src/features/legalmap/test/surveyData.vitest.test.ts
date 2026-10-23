@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LegalGroup } from "aurora-core";
 import { buildBoundary, buildPlss, parseBearing, parseDistance } from "../data/surveyData";
+import { incompleteFixture } from "./surveyFixture";
 
 const boundary = (bearings: string, distances: string): LegalGroup => ({ type: "metes_bounds", elements: [
   { aspect: "bearings", value: bearings }, { aspect: "distances", value: distances },
@@ -31,6 +32,48 @@ describe("schematic bearings and distances", () => {
 });
 
 describe("metes and bounds schematics", () => {
+  it("reports mismatched counts without creating courses or individual success states", () => {
+    const group = incompleteFixture.groups![0];
+    const original = JSON.stringify(group);
+    const scene = buildBoundary(group, "Parcel 1");
+    expect(scene.issue).toBe("Cannot map: 5 bearings and 8 distances cannot be paired.");
+    expect(scene.items).toEqual([]);
+    expect(JSON.stringify(group)).toBe(original);
+  });
+
+  it("keeps bearing component punctuation and reports unreadable minutes without correcting them", () => {
+    const scene = buildBoundary(boundary("SOUTH 0 DEGREES, 14 MINUTES EAST; NORTH 89 DEGREES, 57 MINUTES EAST; NORTH 89 DEGREES 67 MINUTES EAST", "788.0 FEET; 420.0 FEET; 239.4 FEET"), "Parcel 1");
+    expect(scene.issue).toBe('Cannot map: bearing 3 could not be read ("NORTH 89 DEGREES 67 MINUTES EAST").');
+    expect(scene.items).toEqual([]);
+    expect(parseBearing("NORTH 89 DEGREES, 57 MINUTES EAST")).toBeCloseTo(89.95);
+  });
+
+  it.each([
+    ["N; curve along river; E", "100 ft; 20 ft; 50 ft", 'Cannot map: bearing 2 could not be read ("curve along river").'],
+    ["N; E", "100 ft; invalid", 'Cannot map: distance 2 could not be read ("invalid").'],
+    ['["N",]', "100", 'Cannot map: bearing 1 could not be read ("[\"N\",]").'],
+    ["[]", "[]", "Cannot map: no bearing and distance pairs were provided."],
+    ["N; E", "100 ft; 20", "Cannot map: some distances have units and others do not."],
+  ])("reports why courses cannot be mapped: %s / %s", (bearings, distances, issue) => {
+    const group = boundary(bearings, distances);
+    const original = JSON.stringify(group);
+    const scene = buildBoundary(group, "Parcel 1");
+    expect(scene.issue).toBe(issue);
+    expect(scene.items).toEqual([]);
+    expect(scene.notes).toContainEqual({ label: "Bearings", value: bearings });
+    expect(scene.notes).toContainEqual({ label: "Distances", value: distances });
+    expect(JSON.stringify(group)).toBe(original);
+  });
+
+  it("uses converted bearings for complete pairs and preserves their geometry", () => {
+    const scene = buildBoundary(boundary("NORTH 45 DEGREES EAST; SOUTH 45 DEGREES EAST", "100 ft; 100 ft"), "Parcel 2");
+    const lines = scene.items.filter(item => item.kind === "line");
+    expect(lines.map(line => line.bearing)).toEqual(["N 45°E", "S 45°E"]);
+    expect(lines[0].to.x).toBeCloseTo(Math.SQRT1_2);
+    expect(lines[0].to.y).toBeCloseTo(-Math.SQRT1_2);
+    expect(scene.issue).toBeUndefined();
+  });
+
   it("pairs complete lists by position, preserves repeats, and leaves the outline open", () => {
     const group = boundary("N; E; S; E", "100 ft; 50 ft; 100 ft; 50 ft");
     const original = JSON.stringify(group);
@@ -102,12 +145,20 @@ describe("metes and bounds schematics", () => {
 });
 
 describe("PLSS schematics", () => {
+  it("shows complete six-column rows around Section 16, including sections 11 through 14", () => {
+    const scene = buildPlss({ elements: [{ aspect: "aliquots", value: "NW1/4 of Section 16" }] }, "PLSS");
+    expect(scene.items.filter(item => item.kind === "rect" && item.role === "section").map(item => item.label)).toEqual([
+      "7", "8", "9", "10", "11", "12",
+      "18", "17", "16", "15", "14", "13",
+      "19", "20", "21", "22", "23", "24",
+    ]);
+  });
   it.each(Array.from({ length: 36 }, (_, index) => index + 1))("preserves the township position of Section %s", number => {
     const scene = buildPlss({ elements: [{ aspect: "aliquots", value: `Section ${number}` }] }, "PLSS");
     const row = Math.floor((number - 1) / 6);
     const column = row % 2 === 0 ? 5 - (number - 1) % 6 : (number - 1) % 6;
     const sections = scene.items.filter(item => item.kind === "rect" && item.role === "section");
-    expect(sections).toHaveLength((row === 0 || row === 5 ? 2 : 3) * (column === 0 || column === 5 ? 2 : 3));
+    expect(sections).toHaveLength((row === 0 || row === 5 ? 2 : 3) * 6);
     expect(sections.find(item => item.label === String(number))).toMatchObject({ x: column * 100, y: row * 100, width: 100, height: 100, highlighted: true });
   });
 
@@ -150,7 +201,7 @@ describe("PLSS schematics", () => {
     const scene = buildPlss({ elements: [{ aspect: "aliquots", value: "SE1/4 of Section 1" }] }, "PLSS");
     expect(scene.items.find(item => item.kind === "rect" && item.role === "section" && item.label === "1")).toMatchObject({ x: 500, y: 0, width: 100, height: 100 });
     expect(scene.items.find(item => item.kind === "rect" && item.role === "area")).toMatchObject({ x: 550, y: 50, width: 50, height: 50 });
-    expect(scene.items.filter(item => item.kind === "rect" && item.role === "section").map(item => item.label)).toEqual(["2", "1", "11", "12"]);
+    expect(scene.items.filter(item => item.kind === "rect" && item.role === "section").map(item => item.label)).toEqual(["6", "5", "4", "3", "2", "1", "7", "8", "9", "10", "11", "12"]);
   });
 
   it("builds a standard numbered township and nested aliquots from existing text", () => {
@@ -162,7 +213,7 @@ describe("PLSS schematics", () => {
     const original = JSON.stringify(group);
     const scene = buildPlss(group, "PLSS");
     const sections = scene.items.filter(item => item.kind === "rect" && item.role === "section");
-    expect(sections).toHaveLength(6);
+    expect(sections).toHaveLength(18);
     expect(sections.find(item => item.label === "12")).toMatchObject({ x: 500, y: 100, width: 100, height: 100 });
     const area = scene.items.find(item => item.kind === "rect" && item.role === "area");
     expect(area).toMatchObject({ x: 525, y: 150, width: 25, height: 25, highlighted: true });
@@ -200,6 +251,7 @@ describe("PLSS schematics", () => {
   it.each(["Section 0", "Section 37", "a government lot without a section"])("does not highlight an unidentified section: %s", value => {
     const scene = buildPlss({ elements: [{ aspect: "aliquots", value }] }, "PLSS");
     expect(scene.items.some(item => item.kind === "rect" && item.highlighted)).toBe(false);
+    expect(scene.issue).toBe("Cannot map: no section or aliquot could be resolved.");
     expect(scene.notes.some(note => note.value === value)).toBe(true);
   });
 

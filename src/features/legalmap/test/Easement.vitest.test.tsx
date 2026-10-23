@@ -20,14 +20,15 @@ describe("metes and bounds easement notes", () => {
     expect(JSON.stringify(group)).toBe(original);
   });
 
-  it("shows the exact clause and supporting explanation below acreage and above references", () => {
+  it("shows the exact clause and supporting explanation in its details tab without references", () => {
     const legal = { ...surveyFixture, groups: [
       { ...boundary, elements: boundary.elements!.map(element => element === easement ? { ...element, explanation } : element) },
       { type: "plat_reference", elements: [{ aspect: "plat_book", value: "42" }] },
     ] };
     render(<LegalMapContent legal={legal} />);
     const info = document.querySelector("[data-legal-map-info]") as HTMLElement;
-    expect(within(info).getAllByRole("heading").map(node => node.textContent)).toEqual(["Summary", "Acreage", "Easement", "Reference"]);
+    expect(within(info).getAllByRole("tab").map(node => node.textContent)).toEqual(["Boundary Calls", "Acreage", "Easement"]);
+    fireEvent.click(screen.getByRole("tab", { name: "Easement" }));
     const card = screen.getByLabelText("Easement details");
     expect(card).toHaveStyle({ background: legalMapStyles.infoCard.background, overflowWrap: "anywhere" });
     expect(within(card).getByText(easement.value!, { exact: true })).toBeVisible();
@@ -41,12 +42,14 @@ describe("metes and bounds easement notes", () => {
 
   it("shows the clause without inventing an explanation and hides it on other map views", () => {
     render(<LegalMapContent legal={surveyFixture} addressMap={{ address: "123 Main St", content: <div>Address map</div> }} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Easement" }));
     const card = screen.getByLabelText("Easement details");
     expect(card).toHaveTextContent(easement.value!);
     expect(card).not.toHaveTextContent("Locator:");
     for (const tab of ["PLSS", "Address"]) {
       fireEvent.click(screen.getByRole("tab", { name: tab }));
-      expect(screen.queryByRole("heading", { name: "Easement" })).toBeNull();
+      expect(screen.queryByRole("tab", { name: "Easement" })).toBeNull();
     }
     fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
     expect(screen.getByLabelText("Easement details")).toHaveTextContent(easement.value!);
@@ -54,15 +57,16 @@ describe("metes and bounds easement notes", () => {
 
   it.each([undefined, "", "   "])("omits an empty easement value %s", value => {
     render(<LegalMapContent legal={{ groups: [{ ...boundary, elements: boundary.elements!.map(element => element === easement ? { ...element, value, explanation } : element) }] }} />);
-    expect(screen.queryByRole("heading", { name: "Easement" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Easement" })).toBeNull();
     expect(screen.queryByText(explanation)).toBeNull();
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(7);
   });
 
   it("shows an easement without requiring acreage or a summary", () => {
     render(<LegalMapContent legal={{ groups: [{ ...boundary, elements: boundary.elements!.filter(element => element.aspect !== "acreage") }] }} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Easement" }));
     expect(screen.getByLabelText("Easement details")).toHaveTextContent(easement.value!);
-    expect(screen.queryByRole("heading", { name: "Acreage" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Acreage" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
   });
 
@@ -71,12 +75,13 @@ describe("metes and bounds easement notes", () => {
       { ...boundary, elements: [...boundary.elements!, { ...easement, explanation }] },
       { ...boundary, elements: boundary.elements!.map(element => element === easement ? { ...element, explanation: "Second tract concluding clause." } : element) },
     ] }} />);
-    const first = screen.getByLabelText("Metes & Bounds 1 easement details");
-    const second = screen.getByLabelText("Metes & Bounds 2 easement details");
-    expect(within(first).getByRole("heading", { name: "Metes & Bounds 1" })).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "Easement" }));
+    const first = screen.getByLabelText("Parcel 1 easement details");
+    const second = screen.getByLabelText("Parcel 2 easement details");
+    expect(within(first).getByRole("heading", { name: "Parcel 1" })).toBeVisible();
     expect(within(first).getAllByText(easement.value!, { exact: true })).toHaveLength(2);
     expect(within(first).getByText(explanation)).toBeVisible();
-    expect(within(second).getByRole("heading", { name: "Metes & Bounds 2" })).toBeVisible();
+    expect(within(second).getByRole("heading", { name: "Parcel 2" })).toBeVisible();
     expect(second).toHaveTextContent("Second tract concluding clause.");
     expect(second).not.toHaveTextContent(explanation);
   });

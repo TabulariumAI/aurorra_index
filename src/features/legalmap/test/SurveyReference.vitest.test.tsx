@@ -22,18 +22,18 @@ describe("abstract legal map presentation", () => {
     expect(groups.find(entry => entry.view === "Metes & Bounds")!.scene!.items.filter(item => item.kind === "line")).toHaveLength(7);
   });
 
-  it("retains references beside the drawing without duplicated legal data or layer controls", () => {
+  it("omits references below the drawing without duplicated legal data or layer controls", () => {
     render(<LegalMapContent legal={{ ...surveyFixture, groups: [...surveyFixture.groups!, { type: "plat_reference", elements: [{ aspect: "plat_book", value: "42" }] }] }} />);
     fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
     expect(screen.getByRole("img", { name: "PLSS schematic" })).toBeVisible();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.queryByText("Schematic - Not to Scale")).not.toBeInTheDocument();
-    const info = document.querySelector("[data-legal-map-info]") as HTMLElement;
-    expect(within(info).getAllByRole("heading").map(node => node.textContent)).toEqual(["Summary", "Reference"]);
-    expect(within(info).getByRole("cell", { name: "42" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
+    expect(screen.getByText(surveyFixture.summary!)).toBeVisible();
+    expect(screen.queryByRole("cell", { name: "42" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
-    expect(within(info).getByRole("table", { name: "Reference" })).toBeVisible();
-    expect(within(info).queryByText(/Legal Description/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Reference" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Legal Description/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Zoom in" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fit drawing" })).not.toBeInTheDocument();
     expect(screen.queryByText(/Section not identified|Unresolved|Select or hover/)).not.toBeInTheDocument();
@@ -76,8 +76,8 @@ describe("abstract legal map presentation", () => {
   });
 
   it.each([
-    { legal: clusterFixture, bearing: "SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST", distance: "375.07 ft" },
-    { legal: surveyFixture, bearing: "S 0° 01' 30'' E", distance: "323.26 FEET" },
+    { legal: clusterFixture, bearing: "S 79°46'35\"W", distance: "375.07 ft" },
+    { legal: surveyFixture, bearing: "S 0°01'30\"E", distance: "323.26 FEET" },
   ])("keeps the $bearing commencement annotation readable without covering the drawing", ({ legal, bearing, distance }) => {
     render(<LegalMapContent legal={legal} />);
     fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
@@ -114,12 +114,12 @@ describe("abstract legal map presentation", () => {
 
   it("uses Lot & Block pixel sizes for square labels without label backgrounds", () => {
     vi.spyOn(SVGElement.prototype, "getBoundingClientRect").mockImplementation(function (this: SVGElement) {
-      return { width: this.tagName === "svg" ? 920 : 0, height: this.tagName === "svg" ? 920 : 0 } as DOMRect;
+      return { width: this.tagName === "svg" ? 1840 : 0, height: this.tagName === "svg" ? 1840 : 0 } as DOMRect;
     });
     render(<LegalMapContent legal={quarterFixture} />);
     const drawing = screen.getByRole("img", { name: "PLSS schematic" });
     const section = drawing.querySelector('[data-survey-section="4"]')!;
-    const scale = 920 / Number(drawing.getAttribute("viewBox")!.split(" ")[2]);
+    const scale = 1840 / Number(drawing.getAttribute("viewBox")!.split(" ")[2]);
     expect(Number(section.getAttribute("font-size")) * scale).toBeCloseTo(18.4);
     expect(section.parentElement!.querySelector("rect")).toBeNull();
     const subject = drawing.querySelector("[data-survey-area]")!.parentElement!.querySelector("text")!;
@@ -133,17 +133,19 @@ describe("abstract legal map presentation", () => {
     render(<LegalMapContent legal={legal} />);
     const drawing = screen.getByRole("img", { name: "PLSS schematic" });
     const numbers = drawing.querySelectorAll("[data-survey-section]");
-    expect(numbers).toHaveLength(9);
+    expect(numbers).toHaveLength(18);
     for (const number of numbers) {
       const section = scene.items.find(item => item.kind === "rect" && item.role === "section" && item.label === number.textContent)!;
       if (section.kind !== "rect") throw new Error("Expected section rectangle");
       expect(number).toHaveAttribute("x", String(section.x + section.width / 2));
-      expect(number).toHaveAttribute("y", String(section.y + section.height * 0.12));
+      expect(Number(number.getAttribute("y"))).toBeGreaterThan(section.y);
+      expect(Number(number.getAttribute("y"))).toBeLessThan(section.y + section.height / 2);
       expect(number).toHaveAttribute("text-anchor", "middle");
+      expect(number).toHaveAttribute("dominant-baseline", "hanging");
     }
   });
 
-  it("omits unreadable labels in small aliquots while keeping section numbers at Lot & Block size", () => {
+  it("shrinks section numbers in narrow drawings and omits unreadable aliquot labels", () => {
     vi.spyOn(SVGElement.prototype, "getBoundingClientRect").mockImplementation(function (this: SVGElement) {
       return { width: this.tagName === "svg" ? 230 : 0, height: this.tagName === "svg" ? 230 : 0 } as DOMRect;
     });
@@ -151,16 +153,16 @@ describe("abstract legal map presentation", () => {
     const drawing = screen.getByRole("img", { name: "PLSS schematic" });
     const scale = 230 / Number(drawing.getAttribute("viewBox")!.split(" ")[2]);
     expect(within(drawing).queryByText("SW1/4", { exact: true })).toBeNull();
-    expect(Number(drawing.querySelector('[data-survey-section="4"]')!.getAttribute("font-size")) * scale).toBeCloseTo(18.4);
+    expect(Number(drawing.querySelector('[data-survey-section="4"]')!.getAttribute("font-size")) * scale).toBeLessThan(18.4);
     expect(within(drawing).queryByText("Subject", { exact: true })).toBeNull();
     expect(drawing.querySelector("[data-survey-area]")).not.toBeNull();
   });
 
   for (const [screenWidth, screenHeight] of [[920, 920], [800, 400], [390, 240]]) {
     it.each([
-      ["SE1/4 of Section 1", 4], ["NW1/4 of Section 6", 4], ["SW1/4 of Section 31", 4],
-      ["NE1/4 of Section 36", 4], ["NE1/4 of SW1/4 of Section 12", 6], ["SE1/4", 1],
-      ["NE1/4 of Section 12 and SW1/4 of Section 13", 8],
+      ["SE1/4 of Section 1", 12], ["NW1/4 of Section 6", 12], ["SW1/4 of Section 31", 12],
+      ["NE1/4 of Section 36", 12], ["NE1/4 of SW1/4 of Section 12", 18], ["SE1/4", 1],
+      ["NE1/4 of Section 12 and SW1/4 of Section 13", 24],
     ] as const)(`renders complete sections 10% smaller at the upper center for %s at ${screenWidth}x${screenHeight}`, (value, count) => {
       vi.spyOn(SVGElement.prototype, "getBoundingClientRect").mockImplementation(function (this: SVGElement) {
         return { width: this.tagName === "svg" ? screenWidth : 0, height: this.tagName === "svg" ? screenHeight : 0 } as DOMRect;
@@ -190,21 +192,44 @@ describe("abstract legal map presentation", () => {
     });
   }
 
-  it("shares Lot & Block surface, north marker and legend presentation", () => {
+  it("shares a borderless pale dashed-grid background between Metes & Bounds and PLSS including Lot & block", () => {
+    render(<LegalMapContent legal={{ groups: [
+      { type: "lot_block", elements: [{ aspect: "lot", value: "7" }] },
+      ...surveyFixture.groups!,
+    ] }} />);
+    const plat = document.querySelector<HTMLElement>("[data-legal-map-surface]")!.style.backgroundImage;
+    fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
+    const surface = document.querySelector<HTMLElement>("[data-legal-map-surface]")!;
+    const grid = surface.style.backgroundImage;
+    expect(grid).toBe(plat);
+    expect(decodeURIComponent(grid)).toContain("stroke-dasharray='3 5'");
+    expect(surface).toHaveStyle({ borderStyle: "none", backgroundColor: "#f7f8f6", backgroundRepeat: "repeat", backgroundSize: "48px 48px" });
+    fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
+    const plss = document.querySelector<HTMLElement>("[data-legal-map-surface]")!;
+    expect(plss.style.backgroundImage).toBe(grid);
+    expect(plss).toHaveStyle({ borderStyle: "none", backgroundColor: "#f7f8f6" });
+    fireEvent.click(screen.getByRole("tab", { name: "Lot & block" }));
+    expect(document.querySelector<HTMLElement>("[data-legal-map-surface]")!.style.backgroundImage).toBe(plat);
+  });
+
+  it("retains the frame and north marker while sizing the PLSS legend to the Metes & Bounds text scale", () => {
     render(<LegalMapContent legal={quarterFixture} />);
     const viewport = document.querySelector("[data-legal-map-surface]")!;
     expect(viewport).toHaveStyle({
       backgroundColor: legalMapStyles.mapSurface.backgroundColor,
-      backgroundImage: legalMapStyles.mapSurface.backgroundImage,
       borderRadius: legalMapStyles.mapSurface.borderRadius,
     });
     const north = viewport.querySelector("[data-legal-map-north]")!;
     expect(north).toHaveStyle(legalMapStyles.northMarker);
     expect(north.querySelector("svg path")).toHaveAttribute("d", "M12 1 3 24l9-5 9 5z");
     const legend = viewport.querySelector(".legal-map-legend")!;
-    expect(legend).toHaveStyle(legalMapStyles.legendItems);
-    expect(within(legend as HTMLElement).getByText("Subject")).toHaveStyle(legalMapStyles.legendLabel);
-    expect(within(legend as HTMLElement).getByText("Section")).toHaveStyle(legalMapStyles.legendLabel);
+    expect(legend).toHaveStyle({ gap: "0.35rem", flexDirection: "column", marginLeft: "auto" });
+    for (const name of ["Subject", "Section"]) {
+      const label = within(legend as HTMLElement).getByText(name);
+      expect(label).toHaveStyle({ fontSize: "0.875rem", fontWeight: 400 });
+      expect(label.previousElementSibling).toHaveStyle({ width: "0.875rem", height: "0.875rem" });
+      expect(label.parentElement).toHaveStyle({ gap: "0.6rem" });
+    }
   });
 
   it("distinguishes the subject section from subtle surrounding cells", () => {
@@ -214,14 +239,24 @@ describe("abstract legal map presentation", () => {
     const neighbor = drawing.querySelector('[data-survey-section-area="9"]')!;
     expect(subject).toHaveAttribute("fill", "#f3edcf");
     expect(neighbor).toHaveAttribute("fill", legalMapColors.blockBg);
-    expect(neighbor).toHaveAttribute("stroke", legalMapColors.gridLine);
+    for (const section of drawing.querySelectorAll("[data-survey-section-area]")) {
+      expect(section).toHaveAttribute("stroke", "#62727d");
+      expect(section).toHaveAttribute("stroke-width", "2");
+      expect(section).not.toHaveAttribute("stroke-dasharray");
+      expect(section).toHaveAttribute("vector-effect", "non-scaling-stroke");
+    }
+    const parcel = drawing.querySelector("[data-survey-area]")!;
+    expect(parcel).toHaveAttribute("stroke", legalMapColors.parcelLine);
+    expect(parcel).toHaveAttribute("stroke-width", "3");
+    expect(parcel).not.toHaveAttribute("stroke-dasharray");
     expect(neighbor).toHaveAttribute("fill-opacity", "0.35");
     expect(drawing.querySelector('[data-survey-section="9"]')).toHaveAttribute("fill", legalMapColors.secondaryText);
   });
 
-  it("wraps full acreage outside the drawing and scrolls only the calls table", () => {
+  it("wraps full acreage outside the drawing and scrolls the selected details panel", () => {
     render(<LegalMapContent legal={boundaryFixture} />);
     const drawing = screen.getByRole("img", { name: "Metes & Bounds schematic" });
+    fireEvent.click(screen.getByRole("tab", { name: "Acreage" }));
     const acreage = screen.getByLabelText("Reported acreage");
     expect(drawing).not.toContainElement(acreage);
     expect(within(acreage).getAllByRole("listitem").map(item => item.textContent)).toEqual(acreageText.split(";").map(entry => entry.trim()));
@@ -230,7 +265,8 @@ describe("abstract legal map presentation", () => {
     expect(within(acreage).getByRole("list")).toHaveStyle({ textAlign: "left" });
     expect(within(acreage).getAllByRole("listitem")[0].querySelector("strong")).toHaveTextContent("30.210 ACRES, MORE OR LESS");
     expect(acreage).not.toHaveTextContent("Total");
-    const region = screen.getByRole("region", { name: "Boundary Calls" });
+    fireEvent.click(screen.getByRole("tab", { name: "Boundary Calls" }));
+    const region = screen.getByRole("tabpanel", { name: "Boundary Calls" });
     expect(region).toHaveStyle({ overflowY: "auto", minHeight: 0 });
     expect(region).toContainElement(screen.getByRole("table", { name: "Boundary Calls" }));
     expect(screen.getByRole("table", { name: "Boundary Calls" })).toHaveStyle({ background: legalMapStyles.infoCard.background });
@@ -255,31 +291,32 @@ describe("abstract legal map presentation", () => {
   it("moves acreage with the active view and preserves independent groups", () => {
     const legal = { ...surveyFixture, groups: [...surveyFixture.groups!, boundaryFixture.groups![0]] };
     render(<LegalMapContent legal={legal} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Acreage" }));
     const info = document.querySelector("[data-legal-map-info]") as HTMLElement;
-    expect(within(info).getAllByRole("heading").map(node => node.textContent)).toEqual(["Summary", "Acreage", "Metes & Bounds 1", "Metes & Bounds 2", "Easement", "Metes & Bounds 1", "Metes & Bounds 2"]);
+    expect(within(info).getAllByRole("heading").map(node => node.textContent)).toEqual(["Parcel 1", "Parcel 2"]);
     expect(within(info).getAllByRole("list")).toHaveLength(2);
     expect(document.querySelectorAll("[data-legal-map-surface]")).toHaveLength(2);
-    expect(screen.getAllByRole("tablist")).toHaveLength(1);
+    expect(screen.getAllByRole("tablist")).toHaveLength(2);
     fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
-    expect(within(info).queryByRole("heading", { name: /^Acreage$/ })).toBeNull();
+    expect(screen.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("Aliquots");
   });
 
-  it("keeps closure diagnostics small, centered and unbolded", () => {
+  it("omits closure diagnostics while retaining the boundary drawing", () => {
     render(<LegalMapContent legal={boundaryFixture} />);
-    const details = screen.getByLabelText("Closure details");
-    expect(details).toHaveStyle({ fontSize: "10px", fontWeight: 400, justifyContent: "center", textAlign: "center" });
-    expect(details.querySelector("strong")).toBeNull();
-    expect(details).toHaveTextContent("Closure: Within tolerance");
-    expect(details).toHaveTextContent("Gap:");
-    expect(details).toHaveTextContent("Tolerance:");
-    expect(document.querySelector("[data-legal-map-surface]")).not.toContainElement(details);
+    expect(screen.queryByLabelText("Closure details")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Closure:|Gap:|Tolerance:/);
+    expect(screen.getByRole("img", { name: "Metes & Bounds schematic" })).toBeVisible();
   });
 
-  it("removes a boundary view when no boundary can be drawn instead of showing a placeholder", () => {
+  it("reports unpaired courses without success statuses or a placeholder map", () => {
     const legal = { groups: [{ type: "metes_bounds", elements: [{ aspect: "bearings", value: "unknown curve" }] }] };
-    expect(getMapGroups(legal)).toEqual([]);
+    expect(getMapGroups(legal)).toHaveLength(1);
     render(<LegalMapContent legal={legal} />);
-    expect(screen.queryByRole("tab", { name: "Metes & Bounds" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Metes & Bounds" })).toBeVisible();
+    expect(screen.getByRole("alert", { name: "Metes & Bounds" })).toHaveTextContent("Cannot map: 1 bearing and 0 distances cannot be paired.");
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
     expect(document.querySelector("[data-survey-placeholder]")).not.toBeInTheDocument();
   });
 });

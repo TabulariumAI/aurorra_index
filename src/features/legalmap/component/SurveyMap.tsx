@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { labelValue } from "../data/legalData";
-import { parseDistance, type SurveyScene } from "../data/surveyData";
+import type { SurveyScene } from "../data/surveyData";
 import { placeLabels } from "../data/labelLayout";
 import { blockStyle, legalMapColors, legalMapConstants, legalMapStyles, legendBoxStyle } from "../style/legalMapStyles";
 import { surveyStyles } from "../style/surveyStyles";
@@ -9,7 +9,18 @@ import { MapSurface } from "./MapSurface";
 type SurveyPosition = { x: number; y: number; leader: { x: number; y: number } | null };
 const contextFont = legalMapConstants.lotBaseFontSize * 1.35;
 
-export function SurveyMap({ scene, controls }: { scene: SurveyScene; controls?: ReactNode }) {
+function boundaryData(scene: SurveyScene) {
+  const lines = scene.items.filter(item => item.kind === "line");
+  const lengths = lines.map(line => Math.hypot(line.to.x - line.from.x, line.to.y - line.from.y));
+  const closures = lines.slice(0, 2).map((line, index) => ({
+    gap: Math.hypot(lines.at(-1)!.to.x - line.from.x, lines.at(-1)!.to.y - line.from.y),
+    length: lengths.slice(index).reduce((sum, length) => sum + length, 0),
+  }));
+  const beginning = closures.findIndex(closure => closure.length > 0 && closure.gap <= closure.length * legalMapConstants.closureRatio);
+  return { lines, beginning, closure: closures[beginning >= 0 ? beginning : 0] };
+}
+
+export function SurveyMap({ scene, controls, showTitle }: { scene: SurveyScene; controls?: ReactNode; showTitle: boolean }) {
   const id = useId();
   const drawingRef = useRef<SVGSVGElement>(null);
   const [labelScale, setLabelScale] = useState(1);
@@ -17,7 +28,7 @@ export function SurveyMap({ scene, controls }: { scene: SurveyScene; controls?: 
   const [contextSize, setContextSize] = useState(contextFont);
   const [labelPositions, setLabelPositions] = useState<(SurveyPosition & { vertex: number })[]>([]);
   const [badgePositions, setBadgePositions] = useState<SurveyPosition[]>([]);
-  const lines = scene.items.filter(item => item.kind === "line");
+  const { lines, beginning, closure } = boundaryData(scene);
   const boundary = lines.length > 0;
   const points = scene.items.flatMap(item => item.kind === "line" ? [item.from, item.to] : [{ x: item.x, y: item.y }, { x: item.x + item.width, y: item.y + item.height }]);
   const minX = Math.min(...points.map(point => point.x));
@@ -31,18 +42,9 @@ export function SurveyMap({ scene, controls }: { scene: SurveyScene; controls?: 
   const frame = { x: (minX + maxX - frameWidth) / 2, y: (minY + maxY - frameHeight) / 2 + (boundary ? 0 : verticalOffset), width: frameWidth, height: frameHeight };
   const fontSize = boundary ? legalMapConstants.lotBaseFontSize / labelScale : Math.max(frame.width, frame.height) / 24;
   const context = scene.notes.filter(note => note.label === "Township" || note.label === "Range").map(note => `${note.label} ${labelValue(note.value, note.label === "Township" ? "town(?:ship)?" : "range").replace(/\b(NORTH|SOUTH|EAST|WEST)\b/gi, direction => direction[0].toUpperCase() + direction.slice(1).toLowerCase())}`).join(" · ");
-  const lengths = lines.map(line => Math.hypot(line.to.x - line.from.x, line.to.y - line.from.y));
-  const closures = lines.slice(0, 2).map((line, index) => ({
-    gap: Math.hypot(lines.at(-1)!.to.x - line.from.x, lines.at(-1)!.to.y - line.from.y),
-    length: lengths.slice(index).reduce((sum, length) => sum + length, 0),
-  }));
-  const beginning = closures.findIndex(closure => closure.length > 0 && closure.gap <= closure.length * legalMapConstants.closureRatio);
   const tie = beginning === 1;
   const closed = beginning >= 0;
   const parcel = tie ? lines.slice(1) : lines;
-  const closure = closures[closed ? beginning : 0];
-  const distances = lines.map(line => parseDistance(line.distance)!);
-  const distanceScale = Math.max(...distances.map(distance => distance.length));
   const vertices = boundary ? [...lines.map(line => line.from), ...(!closed ? [lines.at(-1)!.to] : [])] : [];
 
   useLayoutEffect(() => {
@@ -123,18 +125,22 @@ export function SurveyMap({ scene, controls }: { scene: SurveyScene; controls?: 
     return () => observer.disconnect();
   }, [scene, closed, frame.width, frame.height, labelScale]);
 
-  return <section className={`survey-layout${boundary ? " survey-boundary" : ""}`} aria-label={scene.title}>
-    <MapSurface controls={controls} style={boundary ? surveyStyles.boundaryViewport : surveyStyles.viewport}
+  return <section className="survey-layout" aria-label={scene.title}>
+    {showTitle ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
+    <MapSurface controls={controls} style={surveyStyles.viewport}
       annotation={tie ? <div role="note" aria-label="Commencement line" data-survey-tie-label="true" style={surveyStyles.tieLabel}>
         <div>{lines[0].bearing}</div>
         <div>{lines[0].distance}</div>
       </div> : undefined}
       footer={!boundary ? <>
         <div className="legal-map-legend" style={legalMapStyles.legendItems}>
-          <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#b6e3f5", "#278eb9")} /><span style={legalMapStyles.legendLabel}>Subject</span></span>
-          <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#f3edcf", "#8c999b")} /><span style={legalMapStyles.legendLabel}>Section</span></span>
+          <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#b6e3f5", legalMapColors.parcelLine)} /><span style={legalMapStyles.legendLabel}>Subject</span></span>
+          <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#f3edcf", legalMapColors.sectionLine)} /><span style={legalMapStyles.legendLabel}>Section</span></span>
         </div>
-      </> : undefined}>
+      </> : <div aria-label="Map legend" className="legal-map-legend legal-map-boundary-legend" style={legalMapStyles.legendItems}>
+          {tie ? <div style={legalMapStyles.legendItem}><span aria-hidden="true" style={{ ...surveyStyles.legendLine, ...surveyStyles.tieLegendLine }} /><span>Tie line (Commencement)</span></div> : null}
+          <div style={legalMapStyles.legendItem}><span aria-hidden="true" style={surveyStyles.legendLine} /><span>Parcel boundary</span></div>
+        </div>}>
         <svg ref={drawingRef} role="img" aria-label={`${scene.title} schematic`} aria-describedby={!boundary && context ? `${id}-context` : undefined} viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`} style={surveyStyles.drawing}>
           <defs><pattern id={`${id}-partial`} width={fontSize} height={fontSize} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width={fontSize} height={fontSize} fill="#cdebf5" />
@@ -156,8 +162,8 @@ export function SurveyMap({ scene, controls }: { scene: SurveyScene; controls?: 
               <rect data-survey-area={item.role === "area" ? "true" : undefined} data-survey-section-area={item.role === "section" ? item.label : undefined} data-survey-partial={item.partial ? "true" : undefined}
                 x={item.x} y={item.y} width={item.width} height={item.height}
                 fill={item.role === "area" ? item.partial ? `url(#${id}-partial)` : "#b6e3f5" : item.role === "section" ? item.highlighted ? "#f3edcf" : legalMapColors.blockBg : "none"}
-                fillOpacity={item.role === "area" ? 0.8 : 0.35} stroke={item.role === "area" ? "#278eb9" : item.role === "section" && !item.highlighted ? legalMapColors.gridLine : "#8c999b"}
-                strokeDasharray={item.role === "section" ? "6 4" : "4 3"} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+                fillOpacity={item.role === "area" ? 0.8 : 0.35} stroke={item.role === "area" ? legalMapColors.parcelLine : item.role === "section" ? legalMapColors.sectionLine : "#8c999b"}
+                strokeDasharray={item.role === "section" || (item.role === "area" && !item.partial) ? undefined : "4 3"} strokeWidth={item.role === "area" ? 3 : item.role === "section" ? 2 : 1} vectorEffect="non-scaling-stroke" />
               {item.role === "area" && Math.min(labelSize, captionSize) * labelScale >= 12 ? <text x={item.x + item.width / 2} y={item.y + item.height / 2} textAnchor="middle" fontSize={labelSize * legalMapConstants.amp} fill={legalMapColors.text} pointerEvents="none">
                 {item.caption ? <tspan x={item.x + item.width / 2} dy="-0.3em" fontSize={captionSize}>{item.caption}</tspan> : null}
                 <tspan x={item.x + item.width / 2} dy={item.caption ? "1.2em" : 0} fontSize={labelSize} fontWeight={legalMapStyles.lotCaption.fontWeight}>Subject</tspan>
@@ -185,26 +191,24 @@ export function SurveyMap({ scene, controls }: { scene: SurveyScene; controls?: 
             </g>;
           })}
           {scene.items.map((item, index) => item.kind === "rect" && item.role === "section" ? <g key={index}>
-            <text data-survey-section={item.label} x={item.x + item.width / 2} y={item.y + item.height * 0.12} dominantBaseline="central" textAnchor="middle" fontSize={legalMapConstants.blockBaseFontSize * legalMapConstants.amp / labelScale} fontWeight={blockStyle.fontWeight} fill={item.highlighted ? legalMapColors.text : legalMapColors.secondaryText}>{item.label}</text>
+            <text data-survey-section={item.label} x={item.x + item.width / 2} y={item.y + item.height * 0.12 + 2 / labelScale} dominantBaseline="hanging" textAnchor="middle" fontSize={Math.min(legalMapConstants.blockBaseFontSize * legalMapConstants.amp / labelScale, item.height / 4)} fontWeight={blockStyle.fontWeight} fill={item.highlighted ? legalMapColors.text : legalMapColors.secondaryText}>{item.label}</text>
           </g> : null)}
           {!boundary && context ? <text id={`${id}-context`} data-survey-context="true" x={(minX + maxX) / 2} y={maxY + extent * 0.06} dominantBaseline="central" textAnchor="middle" fontSize={contextSize / labelScale} style={surveyStyles.context}>{context}</text> : null}
         </svg>
+
     </MapSurface>
-    {boundary && closure.length > 0 ? <div aria-label="Closure details" style={surveyStyles.closure}>
-      <span>Closure: {closed ? "Within tolerance" : "Open"}</span>
-      <span>Gap: {(closure.gap * distanceScale).toLocaleString("en-US", { maximumFractionDigits: 4 })} {distances[0].specified ? "m" : "units"} ({(closure.gap / closure.length * 100).toLocaleString("en-US", { maximumFractionDigits: 4 })}%)</span>
-      <span>Tolerance: {(closure.length * legalMapConstants.closureRatio * distanceScale).toLocaleString("en-US", { maximumFractionDigits: 4 })} {distances[0].specified ? "m" : "units"} ({legalMapConstants.closureRatio * 100}%)</span>
-    </div> : null}
-    {boundary ? <div className="survey-calls">
-      <div role="region" aria-label="Boundary Calls" tabIndex={0} style={surveyStyles.tableScroll}>
-        <table aria-label="Boundary Calls" style={surveyStyles.notes}>
-          <colgroup><col style={{ width: "1.5rem" }} /><col style={{ width: "5.5rem" }} /><col /><col style={{ width: "8rem" }} /></colgroup>
-          <thead><tr><th style={surveyStyles.cell} scope="col">#</th><th style={surveyStyles.cell} scope="col">Boundary</th><th style={surveyStyles.cell} scope="col">Bearing</th><th style={surveyStyles.cell} scope="col">Distance</th></tr></thead>
-          <tbody>{lines.map((line, index) => <tr key={index}>
-            <td style={surveyStyles.cell}>{index + 1}</td><td style={surveyStyles.cell}>{index + 1} → {closed && index === lines.length - 1 ? beginning + 1 : index + 2}</td><td style={surveyStyles.cell}>{line.bearing}</td><td style={surveyStyles.cell}>{line.distance}</td>
-          </tr>)}</tbody>
-        </table>
-      </div>
-    </div> : null}
   </section>;
+}
+
+export function SurveyCalls({ scene, showTitle }: { scene: SurveyScene; showTitle: boolean }) {
+  const { lines, beginning } = boundaryData(scene);
+  const closed = beginning >= 0;
+  return <table className="legal-map-table" aria-label="Boundary Calls" style={surveyStyles.notes}>
+    {showTitle ? <caption style={legalMapStyles.infoTitle}>{scene.title}</caption> : null}
+    <colgroup><col style={{ width: "1.5rem" }} /><col style={{ width: "5.5rem" }} /><col /><col style={{ width: "8rem" }} /></colgroup>
+    <thead><tr><th style={surveyStyles.cell} scope="col">#</th><th style={surveyStyles.cell} scope="col">Boundary</th><th style={surveyStyles.cell} scope="col">Bearing</th><th style={surveyStyles.cell} scope="col">Distance</th></tr></thead>
+    <tbody>{lines.map((line, index) => <tr key={index}>
+      <td style={surveyStyles.cell}>{index + 1}</td><td style={surveyStyles.cell}>{index + 1} → {closed && index === lines.length - 1 ? beginning + 1 : index + 2}</td><td style={surveyStyles.cell}>{line.bearing}</td><td style={surveyStyles.cell}>{line.distance}</td>
+    </tr>)}</tbody>
+  </table>;
 }
