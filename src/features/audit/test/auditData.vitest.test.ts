@@ -96,7 +96,6 @@ describe("auditData", () => {
           segment: null,
         },
       ],
-      usage: { costs: ["$1.50", "2"] },
     });
   });
 
@@ -165,6 +164,7 @@ describe("auditData", () => {
 const service = { name: "extraction", code: "38584236-3b7b-425e-a1b7-e28e1382b326", cost: 2.75, time: 1.25, page_num: 3, timestamp: "2026-10-08T23:45:12Z" };
 it.each([{ services: [service] }, { costs: null, services: [service] }, { costs: ["$2.7500"], services: [service] }])("preserves audit usage services without requiring costs", usage => {
   const report = normalizeAuditReport({ gaps: [auditGap], usage });
+  expect(report.usage).toEqual({ services: [service] });
   expect(report.usage?.services).toEqual([service]);
   expect(normalizeAuditReport(report)).toEqual(report);
   expect(prepareAuditReport(report, { changeType: "", process: "", segment: "" }, ["transaction"]).gaps[0].patch).toEqual(auditPatch);

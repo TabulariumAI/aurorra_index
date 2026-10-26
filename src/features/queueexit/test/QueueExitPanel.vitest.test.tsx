@@ -17,7 +17,7 @@ it("lists a segment reprocess without an invented index", () => {
     changes: [{ action: "reprocess", segment: "party" }],
     runtime: { onChange: vi.fn(), authToken: "token", intervalMs: 0, client: {
       patchIndex: vi.fn(), patchStatus: vi.fn(), indexData: vi.fn(), confirmIndex: vi.fn(),
-      dropIndex: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+      dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
     } },
   }] });
   render(<QueueExitPanel />);
@@ -31,7 +31,7 @@ it.each([false, true])("lists unfinished tasks and resolves approval=%s before l
     changes: [{ action: "confirm", code: "index", index: { aspect: "property_id", value: "Parcel value" }, patch: null }],
     runtime: { onChange: vi.fn(), authToken: "token", intervalMs: 0, client: {
       patchIndex: vi.fn(), patchStatus: vi.fn(), indexData: vi.fn(), confirmIndex: vi.fn(),
-      dropIndex: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+      dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
     } },
   }] });
   const done = vi.fn();

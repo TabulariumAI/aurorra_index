@@ -1,0 +1,102 @@
+
+[WebServer] (node:39764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+
+(node:72016) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/12] [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 1440px
+  1) [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 1440px 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.focus: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('tab', { name: 'Boundary Calls' })
+
+
+      13 |     await expect(table).toContainText("Unlocated");
+      14 |     await expect(table).toContainText("50 feet");
+    > 15 |     await page.getByRole("tab", { name: "Boundary Calls" }).focus();
+         |                                                             ^
+      16 |     await expect(page.getByRole("tab", { name: "Boundary Calls" })).toBeFocused();
+      17 |     expect(await page.locator(".legal-map").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+      18 |     await page.screenshot({ path: testInfo.outputPath(`cogo-partial-${width}.png`), fullPage: true });
+        at C:\GitHub\Tabularium\aurorra_index\tests\visual\cogo.visual.spec.ts:15:61
+
+    Error Context: .test\boundary-edge\cogo.visual-COGO-gap-details-and-anchored-sections-at-1440px-visual-edge\error-context.md
+
+
+
+(node:26588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[2/12] [visual edge] › tests\visual\cogo.visual.spec.ts:21:3 › legacy measurements remain available at 1440px
+[3/12] [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 900px
+  2) [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 900px 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.focus: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('tab', { name: 'Boundary Calls' })
+
+
+      13 |     await expect(table).toContainText("Unlocated");
+      14 |     await expect(table).toContainText("50 feet");
+    > 15 |     await page.getByRole("tab", { name: "Boundary Calls" }).focus();
+         |                                                             ^
+      16 |     await expect(page.getByRole("tab", { name: "Boundary Calls" })).toBeFocused();
+      17 |     expect(await page.locator(".legal-map").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+      18 |     await page.screenshot({ path: testInfo.outputPath(`cogo-partial-${width}.png`), fullPage: true });
+        at C:\GitHub\Tabularium\aurorra_index\tests\visual\cogo.visual.spec.ts:15:61
+
+    Error Context: .test\boundary-edge\cogo.visual-COGO-gap-details-and-anchored-sections-at-900px-visual-edge\error-context.md
+
+
+
+(node:18264) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[4/12] [visual edge] › tests\visual\cogo.visual.spec.ts:21:3 › legacy measurements remain available at 900px
+[5/12] [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 390px
+  3) [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 390px 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.focus: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('tab', { name: 'Boundary Calls' })
+
+
+      13 |     await expect(table).toContainText("Unlocated");
+      14 |     await expect(table).toContainText("50 feet");
+    > 15 |     await page.getByRole("region", { name: "Boundary Calls" }).focus();
+         |                                                             ^
+      16 |     await expect(page.getByRole("region", { name: "Boundary Calls" })).toBeFocused();
+      17 |     expect(await page.locator(".legal-map").evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+      18 |     await page.screenshot({ path: testInfo.outputPath(`cogo-partial-${width}.png`), fullPage: true });
+        at C:\GitHub\Tabularium\aurorra_index\tests\visual\cogo.visual.spec.ts:15:61
+
+    Error Context: .test\boundary-edge\cogo.visual-COGO-gap-details-and-anchored-sections-at-390px-visual-edge\error-context.md
+
+
+
+(node:21168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[6/12] [visual edge] › tests\visual\cogo.visual.spec.ts:21:3 › legacy measurements remain available at 390px
+[7/12] [visual edge] › tests\visual\cogo.visual.spec.ts:36:3 › map: confirmed parcel and partial parcel preserve the requested layout at 1440px
+[8/12] [visual edge] › tests\visual\cogo.visual.spec.ts:36:3 › map: confirmed parcel and partial parcel preserve the requested layout at 900px
+[9/12] [visual edge] › tests\visual\cogo.visual.spec.ts:36:3 › map: confirmed parcel and partial parcel preserve the requested layout at 390px
+[10/12] [visual edge] › tests\visual\cogo.visual.spec.ts:36:3 › lists: confirmed parcel and partial parcel preserve the requested layout at 1440px
+[11/12] [visual edge] › tests\visual\cogo.visual.spec.ts:36:3 › lists: confirmed parcel and partial parcel preserve the requested layout at 900px
+[12/12] [visual edge] › tests\visual\cogo.visual.spec.ts:36:3 › lists: confirmed parcel and partial parcel preserve the requested layout at 390px
+  3 failed
+    [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 1440px 
+    [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 900px 
+    [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 390px 
+  9 passed (2.2m)

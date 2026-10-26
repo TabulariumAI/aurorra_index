@@ -17,7 +17,7 @@ function runtime(): QueueRuntime {
     patchIndex: vi.fn(() => new Promise<never>(() => {})),
     patchStatus: vi.fn(() => new Promise<never>(() => {})),
     indexData: vi.fn(() => new Promise<MetadataPayload>(() => {})),
-    confirmIndex: vi.fn(), dropIndex: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+    confirmIndex: vi.fn(), dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
   } };
 }
 

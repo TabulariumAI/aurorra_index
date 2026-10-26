@@ -25,7 +25,7 @@ export function AddIndexPanel({
   session,
   workerClient,
 }: AddIndexPanelProps): JSX.Element {
-  const { aspects, ready } = useAspects(request, onResource, onReadyChange, onError);
+  const { aspects, ready } = useAspects(request, session, onResource, onReadyChange, onError);
   const [selected, setSelected] = useState<string[]>([]);
   const [allowEnrichment, setAllowEnrichment] = useState(false);
   const [fields, setFields] = useState({

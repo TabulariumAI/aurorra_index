@@ -1,3 +1,4 @@
+import type { MetadataPayload } from "aurora-core";
 import type { QueueTransition } from "../../queue/type/queue.types";
 import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
 export type PageSegmentsWorkerError = {
@@ -8,19 +9,19 @@ export type PageSegmentsWorkerError = {
 };
 
 export type PageSegmentsWorkerResult<T> =
-  | { ok: true; data: T }
+  | { ok: true; data: T; path?: string; etag?: string }
   | ({ ok: false } & PageSegmentsWorkerError);
+
+export type PagesData = NonNullable<MetadataPayload["pages"]>;
 
 export type PageSegmentsWorkerCommand = {
   apiBaseUrl: string;
-  pageCode: string;
-  segments: string[];
   session: string;
   token: string;
-  type: "updatePageSegments";
-};
+} & ({ type: "updatePageSegments"; pageCode: string; segments: string[] } | { type: "pagesData"; path?: string | null });
 
 export type PageSegmentsWorkerClient = {
+  pagesData(token: string, session: string, path?: string | null): Promise<{ data: PagesData; path: string; etag?: string }>;
   updatePageSegments(token: string, session: string, pageCode: string, segments: string[]): Promise<void>;
 };
 

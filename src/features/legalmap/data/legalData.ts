@@ -1,6 +1,6 @@
 import type { LegalElement, LegalGroup, LegalPayload } from "aurora-core";
 
-export type LegalMapPayload = LegalPayload & { parcels_num?: number };
+export type LegalMapPayload = LegalPayload;
 
 export function labelValue(value: string, kind: string): string {
   return value.replace(new RegExp(`(^|[,/])\\s*(?:${kind})\\b\\s*(?:no\\.?\\s*)?`, "gi"), "$1").trim();
@@ -63,15 +63,21 @@ const stateAbbr: Record<string, string> = {
   DC: "District of Columbia",
 };
 
-export const divisionKinds = ["unit", "phase", "section"] as const;
+export const subdivisionKinds = ["subdivision", "condominium"] as const;
+export const divisionKinds = ["phase", "unit", "section"] as const;
+export const blockKinds = ["block", "tract", "building"] as const;
+export const lotKinds = ["lot", "condominium_unit"] as const;
+export const lotLabels = { lot: "Lot", condominium_unit: "Condo Unit" } as const;
 const stateNames = Object.values(stateAbbr);
 const stateNameRegex = new RegExp(`\\b(${stateNames.map((value) => value.replace(/ /g, "\\s+")).join("|")})\\b`, "i");
 
 export type PlatLot = {
+  kind: typeof lotKinds[number];
   name: string;
+  acreage?: string[];
 };
 
-export type DisplayLot = { name: string; filled: boolean; detail?: string };
+export type DisplayLot = PlatLot & { filled: boolean; detail?: string };
 
 function numericLots(value: string): number[] | null {
   const cleaned = value.replace(/(^|,|&|\band\b)\s*lots?\b\s*(?:no\.?\s*)?/gi, "$1").trim().replace(/,\s*(?=&|\band\b)/gi, "");
@@ -87,32 +93,35 @@ function numericLots(value: string): number[] | null {
 
 export function displayLots(lots: PlatLot[]): DisplayLot[] {
   const numeric = new Set<number>();
+  const numericAcreage = new Map<number, string[]>();
   const other: DisplayLot[] = [];
   for (const lot of lots) {
-    const parsed = numericLots(lot.name);
-    if (parsed) parsed.forEach(number => numeric.add(number));
-    else other.push({ name: lot.name, filled: true });
+    const parsed = lot.kind === "lot" ? numericLots(lot.name) : null;
+    if (parsed) {
+      parsed.forEach(number => numeric.add(number));
+      if (parsed.length === 1 && lot.acreage) {
+        numericAcreage.set(parsed[0], [...(numericAcreage.get(parsed[0]) ?? []), ...lot.acreage]);
+      }
+    } else other.push({ ...lot, filled: true });
   }
-  if (!numeric.size) return other.length <= 12 ? other : [
-    { name: `${other.length} lots`, filled: true, detail: other.map(lot => lot.name).join(", ") },
-  ];
+  if (!numeric.size) return other.length <= 12 ? other : lotSummaries(lots);
   const ordered = [...numeric].sort((a, b) => a - b);
   const first = ordered[0];
   const last = ordered[ordered.length - 1];
   const rangeLabel = (start: number, end: number) => start === end ? String(start) : `${start}–${end}`;
   let numericDisplay: DisplayLot[] = [];
   if (last - first + 1 <= 12 - other.length) {
-    for (let number = first; number <= last; number += 1) numericDisplay.push({ name: String(number), filled: numeric.has(number) });
+    for (let number = first; number <= last; number += 1) numericDisplay.push({ kind: "lot", name: String(number), filled: numeric.has(number) });
   } else {
     let runStart = first;
     let previous = first;
     for (const number of ordered.slice(1)) {
       if (number === previous + 1) { previous = number; continue; }
-      numericDisplay.push({ name: rangeLabel(runStart, previous), filled: true });
-      numericDisplay.push({ name: rangeLabel(previous + 1, number - 1), filled: false });
+      numericDisplay.push({ kind: "lot", name: rangeLabel(runStart, previous), filled: true });
+      numericDisplay.push({ kind: "lot", name: rangeLabel(previous + 1, number - 1), filled: false });
       runStart = previous = number;
     }
-    numericDisplay.push({ name: rangeLabel(runStart, previous), filled: true });
+    numericDisplay.push({ kind: "lot", name: rangeLabel(runStart, previous), filled: true });
     const capacity = 12 - other.length;
     while (numericDisplay.length < capacity) {
       let longestIndex = -1;
@@ -126,8 +135,8 @@ export function displayLots(lots: PlatLot[]): DisplayLot[] {
       const [start, end] = numericDisplay[longestIndex].name.split("–").map(Number);
       const midpoint = Math.floor((start + end) / 2);
       numericDisplay.splice(longestIndex, 1,
-        { name: rangeLabel(start, midpoint), filled: true },
-        { name: rangeLabel(midpoint + 1, end), filled: true });
+        { kind: "lot", name: rangeLabel(start, midpoint), filled: true },
+        { kind: "lot", name: rangeLabel(midpoint + 1, end), filled: true });
     }
     if (numericDisplay.length > 12 - other.length) {
       const available = Math.max(1, 12 - other.length);
@@ -136,19 +145,40 @@ export function displayLots(lots: PlatLot[]): DisplayLot[] {
         const start = first + Math.floor(span * index / available);
         const end = first + Math.floor(span * (index + 1) / available) - 1;
         const count = ordered.filter(number => number >= start && number <= end).length;
-        return { name: rangeLabel(start, end), filled: count > 0, detail: `${count} filled, ${end - start + 1 - count} empty` };
+        return { kind: "lot", name: rangeLabel(start, end), filled: count > 0, detail: `${count} filled, ${end - start + 1 - count} empty` };
       });
     }
   }
   if (other.length + numericDisplay.length > 12) {
-    return [{ name: `${lots.length} lots`, filled: true, detail: lots.map(lot => lot.name).join(", ") }];
+    return lotSummaries(lots);
+  }
+  for (const lot of numericDisplay) {
+    if (!lot.filled) continue;
+    const [start, end = start] = lot.name.split("–").map(Number);
+    const acreage = [...numericAcreage].filter(([number]) => number >= start && number <= end).flatMap(([, values]) => values);
+    if (acreage.length > 0) lot.acreage = acreage;
   }
   return [...numericDisplay, ...other];
+}
+
+function lotSummaries(lots: PlatLot[]): DisplayLot[] {
+  return lotKinds.flatMap(kind => {
+    const entries = lots.filter(lot => lot.kind === kind);
+    if (entries.length === 0) return [];
+    if (entries.length === 1) return [{ ...entries[0], filled: true }];
+    const acreage = entries.flatMap(lot => lot.acreage ?? []);
+    return [{
+      kind, name: `${entries.length} ${lotLabels[kind].toLowerCase()}s`, filled: true, detail: entries.map(lot => lot.name).join(", "),
+      ...(acreage.length > 0 ? { acreage } : {}),
+    }];
+  });
 }
 
 export type PlatBlock = {
   lots: PlatLot[];
   name: string;
+  tract?: string;
+  building?: string;
 };
 
 export type PlatDivision = {
@@ -162,6 +192,9 @@ export type PlatSubdivision = {
   state: string;
   county: string;
   subdivision: string;
+  condominium?: string;
+  jurisdiction?: string;
+  city?: string;
   rightsOfWay: string[];
   divisions: PlatDivision[];
 };
@@ -170,6 +203,7 @@ export type LegalLocation = {
   city?: string;
   county?: string;
   state?: string;
+  jurisdiction?: string;
 };
 
 export type LegalViewModel = {
@@ -221,7 +255,7 @@ function normName(value: unknown): string {
 const blockCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 function compareBlocks(left: PlatBlock, right: PlatBlock): number {
-  const name = (block: PlatBlock) => block.name.replace(/^\s*block\b\s*(?:no\.?\s*)?/i, "").trim();
+  const name = (block: PlatBlock) => (block.name || block.tract || block.building || "").replace(/^\s*(?:block|tract|building)\b\s*(?:no\.?\s*)?/i, "").trim();
   const leftName = name(left);
   const rightName = name(right);
   if (!leftName) return rightName ? 1 : 0;
@@ -272,16 +306,17 @@ function collectLotBlockEntries(input: unknown): LegalGroup[] {
   return out;
 }
 
-function mergeLotBlocks(groups: LegalGroup[], count: number): LegalGroup[] {
-  if (groups.length <= count) return groups;
+export function mergeLotBlocks(groups: LegalGroup[], count: number): { group: LegalGroup; sources: LegalGroup[] }[] {
+  if (groups.length <= count) return groups.map(group => ({ group, sources: [group] }));
+  const sources = groups.map(group => [group]);
   const entries = groups.map(group => {
     const values = new Map<string, string[]>();
     for (const element of getElements(group)) {
       const aspect = normName(element.aspect);
-      const value = element.value?.trim();
-      if (!aspect || !value) continue;
+      const value = aspect === "acreage" ? element.value : element.value?.trim();
+      if (!aspect || !value?.trim()) continue;
       const existing = values.get(aspect) || [];
-      if (!existing.some(entry => normName(entry) === normName(value))) existing.push(value);
+      if (aspect === "acreage" || !existing.some(entry => normName(entry) === normName(value))) existing.push(value);
       values.set(aspect, existing);
     }
     return values;
@@ -295,8 +330,8 @@ function mergeLotBlocks(groups: LegalGroup[], count: number): LegalGroup[] {
       for (let j = i + 1; j < entries.length; j += 1) {
         let score = 0;
         for (const [aspect, values] of entries[i]) {
-          for (const value of values) {
-            if (entries[j].get(aspect)?.some(entry => normName(entry) === normName(value))) score += 1;
+          for (const value of new Set(values.map(normName))) {
+            if (entries[j].get(aspect)?.some(entry => normName(entry) === value)) score += 1;
           }
         }
         if (score > weight) {
@@ -309,19 +344,24 @@ function mergeLotBlocks(groups: LegalGroup[], count: number): LegalGroup[] {
     for (const [aspect, values] of entries[right]) {
       const existing = entries[left].get(aspect) || [];
       for (const value of values) {
-        if (!existing.some(entry => normName(entry) === normName(value))) existing.push(value);
+        if (aspect === "acreage" || !existing.some(entry => normName(entry) === normName(value))) existing.push(value);
       }
       entries[left].set(aspect, existing);
     }
+    sources[left].push(...sources[right]);
+    sources.splice(right, 1);
     entries.splice(right, 1);
   }
 
-  return entries.map(values => ({
-    type: "lot_block",
-    elements: [...values].flatMap(([aspect, names]) => {
-      const labels = aspect === "right_of_way" ? names : [names.join(aspect === "block" ? "/" : ",")];
-      return labels.map(value => ({ aspect, value }));
-    }),
+  return entries.map((values, index) => ({
+    sources: sources[index],
+    group: {
+      type: "lot_block",
+      elements: [...values].flatMap(([aspect, names]) => {
+        const labels = aspect === "right_of_way" || aspect === "acreage" ? names : [names.join(blockKinds.some(kind => kind === aspect) ? "/" : ",")];
+        return labels.map(value => ({ aspect, value }));
+      }),
+    },
   }));
 }
 
@@ -333,24 +373,32 @@ export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
     divisions: Map<string, Omit<PlatDivision, "blocks"> & { blocks: Map<string, PlatBlock> }>;
   }>();
 
-  for (const legal of mergeLotBlocks(entries, count)) {
+  for (const { group: legal } of mergeLotBlocks(entries, count)) {
     const elements = getElements(legal);
     const state = getVal(elements, "state").trim();
     const county = getVal(elements, "county").trim();
+    const jurisdiction = getVal(elements, "jurisdiction").trim();
+    const city = getVal(elements, "city").trim();
     const subdivision = getVal(elements, "subdivision").trim();
+    const condominium = getVal(elements, "condominium").trim();
     const unit = getVal(elements, "unit").trim();
     const phase = getVal(elements, "phase").trim();
     const section = getVal(elements, "section").trim();
     const block = getVal(elements, "block").trim();
-    const lot = getVal(elements, "lot").trim();
+    const tract = getVal(elements, "tract").trim();
+    const building = getVal(elements, "building").trim();
+    const lots = lotKinds.flatMap(kind => {
+      const name = getVal(elements, kind).trim();
+      return name ? [{ kind, name }] : [];
+    });
     const rightsOfWay = elements.filter(element => element.aspect?.toLowerCase() === "right_of_way")
       .map(element => element.value?.trim()).filter((value): value is string => Boolean(value));
-    if (![subdivision, unit, phase, section, block, lot, ...rightsOfWay].some(Boolean)) continue;
+    if (![subdivision, condominium, unit, phase, section, block, tract, building, ...lots, ...rightsOfWay].some(Boolean)) continue;
 
-    const subdivisionKey = JSON.stringify([state, county, subdivision].map(normName));
+    const subdivisionKey = JSON.stringify([state, county, jurisdiction, city, subdivision, condominium].map(normName));
     let subNode = subdivisions.get(subdivisionKey);
     if (!subNode) {
-      subNode = { state, county, subdivision, rightsOfWay: [], divisions: new Map() };
+      subNode = { state, county, subdivision, ...(condominium ? { condominium } : {}), ...(jurisdiction ? { jurisdiction } : {}), ...(city ? { city } : {}), rightsOfWay: [], divisions: new Map() };
       subdivisions.set(subdivisionKey, subNode);
     }
     for (const rightOfWay of rightsOfWay) {
@@ -364,15 +412,21 @@ export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
       subNode.divisions.set(divisionKey, division);
     }
 
-    if (!block && !lot) continue;
-    const blockKey = normName(block);
+    if (!block && !tract && !building && lots.length === 0) continue;
+    const blockKey = JSON.stringify([block, tract, building].map(normName));
     let blockNode = division.blocks.get(blockKey);
     if (!blockNode) {
-      blockNode = { name: block, lots: [] };
+      blockNode = { name: block, ...(tract ? { tract } : {}), ...(building ? { building } : {}), lots: [] };
       division.blocks.set(blockKey, blockNode);
     }
-    if (lot && !blockNode.lots.some(entry => normName(entry.name) === normName(lot))) {
-      blockNode.lots.push({ name: lot });
+    for (const lot of lots) {
+      let lotNode = blockNode.lots.find(entry => entry.kind === lot.kind && normName(entry.name) === normName(lot.name));
+      if (!lotNode) {
+        lotNode = lot;
+        blockNode.lots.push(lotNode);
+      }
+      const acreage = lot.kind === "lot" ? elements.filter(element => element.aspect?.toLowerCase() === "acreage" && element.value?.trim()).map(element => element.value!) : [];
+      if (acreage.length > 0) (lotNode.acreage ??= []).push(...acreage);
     }
   }
 
@@ -388,7 +442,7 @@ export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
 export function getPresentLayers(subdivisions: PlatSubdivision[]): Set<string> {
   const present = new Set<string>();
   for (const sub of subdivisions) {
-    if (!isBlank(sub.subdivision)) present.add("subdivision");
+    for (const kind of subdivisionKinds) if (!isBlank(sub[kind])) present.add(kind);
     if (sub.rightsOfWay.length > 0) present.add("right_of_way");
     for (const division of sub.divisions) {
       for (const kind of divisionKinds) {
@@ -396,7 +450,9 @@ export function getPresentLayers(subdivisions: PlatSubdivision[]): Set<string> {
       }
       for (const block of division.blocks) {
         if (!isBlank(block.name)) present.add("block");
-        if (block.lots.some(lot => !isBlank(lot.name))) present.add("lot");
+        if (block.tract) present.add("tract");
+        if (block.building) present.add("building");
+        for (const lot of block.lots) if (!isBlank(lot.name)) present.add(lot.kind);
       }
     }
   }
@@ -409,9 +465,10 @@ export function isAllEmptyStructure(subdivisions: PlatSubdivision[]): boolean {
 
 export function formatLocation(location: LegalLocation): string {
   const parts: string[] = [];
-  if (location.city) parts.push(cleanPlace(location.city));
-  if (location.county) parts.push(`${cleanPlace(location.county)} County`);
   if (location.state) parts.push(normalizeState(location.state) || "");
+  if (location.county) parts.push(`${cleanPlace(location.county)} County`);
+  if (location.jurisdiction) parts.push(cleanPlace(location.jurisdiction));
+  if (location.city) parts.push(cleanPlace(location.city));
   return parts.filter(Boolean).join(" | ");
 }
 
@@ -420,7 +477,7 @@ function extractPlatName(subdivisions: PlatSubdivision[]): string | undefined {
   return match ? cleanPlace(match.subdivision) : undefined;
 }
 
-function extractCityCountyState(legalJSON: unknown): LegalLocation {
+function extractLocation(legalJSON: unknown): LegalLocation {
   const out: LegalLocation = {};
 
   if (isRecord(legalJSON)) {
@@ -429,10 +486,11 @@ function extractCityCountyState(legalJSON: unknown): LegalLocation {
       if (typeof plat.city === "string" && plat.city.trim()) out.city = cleanPlace(plat.city);
       if (typeof plat.county === "string" && plat.county.trim()) out.county = cleanPlace(plat.county.replace(/\bCounty\b/i, "").trim());
       if (typeof plat.state === "string" && plat.state.trim()) out.state = normalizeState(plat.state);
+      if (typeof plat.jurisdiction === "string" && plat.jurisdiction.trim()) out.jurisdiction = cleanPlace(plat.jurisdiction);
     }
   }
 
-  const entries = Array.isArray(legalJSON) ? legalJSON : legalJSON ? [legalJSON] : [];
+  const entries = [...resolveGroups(legalJSON), ...(legalJSON ? [legalJSON] : [])];
   for (const entry of entries) {
     for (const element of getElements(entry)) {
       const aspect = String(element.aspect || "").toLowerCase();
@@ -441,8 +499,9 @@ function extractCityCountyState(legalJSON: unknown): LegalLocation {
       if (!out.city && (aspect === "city" || aspect === "municipality" || aspect === "locality")) out.city = cleanPlace(value);
       if (!out.county && (aspect === "county" || aspect === "parish" || aspect === "borough")) out.county = cleanPlace(value.replace(/\bCounty\b/i, "").trim());
       if (!out.state && (aspect === "state" || aspect === "province")) out.state = normalizeState(value);
+      if (!out.jurisdiction && aspect === "jurisdiction") out.jurisdiction = cleanPlace(value);
     }
-    if (out.city && out.county && out.state) break;
+    if (out.city && out.county && out.state && out.jurisdiction) break;
   }
 
   if (out.city && out.county && out.state) return out;
@@ -507,7 +566,7 @@ function allSubsMatchPlat(subdivisions: PlatSubdivision[], platName?: string): b
 
 export function normalizeLegalData(legalJSON: LegalMapPayload | LegalGroup[] | null | undefined): LegalViewModel {
   const subdivisions = toPlatJSON(legalJSON);
-  const location = extractCityCountyState(legalJSON);
+  const location = extractLocation(legalJSON);
   const platName = extractPlatName(subdivisions);
   const presentLayers = getPresentLayers(subdivisions);
 

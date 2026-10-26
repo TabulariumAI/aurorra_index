@@ -1,0 +1,142 @@
+
+ RUN  v4.1.9 C:/GitHub/Tabularium/aurorra_index
+
+············xx·
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/legalmap/test/CogoBoundary.vitest.test.tsx > source-ordered COGO boundaries > renders a gap marker and all call details without drawing an unknown endpoint
+TestingLibraryElementError: Unable to find an element with the text: Unconfirmed call, which matches selector 'text'. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="legal-map"
+      style="align-items: stretch; box-sizing: border-box; color: rgb(24, 50, 71); display: flex; flex-direction: column; gap: 0.75rem; font-family: var(--font-ui); text-align: left; height: 100%; max-height: 100%; min-height: 0px; min-width: 0px; overflow: hidden; width: 100%;"
+    >
+      <div
+        class="legal-map-content"
+        style="display: flex; flex-direction: column; min-height: 0px; min-width: 0px;"
+      >
+        <div
+          class="legal-map-column"
+          style="box-sizing: border-box; display: flex; flex-direction: column; flex: 1 0 auto; min-width: 0px; min-height: 16rem; max-height: 56rem; overflow: hidden; position: relative;"
+        >
+          <div
+            aria-labelledby="_r_2_-tab-0"
+            id="_r_2_-panel"
+            role="tabpanel"
+            style="min-height: min-content; min-width: 0px; display: flex;"
+            tabindex="0"
+          >
+            <div
+              class="legal-map-surveys"
+              style="box-sizing: border-box; display: flex; flex-direction: column; gap: 1rem; min-height: min-content; min-width: 0px; overflow: hidden; width: 100%;"
+            >
+              <section
+                style="box-sizing: border-box; display: flex; flex-direction: column; gap: 1rem; min-height: min-content; min-width: 0px; overflow: hidden; width: 100%;"
+              >
+                <section
+                  aria-label="Metes & Bounds"
+                  class="survey-layout"
+                >
+                  <p
+                    role="note"
+                    style="background: rgb(255, 247, 237); border: 1px solid rgb(254, 215, 170); border-radius: 0.5rem; color: rgb(146, 64, 14); padding: 0.5rem 0.75rem; margin: 0px; overflow-wrap: anywhere;"
+                  >
+                    Partial COGO map shown. Confirmed calls plotted; unconfirmed calls flagged for review.
+                  </p>
+                  <div
+                    data-legal-map-surface="true"
+                    style="background-color: rgb(247, 248, 246); background-image: url(\"data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='48'%20height='48'%20viewBox='0%200%2048%2048'%3e%3cpath%20d='M0%20.5H48M.5%200V48'%20fill='none'%20stroke='%23d5dee2'%20stroke-opacity='0.65'%20stroke-width='1'%20stroke-dasharray='3%205'/%3e%3c/svg%3e\"); background-position: center center; background-repeat: repeat; background-size: 48px 48px; border: medium; border-radius: var(--radius-card); box-sizing: border-box; display: flex; flex-direction: column; min-height: min-content; min-width: 0px; overflow: hidden; position: relative; width: 100%;"
+                  >
+                    <div
+                      class="legal-map-header"
+                      style="align-items: start; display: grid; flex: 0 0 auto; gap: 0.75rem; grid-template-columns: minmax(0, 1fr) auto; min-width: 0px; padding: 0.75rem;"
+                    >
+                      <div
+                        aria-label="Map views"
+                        class="legal-map-tabs legal-map-view-tabs"
+                        role="tablist"
+                        style="background: var(--white); border: 1px solid var(--border-subtle); border-radius: var(--radius-control); display: flex; flex-wrap: wrap; gap: 0.125rem; grid-column: 2; justify-self: end; max-width: 100%; padding: 0.125rem; z-index: 2;"
+                      >
+                        <button
+                          aria-controls="_r_2_-panel"
+                          aria-selected="true"
+                          id="_r_2_-tab-0"
+                          role="tab"
+                          style="align-items: center; appearance: none; background: var(--icon-surface); border: 0px; border-radius: var(--radius-control); box-shadow: none; color: var(--primary-dark); cursor: pointer; display: inline-flex; flex: 0 0 auto; height: 2rem; justify-content: center; min-height: 2rem; min-width: 2rem; padding: 0.25rem 0.65rem; transform: none; transition: background-color 150ms ease, color 150ms ease; width: auto; font-family: inherit; font-size: 0.875rem; font-weight: 600;"
+                          tabindex="0"
+                          type="button"
+                        >
+                          Metes & Bounds
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      data-legal-map-drawing="true"
+                      style="display: flex; min-height: 6rem; min-width: 0px; position: relative;"
+                    >
+                      <svg
+                        aria-label="Metes & Bounds schematic"
+                        role="img"
+                        style="display: block; height: 100%; width: 100%; position: absolute; inset: 0px; user-select: none;"
+                        viewBox="-32.24074074074074 -32 65.48148148148148 64"
+                      >
+                        <defs>
+                          <pattern
+                            height="16"
+                            id="_r_4_-partial"
+                            patternTransform="rotate(45)"
+                            patternUnits="userSpaceOnUse"
+                            width="16"
+                          >
+                            <rect
+                              fill="#cdebf5"
+                              height="16"
+                              width="16"
+                            />
+                            <line
+                              opacity="0.45"
+                              stroke="#369ac2"
+         ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/features/legalmap/test/CogoBoundary.vitest.test.tsx:93:19
+     91|     expect(table).toHaveTextContent("Unlocated");
+     92|     expect(table).toHaveTextContent("50 feet");
+     93|     expect(screen.getByText("Unconfirmed call", { selector: "text" }))…
+       |                   ^
+     94|     expect(document.querySelector("details")).toBeNull();
+     95|     expect(document.querySelector("[data-survey-gap]")).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/legalmap/test/CogoBoundary.vitest.test.tsx > source-ordered COGO boundaries > marks a first unresolved call at its explicit starting coordinate without inventing a line
+AssertionError: expected  to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/features/legalmap/test/CogoBoundary.vitest.test.tsx:103:58
+    101|     expect(scene.gaps).toEqual([{ sequence: 1, point: { x: 0, y: 0 } }…
+    102|     render(<LegalMapContent legal={{ groups: [{ type: "metes_bounds", …
+    103|     expect(document.querySelectorAll("[data-cogo-gap]")).toHaveLength(…
+       |                                                          ^
+    104|     expect(document.querySelectorAll("[data-survey-line]")).toHaveLeng…
+    105|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 13 passed (15)
+   Start at  12:37:39
+   Duration  5.01s (transform 771ms, setup 299ms, import 1.22s, tests 687ms, environment 2.40s)
+

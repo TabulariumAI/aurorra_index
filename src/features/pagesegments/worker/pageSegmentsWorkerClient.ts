@@ -1,4 +1,4 @@
-import type { PageSegmentsWorkerClient, PageSegmentsWorkerConfig } from "../type/pageSegments.types";
+import type { PagesData, PageSegmentsWorkerClient, PageSegmentsWorkerConfig } from "../type/pageSegments.types";
 
 type WorkerError = Error & {
   code?: string;
@@ -30,9 +30,9 @@ async function runWorker<T>(command: unknown): Promise<T> {
       settled = true;
       cleanup();
 
-      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number };
+      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number; path?: string; etag?: string };
       if (payload && payload.ok === true) {
-        resolve(payload.data as T);
+        resolve((payload.path ? { data: payload.data, path: payload.path, etag: payload.etag } : payload.data) as T);
         return;
       }
       reject(resolveError(typeof payload?.error === "string" ? payload.error : "Page segments worker request failed", payload));
@@ -52,6 +52,9 @@ async function runWorker<T>(command: unknown): Promise<T> {
 export function createPageSegmentsWorkerClient(config: PageSegmentsWorkerConfig): PageSegmentsWorkerClient {
   const { apiBaseUrl } = config;
   return {
+    pagesData(token, session, path) {
+      return runWorker<{ data: PagesData; path: string; etag?: string }>({ apiBaseUrl, token, session, path, type: "pagesData" });
+    },
     updatePageSegments(token, session, pageCode, segments) {
       return runWorker<void>({ apiBaseUrl, pageCode, segments, session, token, type: "updatePageSegments" });
     },

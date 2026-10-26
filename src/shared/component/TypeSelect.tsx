@@ -63,7 +63,7 @@ export function TypeSelect({ aspects, segment, selected, onChange }: TypeSelectP
 
   return (
     <div ref={field} data-testid="add-type-field" style={formStyles.field}>
-      <label htmlFor={id} style={formStyles.label}>Type</label>
+      <label htmlFor={id} style={formStyles.label}>Type (required)</label>
       <div style={{ ...styles.control, ...(open ? styles.focused : {}) }}>
         {selected.length > 0 && <div style={styles.chips}>
           {selected.map((key) => {
@@ -77,7 +77,7 @@ export function TypeSelect({ aspects, segment, selected, onChange }: TypeSelectP
             </span>;
           })}
         </div>}
-        <input ref={input} id={id} role="combobox" aria-autocomplete="list" aria-expanded={open}
+        <input ref={input} id={id} role="combobox" aria-autocomplete="list" aria-expanded={open} aria-required="true"
           aria-controls={open ? `${id}-list` : undefined}
           aria-activedescendant={open && active >= 0 && choices[active] ? `${id}-option-${active}` : undefined}
           autoComplete="off" placeholder={selected.length ? "Add another type…" : "Search types…"}

@@ -19,7 +19,7 @@ const auditFixture = {
     { solution: "REMOVE", explanation: "Remove index", page: "4", owner: "enrichment", timestamp: "2026-01-04T12:00:00Z", segment: "party" },
     { solution: "ADD", explanation: "Add index", page: "1", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: null },
   ],
-  usage: { costs: ["$0.9480"] },
+  usage: { services: [{ name: "extraction", cost: 0.948, time: 2, page_num: 1, code: "extraction", timestamp: "2026-10-20T00:00:00Z" }] },
 };
 
 describe("AuditWorker", () => {
@@ -133,7 +133,7 @@ describe("AuditWorker", () => {
         { solution: "ADD", explanation: "alpha", page: "2", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: "reference" },
       ],
       usage: {
-        costs: [1, 2],
+        services: [],
       },
     })));
 
@@ -173,7 +173,7 @@ describe("AuditWorker", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(result.error);
     expect(result.data.gaps).toHaveLength(2);
-    expect(result.data.usage).toEqual({ costs: ["$0.9480"] });
+    expect(result.data.usage).toEqual(auditFixture.usage);
     expect(fetchMock).toHaveBeenNthCalledWith(1, "x/v1/metadata/session-1/audit", {
       body: null,
       headers: { Authorization: "Bearer token" },

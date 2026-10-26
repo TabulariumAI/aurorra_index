@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type JSX } from "react";
 import { appendAddressMapZoom } from "../data/addressMap";
 import { addressMapStyles } from "../style/addressMapStyles";
 
@@ -13,7 +13,7 @@ export function AddressMapContent({ onLoaderChange, onReadyChange, source, zoom 
   const [status, setStatus] = useState<"loading" | "loaded" | "timeout">("loading");
   const timer = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setStatus("loading");
     if (!source) return;
 

@@ -1,28 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAuditStore, auditStoreApi } from "../store/auditStore";
-import type { AuditPanelProps, AuditWorkerError } from "../type/audit.types";
+import type { AuditPanelProps } from "../type/audit.types";
 import { createAuditWorkerClient } from "../worker/auditWorkerClient";
-
-function normalizeError(error: unknown): AuditWorkerError {
-  const candidate = error as {
-    code?: unknown;
-    details?: unknown;
-    error?: unknown;
-    message?: unknown;
-    status?: unknown;
-  };
-  return {
-    code: typeof candidate?.code === "string" ? candidate.code : undefined,
-    details: candidate?.details,
-    error:
-      typeof candidate?.error === "string"
-        ? candidate.error
-        : typeof candidate?.message === "string"
-          ? candidate.message
-          : "Audit request failed.",
-    status: typeof candidate?.status === "number" ? candidate.status : undefined,
-  };
-}
+import { loadAuditReport } from "../data/loadAuditReport";
 
 export function useAuditReport({
   apiGatewayUrl,
@@ -43,29 +23,17 @@ export function useAuditReport({
 
   useEffect(() => () => callbacksRef.current.onAuditCanceled?.(), []);
 
-  const loadReport = useCallback(async () => {
-    const request = auditStoreApi.getState().setLoading(session, false);
-    try {
-      const report = await client.loadReport(authToken ?? "", session);
-      if (auditStoreApi.getState().requests[session] !== request) return;
-      auditStoreApi.getState().setLoaded(session, report);
-      callbacksRef.current.onAuditLoaded?.(report);
-    } catch (error) {
-      const state = auditStoreApi.getState();
-      if (state.requests[session] !== request || state.activeSession !== session) return;
-      const workerError = normalizeError(error);
-      auditStoreApi.getState().setError(workerError);
-      callbacksRef.current.onAuditError?.(workerError);
-    }
+  useEffect(() => {
+    void loadAuditReport({ authToken: authToken ?? "", session, background: false, workerClient: client }).then(result => {
+      if (!result) return;
+      if ("error" in result) callbacksRef.current.onAuditError?.(result);
+      else callbacksRef.current.onAuditLoaded?.(result);
+    });
   }, [authToken, client, session]);
 
-  useEffect(() => {
-    void loadReport();
-  }, [loadReport]);
-
   return {
-    error: store.error,
-    report: store.report,
+    error: store.activeSession === session ? store.error : null,
+    report: store.reportsBySession[session] ?? null,
     retryAttempt: store.retryAttempt,
     status: store.status,
   };

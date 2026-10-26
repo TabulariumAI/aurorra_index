@@ -55,7 +55,7 @@ export const useAuditStore = create<AuditStoreState>()((set) => ({
       ...(!background ? {
         activeSession: session,
         error: null,
-        report: state.report,
+        report: state.reportsBySession[session] ?? null,
         retryAttempt: 1,
         status: "loading" as const,
       } : {}),
@@ -66,7 +66,7 @@ export const useAuditStore = create<AuditStoreState>()((set) => ({
     set((state) => ({
       activeSession: session,
       error: null,
-      report: state.report,
+      report: state.reportsBySession[session] ?? null,
       retryAttempt: 1,
       status: "refreshing",
     }));

@@ -54,8 +54,8 @@ describe("index styles", () => {
     expect(metadataStyles.legalElement).toMatchObject({ borderTop: "1px solid var(--border-card)" });
     expect(disclosureButtonStyle(false, true)).toMatchObject({
       border: 0,
-      outline: "none",
     });
+    expect(disclosureButtonStyle(false, true)).not.toHaveProperty("outline");
     expect(segmentStyles.root).toMatchObject({
       backgroundColor: "transparent",
       borderBottom: "1px solid var(--border-card)",

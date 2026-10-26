@@ -53,7 +53,6 @@ createRoot(stage).render(
     apiGatewayUrl="https://doc.example.com"
     authToken="token"
     callbacks={{}}
-    onReadyChange={() => undefined}
     session="session-1"
     workerClient={workerClient}
   />,

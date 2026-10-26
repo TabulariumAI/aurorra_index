@@ -2,7 +2,9 @@ import "../../../document_web/src/bootstrap/style/root.css";
 
 const scenario = new URLSearchParams(window.location.search).get("scenario");
 
-if (scenario === "legal-gap") {
+if (scenario === "pages") {
+  await import("./pages.visual.tsx");
+} else if (scenario === "legal-gap") {
   await import("./legalgap.visual.tsx");
 } else if (scenario === "legal-map") {
   await import("./legalmap.visual.tsx");

@@ -17,16 +17,13 @@ function validateMetadataPayload(data: unknown): MetdataWorkerResult<MetadataPay
   if (!isObject(data)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid object." };
   }
-  for (const key of ["heading", "secrets", "indexes", "pages", "fees", "funds"]) {
+  for (const key of ["heading", "secrets", "indexes", "fees", "funds"]) {
     if (!(key in data)) {
       return { ok: false, code: "validation_error", error: `Missing required key: ${key}` };
     }
   }
   if (!isObject(data.heading)) {
     return { ok: false, code: "validation_error", error: "Invalid or missing heading section." };
-  }
-  if (!isObject(data.pages) || typeof data.pages.num_of_pages !== "number") {
-    return { ok: false, code: "validation_error", error: "Invalid or missing pages section." };
   }
   return { ok: true, data: data as MetadataPayload };
 }

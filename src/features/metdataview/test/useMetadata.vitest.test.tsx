@@ -7,6 +7,10 @@ import { storeApi } from "../../../store/state/store";
 import { queueStoreApi } from "../../queue/store/queueStore";
 import type { MetdataMetadataProps, MetdataMetadataRefresh, MetdataWorkerClient } from "../type/metadataView.types";
 import { splitMetadataJSON, type MetadataActionPayload, type MetadataPayload } from "aurora-core";
+import { auditStoreApi } from "../../audit/store/auditStore";
+
+const auditClient = vi.hoisted(() => ({ loadReport: vi.fn(async () => ({ gaps: [] })) }));
+vi.mock("../../audit/worker/auditWorkerClient", () => ({ createAuditWorkerClient: () => auditClient }));
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",
@@ -39,7 +43,7 @@ const baseMetadata: MetadataPayload = {
 function createClient(): MetdataWorkerClient {
   let data = structuredClone(baseMetadata);
   return {
-    updatePageSegments: vi.fn(),
+    pagesData: vi.fn(), updatePageSegments: vi.fn(),
       patchIndex: vi.fn(),
     confirmIndex: vi.fn(async () => { data = { ...data, indexes: data.indexes?.map((index) => ({ ...index, ambiguous: "NO" })) }; return { data: "", status: "completed" as const, version: 1 }; }),
     dropIndex: vi.fn(async () => { data = { ...data, indexes: [] }; return { data: "", status: "completed" as const, version: 1 }; }),
@@ -67,9 +71,39 @@ const rowPayload: MetadataActionPayload = {
 
 describe("useMetadata", () => {
   beforeEach(() => {
+    auditClient.loadReport.mockReset().mockResolvedValue({ gaps: [] });
+    auditStoreApi.getState().resetAudit();
     queueStoreApi.getState().reset();
     indexStoreApi.getState().resetMetadata();
     storeApi.getState().resetAllState();
+  });
+
+  it.each((["resetMetadata", "invalidateSession", "resetView"] as const).flatMap(reset => [false, true].map(failed => ({ reset, failed }))))("does not restore cleared metadata after $reset with failed=$failed", async ({ reset, failed }) => {
+    const client = createClient();
+    let finish!: (data: MetadataPayload) => void;
+    let fail!: (error: Error) => void;
+    vi.mocked(client.indexData).mockImplementationOnce(() => new Promise((resolve, reject) => { finish = resolve; fail = reject; }));
+    const onMetadataLoaded = vi.fn();
+    const props: MetdataMetadataProps = {
+      apiGatewayUrl: "https://doc.example.com", authToken: "token", batchCode: null,
+      callbacks: { onMetadataLoaded }, choices, deferredState: createDeferredState(),
+      intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
+      retryIntervalMs: 0, retryLimit: 1, segments, session: "session-1", workerClient: client,
+    };
+    const view = renderHook(() => useMetadata(props));
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledOnce());
+    act(() => {
+      if (reset === "invalidateSession") indexStoreApi.getState().invalidateSession("session-1");
+      else indexStoreApi.getState()[reset]();
+    });
+    await act(async () => {
+      if (failed) fail(new Error("Metadata unavailable"));
+      else finish(baseMetadata);
+    });
+    expect(storeApi.getState().getJSON("session-1")).toBeNull();
+    expect(indexStoreApi.getState().status).toBe("idle");
+    expect(onMetadataLoaded).not.toHaveBeenCalled();
+    view.unmount();
   });
 
   it("exposes the current segment, opens Pages on request, and resets between sessions", async () => {
@@ -210,7 +244,9 @@ describe("useMetadata", () => {
     await waitFor(() => expect(indexStoreApi.getState().status).toBe("success"));
     expect(client.indexData).not.toHaveBeenCalled();
     expect(result.current.choices).toBeNull();
-    expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata);
+    expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata, "session-1");
+    await waitFor(() => expect(auditClient.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1"));
+    await waitFor(() => expect(auditStoreApi.getState().reportsBySession["session-1"]).toEqual({ gaps: [] }));
   });
 
   it("reports a rejecting host load callback as a view error", async () => {

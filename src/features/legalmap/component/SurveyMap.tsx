@@ -1,214 +1,242 @@
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
+import { Icon, rowStyles } from "aurora-core";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { labelValue } from "../data/legalData";
-import type { SurveyScene } from "../data/surveyData";
-import { placeLabels } from "../data/labelLayout";
+import { formatMeasure, type SurveyItem, type SurveyScene } from "../data/surveyData";
 import { blockStyle, legalMapColors, legalMapConstants, legalMapStyles, legendBoxStyle } from "../style/legalMapStyles";
 import { surveyStyles } from "../style/surveyStyles";
-import { MapSurface } from "./MapSurface";
+import { MapIssue, MapSurface } from "./MapSurface";
 
-type SurveyPosition = { x: number; y: number; leader: { x: number; y: number } | null };
 const contextFont = legalMapConstants.lotBaseFontSize * 1.35;
 
-function boundaryData(scene: SurveyScene) {
-  const lines = scene.items.filter(item => item.kind === "line");
-  const lengths = lines.map(line => Math.hypot(line.to.x - line.from.x, line.to.y - line.from.y));
-  const closures = lines.slice(0, 2).map((line, index) => ({
-    gap: Math.hypot(lines.at(-1)!.to.x - line.from.x, lines.at(-1)!.to.y - line.from.y),
-    length: lengths.slice(index).reduce((sum, length) => sum + length, 0),
-  }));
-  const beginning = closures.findIndex(closure => closure.length > 0 && closure.gap <= closure.length * legalMapConstants.closureRatio);
-  return { lines, beginning, closure: closures[beginning >= 0 ? beginning : 0] };
-}
-
-export function SurveyMap({ scene, controls, showTitle }: { scene: SurveyScene; controls?: ReactNode; showTitle: boolean }) {
+export function SurveyMap({ scenes }: { scenes: SurveyScene[] }) {
   const id = useId();
   const drawingRef = useRef<SVGSVGElement>(null);
-  const [labelScale, setLabelScale] = useState(1);
+  const [scale, setScale] = useState(1);
+  const [activePoint, setActivePoint] = useState<SVGCircleElement | null>(null);
   const [verticalOffset, setVerticalOffset] = useState(0);
   const [contextSize, setContextSize] = useState(contextFont);
-  const [labelPositions, setLabelPositions] = useState<(SurveyPosition & { vertex: number })[]>([]);
-  const [badgePositions, setBadgePositions] = useState<SurveyPosition[]>([]);
-  const { lines, beginning, closure } = boundaryData(scene);
-  const boundary = lines.length > 0;
-  const points = scene.items.flatMap(item => item.kind === "line" ? [item.from, item.to] : [{ x: item.x, y: item.y }, { x: item.x + item.width, y: item.y + item.height }]);
+  const items = scenes.flatMap(scene => scene.items);
+  const sections = new Map<string, Extract<SurveyItem, { kind: "rect" }>>();
+  for (const item of items) {
+    if (item.kind !== "rect" || item.role !== "section") continue;
+    const key = `${item.x}:${item.y}:${item.label}`;
+    const previous = sections.get(key);
+    sections.set(key, { ...item, highlighted: item.highlighted || Boolean(previous?.highlighted) });
+  }
+  const boundary = scenes.some(scene => scene.courses !== undefined);
+  const points = items.flatMap(item => {
+    if (item.kind !== "line") return [{ x: item.x, y: item.y }, { x: item.x + item.width, y: item.y + item.height }];
+    const points = [item.from, item.to];
+    if (item.arc) {
+      const { center, radius, sweep, turn } = item.arc;
+      const start = Math.atan2(item.from.y - center.y, item.from.x - center.x);
+      for (const angle of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+        if (((turn * (angle - start)) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) <= sweep) points.push({ x: center.x + radius * Math.cos(angle), y: center.y + radius * Math.sin(angle) });
+      }
+    }
+    return points;
+  });
   const minX = Math.min(...points.map(point => point.x));
   const maxX = Math.max(...points.map(point => point.x));
   const minY = Math.min(...points.map(point => point.y));
   const maxY = Math.max(...points.map(point => point.y));
+  const spanX = Math.max(maxX - minX, maxY === minY ? 1 : 0);
+  const spanY = Math.max(maxY - minY, maxX === minX ? 1 : 0);
   const extent = Math.max(maxX - minX, maxY - minY, 1);
-  const inset = legalMapConstants.labelInset / labelScale;
-  const frameWidth = boundary ? (maxX - minX) / legalMapConstants.parcelScale + inset * 2 : (maxX - minX + extent * 0.24) / legalMapConstants.plssScale;
-  const frameHeight = boundary ? (maxY - minY) / legalMapConstants.parcelScale + inset * 2 : (maxY - minY + extent * 0.24) / legalMapConstants.plssScale;
+  const frameWidth = boundary ? spanX / legalMapConstants.parcelScale + legalMapConstants.labelInset * 2 / scale : (maxX - minX + extent * 0.24) / legalMapConstants.plssScale;
+  const frameHeight = boundary ? spanY / legalMapConstants.parcelScale + legalMapConstants.labelInset * 2 / scale : (maxY - minY + extent * 0.24) / legalMapConstants.plssScale;
   const frame = { x: (minX + maxX - frameWidth) / 2, y: (minY + maxY - frameHeight) / 2 + (boundary ? 0 : verticalOffset), width: frameWidth, height: frameHeight };
-  const fontSize = boundary ? legalMapConstants.lotBaseFontSize / labelScale : Math.max(frame.width, frame.height) / 24;
-  const context = scene.notes.filter(note => note.label === "Township" || note.label === "Range").map(note => `${note.label} ${labelValue(note.value, note.label === "Township" ? "town(?:ship)?" : "range").replace(/\b(NORTH|SOUTH|EAST|WEST)\b/gi, direction => direction[0].toUpperCase() + direction.slice(1).toLowerCase())}`).join(" · ");
-  const tie = beginning === 1;
-  const closed = beginning >= 0;
-  const parcel = tie ? lines.slice(1) : lines;
-  const vertices = boundary ? [...lines.map(line => line.from), ...(!closed ? [lines.at(-1)!.to] : [])] : [];
+  const fontSize = legalMapConstants.lotBaseFontSize / scale;
+  const context = [...new Set(scenes.flatMap(scene => scene.notes).filter(note => note.label === "Township" || note.label === "Range").map(note => note.label + " " + labelValue(note.value, note.label === "Township" ? "town(?:ship)?" : "range").replace(/\b(NORTH|SOUTH|EAST|WEST)\b/gi, direction => direction[0].toUpperCase() + direction.slice(1).toLowerCase())))].join(" · ");
 
   useLayoutEffect(() => {
     const drawing = drawingRef.current!;
     const measure = () => {
       const { width, height } = drawing.getBoundingClientRect();
       if (width === 0 || height === 0) return;
-      const scale = boundary
-        ? (maxX > minX && maxY > minY ? Math.min((width - legalMapConstants.labelInset * 2) / (maxX - minX), (height - legalMapConstants.labelInset * 2) / (maxY - minY))
-          : maxX > minX ? (width - legalMapConstants.labelInset * 2) / (maxX - minX)
-            : maxY > minY ? (height - legalMapConstants.labelInset * 2) / (maxY - minY)
-              : Math.min(width, height) / (legalMapConstants.labelInset * 2)) * legalMapConstants.parcelScale
+      const nextScale = boundary
+        ? Math.min((width - legalMapConstants.labelInset * 2) / spanX, (height - legalMapConstants.labelInset * 2) / spanY) * legalMapConstants.parcelScale
         : Math.min(width / frame.width, height / frame.height);
-      if (scale !== labelScale) {
-        setLabelScale(scale);
-        return;
+      setScale(nextScale);
+      const matrix = drawing.getScreenCTM?.();
+      if (matrix) {
+        const bounds = drawing.getBoundingClientRect();
+        const inverse = matrix.inverse();
+        const occupied: DOMRect[] = [];
+        const labels = [...drawing.querySelectorAll<SVGTextElement>("[data-survey-label]"), ...drawing.querySelectorAll<SVGTextElement>("[data-survey-vertex]")];
+        const activeLabel = activePoint && drawing.contains(activePoint) ? activePoint.parentElement!.querySelector<SVGTextElement>("[data-survey-vertex]") : null;
+        if (activeLabel) {
+          labels.splice(labels.indexOf(activeLabel), 1);
+          labels.unshift(activeLabel);
+        }
+        for (const label of labels) {
+          const point = label.parentElement!.querySelector<SVGCircleElement>("[data-survey-point]")!;
+          const leader = label.parentElement!.querySelector<SVGLineElement>("[data-survey-leader]");
+          if (leader) {
+            label.setAttribute("x", String(point.cx.baseVal.value + fontSize / 2));
+            label.setAttribute("y", String(point.cy.baseVal.value - fontSize / 2));
+            leader.style.visibility = "hidden";
+          }
+          const box = label.getBoundingClientRect();
+          const candidates = [{ x: box.left, y: box.top }];
+          if (leader) {
+            for (let y = bounds.top + 2; y + box.height <= bounds.bottom - 2; y += box.height + 4) {
+              for (let x = bounds.left + 2; x + box.width <= bounds.right - 2; x += box.width + 4) candidates.push({ x, y });
+            }
+            candidates.sort((a, b) => Math.hypot(a.x - box.left, a.y - box.top) - Math.hypot(b.x - box.left, b.y - box.top));
+          }
+          const position = candidates.find(({ x, y }) => x >= bounds.left && y >= bounds.top && x + box.width <= bounds.right && y + box.height <= bounds.bottom
+            && !occupied.some(previous => x < previous.right + 2 && x + box.width > previous.left - 2 && y < previous.bottom + 2 && y + box.height > previous.top - 2));
+          label.style.visibility = position ? "visible" : "hidden";
+          if (!position) continue;
+          occupied.push(new DOMRect(position.x, position.y, box.width, box.height));
+          if (leader && (position.x !== box.left || position.y !== box.top)) {
+            const offset = new DOMPoint(position.x - box.left, position.y - box.top).matrixTransform(new DOMMatrix([inverse.a, inverse.b, inverse.c, inverse.d, 0, 0]));
+            label.setAttribute("x", String(Number(label.getAttribute("x")) + offset.x));
+            label.setAttribute("y", String(Number(label.getAttribute("y")) + offset.y));
+            const anchor = new DOMPoint(point.cx.baseVal.value, point.cy.baseVal.value).matrixTransform(matrix);
+            const end = new DOMPoint(Math.max(position.x, Math.min(position.x + box.width, anchor.x)), Math.max(position.y, Math.min(position.y + box.height, anchor.y))).matrixTransform(inverse);
+            leader.setAttribute("x2", String(end.x));
+            leader.setAttribute("y2", String(end.y));
+            leader.style.visibility = "visible";
+          }
+        }
       }
-      if (!boundary) setVerticalOffset(height * (0.5 - legalMapConstants.plssCenter) / scale);
+      if (!boundary) setVerticalOffset(height * (0.5 - legalMapConstants.plssCenter) / nextScale);
       if (!boundary && context) {
         const caption = drawing.querySelector<SVGTextElement>("[data-survey-context]")!;
         const box = caption.getBoundingClientRect();
         if (box.width > 0 && box.height > 0) {
-          const captionSize = parseFloat(getComputedStyle(caption).fontSize) * scale;
-          setContextSize(Math.min(contextFont, captionSize * (width - legalMapConstants.gridSize) / box.width, captionSize * (extent * 0.12 * scale - 8) / box.height));
+          const captionSize = parseFloat(getComputedStyle(caption).fontSize) * nextScale;
+          setContextSize(Math.min(contextFont, captionSize * (width - legalMapConstants.gridSize) / box.width, captionSize * (extent * 0.12 * nextScale - 8) / box.height));
         }
       }
-      if (!closed) return;
-      const matrix = drawing.getScreenCTM()!;
-      const labels = [...drawing.querySelectorAll<SVGTextElement>("[data-survey-label]")];
-      const bounds = drawing.getBoundingClientRect();
-      const obstacles: Parameters<typeof placeLabels>[0]["obstacles"] = [
-        ...[...drawing.querySelectorAll("[data-survey-point]")].map(node => node.getBoundingClientRect()),
-        drawing.closest("[data-legal-map-surface]")!.querySelector("[data-legal-map-north]")!.getBoundingClientRect(),
-      ];
-      const segments = [...drawing.querySelectorAll<SVGLineElement>("[data-survey-line], [data-survey-reference], [data-survey-gap]")].map(line => ({
-        from: new DOMPoint(line.x1.baseVal.value, line.y1.baseVal.value).matrixTransform(matrix),
-        to: new DOMPoint(line.x2.baseVal.value, line.y2.baseVal.value).matrixTransform(matrix),
-      }));
-      const badges = [];
-      for (const point of drawing.querySelectorAll<SVGCircleElement>("[data-survey-point]")) {
-        const position = placeLabels({
-          targets: [{ point: new DOMPoint(point.cx.baseVal.value, point.cy.baseVal.value).matrixTransform(matrix), width: legalMapConstants.lotBaseFontSize * 1.3, height: legalMapConstants.lotBaseFontSize * 1.3 }],
-          bounds: { x: bounds.x + 6, y: bounds.y + 6, width: bounds.width - 12, height: bounds.height - 12 },
-          obstacles, segments, parcel: [],
-        })[0];
-        badges.push(position);
-        obstacles.push(position.box);
-      }
-      const positions = placeLabels({
-        targets: labels.map(label => {
-          const point = label.parentElement!.querySelector<SVGCircleElement>("[data-survey-point]")!;
-          const { width, height } = label.getBoundingClientRect();
-          return { point: new DOMPoint(point.cx.baseVal.value, point.cy.baseVal.value).matrixTransform(matrix), width, height };
-        }),
-        bounds: { x: bounds.x + 6, y: bounds.y + 6, width: bounds.width - 12, height: bounds.height - 12 },
-        obstacles,
-        segments,
-        parcel: [parcel[0].from, ...parcel.map(line => line.to)].map(point => new DOMPoint(point.x, point.y).matrixTransform(matrix)),
-      });
-      const inverse = matrix.inverse();
-      setBadgePositions(badges.map(({ box, leader }) => {
-        const center = new DOMPoint(box.x + box.width / 2, box.y + box.height / 2).matrixTransform(inverse);
-        const endpoint = leader ? new DOMPoint(leader.x, leader.y).matrixTransform(inverse) : null;
-        return { x: center.x, y: center.y, leader: endpoint ? { x: endpoint.x, y: endpoint.y } : null };
-      }));
-      setLabelPositions(positions.map((position, index) => {
-        const label = labels[index];
-        const box = label.getBoundingClientRect();
-        const origin = new DOMPoint(Number(label.getAttribute("x")), Number(label.getAttribute("y"))).matrixTransform(matrix);
-        const text = new DOMPoint(position.box.x + origin.x - box.x, position.box.y + origin.y - box.y).matrixTransform(inverse);
-        const leader = position.leader ? new DOMPoint(position.leader.x, position.leader.y).matrixTransform(inverse) : null;
-        return { vertex: Number(label.getAttribute("data-survey-label")), x: text.x, y: text.y, leader: leader ? { x: leader.x, y: leader.y } : null };
-      }));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(drawing);
     return () => observer.disconnect();
-  }, [scene, closed, frame.width, frame.height, labelScale]);
+  }, [boundary, context, extent, frame.width, frame.height, spanX, spanY, fontSize, scenes, activePoint]);
 
-  return <section className="survey-layout" aria-label={scene.title}>
-    {showTitle ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
-    <MapSurface controls={controls} style={surveyStyles.viewport}
-      annotation={tie ? <div role="note" aria-label="Commencement line" data-survey-tie-label="true" style={surveyStyles.tieLabel}>
-        <div>{lines[0].bearing}</div>
-        <div>{lines[0].distance}</div>
-      </div> : undefined}
-      footer={!boundary ? <>
-        <div className="legal-map-legend" style={legalMapStyles.legendItems}>
-          <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#b6e3f5", legalMapColors.parcelLine)} /><span style={legalMapStyles.legendLabel}>Subject</span></span>
-          <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#f3edcf", legalMapColors.sectionLine)} /><span style={legalMapStyles.legendLabel}>Section</span></span>
-        </div>
-      </> : <div aria-label="Map legend" className="legal-map-legend legal-map-boundary-legend" style={legalMapStyles.legendItems}>
-          {tie ? <div style={legalMapStyles.legendItem}><span aria-hidden="true" style={{ ...surveyStyles.legendLine, ...surveyStyles.tieLegendLine }} /><span>Tie line (Commencement)</span></div> : null}
-          <div style={legalMapStyles.legendItem}><span aria-hidden="true" style={surveyStyles.legendLine} /><span>Parcel boundary</span></div>
-        </div>}>
-        <svg ref={drawingRef} role="img" aria-label={`${scene.title} schematic`} aria-describedby={!boundary && context ? `${id}-context` : undefined} viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`} style={surveyStyles.drawing}>
-          <defs><pattern id={`${id}-partial`} width={fontSize} height={fontSize} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width={fontSize} height={fontSize} fill="#cdebf5" />
-            <line x1="0" y1="0" x2="0" y2={fontSize} stroke="#369ac2" strokeWidth={fontSize / 6} opacity="0.45" />
-          </pattern></defs>
-          {boundary ? <g aria-label="North–south reference through point 1" pointerEvents="none">
-            <line data-survey-reference="true" x1={lines[0].from.x} y1={frame.y} x2={lines[0].from.x} y2={frame.y + frame.height} stroke={legalMapColors.secondaryText} strokeDasharray="6 4" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-          </g> : null}
-          {closed ? <path data-boundary-fill="true" d={`M ${parcel[0].from.x} ${parcel[0].from.y} ${parcel.map(line => `L ${line.to.x} ${line.to.y}`).join(" ")} Z`} fill={legalMapColors.parcelFill} fillOpacity="0.25" /> : null}
-          {scene.items.map((item, index) => {
-            if (item.kind === "line") return <g key={index}>
-              <title>{item.detail}</title>
-              <line data-survey-line="true" x1={item.from.x} y1={item.from.y} x2={item.to.x} y2={item.to.y} stroke={tie && index === 0 ? legalMapColors.gridLine : legalMapColors.parcelLine} strokeDasharray={tie && index === 0 ? "6 4" : undefined} strokeWidth="3" vectorEffect="non-scaling-stroke" />
-            </g>;
-            const labelSize = Math.min(legalMapConstants.lotBaseFontSize / labelScale, (item.width - 8 / labelScale) / 4, (item.height - 8 / labelScale) / 3);
-            const captionSize = item.caption ? Math.min(labelSize * legalMapConstants.amp, (item.width - 8 / labelScale) / item.caption.length) : labelSize;
-            return <g key={index}>
-              <title>{item.detail}</title>
-              <rect data-survey-area={item.role === "area" ? "true" : undefined} data-survey-section-area={item.role === "section" ? item.label : undefined} data-survey-partial={item.partial ? "true" : undefined}
-                x={item.x} y={item.y} width={item.width} height={item.height}
-                fill={item.role === "area" ? item.partial ? `url(#${id}-partial)` : "#b6e3f5" : item.role === "section" ? item.highlighted ? "#f3edcf" : legalMapColors.blockBg : "none"}
-                fillOpacity={item.role === "area" ? 0.8 : 0.35} stroke={item.role === "area" ? legalMapColors.parcelLine : item.role === "section" ? legalMapColors.sectionLine : "#8c999b"}
-                strokeDasharray={item.role === "section" || (item.role === "area" && !item.partial) ? undefined : "4 3"} strokeWidth={item.role === "area" ? 3 : item.role === "section" ? 2 : 1} vectorEffect="non-scaling-stroke" />
-              {item.role === "area" && Math.min(labelSize, captionSize) * labelScale >= 12 ? <text x={item.x + item.width / 2} y={item.y + item.height / 2} textAnchor="middle" fontSize={labelSize * legalMapConstants.amp} fill={legalMapColors.text} pointerEvents="none">
-                {item.caption ? <tspan x={item.x + item.width / 2} dy="-0.3em" fontSize={captionSize}>{item.caption}</tspan> : null}
-                <tspan x={item.x + item.width / 2} dy={item.caption ? "1.2em" : 0} fontSize={labelSize} fontWeight={legalMapStyles.lotCaption.fontWeight}>Subject</tspan>
-              </text> : null}
-            </g>;
-          })}
-          {boundary && closure.gap > closure.length * Number.EPSILON ? <g pointerEvents="none">
-            <title>Closure gap · original endpoint retained</title>
-            <line data-survey-gap="true" x1={lines.at(-1)!.to.x} y1={lines.at(-1)!.to.y} x2={parcel[0].from.x} y2={parcel[0].from.y} stroke={legalMapColors.secondaryText} strokeDasharray="3 3" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-            {closed ? <circle data-survey-endpoint="true" cx={lines.at(-1)!.to.x} cy={lines.at(-1)!.to.y} r={fontSize / 4} fill="white" stroke={legalMapColors.secondaryText} strokeWidth="1" vectorEffect="non-scaling-stroke" /> : null}
-          </g> : null}
-          {vertices.map((point, index) => {
-            const labelY = point.y + (index === lines.length ? fontSize : -fontSize);
-            const poc = tie && index === 0;
-            const pob = closed && index === beginning;
-            const labelPosition = labelPositions.find(position => position.vertex === index + 1);
-            const badge = badgePositions[index];
-            return <g key={index}>
-              <circle data-survey-point={index + 1} cx={point.x} cy={point.y} r={fontSize / 4} fill={poc ? legalMapColors.secondaryText : pob ? legalMapColors.parcelLine : "white"} stroke={poc ? legalMapColors.secondaryText : legalMapColors.parcelLine} strokeWidth="1" vectorEffect="non-scaling-stroke" />
-              {badge?.leader ? <line data-survey-badge-leader={index + 1} x1={point.x} y1={point.y} x2={badge.leader.x} y2={badge.leader.y} stroke={poc ? legalMapColors.secondaryText : legalMapColors.parcelLine} strokeWidth="1" vectorEffect="non-scaling-stroke" pointerEvents="none" /> : null}
-              <circle cx={badge ? badge.x : point.x} cy={badge ? badge.y : labelY} r={fontSize * 0.65} fill={poc ? legalMapColors.secondaryText : legalMapColors.text} stroke="white" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-              <text data-survey-vertex={index + 1} x={badge ? badge.x : point.x} y={badge ? badge.y : labelY} dominantBaseline="central" textAnchor="middle" fontSize={fontSize} fill="white" pointerEvents="none">{index + 1}</text>
-              {labelPosition?.leader ? <line data-survey-leader={index + 1} x1={point.x} y1={point.y} x2={labelPosition.leader.x} y2={labelPosition.leader.y} stroke={poc ? legalMapColors.secondaryText : legalMapColors.parcelLine} strokeWidth="1" vectorEffect="non-scaling-stroke" pointerEvents="none" /> : null}
-              {poc || pob ? <text data-survey-label={index + 1} x={labelPosition?.x ?? point.x} y={labelPosition?.y ?? point.y} dominantBaseline="central" textAnchor="middle" fontSize={legalMapConstants.lotBaseFontSize / labelScale} fill={poc ? legalMapColors.secondaryText : legalMapColors.parcelLine} pointerEvents="none">{poc ? "POC" : "POB"}</text> : null}
-            </g>;
-          })}
-          {scene.items.map((item, index) => item.kind === "rect" && item.role === "section" ? <g key={index}>
-            <text data-survey-section={item.label} x={item.x + item.width / 2} y={item.y + item.height * 0.12 + 2 / labelScale} dominantBaseline="hanging" textAnchor="middle" fontSize={Math.min(legalMapConstants.blockBaseFontSize * legalMapConstants.amp / labelScale, item.height / 4)} fontWeight={blockStyle.fontWeight} fill={item.highlighted ? legalMapColors.text : legalMapColors.secondaryText}>{item.label}</text>
-          </g> : null)}
-          {!boundary && context ? <text id={`${id}-context`} data-survey-context="true" x={(minX + maxX) / 2} y={maxY + extent * 0.06} dominantBaseline="central" textAnchor="middle" fontSize={contextSize / labelScale} style={surveyStyles.context}>{context}</text> : null}
-        </svg>
-
+  return <>
+    {scenes.filter(scene => scene.issue).map((scene, index) => <div key={index} role="note" style={surveyStyles.warning}><Icon name="info" /><span>{scene.issue}{scene.schematic ? " Dashed segments are schematic." : ""}</span></div>)}
+    <MapSurface style={surveyStyles.viewport} footer={<div aria-label="Map legend" className="legal-map-legend" style={legalMapStyles.legendItems}>
+      {boundary ? <>
+        <span style={legalMapStyles.legendItem}><span style={surveyStyles.legendLine} /><span>Parcel boundary</span></span>
+        {items.some(item => item.kind === "line" && !item.confirmed) ? <span style={legalMapStyles.legendItem}><span style={surveyStyles.unconfirmedLine} /><span>Unconfirmed</span></span> : null}
+        {scenes.some(scene => scene.beginning !== undefined && scene.beginning > 0) ? <span style={legalMapStyles.legendItem}><span style={surveyStyles.tieLegendLine} /><span>Tie line</span></span> : null}
+      </> : <>
+        <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#b6e3f5", legalMapColors.parcelLine)} /><span style={legalMapStyles.legendLabel}>Subject</span></span>
+        <span style={legalMapStyles.legendItem}><span style={legendBoxStyle("#f3edcf", legalMapColors.sectionLine)} /><span style={legalMapStyles.legendLabel}>Section</span></span>
+      </>}
+    </div>}>
+      <svg ref={drawingRef} role="img" aria-label={scenes[0].title + " schematic"} aria-describedby={!boundary && context ? id + "-context" : undefined} viewBox={[frame.x, frame.y, frame.width, frame.height].join(" ")} style={surveyStyles.drawing}>
+        <defs><pattern id={id + "-partial"} width={fontSize} height={fontSize} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width={fontSize} height={fontSize} fill="#cdebf5" />
+          <line x1="0" y1="0" x2="0" y2={fontSize} stroke="#369ac2" strokeWidth={fontSize / 6} opacity="0.45" />
+        </pattern></defs>
+        {[...sections.values()].map(item => <rect key={`${item.x}:${item.y}:${item.label}`} data-survey-section-area={item.label} x={item.x} y={item.y} width={item.width} height={item.height} fill={item.highlighted ? "#f3edcf" : legalMapColors.blockBg} fillOpacity="0.35" stroke={legalMapColors.sectionLine} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
+        {scenes.map((scene, group) => {
+          const lines = scene.items.filter(item => item.kind === "line");
+          const beginning = scene.beginning;
+          const edges = scene.closed ? lines.filter(line => line.sequence > beginning! && line.sequence <= scene.ending!) : [];
+          const origin = edges[0]?.from;
+          const vertices = lines.flatMap((line, index) => {
+            const previous = lines[index - 1];
+            return [
+              ...(previous && previous.sequence + 1 !== line.sequence ? [{ point: previous.to, number: previous.sequence + 1 }] : []),
+              { point: line.from, number: line.sequence },
+            ];
+          }).concat(lines.length === 0 || lines.at(-1)!.sequence === scene.ending ? [] : [{ point: lines.at(-1)!.to, number: lines.at(-1)!.sequence + 1 }]);
+          return <g key={group} data-survey-group={group + 1}>
+            {lines.length > 0 ? <line data-survey-reference="true" x1={lines[0].from.x} y1={frame.y} x2={lines[0].from.x} y2={frame.y + frame.height} stroke={legalMapColors.secondaryText} strokeWidth="1" strokeDasharray="6 4" vectorEffect="non-scaling-stroke" /> : null}
+            {origin ? <path data-boundary-fill="true" d={"M " + origin.x + " " + origin.y + " " + edges.map((line, index) => "L " + (index === edges.length - 1 ? origin.x : line.to.x) + " " + (index === edges.length - 1 ? origin.y : line.to.y)).join(" ") + " Z"} fill={legalMapColors.parcelFill} fillOpacity="0.25" /> : null}
+            {scene.items.map((item, index) => {
+              if (item.kind === "line") {
+                const tie = beginning !== undefined && item.sequence <= beginning;
+                const end = origin && item.sequence === scene.ending ? origin : item.to;
+                const stroke = {
+                  "data-survey-line": "true",
+                  "data-survey-tie": tie ? "true" : undefined,
+                  "data-unconfirmed": !item.confirmed ? "true" : undefined,
+                  stroke: tie ? legalMapColors.secondaryText : !item.confirmed ? legalMapColors.unconfirmed : legalMapColors.parcelLine,
+                  strokeWidth: tie ? 1 : 3,
+                  strokeDasharray: tie ? "1 5" : !item.confirmed ? "6 4" : undefined,
+                  strokeLinecap: tie ? "round" as const : undefined,
+                  strokeOpacity: tie ? 0.25 : undefined,
+                  vectorEffect: "non-scaling-stroke",
+                };
+                return <g key={index}>
+                  <title>{item.detail}</title>
+                  {item.arc ? <path {...stroke} data-survey-arc="true" d={`M ${item.from.x} ${item.from.y} A ${item.arc.radius} ${item.arc.radius} 0 ${item.arc.sweep > Math.PI ? 1 : 0} ${item.arc.turn === 1 ? 1 : 0} ${item.to.x} ${item.to.y}`} fill="none" />
+                    : <line {...stroke} x1={item.from.x} y1={item.from.y} x2={end.x} y2={end.y} />}
+                </g>;
+              }
+              if (item.role === "section") return null;
+              const labelSize = Math.min(legalMapConstants.lotBaseFontSize / scale, (item.width - 8 / scale) / 4, (item.height - 8 / scale) / 3);
+              const captionSize = item.caption ? Math.min(labelSize * legalMapConstants.amp, (item.width - 8 / scale) / item.caption.length) : labelSize;
+              return <g key={index}>
+                <title>{item.detail}</title>
+                <rect data-survey-area={item.role === "area" ? "true" : undefined} data-survey-partial={item.partial ? "true" : undefined}
+                  x={item.x} y={item.y} width={item.width} height={item.height}
+                  fill={item.role === "area" ? item.partial ? "url(#" + id + "-partial)" : "#b6e3f5" : "none"}
+                  fillOpacity={item.role === "area" ? 0.8 : 0.35} stroke={item.role === "area" ? legalMapColors.parcelLine : "#8c999b"}
+                  strokeDasharray={item.role === "area" && !item.partial ? undefined : "4 3"} strokeWidth={item.role === "area" ? 3 : 1} vectorEffect="non-scaling-stroke" />
+                {item.role === "area" && Math.min(labelSize, captionSize) * scale >= 12 ? <text x={item.x + item.width / 2} y={item.y + item.height / 2} textAnchor="middle" fontSize={labelSize * legalMapConstants.amp} fill={legalMapColors.text} pointerEvents="none">
+                  {item.caption ? <tspan x={item.x + item.width / 2} dy="-0.3em" fontSize={captionSize}>{item.caption}</tspan> : null}
+                  <tspan x={item.x + item.width / 2} dy="1.2em" fontSize={labelSize} fontWeight={legalMapStyles.lotCaption.fontWeight}>Subject</tspan>
+                </text> : null}
+              </g>;
+            })}
+            {vertices.map(({ point, number }, index) => {
+              const right = index === 0 && beginning !== undefined && beginning > 0 && point.x > lines.find(line => line.sequence === beginning)!.to.x;
+              return <g key={index}>
+                <line data-survey-leader={number} x1={point.x} y1={point.y} x2={point.x} y2={point.y} stroke={legalMapColors.secondaryText} strokeWidth="1" vectorEffect="non-scaling-stroke" style={{ visibility: "hidden", pointerEvents: "none" }} />
+                <circle data-survey-point={number} cx={point.x} cy={point.y} r={2.5 / scale} fill={legalMapColors.parcelLine}
+                  tabIndex={0} role="img" aria-label={`Group ${group + 1}, point ${number}`} stroke="transparent" strokeWidth={12 / scale}
+                  onMouseEnter={event => setActivePoint(event.currentTarget)} onMouseLeave={event => { if (document.activeElement !== event.currentTarget) setActivePoint(null); }}
+                  onFocus={event => setActivePoint(event.currentTarget)} onBlur={() => setActivePoint(null)} />
+                <text data-survey-vertex={number} x={point.x + fontSize / 2} y={point.y - fontSize / 2} fontSize={fontSize} fill={legalMapColors.text}>{number}</text>
+                {beginning !== undefined && (number === beginning + 1 || (index === 0 && beginning > 0)) ? <text data-survey-label="true" x={point.x + (right ? 1 : -1) * fontSize * 0.75} y={point.y + fontSize / 3} fontSize={fontSize} textAnchor={right ? "start" : "end"} fill={legalMapColors.parcelLine}>{number === beginning + 1 ? "POB" : "POC"}</text> : null}
+              </g>;
+            })}
+          </g>;
+        })}
+        {[...sections.values()].map(item => <g key={`${item.x}:${item.y}:${item.label}`}>
+          <text data-survey-section={item.label} x={item.x + item.width / 2} y={item.y + item.height * 0.12 + 2 / scale} dominantBaseline="hanging" textAnchor="middle" fontSize={Math.min(legalMapConstants.blockBaseFontSize * legalMapConstants.amp / scale, item.height / 4)} fontWeight={blockStyle.fontWeight} fill={item.highlighted ? legalMapColors.text : legalMapColors.secondaryText}>{item.label}</text>
+        </g>)}
+        {!boundary && context ? <text id={id + "-context"} data-survey-context="true" x={(minX + maxX) / 2} y={maxY + extent * 0.06} dominantBaseline="central" textAnchor="middle" fontSize={contextSize / scale} style={surveyStyles.context}>{context}</text> : null}
+      </svg>
     </MapSurface>
-  </section>;
+  </>;
 }
 
-export function SurveyCalls({ scene, showTitle }: { scene: SurveyScene; showTitle: boolean }) {
-  const { lines, beginning } = boundaryData(scene);
-  const closed = beginning >= 0;
-  return <table className="legal-map-table" aria-label="Boundary Calls" style={surveyStyles.notes}>
+export function SurveyCourses({ scene, showTitle, showIssue }: { scene: SurveyScene; showTitle: boolean; showIssue: boolean }) {
+  const measurements = scene.notes.filter(note => note.label === "Bearings" || note.label === "Distances");
+  const issue = showIssue && scene.issue ? <MapIssue title={scene.title} issue={scene.issue} /> : null;
+  if (!scene.courses?.length && measurements.length === 0 && !issue) return null;
+  if (!scene.courses?.length) return <section aria-label={`${scene.title} extracted measurements`} style={legalMapStyles.infoCard}>
+    {showTitle ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
+    {issue}
+    <dl style={surveyStyles.measurements}>{measurements.map((note, index) => <div key={index}>
+      <dt style={surveyStyles.measurementLabel}>{note.label}</dt>
+      <dd style={surveyStyles.measurementValue}>{formatMeasure(note.value, note.label === "Bearings")}</dd>
+    </div>)}</dl>
+  </section>;
+  return <Tooltip.Provider delayDuration={250}>{issue}<table aria-label="Boundary Calls" className="legal-map-table legal-map-calls" style={{ ...surveyStyles.notes, minWidth: "30rem" }}>
     {showTitle ? <caption style={legalMapStyles.infoTitle}>{scene.title}</caption> : null}
-    <colgroup><col style={{ width: "1.5rem" }} /><col style={{ width: "5.5rem" }} /><col /><col style={{ width: "8rem" }} /></colgroup>
-    <thead><tr><th style={surveyStyles.cell} scope="col">#</th><th style={surveyStyles.cell} scope="col">Boundary</th><th style={surveyStyles.cell} scope="col">Bearing</th><th style={surveyStyles.cell} scope="col">Distance</th></tr></thead>
-    <tbody>{lines.map((line, index) => <tr key={index}>
-      <td style={surveyStyles.cell}>{index + 1}</td><td style={surveyStyles.cell}>{index + 1} → {closed && index === lines.length - 1 ? beginning + 1 : index + 2}</td><td style={surveyStyles.cell}>{line.bearing}</td><td style={surveyStyles.cell}>{line.distance}</td>
+    <colgroup><col style={{ width: "2rem" }} /><col style={{ width: "6rem" }} /><col /><col style={{ width: "7rem" }} /><col style={{ width: "7rem" }} /></colgroup>
+    <thead><tr>{["#", "Boundary", "Bearing", "Distance", "Status"].map(label => <th key={label} scope="col" style={surveyStyles.cell}>{label}</th>)}</tr></thead>
+    <tbody>{scene.courses!.map((course, index) => <tr key={index} style={course.confirmed ? undefined : surveyStyles.unconfirmedRow}>
+      <td style={surveyStyles.cell}>{index + 1}</td>
+      <td style={surveyStyles.cell}>{scene.beginning !== undefined && index < scene.beginning ? "Tie" : (index + 1) + " → " + (course.target ?? index + 2)}</td>
+      <td style={surveyStyles.cell}>{formatMeasure(course.bearing, true)}</td>
+      <td style={surveyStyles.cell}>{course.distance ? formatMeasure(course.distance, false) : "—"}</td>
+      <td style={surveyStyles.cell}>{course.confirmed ? "Confirmed" : <Tooltip.Root>
+        <Tooltip.Trigger asChild><button type="button" style={surveyStyles.status}>Unconfirmed</button></Tooltip.Trigger>
+        <Tooltip.Portal><Tooltip.Content collisionPadding={8} sideOffset={6} style={{ ...rowStyles.tooltip, maxWidth: "min(24rem, calc(100vw - 1rem))", overflowWrap: "anywhere" }}>{course.issue}</Tooltip.Content></Tooltip.Portal>
+      </Tooltip.Root>}</td>
     </tr>)}</tbody>
-  </table>;
+  </table></Tooltip.Provider>;
 }

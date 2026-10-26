@@ -11,7 +11,6 @@ function mapSize(height: number, layout: MapLayout) {
 
 export function useMapResize(view: string | undefined) {
   const bodyRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -26,7 +25,6 @@ export function useMapResize(view: string | undefined) {
   useLayoutEffect(() => {
     if (!view) return;
     const body = bodyRef.current!;
-    const map = mapRef.current!;
     const info = infoRef.current!;
     const panel = panelRef.current!;
     const handle = handleRef.current!;
@@ -36,18 +34,12 @@ export function useMapResize(view: string | undefined) {
       if (total <= 0) return;
       const header = info.getBoundingClientRect().height - panel.getBoundingClientRect().height;
       const available = Math.max(0, total - header);
-      const drawings = [...map.querySelectorAll<HTMLElement>("[data-legal-map-drawing]")];
-      const headers = [...map.querySelectorAll<HTMLElement>(".legal-map-header")];
-      const fixed = drawings.length > 0
-        ? map.getBoundingClientRect().height - drawings.reduce((sum, drawing) => sum + drawing.getBoundingClientRect().height, 0)
-        : headers.at(-1)!.getBoundingClientRect().bottom - headers[0].getBoundingClientRect().top;
-      const mapMin = Math.min(available, Math.max(legalMapConstants.mapMin * rem, fixed + drawings.length * legalMapConstants.drawingMin * rem));
+      const mapMin = Math.min(available, legalMapConstants.mapMin * rem);
       const min = Math.max(Math.min(legalMapConstants.detailsMin * rem, Math.max(0, available - mapMin)), available - legalMapConstants.mapMax * rem);
       setLayout({ total, header, initial: legalMapConstants.detailsHeight * rem, min, max: Math.max(min, available - mapMin) });
     });
     observer.observe(body);
-    observer.observe(info.firstElementChild!);
-    for (const header of map.querySelectorAll(".legal-map-header")) observer.observe(header);
+    observer.observe(info);
     return () => {
       observer.disconnect();
       drag.current = null;
@@ -64,7 +56,6 @@ export function useMapResize(view: string | undefined) {
 
   return {
     bodyRef,
-    mapRef,
     infoRef,
     panelRef,
     height: size ? size.height : legalMapStyles.infoPanel.height,

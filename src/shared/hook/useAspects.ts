@@ -2,7 +2,7 @@ import type { MetadataError, ResourceRequest } from "aurora-core";
 import { useEffect, useState } from "react";
 import { aspectGroups } from "../data/aspectGroups";
 
-export function useAspects(request: object, onResource: (request: ResourceRequest) => Promise<unknown>, onReadyChange: (ready: boolean) => void, onError: (error: MetadataError) => void) {
+export function useAspects(request: object, session: string, onResource: (request: ResourceRequest) => void, onReadyChange: (ready: boolean) => void, onError: (error: MetadataError) => void) {
   const [aspects, setAspects] = useState<Record<string, string[]>>({});
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -10,18 +10,23 @@ export function useAspects(request: object, onResource: (request: ResourceReques
     setReady(false);
     setAspects({});
     onReadyChange(false);
-    void onResource({ resource: "aspects" }).then((resource) => {
+    onResource({ resource: "aspects", session, callback(result) {
       if (!active) return;
-      setAspects(aspectGroups(resource));
-      setReady(true);
-      onReadyChange(true);
-    }).catch((resourceError) => {
-      if (!active) return;
-      const failure = resourceError as Error & { code?: string; details?: unknown; status?: number };
-      onError({ code: failure.code, details: failure.details, error: failure.message, status: failure.status });
-      onReadyChange(true);
-    });
+      if (!result.ok) {
+        onError(result);
+        onReadyChange(true);
+        return;
+      }
+      try {
+        setAspects(aspectGroups(result.data));
+        setReady(true);
+        onReadyChange(true);
+      } catch (error) {
+        onError({ error: (error as Error).message });
+        onReadyChange(true);
+      }
+    } });
     return () => { active = false; };
-  }, [onError, onReadyChange, onResource, request]);
+  }, [onError, onReadyChange, onResource, request, session]);
   return { aspects, ready };
 }

@@ -17,10 +17,10 @@ describe("parcel count merging", () => {
     const view = normalizeLegalData(legal);
     expect(view.subdivisions).toEqual([{
       state: "TEXAS", county: "BEXAR COUNTY", subdivision: "THE RANCH AT IRON HORSE", rightsOfWay: [],
-      divisions: [{ unit: "", phase: "II", section: "", blocks: [{ name: "1/4482C", lots: [{ name: "32" }] }] }],
+      divisions: [{ unit: "", phase: "II", section: "", blocks: [{ name: "1/4482C", lots: [{ kind: "lot", name: "32" }] }] }],
     }]);
     expect(view.summary).toBe("One parcel.");
-    expect(view.locationLabel).toBe("Bexar County | Texas");
+    expect(view.locationLabel).toBe("Texas | Bexar County");
     expect(view.presentLayers).toEqual(new Set(["subdivision", "phase", "block", "lot"]));
     expect(toPlatJSON(legal)).toEqual(view.subdivisions);
   });
@@ -38,7 +38,7 @@ describe("parcel count merging", () => {
 
   it.each(["groups", "legalGroups", "LegalGroups", "items"])("retains parcel counts with the existing %s container", key => {
     const legal = { [key]: groups, parcels_num: 1 };
-    expect(toPlatJSON(legal)[0].divisions[0].blocks).toEqual([{ name: "1/4482C", lots: [{ name: "32" }] }]);
+    expect(toPlatJSON(legal)[0].divisions[0].blocks).toEqual([{ name: "1/4482C", lots: [{ kind: "lot", name: "32" }] }]);
   });
 
   it("retains the existing group-container precedence", () => {
@@ -54,7 +54,7 @@ describe("parcel count merging", () => {
       plat({ subdivision: "B", phase: "II", block: "4482C", lot: "32" }),
     ] };
     expect(normalizeLegalData(legal).subdivisions.map(sub => sub.divisions[0].blocks)).toEqual([
-      [{ name: "1", lots: [{ name: "9" }] }], [{ name: "2/4482C", lots: [{ name: "32" }] }],
+      [{ name: "1", lots: [{ kind: "lot", name: "9" }] }], [{ name: "2/4482C", lots: [{ kind: "lot", name: "32" }] }],
     ]);
   });
 
@@ -74,7 +74,7 @@ describe("parcel count merging", () => {
       plat({ subdivision: "B", block: "3", lot: "3" }),
     ] };
     expect(normalizeLegalData(legal).subdivisions.map(sub => sub.divisions[0].blocks)).toEqual([
-      [{ name: "1/2", lots: [{ name: "1,2" }] }], [{ name: "3", lots: [{ name: "3" }] }],
+      [{ name: "1/2", lots: [{ kind: "lot", name: "1,2" }] }], [{ name: "3", lots: [{ kind: "lot", name: "3" }] }],
     ]);
   });
 
@@ -106,7 +106,7 @@ describe("parcel count merging", () => {
       plat({ subdivision: "B", block: "3", lot: "7" }),
     ] };
     expect(normalizeLegalData(legal).subdivisions.map(sub => sub.divisions[0].blocks)).toEqual([
-      [{ name: "1", lots: [] }], [{ name: "2/3", lots: [{ name: "7" }] }],
+      [{ name: "1", lots: [] }], [{ name: "2/3", lots: [{ kind: "lot", name: "7" }] }],
     ]);
   });
 
@@ -117,7 +117,7 @@ describe("parcel count merging", () => {
     ] };
     expect(normalizeLegalData(legal).subdivisions[0]).toMatchObject({
       subdivision: "THE RANCH AT IRON HORSE",
-      divisions: [{ phase: "II", blocks: [{ name: "4482C", lots: [{ name: "32" }] }] }],
+      divisions: [{ phase: "II", blocks: [{ name: "4482C", lots: [{ kind: "lot", name: "32" }] }] }],
     });
   });
 
@@ -140,8 +140,8 @@ describe("parcel count merging", () => {
     const sub = normalizeLegalData(legal).subdivisions[0];
     expect(sub.rightsOfWay).toEqual(["DRAINAGE RIGHT OF WAY"]);
     expect(displayLots(sub.divisions[0].blocks[0].lots)).toEqual([
-      { name: "1", filled: true }, { name: "2", filled: false }, { name: "3", filled: true },
-      { name: "4", filled: false }, { name: "5", filled: true },
+      { kind: "lot", name: "1", filled: true }, { kind: "lot", name: "2", filled: false }, { kind: "lot", name: "3", filled: true },
+      { kind: "lot", name: "4", filled: false }, { kind: "lot", name: "5", filled: true },
     ]);
   });
 
@@ -152,7 +152,7 @@ describe("parcel count merging", () => {
     })) };
     const sub = normalizeLegalData(legal).subdivisions[0];
     expect(sub.rightsOfWay).toEqual(labels);
-    expect(sub.divisions[0].blocks).toEqual([{ name: "1/4482C", lots: [{ name: "32" }] }]);
+    expect(sub.divisions[0].blocks).toEqual([{ name: "1/4482C", lots: [{ kind: "lot", name: "32" }] }]);
     expect(normalizeLegalData(legal).presentLayers).toContain("right_of_way");
   });
 
@@ -162,7 +162,7 @@ describe("parcel count merging", () => {
       plat({ ...ironHorse, block: "Block 4482C", lot: "Lot 3" }),
     ] };
     expect(displayLots(normalizeLegalData(legal).subdivisions[0].divisions[0].blocks[0].lots)).toEqual([
-      { name: "1", filled: true }, { name: "2", filled: false }, { name: "3", filled: true },
+      { kind: "lot", name: "1", filled: true }, { kind: "lot", name: "2", filled: false }, { kind: "lot", name: "3", filled: true },
     ]);
   });
 
@@ -199,29 +199,29 @@ describe("legal data normalization", () => {
     expect(view.subdivisions[0].divisions[1].blocks.map(block => block.name)).toEqual(["Block 2", "Block 10"]);
   });
   it("places short lists in separate cubes and leaves missing lot numbers empty", () => {
-    expect(displayLots([{ name: "2, 3, & 4" }])).toEqual([
-      { name: "2", filled: true }, { name: "3", filled: true }, { name: "4", filled: true },
+    expect(displayLots([{ kind: "lot", name: "2, 3, & 4" }])).toEqual([
+      { kind: "lot", name: "2", filled: true }, { kind: "lot", name: "3", filled: true }, { kind: "lot", name: "4", filled: true },
     ]);
-    expect(displayLots([{ name: "1, 3, 5" }])).toEqual([
-      { name: "1", filled: true }, { name: "2", filled: false }, { name: "3", filled: true },
-      { name: "4", filled: false }, { name: "5", filled: true },
+    expect(displayLots([{ kind: "lot", name: "1, 3, 5" }])).toEqual([
+      { kind: "lot", name: "1", filled: true }, { kind: "lot", name: "2", filled: false }, { kind: "lot", name: "3", filled: true },
+      { kind: "lot", name: "4", filled: false }, { kind: "lot", name: "5", filled: true },
     ]);
   });
 
   it("fits long numeric sequences into twelve ranges without losing endpoints", () => {
-    const display = displayLots([{ name: "48, 56, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67 & 68" }]);
+    const display = displayLots([{ kind: "lot", name: "48, 56, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67 & 68" }]);
     expect(display).toHaveLength(12);
-    expect(display[0]).toEqual({ name: "48", filled: true });
+    expect(display[0]).toEqual({ kind: "lot", name: "48", filled: true });
     expect(display.at(-1)).toMatchObject({ filled: true });
     expect(display.some(lot => !lot.filled)).toBe(true);
-    const fourHundred = displayLots(Array.from({ length: 400 }, (_, index) => ({ name: String(index + 1) })));
+    const fourHundred = displayLots(Array.from({ length: 400 }, (_, index) => ({ kind: "lot", name: String(index + 1) })));
     expect(fourHundred).toHaveLength(12);
     expect(fourHundred[0].name).toMatch(/^1–/);
     expect(fourHundred.at(-1)?.name).toMatch(/–400$/);
   });
 
   it("keeps ambiguous alphanumeric ranges intact", () => {
-    expect(displayLots([{ name: "4A-4C" }])).toEqual([{ name: "4A-4C", filled: true }]);
+    expect(displayLots([{ kind: "lot", name: "4A-4C" }])).toEqual([{ kind: "lot", name: "4A-4C", filled: true }]);
   });
   it("groups the two Seale plats into one subdivision and unit with two distinct blocks", () => {
     const view = normalizeLegalData({ groups: [
@@ -232,8 +232,8 @@ describe("legal data normalization", () => {
       state: "TEXAS", county: "BEXAR COUNTY", subdivision: "SEALE SUBDIVISION",
       rightsOfWay: [],
       divisions: [{ unit: "1", phase: "", section: "", blocks: [
-        { name: "4", lots: [{ name: "4" }] },
-        { name: "4335A", lots: [{ name: "4" }] },
+        { name: "4", lots: [{ kind: "lot", name: "4" }] },
+        { name: "4335A", lots: [{ kind: "lot", name: "4" }] },
       ] }],
     }]);
     expect(view.presentLayers).toEqual(new Set(["subdivision", "unit", "block", "lot"]));
@@ -252,8 +252,8 @@ describe("legal data normalization", () => {
     ] });
     expect(view.subdivisions).toHaveLength(4);
     expect(view.subdivisions[0].divisions).toHaveLength(2);
-    expect(view.subdivisions[0].divisions[0].blocks).toEqual([{ name: "4", lots: [{ name: "4" }, { name: "5" }] }]);
-    expect(view.subdivisions[0].divisions[1].blocks).toEqual([{ name: "4", lots: [{ name: "4" }] }]);
+    expect(view.subdivisions[0].divisions[0].blocks).toEqual([{ name: "4", lots: [{ kind: "lot", name: "4" }, { kind: "lot", name: "5" }] }]);
+    expect(view.subdivisions[0].divisions[1].blocks).toEqual([{ name: "4", lots: [{ kind: "lot", name: "4" }] }]);
     expect(view.subdivisions.slice(1).every(sub => sub.divisions[0].blocks[0].lots.length === 1)).toBe(true);
   });
 
@@ -279,18 +279,18 @@ describe("legal data normalization", () => {
     expect(view.subdivisions[0].divisions[0]).toMatchObject({ unit: "1", phase: "2", section: "A" });
   });
 
-  it("does not turn part or condominium fields into hierarchy layers or overwrite lots", () => {
+  it("keeps parts in Details and draws condo units without overwriting lots", () => {
     const view = normalizeLegalData({ groups: [
       plat({ ...seale, block: "4", lot: "4A-4C", part: "Tract A", condominium_unit: "21" }),
       plat({ ...seale, block: "4", lot: "4A-4C", part: "Tract B", condominium_unit: "22" }),
     ] });
     expect(view.subdivisions[0].divisions).toEqual([{ unit: "1", phase: "", section: "", blocks: [
-      { name: "4", lots: [{ name: "4A-4C" }] },
+      { name: "4", lots: [{ kind: "lot", name: "4A-4C" }, { name: "21", kind: "condominium_unit" }, { name: "22", kind: "condominium_unit" }] },
     ] }]);
-    expect(view.presentLayers).toEqual(new Set(["subdivision", "unit", "block", "lot"]));
+    expect(view.presentLayers).toEqual(new Set(["subdivision", "unit", "block", "lot", "condominium_unit"]));
   });
 
-  it.each([null, { groups: [] }, { groups: [plat({ part: "Tract A", condominium_unit: "1", county: "Bexar" })] },
+  it.each([null, { groups: [] }, { groups: [plat({ part: "Tract A", county: "Bexar" })] },
     { groups: [{ type: "metes_bounds", elements: [{ aspect: "lot", value: "9" }] }] },
   ])("shows no hierarchy for data without a plat element", (legal) => {
     const view = normalizeLegalData(legal);
@@ -301,7 +301,7 @@ describe("legal data normalization", () => {
   it("retains partial plats without inventing ancestor names or lots", () => {
     const view = normalizeLegalData({ groups: [plat({ block: "A" }), plat({ lot: "7" })] });
     expect(view.subdivisions[0].divisions[0].blocks).toEqual([
-      { name: "A", lots: [] }, { name: "", lots: [{ name: "7" }] },
+      { name: "A", lots: [] }, { name: "", lots: [{ kind: "lot", name: "7" }] },
     ]);
     expect(view.presentLayers).toEqual(new Set(["block", "lot"]));
   });
@@ -312,7 +312,7 @@ describe("legal data normalization", () => {
       plat: { city: "austin", county: "travis county", state: "TX" }, summary: " Property is described. ",
     });
     expect(view.location).toEqual({ city: "Austin", county: "Travis", state: "Texas" });
-    expect(view.locationLabel).toBe("Austin | Travis County | Texas");
+    expect(view.locationLabel).toBe("Texas | Travis County | Austin");
     expect(view.summary).toBe("Property is described.");
     expect(view.matchPlatSubdivision).toBe(true);
     expect(view.platName).toBe("Willow Creek");
@@ -354,10 +354,10 @@ describe("right of way normalization", () => {
       groups: [plat({ ...inwood, right_of_way: labels[0] }), plat({ ...inwood, block: "4", lot: "1, 3" })],
       summary: "Two drainage rights of way.", plat: { city: "San Antonio", county: "Bexar", state: "TX" },
     });
-    expect(view.subdivisions[0].divisions[0].blocks).toEqual([{ name: "4", lots: [{ name: "1, 3" }] }]);
+    expect(view.subdivisions[0].divisions[0].blocks).toEqual([{ name: "4", lots: [{ kind: "lot", name: "1, 3" }] }]);
     expect(view.presentLayers).toEqual(new Set(["subdivision", "right_of_way", "unit", "block", "lot"]));
     expect(view.summary).toBe("Two drainage rights of way.");
-    expect(view.locationLabel).toBe("San Antonio | Bexar County | Texas");
+    expect(view.locationLabel).toBe("Texas | Bexar County | San Antonio");
   });
 
   it("ignores blank ROWs and ROWs outside lot_block groups", () => {

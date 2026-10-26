@@ -10,6 +10,8 @@ import { indexStoreApi, useIndexStore } from "../store/metadataStore";
 import { storeApi, useStore } from "../../../store/state/store";
 import type { MetdataMetadataProps } from "../type/metadataView.types";
 import { createIndexWorkerClient } from "../worker/metadataWorkerClient";
+import { loadAuditReport } from "../../audit/data/loadAuditReport";
+import { createAuditWorkerClient } from "../../audit/worker/auditWorkerClient";
 
 function toWorkerError(error: unknown): MetadataError {
   const candidate = error as { code?: string; details?: unknown; error?: string; message?: string; status?: number };
@@ -45,6 +47,7 @@ export function useMetadata({
   const openSegment = store.openSegment;
   const [selectedIndex, setSelectedIndex] = useState(deferredState.selectedIndex);
   const refreshIdRef = useRef<number | null>(null);
+  const loadIdRef = useRef(0);
   const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => indexStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
 
   useEffect(() => {
@@ -59,31 +62,37 @@ export function useMetadata({
       if (cached) {
         indexStoreApi.getState().setLoaded(session);
         callbacks.onView?.(cached);
-        callbacks.onMetadataLoaded?.(cached);
+        callbacks.onMetadataLoaded?.(cached, session);
+        void loadAuditReport({ authToken: authToken ?? "", session, background: true,
+          workerClient: createAuditWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }),
+        });
         return cached;
       }
+      const loadId = ++loadIdRef.current;
       indexStoreApi.getState().setLoading(session);
       callbacks.onViewStarted?.();
       try {
         const data = await client.indexData(authToken ?? "", session, refresh);
+        const state = indexStoreApi.getState();
+        if (loadId !== loadIdRef.current || state.activeSession !== session || state.status === "idle") return data;
         queueStoreApi.getState().setMetadata(session, data);
-        if (indexStoreApi.getState().activeSession !== session) return data;
-        indexStoreApi.getState().setLoaded(session);
+        state.setLoaded(session);
         callbacks.onView?.(data);
-        callbacks.onMetadataLoaded?.(data);
+        callbacks.onMetadataLoaded?.(data, session);
         if (refresh) callbacks.onRefresh?.(data);
         return data;
       } catch (error) {
         const workerError = toWorkerError(error);
-        if (indexStoreApi.getState().activeSession === session) {
-          indexStoreApi.getState().setError(workerError);
+        const state = indexStoreApi.getState();
+        if (loadId === loadIdRef.current && state.activeSession === session && state.status !== "idle") {
+          state.setError(workerError);
           callbacks.onViewError?.(workerError);
           callbacks.onMetadataError?.(workerError);
         }
         throw workerError;
       }
     },
-    [authToken, callbacks, client, session],
+    [apiGatewayUrl, authToken, callbacks, client, retryIntervalMs, retryLimit, session],
   );
 
   useEffect(() => {
@@ -145,6 +154,7 @@ export function useMetadata({
     onDrop,
     onReprocess,
     openSegment,
+    pageError: store.pageErrors[session],
     retryAttempt: store.retryAttempt,
     selectedIndex,
     setSectionOpen,

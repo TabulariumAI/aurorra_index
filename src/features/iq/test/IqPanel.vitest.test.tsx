@@ -33,26 +33,41 @@ describe("IqPanel", () => {
     iqStoreApi.getState().resetIq();
   });
 
-  it("reports loading to the host without package loading presentation", async () => {
+  it("shows placeholders immediately instead of another session's report", () => {
+    iqStoreApi.getState().setLoaded("old-session", report);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="new-session" workerClient={client(vi.fn(() => new Promise<IqReport>(() => undefined)))} />);
+    expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
+    expect(screen.queryByText("90%")).not.toBeInTheDocument();
+  });
+
+  it("renders named placeholders immediately while the report is pending", async () => {
     let finish!: (value: IqReport) => void;
     const pending = new Promise<IqReport>(resolve => { finish = resolve; });
-    const onLoaderChange = vi.fn();
-    const onReadyChange = vi.fn();
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(() => pending))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(() => pending))} />);
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(onReadyChange).toHaveBeenCalledWith(false);
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving IQ report...", "Attempt 1 of 5"]);
+    for (const label of ["Loading IQ summary", "Loading indexing segments", "Loading IQ gates"]) {
+      expect(screen.getByRole("status", { name: label })).toHaveAttribute("aria-busy", "true");
+    }
+    expect(screen.getByText("Indexing Quality (IQ)")).toBeVisible();
+    expect(screen.getByText("Indexing Segments", { exact: true })).toBeVisible();
+    expect(screen.getAllByText("Compliance Gates")).toHaveLength(2);
+    expect(screen.getAllByRole("columnheader").map(cell => cell.textContent)).toEqual(["Segment", "Expected", "Actual", "IQ"]);
+    const segments = screen.getByRole("status", { name: "Loading indexing segments" });
+    expect(segments.querySelectorAll("tbody tr")).toHaveLength(3);
+    expect(segments.querySelector("tbody")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("status", { name: "Loading IQ gates" }).querySelectorAll("li")).toHaveLength(2);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Loading IQ summary…|Loading indexing segments…|Loading IQ gates…/)).not.toBeInTheDocument();
     expect(screen.queryByText("No IQ report found.")).not.toBeInTheDocument();
     finish(report);
     await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
+    expect(screen.queryByRole("status", { name: /^Loading/ })).not.toBeInTheDocument();
   });
 
   it("renders report summary, segment table, explanations, notes, and no dialog role", async () => {
-    const onReadyChange = vi.fn();
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={onReadyChange} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
 
-    await waitFor(() => expect(screen.getByText("Indexing Quality (IQ)")).toBeInTheDocument());
-    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+    await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
     expect(screen.getByText("90%")).toBeInTheDocument();
     expect(screen.getByText("Indexing Segments (1)")).toBeInTheDocument();
     expect(screen.getByText("Segment")).toBeInTheDocument();
@@ -68,9 +83,9 @@ describe("IqPanel", () => {
 
   it("renders notes only when present", async () => {
     const noNotes = { ...report, explanation: [] };
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={vi.fn()} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
 
-    await waitFor(() => expect(screen.getByText("Indexing Quality (IQ)")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
     expect(screen.queryByText("Notes")).not.toBeInTheDocument();
   });
 
@@ -85,7 +100,7 @@ describe("IqPanel", () => {
         { segment_name: "reference", expected_weight: 2, actual_weight: 2, iq: 100, explanations: [] },
       ],
     };
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onReadyChange={vi.fn()} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => mixed))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => mixed))} />);
 
     await waitFor(() => expect(screen.getByText("Indexing Segments (5)")).toBeInTheDocument());
     const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);

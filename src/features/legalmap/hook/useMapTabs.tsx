@@ -43,7 +43,9 @@ export function useMapTabs(tabs: string[], label: string, kind: "view" | "detail
 
   return {
     active,
-    controls,
-    panel: { role: "tabpanel" as const, id: `${id}-panel`, "aria-labelledby": `${id}-tab-${tabs.indexOf(active)}`, tabIndex: 0 },
+    controls: kind === "detail" && tabs.length < 2 ? null : controls,
+    panel: kind === "detail" && tabs.length < 2
+      ? { role: "region" as const, id: `${id}-panel`, "aria-label": active, tabIndex: 0 }
+      : { role: "tabpanel" as const, id: `${id}-panel`, "aria-labelledby": `${id}-tab-${tabs.indexOf(active)}`, tabIndex: 0 },
   };
 }

@@ -59,8 +59,8 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await expect(form).toHaveCSS("padding", "0px");
   await expect(form).toHaveCSS("overflow-y", "visible");
   await expect(form.locator("h2")).toHaveCount(0);
-  const indexInput = page.getByRole("textbox", { name: "Index" });
-  const typeInput = page.getByRole("combobox", { name: "Type" });
+  const indexInput = page.getByRole("textbox", { name: "Index (required)" });
+  const typeInput = page.getByRole("combobox", { name: "Type (required)" });
   await expect(indexInput).toBeVisible();
   await expect(indexInput).toHaveAttribute("type", "text");
   await expect(typeInput).toBeVisible();
@@ -121,7 +121,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   await pageInput.fill("7");
   await sourceInput.fill("Edited source");
   await labelInput.fill("Party label");
-  await page.getByRole("combobox", { name: "Type" }).click();
+  await page.getByRole("combobox", { name: "Type (required)" }).click();
   await page.getByRole("option", { name: "Grantor" }).click();
   await expect(page.getByRole("button", { name: "Add", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -152,6 +152,12 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
   }));
   await page.route("https://storage.example.test/added.json", route => route.fulfill({
     json: { heading: {}, indexes: [], parties: [{ code: "added", segment: "party", label: "Party label", aspect: "grantor", value: "Edited Index", page: "7", source: "Edited source", explanation: "Index created by user." }], pages: { num_of_pages: 7 }, secrets: [], fees: [], funds: [] },
+  }));
+  await page.route("https://gateway.example.test/v1/content/session/pages", route => route.fulfill({
+    json: { status: "completed", data: "https://storage.example.test/pages.json", etag: "pages-etag" },
+  }));
+  await page.route("https://storage.example.test/pages.json", route => route.fulfill({
+    json: { num_of_pages: 7 },
   }));
   await page.goto("/queue.html");
   const row = page.getByRole("article").filter({ hasText: "Edited Index" });
@@ -188,7 +194,7 @@ test("Add Index closes and retains a recoverable task when the service rejects t
 
   const host = page.getByTestId("add-index-host");
   await expect(host).toBeVisible();
-  await page.getByRole("combobox", { name: "Type" }).click();
+  await page.getByRole("combobox", { name: "Type (required)" }).click();
   await page.getByRole("option", { name: "Grantor" }).click();
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await expect(page.getByRole("button", { name: "Confirm" })).toHaveAttribute("data-armed", "true");

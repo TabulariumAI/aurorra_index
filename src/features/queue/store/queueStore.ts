@@ -39,7 +39,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         completed: queue.completed + (completed?.session === queue.session && completed.batch === queue.batch ? 1 : 0),
       }));
       return { tasks: [...state.tasks], queues, ...(scope !== null ? { snapshots: { ...state.snapshots, [scope]: {
-        tasks: state.tasks.map(({ runtime: _runtime, ...task }) => task), queues, bases: Object.fromEntries(bases), paths: state.paths, etags: state.etags,
+        tasks: state.tasks.map(({ runtime: _runtime, ...task }) => task), queues, bases: Object.fromEntries(bases), paths: state.paths, etags: state.etags, pagePaths: state.pagePaths, pageEtags: state.pageEtags,
       } } } : {}) };
     });
   }
@@ -104,7 +104,9 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
           if (!canRefresh(task.session)) {
             continue;
           }
-          const data = await client.indexData(authToken, task.session, true);
+          const data = get().tasks.every(item => item.session !== task.session || item.changes.every(change => change.action === "page"))
+            ? { ...bases.get(task.session)!, pages: await client.pagesData(authToken, task.session, true) }
+            : await client.indexData(authToken, task.session, true);
           if (started !== generation) return;
           if (!canRefresh(task.session)) {
             continue;
@@ -131,7 +133,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
   }
 
   return {
-    tasks: [], queues: [], snapshots: {}, paths: {}, etags: {}, generation: 0,
+    tasks: [], queues: [], snapshots: {}, paths: {}, etags: {}, pagePaths: {}, pageEtags: {}, generation: 0,
     restore(owner, runtime) {
       if (scope === owner) {
         for (const task of get().tasks) task.runtime = runtime;
@@ -155,7 +157,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         }
         return task;
       });
-      set({ tasks, queues: snapshot?.queues ?? [], paths: snapshot?.paths ?? {}, etags: snapshot?.etags ?? {}, generation });
+      set({ tasks, queues: snapshot?.queues ?? [], paths: snapshot?.paths ?? {}, etags: snapshot?.etags ?? {}, pagePaths: snapshot?.pagePaths ?? {}, pageEtags: snapshot?.pageEtags ?? {}, generation });
       for (const session of bases.keys()) project(session);
       notify();
       void process();
@@ -202,6 +204,14 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       notify();
       void process();
     },
+    setPagePath(session, path) {
+      set(state => ({ pagePaths: { ...state.pagePaths, [session]: path } }));
+      notify();
+    },
+    setPageEtag(session, etag) {
+      set(state => ({ pageEtags: { ...state.pageEtags, [session]: etag } }));
+      notify();
+    },
     setPath(session, path) {
       set((state) => ({ paths: { ...state.paths, [session]: path } }));
       notify();
@@ -224,7 +234,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
       running = false;
       for (const [session, metadata] of bases) storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
       bases.clear();
-      set({ tasks: [], queues: [], paths: {}, etags: {}, generation });
+      set({ tasks: [], queues: [], paths: {}, etags: {}, pagePaths: {}, pageEtags: {}, generation });
       notify();
     },
   };

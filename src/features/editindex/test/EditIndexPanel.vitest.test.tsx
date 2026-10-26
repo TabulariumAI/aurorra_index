@@ -1,3 +1,4 @@
+import type { ResourceRequest } from "aurora-core";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { splitMetadataJSON } from "aurora-core";
@@ -12,9 +13,9 @@ function props(): EditIndexPanelProps {
     apiGatewayUrl: "https://gateway.test", authToken: "token", intervalMs: 0, batchCode: "batch",
     retryIntervalMs: 0, retryLimit: 0, request: { index, segment: "party", session: "session" },
     onQueueChange: vi.fn(), onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
-    onResource: vi.fn(async () => ({ aspects: { party: ["grantor", "grantee"], property: ["property_id"] } })),
+    onResource: vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: ["grantor", "grantee"], property: ["property_id"] } } })),
     workerClient: { patchIndex: vi.fn(() => new Promise<never>(() => {})), patchStatus: vi.fn(),
-      indexData: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), reprocessSegment: vi.fn(), updatePageSegments: vi.fn() },
+      indexData: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() },
   };
 }
 beforeEach(() => {
@@ -28,7 +29,7 @@ describe("EditIndexPanel", () => {
     render(<EditIndexPanel {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Additional details" }));
-    if (mask & 1) fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Updated" } });
+    if (mask & 1) fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Updated" } });
     if (mask & 2) fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "New label" } });
     if (mask & 4) fireEvent.click(screen.getByRole("button", { name: "Remove Grantee (Party)" }));
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
@@ -52,12 +53,12 @@ describe("EditIndexPanel", () => {
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "Source" }), { target: { value: "Edited source" } });
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: index.value.trim() } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: index.value.trim() } });
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "  " } });
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: index.label } });
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Updated" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Updated" } });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.workerClient!.patchIndex).toHaveBeenCalledWith("token", "session", "party",
@@ -80,7 +81,7 @@ describe("EditIndexPanel", () => {
     render(<EditIndexPanel {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     if (checked) fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Updated" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Updated" } });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.workerClient!.patchIndex).toHaveBeenCalledWith(
@@ -99,7 +100,7 @@ describe("EditIndexPanel", () => {
 
   it("treats reordered aspects as unchanged but detects replacing an aspect with a duplicate", async () => {
     const config = props();
-    config.onResource = vi.fn(async () => ({ aspects: { party: ["grantor", "grantee"], property: ["grantor"] } }));
+    config.onResource = vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: ["grantor", "grantee"], property: ["grantor"] } } }));
     render(<EditIndexPanel {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Remove Grantor (Party)" }));
@@ -120,7 +121,7 @@ describe("EditIndexPanel", () => {
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
-    const input = screen.getByRole("textbox", { name: "Index" });
+    const input = screen.getByRole("textbox", { name: "Index (required)" });
     fireEvent.change(input, { target: { value: "Changed" } });
     expect(screen.getByRole("button", { name: "Update" })).toBeEnabled();
     expect(footer).toContainElement(screen.getByRole("button", { name: "Update" }));
@@ -139,19 +140,19 @@ describe("EditIndexPanel", () => {
   it("prefills raw values and comma-separated Types and sends one update with unchanged original selectors", async () => {
     const config = props();
     render(<EditIndexPanel {...config} />);
-    expect(screen.getByRole("textbox", { name: "Index" })).toHaveValue(index.value);
+    expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue(index.value);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     expect(screen.getByRole("button", { name: "Remove Grantee (Party)" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Additional details" }));
     expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue(index.label);
     expect(screen.getByRole("textbox", { name: "Page Number" })).toHaveValue("3");
     expect(screen.getByRole("textbox", { name: "Source" })).toHaveValue(index.source);
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "New value" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "New value" } });
     fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "New label" } });
     fireEvent.click(screen.getByRole("button", { name: "Remove Grantee (Party)" }));
-    fireEvent.focus(screen.getByRole("combobox", { name: "Type" }));
+    fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(screen.getByRole("option", { name: "Property Id" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "New value" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "New value" } });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.onClose).toHaveBeenCalledOnce());
@@ -168,7 +169,7 @@ describe("EditIndexPanel", () => {
     config.request = { segment: "party", session: "session", index: { value: "Original", aspect: "custom_type" } };
     render(<EditIndexPanel {...config} />);
     await screen.findByRole("button", { name: "Remove Custom Type (Party)" });
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Edited" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Edited" } });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(config.workerClient!.patchIndex).toHaveBeenCalledOnce());
@@ -181,14 +182,14 @@ describe("EditIndexPanel", () => {
     const config = props();
     const { rerender } = render(<EditIndexPanel {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Unsaved" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Unsaved" } });
     rerender(<EditIndexPanel {...config} request={{ session: "session", segment: "property", index: { value: "Parcel", aspect: "property_id" } }} />);
-    expect(screen.getByRole("textbox", { name: "Index" })).toHaveValue("Parcel");
+    expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue("Parcel");
     await screen.findByRole("button", { name: "Remove Property Id (Property)" });
     expect(screen.queryByRole("button", { name: "Remove Grantor (Party)" })).toBeNull();
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Draft" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Draft" } });
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
-    expect(screen.getByRole("textbox", { name: "Index" })).toHaveValue("Draft");
+    expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue("Draft");
     expect(config.onClose).not.toHaveBeenCalled();
     expect(config.workerClient!.patchIndex).not.toHaveBeenCalled();
     expect(queueStoreApi.getState().tasks).toEqual([]);
@@ -196,10 +197,10 @@ describe("EditIndexPanel", () => {
 
   it("reports resource failure and disables confirmation", async () => {
     const config = props();
-    vi.mocked(config.onResource).mockRejectedValueOnce(new Error("Aspects unavailable"));
+    vi.mocked(config.onResource).mockImplementationOnce(request => request.callback({ ok: false, error: "Aspects unavailable" }));
     render(<EditIndexPanel {...config} />);
     await waitFor(() => expect(config.onError).toHaveBeenCalledWith(expect.objectContaining({ error: "Aspects unavailable" })));
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Draft" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Draft" } });
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
   });
 
@@ -207,7 +208,7 @@ describe("EditIndexPanel", () => {
     const config = props();
     vi.mocked(config.workerClient!.patchIndex).mockRejectedValueOnce(new Error("Update failed"));
     render(<EditIndexPanel {...config} />);
-    fireEvent.change(screen.getByRole("textbox", { name: "Index" }), { target: { value: "Edited" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Edited" } });
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
@@ -215,4 +216,31 @@ describe("EditIndexPanel", () => {
     expect(config.onClose).toHaveBeenCalledOnce();
     expect(config.onError).not.toHaveBeenCalled();
   });
+});
+
+it("identifies required fields while preserving Edit validation and selection", async () => {
+  render(<EditIndexPanel {...props()} />);
+  const input = screen.getByRole("textbox", { name: "Index (required)" });
+  const type = screen.getByRole("combobox", { name: "Type (required)" });
+  const update = screen.getByRole("button", { name: "Update" });
+  expect(input).toBeRequired();
+  expect(type).toHaveAttribute("aria-required", "true");
+  expect(type).not.toHaveAttribute("required");
+  expect(type).toHaveValue("");
+  expect(update).toBeDisabled();
+  fireEvent.change(input, { target: { value: "Updated value" } });
+  expect(update).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Remove Grantor (Party)" }));
+  fireEvent.click(screen.getByRole("button", { name: "Remove Grantee (Party)" }));
+  expect(update).toBeDisabled();
+  fireEvent.focus(type);
+  fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
+  expect(type).toHaveValue("");
+  expect(update).toBeEnabled();
+  fireEvent.change(input, { target: { value: "" } });
+  expect(update).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Additional details" }));
+  for (const name of ["Label", "Page Number", "Source"]) {
+    expect(screen.getByRole("textbox", { name })).not.toBeRequired();
+  }
 });

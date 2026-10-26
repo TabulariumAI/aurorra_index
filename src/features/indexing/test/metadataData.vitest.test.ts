@@ -17,7 +17,7 @@ const metadataFixturePath = join(process.cwd(), "src", "test", "metadata#v1.json
 
 describe("metadata data normalization", () => {
   it("does not store audit usage in metadata parts or recomposed metadata", () => {
-    const payload = { heading: { title: "NOTICE" }, usage: { costs: ["$2.7500"], services: [] } };
+    const payload = { heading: { title: "NOTICE" }, usage: { services: [] } };
     const parts = splitMetadataJSON(payload);
     expect(parts.headingJSON).toEqual({ heading: payload.heading });
     expect(composeMetadataJSON(parts)).toEqual({ heading: payload.heading });

@@ -108,6 +108,7 @@ export type {
   MetdataReprocessResult,
 } from "./features/metdataview/type/metadataView.types";
 export type {
+  PagesData,
   PageSegmentsFailure,
   PageSegmentsPanelProps,
   PageSegmentsWorkerClient,

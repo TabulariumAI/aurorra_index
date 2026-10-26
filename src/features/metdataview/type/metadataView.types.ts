@@ -56,6 +56,7 @@ export type MetdataWorkerCommand = ({
 ));
 
 export type MetdataWorkerClient = {
+  pagesData(token: string, session: string, refresh: boolean): Promise<NonNullable<MetadataPayload["pages"]>>;
   updatePageSegments(token: string, session: string, pageCode: string, segments: string[]): Promise<void>;
   patchIndex(token: string, session: string, segment: string, change: IndexChange): Promise<MetdataPatchResult>;
   confirmIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
@@ -77,12 +78,16 @@ export type MetdataStoreState = {
   getSegment(pageSegment: string): string;
   activeSession: string | null;
   error: MetadataError | null;
+  pageErrors: Record<string, MetadataError>;
+  pageRequests: Record<string, string>;
   refresh: MetdataMetadataRefresh | null;
   refreshId: number;
   retryAttempt: number;
   status: MetadataStatus;
   refreshMetadata(session: string, segment: string): void;
   setError(error: MetadataError): void;
+  setPageError(session: string, error: MetadataError | null): void;
+  setPageLoading(session: string): string;
   setLoaded(session: string): void;
   setLoading(session: string): void;
   setRetryAttempt(attempt: number): void;

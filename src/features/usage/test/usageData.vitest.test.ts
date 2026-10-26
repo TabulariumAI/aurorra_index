@@ -10,6 +10,27 @@ const records: UsageRecord[] = [
 ];
 
 describe("usage aggregation", () => {
+  it("calculates session service totals from unrounded costs including zero-cost events", () => {
+    const event = { session: "one", time: 0, page_num: 0, timestamp: "2025-01-01T00:00:00Z" };
+    const rows = summarizeUsage([
+      { ...event, name: "extraction", code: "extraction", cost: 0.30207683, page_num: 3 },
+      { ...event, name: "iq_refinement", code: "iq", cost: 0.0112, page_num: 3 },
+      { ...event, name: "refinement", code: "refine-one", cost: 0.0019833, page_num: 1 },
+      { ...event, name: "refinement", code: "refine-two", cost: 0.03727295, page_num: 2 },
+      { ...event, name: "refinement", code: "refine-three", cost: 0.0645425, page_num: 1 },
+      { ...event, name: "refinement", code: "refine-zero", cost: 0 },
+      { ...event, name: "model_generation", code: "model-one", cost: 0.106634, page_num: 2 },
+      { ...event, name: "model_generation", code: "model-two", cost: 0.1201695, page_num: 1 },
+    ]);
+    expect(rows.map(row => row.name)).toEqual(["extraction", "iq_refinement", "refinement", "model_generation"]);
+    for (const [index, cost] of [0.30207683, 0.0112, 0.10379875, 0.2268035].entries()) {
+      expect(rows[index].cost).toBeCloseTo(cost, 12);
+      expect(rows[index].sessions).toBe(1);
+    }
+    expect(rows.map(row => row.pages)).toEqual([3, 3, 4, 3]);
+    expect(rows.map(row => row.time)).toEqual([0, 0, 0, 0]);
+  });
+
   it("summarizes all four service groups with model totals and no page average for models", () => {
     const models = { session: "one", code: "model-one", name: "model_generation" as const, cost: 11, time: 2, page_num: 0, timestamp: "2026-10-05T12:00:00Z" };
     const rows = summarizeUsage([...records, models, { ...models, session: "two", code: "model-two", cost: 22, time: 3 }],

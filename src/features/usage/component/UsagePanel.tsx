@@ -58,7 +58,7 @@ export function UsagePanel({ records }: { records: readonly UsageRecord[] }) {
       </div>
       {groups.length === 0 ? <div style={styles.empty}>No usage in the selected period.</div> : groups.map(group => {
         const combined = group.some(summary => summary.name === "extraction" || summary.name === "iq_refinement");
-        const label = combined ? "Extraction and IQ refinement" : usageNames[group[0].name];
+        const label = combined ? `${usageNames.extraction} and ${usageNames.iq_refinement}` : usageNames[group[0].name];
         const points = [...new Set(group.flatMap(summary => summary.points.map(point => point.date)))].sort().map(date => {
           const values = group.map(summary => summary.points.reduce((value, point) => point.date === date ? { cost: value.cost + point.cost, pages: value.pages + point.pages } : value, { cost: 0, pages: 0 }));
           return { date, values: combined ? [{ cost: values.reduce((total, value) => total + value.cost, 0), pages: null }, ...values] : values };

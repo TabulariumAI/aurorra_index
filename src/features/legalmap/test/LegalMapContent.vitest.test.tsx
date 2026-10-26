@@ -82,6 +82,9 @@ describe("LegalMapContent", () => {
                 { aspect: "block", value: "Block 12" },
                 { aspect: "lot", value: "Lot 7" },
                 { aspect: "condominium_unit", value: "2-3" },
+                { aspect: "city", value: "austin" },
+                { aspect: "county", value: "travis" },
+                { aspect: "state", value: "TX" },
               ],
               type: "lot_block",
             },
@@ -96,11 +99,12 @@ describe("LegalMapContent", () => {
     expect(map.getByText("WILLOW CREEK")).toBeInTheDocument();
     expect(map.getByText("Phase 1")).toBeInTheDocument();
     expect(map.getByText("12")).toBeInTheDocument();
-    expect(map.getByText("7").parentElement).toHaveTextContent("Lot");
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")).toHaveTextContent("Lot");
     expect(map.getByText("Subdivision")).toBeInTheDocument();
-    expect(map.queryByText("Condominium Unit")).not.toBeInTheDocument();
-    expect(map.getByText("Austin | Travis County | Texas")).toBeInTheDocument();
-    const location = map.getByText("Austin | Travis County | Texas");
+    expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("Condominium Unit");
+    expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("2-3");
+    expect(map.getByText("Texas | Travis County | Austin")).toBeInTheDocument();
+    const location = map.getByText("Texas | Travis County | Austin");
     expect(location.compareDocumentPosition(map.getByText("Subdivision")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(location.style.fontSize).toBe(map.getByText("WILLOW CREEK").style.fontSize);
     const grid = document.querySelector("[data-legal-map-grid='true']");
@@ -111,11 +115,11 @@ describe("LegalMapContent", () => {
     expect(north).toHaveAttribute("aria-hidden", "true");
     expect(north).toHaveStyle({ borderRadius: "var(--radius-control)", boxShadow: "var(--shadow-card)" });
     expect(grid?.querySelector("[data-legal-map-subdivision='true']")).toHaveStyle({ borderRadius: "var(--radius-card)", borderStyle: "dashed" });
-    const block = map.getByText("12").parentElement;
+    const block = map.getByText("12").parentElement!.parentElement;
     expect(block).toHaveStyle({ backgroundColor: "#e8f0f4", gridColumn: "2 / 4", gridRow: "2 / 4" });
-    expect(map.getByText("7").parentElement).toHaveStyle({ backgroundColor: "#fbe9e3" });
-    expect(map.getByText("7").parentElement).toHaveStyle({ fontSize: "18.4px" });
-    expect(map.getByText("7").parentElement?.style.fontSize).toBe(map.getByText("12").style.fontSize);
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")).toHaveStyle({ backgroundColor: "#fbe9e3" });
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")).toHaveStyle({ fontSize: "16px" });
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")?.style.fontSize).toBe(map.getByText("12").style.fontSize);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
     expect(onReadyChange).toHaveBeenCalledWith(true);
@@ -148,9 +152,9 @@ describe("LegalMapContent", () => {
     expect(screen.queryByRole("heading", { name: "Reference" })).not.toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Reference" })).not.toBeInTheDocument();
     expect(map.getByText("7")).toBeInTheDocument();
-    expect(map.getByText("7").parentElement).toHaveStyle({ backgroundColor: "#fbe9e3", gridColumn: "1", gridRow: "1" });
-    expect(map.getByText("7").parentElement).toHaveTextContent("Lot");
-    expect(map.getByText("110").parentElement).toHaveStyle({ gridColumn: "2 / 4", gridRow: "2 / 4" });
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")).toHaveStyle({ backgroundColor: "#fbe9e3", gridColumn: "1", gridRow: "1" });
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")).toHaveTextContent("Lot");
+    expect(map.getByText("110").parentElement!.parentElement).toHaveStyle({ gridColumn: "2 / 4", gridRow: "2 / 4" });
     expect(map.queryByText("8")).not.toBeInTheDocument();
   });
 
@@ -197,7 +201,7 @@ describe("LegalMapContent", () => {
     expect(map.getAllByText("MAPLE RIDGE")).toHaveLength(1);
   });
 
-  it("keeps lot identities visible when excluded condominium data is present", () => {
+  it("keeps lot and condo unit identities visible together", () => {
     render(
       <LegalMapContent
         legal={{ groups: [
@@ -211,6 +215,7 @@ describe("LegalMapContent", () => {
 
     expect(map.getByText("21")).toBeInTheDocument();
     expect(map.queryByText("2,3")).not.toBeInTheDocument();
+    expect(map.getByText("2-3").closest("[data-legal-map-lot]")).toHaveTextContent("2-3Condo Unit");
     expect(map.getByText("22")).toBeInTheDocument();
   });
 
@@ -294,7 +299,7 @@ describe("LegalMapContent", () => {
     const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     const grid = document.querySelector("[data-legal-map-grid]")!;
     const unit = grid.querySelector("[data-legal-map-division]")!;
-    const block = grid.querySelector("[data-legal-map-block-label]")!.parentElement!;
+    const block = grid.querySelector("[data-legal-map-block-label]")!.parentElement!.parentElement!;
     const lot = grid.querySelector("[data-legal-map-lot]")!;
     expect(grid.closest("[data-legal-map-surface]")).toHaveStyle({ backgroundColor: "#f7f8f6" });
     expect(grid).toHaveStyle({ color: "#183247" });
@@ -302,7 +307,7 @@ describe("LegalMapContent", () => {
     expect(map.getByText("SEALE SUBDIVISION")).toHaveStyle({ color: "#274f59" });
     expect(unit).toHaveStyle({ backgroundColor: "#f4f1ea", borderColor: "#c8bdaa" });
     expect(map.getByText("Unit 1")).toHaveStyle({ color: "#6b6256" });
-    expect(block).toHaveStyle({ backgroundColor: "#e8f0f4", borderStyle: "none", color: "#294d60" });
+    expect(block).toHaveStyle({ backgroundColor: "#e8f0f4", border: "1px solid #91aebe", color: "#294d60" });
     expect(lot).toHaveStyle({ backgroundColor: "#fbe9e3", borderColor: "#cf7258", color: "#9d4934", aspectRatio: "1" });
     expect(within(lot as HTMLElement).getByText("Lot")).toHaveStyle({ color: "#9d4934" });
     const info = document.querySelector(".legal-map")!;
@@ -421,7 +426,7 @@ describe("right of way rendering", () => {
     expect(document.querySelector("[data-legal-map-row]")).toBeNull();
     expect(map.queryByText("Right Of Way")).not.toBeInTheDocument();
     expect(document.querySelector<HTMLElement>("[data-legal-map-subdivision]")!.firstElementChild).not.toHaveStyle({ minHeight: "24rem" });
-    expect(map.getByText("7").parentElement).toHaveTextContent("Lot");
+    expect(map.getByText("7").closest<HTMLElement>("[data-legal-map-lot]")).toHaveTextContent("Lot");
     expect(onReadyChange).toHaveBeenCalledTimes(2);
   });
 });

@@ -28,6 +28,7 @@ import type {
   MetadataIndex,
   MetadataPayload,
   MetadataPanelData,
+  MetadataError,
   MetadataStatus,
 } from "aurora-core";
 import { getMapGroups } from "../../legalmap/data/surveyData";
@@ -76,6 +77,7 @@ export type MetadataPanelProps = {
   choices: unknown;
   children?: ReactNode;
   metadata: MetadataPayload | null;
+  pageError?: MetadataError;
   onConfirm?: (payload: MetadataActionPayload) => Promise<void> | void;
   onDrop?: (payload: MetadataActionPayload) => Promise<void> | void;
   onAddIndex?: (segment: string) => void;
@@ -164,6 +166,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     shortcuts,
     status,
     panelData,
+    pageError,
     pendingSegments,
   } = props;
 
@@ -212,6 +215,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   ) => (
     <MetadataSegment
       collapsible={false}
+      error={segment === segments.PAGE ? pageError?.error : undefined}
       pending={actionSegment ? pendingSegments?.get(actionSegment) : undefined}
       progressLabel={`Reprocessing ${actionSegment}`}
       headerAction={
@@ -260,7 +264,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     !confirmedCodes.has(String(index.code || "")) && isAmbiguous(index.ambiguous),
   ).length;
   const titleItems = titles(metadata);
-  const pageItems = pages(metadata);
+  const pageItems = pageError ? [] : pages(metadata);
   const titlePage = pageItems.find((item) => item.isTitle)?.page;
   const legalGroups = (metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || []).filter((group) => Array.isArray(group.elements) && group.elements.length > 0);
   const propertyVisible = choiceVisible(segments.PROPERTY, "property");
@@ -294,7 +298,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           segments.PAGE,
           "Pages",
           pageItems.length,
-          pageItems.length ? pageItems.map(({ page, recordable, isTitle }, index) => {
+          pageError ? null : pageItems.length ? pageItems.map(({ page, recordable, isTitle }, index) => {
             const pageNum = String(page.name || "");
             const code = String(page.code ?? pageNum);
             const pageClass = String(page.class || "").trim().toLowerCase();
@@ -320,6 +324,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 onAddressClick={callbacks.onAddressClick}
                 pageClass={pageClass}
                 pageSegments={validSegments}
+                details={validSegments.length ? [{ label: "Segments", value: item.source }] : undefined}
                 selected={Boolean(code && selectedIndex?.code === code)}
                 segment={segments.PAGE}
                 session={session}

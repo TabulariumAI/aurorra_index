@@ -1,4 +1,5 @@
 import { useState, type JSX } from "react";
+import { LoadPlaceholder } from "aurora-core";
 import type { AuditGapView } from "../type/audit.types";
 import { auditStyles } from "../style/auditStyles";
 
@@ -7,19 +8,11 @@ type CollapseState = Record<string, boolean>;
 const PREVIEW_LENGTH = 200;
 
 type AuditGapsProps = {
-  gaps: AuditGapView[];
+  gaps: AuditGapView[] | null;
 };
 
 function buildKey(gap: AuditGapView, index: number): string {
   return `${gap.aspect}|${gap.page}|${gap.date}|${index}`;
-}
-
-function normalizeMessage(message: string): string {
-  return message.replace(/\s+/g, " ").trim();
-}
-
-function isLongMessage(message: string): boolean {
-  return normalizeMessage(message).length > PREVIEW_LENGTH;
 }
 
 function MessageText({ isOpen, message, onToggle }: {
@@ -27,17 +20,14 @@ function MessageText({ isOpen, message, onToggle }: {
   message: string;
   onToggle: () => void;
 }): JSX.Element {
-  const normalized = normalizeMessage(message);
-  if (!isLongMessage(normalized)) {
+  const normalized = message.replace(/\s+/g, " ").trim();
+  if (normalized.length <= PREVIEW_LENGTH) {
     return <div style={auditStyles.gapMessage}>{normalized}</div>;
   }
 
-  const preview = `${normalized.slice(0, PREVIEW_LENGTH)}...`;
-  const full = normalized;
-
   return (
     <div style={auditStyles.gapMessage}>
-      {isOpen ? full : preview}
+      {isOpen ? normalized : `${normalized.slice(0, PREVIEW_LENGTH)}...`}
       <a
         href="#"
         onClick={(event) => {
@@ -59,6 +49,8 @@ export function AuditGaps({ gaps }: AuditGapsProps): JSX.Element {
     setExpanded((state) => ({ ...state, [messageKey]: !state[messageKey] }));
   }
 
+  if (gaps === null) return <LoadPlaceholder label="Loading audit gaps" />;
+
   if (gaps.length === 0) {
     return <div style={auditStyles.empty}>No gaps found.</div>;
   }
@@ -68,7 +60,6 @@ export function AuditGaps({ gaps }: AuditGapsProps): JSX.Element {
       {gaps.map((gap, index) => {
         const key = buildKey(gap, index);
         const isOpen = expanded[key] === true;
-        const safeMessage = normalizeMessage(gap.message);
         const patch = gap.patch;
         const hasIndex = patch?.value != null && patch.value.trim() !== "";
         const details = [
@@ -99,7 +90,7 @@ export function AuditGaps({ gaps }: AuditGapsProps): JSX.Element {
             )}
             <MessageText
               isOpen={isOpen}
-              message={safeMessage}
+              message={gap.message}
               onToggle={() => toggle(key)}
             />
             <div style={auditStyles.gapFooter}>

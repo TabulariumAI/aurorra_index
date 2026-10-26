@@ -1,26 +1,15 @@
-import { useEffect, type JSX } from "react";
+import type { JSX } from "react";
 import { useIqReport } from "../hook/useIqReport";
 import { iqStyles } from "../style/iqStyles";
 import type { IqPanelProps } from "../type/iq.types";
 import { IqGates } from "./IqGates";
 import { IqSegments } from "./IqSegments";
 import { IqSummary } from "./IqSummary";
-
-function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
-  return ["Retrieving IQ report...", `Attempt ${attempt} of ${retryLimit}`];
-}
+import { IqPlaceholder } from "./IqPlaceholder";
 
 export function IqPanel(props: IqPanelProps): JSX.Element | null {
-  const { ackGate, ackingCodes, report, retryAttempt, status, view } = useIqReport(props);
-  const loading = status === "loading" || status === "refreshing";
-
-  useEffect(() => {
-    props.onReadyChange(!loading && status !== "idle");
-  }, [loading, props.onReadyChange, status]);
-
-  useEffect(() => {
-    props.onLoaderChange?.(loading ? loadingLabel(retryAttempt, props.retryLimit) : null);
-  }, [loading, props.onLoaderChange, props.retryLimit, retryAttempt]);
+  const { ackGate, ackingCodes, report, status, view } = useIqReport(props);
+  const loading = status === "idle" || status === "loading" || status === "refreshing";
 
   if (status === "error" && report === null) {
     return null;
@@ -28,8 +17,8 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
 
   return (
     <section aria-label="Indexing Quality" style={iqStyles.root}>
-      {!loading ? <div data-panel-scroll="true" style={iqStyles.content}>
-        {view === null ? (
+      <div data-panel-scroll="true" style={iqStyles.content}>
+        {loading ? <IqPlaceholder /> : view === null ? (
           <div style={iqStyles.empty}>No IQ report found.</div>
         ) : (
           <>
@@ -53,7 +42,7 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
             ) : null}
           </>
         )}
-      </div> : null}
+      </div>
     </section>
   );
 }

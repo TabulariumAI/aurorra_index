@@ -1,6 +1,6 @@
 import type { UsageFilters, UsageRecord, UsageSummary } from "../type/usage.types";
 
-export const usageNames = { extraction: "Extraction", iq_refinement: "IQ refinement", refinement: "Refinement", model_generation: "Model generation" };
+export const usageNames = { extraction: "Index Extraction", iq_refinement: "IQ Refinement", refinement: "User Refinement", model_generation: "Model Generation" };
 
 export function usageRange(now: number): { from: string; to: string } {
   const date = new Date(now);

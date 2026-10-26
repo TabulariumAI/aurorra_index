@@ -1,5 +1,6 @@
-import { ConfButton } from "aurora-core";
+import { ConfButton, rowStyles } from "aurora-core";
 import * as Popover from "@radix-ui/react-popover";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { useLayoutEffect, useRef, useState } from "react";
 import type { FormEvent, JSX, Ref } from "react";
 import { imageViewerStyles } from "../style/imageViewerStyles";
@@ -80,6 +81,7 @@ function ViewerButton({
   pressed?: boolean;
 }) {
   return (
+    <Tooltip.Root><Tooltip.Trigger asChild>
     <ConfButton
       aria-label={label}
       aria-pressed={pressed}
@@ -89,9 +91,11 @@ function ViewerButton({
       requireConfirmation={false}
       size="icon"
       style={{ ...(compact ? imageViewerStyles.compactButton : {}), ...(pressed ? imageViewerStyles.activeButton : {}) }}
-      title={label}
       variant="secondary"
     />
+    </Tooltip.Trigger><Tooltip.Portal><Tooltip.Content sideOffset={6} style={rowStyles.tooltip}>
+      {label}
+    </Tooltip.Content></Tooltip.Portal></Tooltip.Root>
   );
 }
 
@@ -179,6 +183,7 @@ export function ImageViewerTopToolbar({
             onAction("zoomIn");
           }} />
           <Popover.Root onOpenChange={setScaleOpen} open={scaleOpen}>
+            <Tooltip.Root><Tooltip.Trigger asChild>
             <Popover.Trigger asChild>
               <button
                 ref={scaleRef}
@@ -188,12 +193,14 @@ export function ImageViewerTopToolbar({
                 aria-label="Scale options"
                 disabled={!canActualSize && !canFitHeight && !canFitPage && !canFitWidth}
                 style={{ ...imageViewerStyles.menuButton, ...(compact ? imageViewerStyles.compactButton : {}) }}
-                title="Scale options"
                 type="button"
               >
                 <ViewerIcon name="more" />
               </button>
             </Popover.Trigger>
+            </Tooltip.Trigger><Tooltip.Portal><Tooltip.Content sideOffset={6} style={rowStyles.tooltip}>
+              Scale options
+            </Tooltip.Content></Tooltip.Portal></Tooltip.Root>
             <Popover.Portal>
               <Popover.Content aria-label="Scale options" id="image-viewer-scale-options" role="group" side="bottom" align="start" sideOffset={6} style={imageViewerStyles.menuPopover}>
                 <ConfButton disabled={!canFitPage} label="Fit page" onConfirm={() => {
@@ -237,10 +244,14 @@ export function ImageViewerTopToolbar({
           type="search"
           value={searchText}
         />
-        <button aria-label="Search" disabled={!canRunSearch} ref={submitRef} style={{ ...imageViewerStyles.searchSubmit, ...(compact ? imageViewerStyles.compactSearchSubmit : {}) }} title="Search" type="button" onClick={() => {
+        <Tooltip.Root><Tooltip.Trigger asChild>
+        <button aria-label="Search" disabled={!canRunSearch} ref={submitRef} style={{ ...imageViewerStyles.searchSubmit, ...(compact ? imageViewerStyles.compactSearchSubmit : {}) }} type="button" onClick={() => {
           console.info("imageviewer toolbar action", { action: "search", source: "click" });
           onAction("search");
         }}><ViewerIcon name="search" /></button>
+        </Tooltip.Trigger><Tooltip.Portal><Tooltip.Content sideOffset={6} style={rowStyles.tooltip}>
+          Search
+        </Tooltip.Content></Tooltip.Portal></Tooltip.Root>
         </div>
         <div aria-label="Selection controls" ref={selectionRef} style={{ ...imageViewerStyles.selectionGroup, ...(compact ? imageViewerStyles.compactSelectionGroup : {}) }}>
           <ViewerButton compact={compact} disabled={!canSelect} label={selecting ? "Exit select mode" : "Select"} name="select" onClick={() => {
@@ -252,11 +263,15 @@ export function ImageViewerTopToolbar({
           onAction("clearSearch");
         }} />
           <Popover.Root onOpenChange={setMoreOpen} open={moreOpen}>
+            <Tooltip.Root><Tooltip.Trigger asChild>
             <Popover.Trigger asChild>
-              <button aria-controls="image-viewer-more-options" aria-expanded={moreOpen} aria-haspopup="dialog" aria-label="More" disabled={!canExport} style={{ ...imageViewerStyles.menuButton, ...(compact ? imageViewerStyles.compactButton : {}) }} title="More" type="button">
+              <button aria-controls="image-viewer-more-options" aria-expanded={moreOpen} aria-haspopup="dialog" aria-label="More" disabled={!canExport} style={{ ...imageViewerStyles.menuButton, ...(compact ? imageViewerStyles.compactButton : {}) }} type="button">
                 <ViewerIcon name="more" />
               </button>
             </Popover.Trigger>
+            </Tooltip.Trigger><Tooltip.Portal><Tooltip.Content sideOffset={6} style={rowStyles.tooltip}>
+              More
+            </Tooltip.Content></Tooltip.Portal></Tooltip.Root>
             <Popover.Portal>
               <Popover.Content aria-label="Selection actions" id="image-viewer-more-options" role="group" side="bottom" align="end" sideOffset={6} style={imageViewerStyles.menuPopover} onCloseAutoFocus={(event) => {
                 if (openingExportRef.current) event.preventDefault();
@@ -275,10 +290,12 @@ export function ImageViewerTopToolbar({
     </form>
   );
   return (
+    <Tooltip.Provider>
     <div aria-label="Image viewer top toolbar" ref={toolbarRef} style={{ ...imageViewerStyles.topToolbar, ...(compact ? imageViewerStyles.topToolbarCompact : {}) }}>
       {viewControls}
       {searchControls}
     </div>
+    </Tooltip.Provider>
   );
 }
 
@@ -293,6 +310,7 @@ export function ImageViewerFooterToolbar({
   pageCount,
 }: FooterProps): JSX.Element {
   return (
+    <Tooltip.Provider>
     <div aria-label="Image viewer footer toolbar" style={imageViewerStyles.footerToolbar}>
       <ViewerButton disabled={!canShowThumbnails} label="Thumbnails" name="thumbs" onClick={() => {
         console.info("imageviewer toolbar action", { action: "thumbs", page, pageCount });
@@ -316,5 +334,6 @@ export function ImageViewerFooterToolbar({
         onAction("last");
       }} />
     </div>
+    </Tooltip.Provider>
   );
 }

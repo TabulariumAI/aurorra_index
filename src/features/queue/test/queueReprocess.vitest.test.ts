@@ -4,6 +4,7 @@ import { composeMetadataJSON, splitMetadataJSON } from "aurora-core";
 import { storeApi } from "../../../store/state/store";
 import { queueStoreApi } from "../store/queueStore";
 import type { QueueRuntime } from "../type/queue.types";
+import { metesFixture } from "../../legalmap/test/metesFixture";
 
 const index = { code: "index", segment: "party", value: "Alice" };
 const request = { action: "reprocess" as const, session: "session", batch: "batch", segment: "party" };
@@ -12,7 +13,7 @@ function runtime(): QueueRuntime {
   return { authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
     reprocessSegment: vi.fn(async () => ({ status: "completed" as const, data: "" })),
     indexData: vi.fn(async () => ({ indexes: [index] })),
-    patchIndex: vi.fn(), patchStatus: vi.fn(), updatePageSegments: vi.fn(),
+    patchIndex: vi.fn(), patchStatus: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(),
     confirmIndex: vi.fn(async () => ({ status: "completed" as const, data: "", version: 1 })),
     dropIndex: vi.fn(async () => ({ status: "completed" as const, data: "", version: 1 })),
   } };
@@ -52,10 +53,12 @@ it("accepts reprocess behind an index operation and stays pending until metadata
     .toEqual(["queued", "processing", "completed"]);
 });
 
-it("retains a failed reprocess for retry or cancel without changing existing metadata", async () => {
+it.each(["party", "legal"])("retains a failed %s reprocess for retry or cancel without changing existing metadata", async segment => {
   const config = runtime();
+  const metadata = { indexes: [index], ...(segment === "legal" ? { legals: metesFixture } : {}) };
+  storeApi.getState().setJSON("session", splitMetadataJSON(metadata));
   vi.mocked(config.client.reprocessSegment).mockRejectedValue(new Error("Reprocess failed"));
-  await queueStoreApi.getState().enqueue(request, config);
+  await queueStoreApi.getState().enqueue({ ...request, segment }, config);
   await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
   const id = queueStoreApi.getState().tasks[0].id;
   await queueStoreApi.getState().retry(id);
@@ -65,7 +68,7 @@ it("retains a failed reprocess for retry or cancel without changing existing met
   queueStoreApi.getState().cancel(id);
   expect(queueStoreApi.getState().tasks).toHaveLength(0);
   expect(config.client.indexData).not.toHaveBeenCalled();
-  expect(composeMetadataJSON(storeApi.getState().getJSON("session"))?.indexes).toEqual([index]);
+  expect(composeMetadataJSON(storeApi.getState().getJSON("session"))).toEqual(metadata);
   expect(vi.mocked(config.onChange).mock.calls.map(([event]) => event.status))
     .toEqual(["queued", "processing", "failed", "retried", "processing", "failed", "canceled"]);
 });

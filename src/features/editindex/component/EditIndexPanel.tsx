@@ -13,7 +13,7 @@ export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs
   const [fields, setFields] = useState<IndexFields>({ index: "", label: "", page: "", source: "" });
   const [selected, setSelected] = useState<string[]>([]);
   const [allowEnrichment, setAllowEnrichment] = useState(false);
-  const { aspects, ready } = useAspects(request, onResource, onReadyChange, onError);
+  const { aspects, ready } = useAspects(request, request.session, onResource, onReadyChange, onError);
   const inputFields = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const element = inputFields.current;

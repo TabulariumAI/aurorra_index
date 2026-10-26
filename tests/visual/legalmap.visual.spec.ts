@@ -1,5 +1,130 @@
 import { expect, test } from "@playwright/test";
 
+for (const width of [1440, 900, 390, 320]) {
+  test(`street-relative fallback and final failure at ${width}px`, async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 1100 });
+    await page.goto("/?scenario=legal-map&street=true");
+    const lines = page.locator('[data-survey-line][data-unconfirmed="true"][stroke-dasharray="6 4"]');
+    await expect(lines).toHaveCount(4);
+    await expect(page.locator("[data-boundary-fill]")).toHaveCount(0);
+    await expect(page.locator("[data-survey-point]")).toHaveCount(4);
+    await expect(page.getByRole("note")).toContainText(/schematic/i);
+    const table = page.getByRole("table", { name: "Boundary Calls" });
+    await expect(table.getByRole("row")).toHaveCount(5);
+    await expect(table.getByRole("row").last()).toContainText("4 → 1");
+    await expect(table.getByText("59 ft 8 in", { exact: true })).toHaveCount(2);
+    await expect(table).not.toContainText(/48 ft|3 ft|2 ft 6 in/);
+    await expect(page.getByRole("img", { name: /schematic/ })).toBeVisible();
+    const geometry = await lines.evaluateAll(nodes => nodes.map(node => {
+      const line = node.getBoundingClientRect();
+      const svg = node.closest("svg")!.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      return Number.isFinite(line.x + line.y + line.width + line.height) && Math.hypot(line.width, line.height) > 0
+        && style.visibility === "visible" && style.display !== "none"
+        && line.left >= svg.left - 1 && line.right <= svg.right + 1
+        && line.top >= svg.top - 1 && line.bottom <= svg.bottom + 1;
+    }));
+    expect(geometry.every(Boolean)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    const status = table.getByRole("button", { name: "Unconfirmed" }).first();
+    await status.hover();
+    await expect(page.getByRole("tooltip")).toContainText(/schematic/i);
+    await page.mouse.move(0, 0);
+    await status.focus();
+    await expect(status).toBeFocused();
+    await expect(page.getByRole("tooltip")).toContainText(/schematic/i);
+    await page.keyboard.press("Escape");
+    await page.screenshot({ path: testInfo.outputPath(`street-boundary-${width}.png`), fullPage: true });
+    await page.goto("/?scenario=legal-map&street=unsupported");
+    await expect(page.locator("[data-survey-line]")).toHaveCount(0);
+    await expect(page.getByRole("alert")).toHaveText("Sorry, this parcel’s boundary couldn’t be drawn from the available details.");
+    await expect(page.getByText("16 ft FRONTAGE", { exact: true })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`street-unsupported-${width}.png`), fullPage: true });
+    await page.goto("/?scenario=legal-map&metes=1");
+    await page.getByRole("tab", { name: "Metes & Bounds", exact: true }).click();
+    await expect(page.locator("[data-survey-line]")).toHaveCount(16);
+    await expect(page.locator("[data-boundary-fill]")).toHaveCount(2);
+    await expect(page.locator('[data-survey-tie="true"]')).toHaveCount(2);
+    await expect(page.getByRole("table", { name: "Boundary Calls" })).toHaveCount(2);
+    expect(errors).toEqual([]);
+  });
+}
+
+for (const width of [1440, 900, 390]) {
+  for (const scope of ["lot_scope", "part"]) {
+    test(`single lot with ${scope} preserves readable labels through divider changes at ${width}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1100 });
+      await page.goto(`/?scenario=legal-map&scope=${scope}`);
+      const grid = page.locator("[data-legal-map-grid]");
+      const content = grid.locator(":scope > div");
+      const divider = page.getByRole("separator", { name: "Resize map and details" });
+      const aspect = page.getByRole("table", { name: "Details" });
+      const block = page.locator("[data-legal-map-block]");
+      await expect(page.locator("[data-legal-map-fit]")).toHaveCount(0);
+      await expect(aspect).toContainText("EASTERLY 40 FEET OF THE WESTERLY 80 FEET");
+      await expect(page.getByRole("table", { name: "Details" })).toContainText("SUB NO. 37");
+      await divider.focus();
+      await page.keyboard.press("Home");
+      await expect(divider).toHaveAttribute("aria-valuenow", await divider.getAttribute("aria-valuemin") as string);
+      await divider.hover();
+      await page.screenshot({ path: testInfo.outputPath(`map-fit-expanded-${scope}-${width}.png`), fullPage: true });
+      const expanded = (await block.boundingBox())!;
+      const handle = (await divider.boundingBox())!;
+      await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handle.x + handle.width / 2, handle.y - 200, { steps: 10 });
+      await page.mouse.up();
+      await expect.poll(async () => (await block.boundingBox())!.height).toBeCloseTo(expanded.height, 0);
+      const contracted = (await block.boundingBox())!;
+      const moved = (await divider.boundingBox())!;
+      await page.mouse.move(moved.x + moved.width / 2, moved.y + moved.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(moved.x + moved.width / 2, moved.y + 150, { steps: 10 });
+      await page.mouse.up();
+      await expect.poll(async () => (await block.boundingBox())!.height).toBeCloseTo(contracted.height, 0);
+      await divider.focus();
+      await expect(divider).toBeFocused();
+      await page.keyboard.press("End");
+      await expect.poll(async () => (await block.boundingBox())!.height).toBeCloseTo(contracted.height, 0);
+      await page.keyboard.press("Home");
+      await expect.poll(async () => (await block.boundingBox())!.height).toBeCloseTo(expanded.height, 0);
+      const detailsHeight = Number(await divider.getAttribute("aria-valuenow"));
+      await page.keyboard.press("ArrowUp");
+      await expect.poll(async () => Number(await divider.getAttribute("aria-valuenow"))).toBeGreaterThan(detailsHeight);
+      await page.keyboard.press("ArrowDown");
+      await expect(divider).toHaveAttribute("aria-valuenow", String(detailsHeight));
+      await page.keyboard.press("ArrowUp");
+      await page.setViewportSize({ width, height: 800 });
+      await expect.poll(async () => (await block.boundingBox())!.height).toBeCloseTo(expanded.height, 0);
+      const layout = await grid.evaluate(node => {
+        const bounds = node.getBoundingClientRect();
+        const content = node.firstElementChild!.getBoundingClientRect();
+        const header = document.querySelector(".legal-map-toolbar")!.getBoundingClientRect();
+        const details = document.querySelector("[data-legal-map-info]")!.getBoundingClientRect();
+        const divider = document.querySelector(".legal-map-divider")!.getBoundingClientRect();
+        return {
+          fits: node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1,
+          contained: content.x >= bounds.x && content.right <= bounds.right && content.y >= bounds.y && content.bottom <= bounds.bottom,
+          headerClear: bounds.y >= header.bottom,
+          detailsClear: details.y >= divider.bottom && divider.y >= document.querySelector(".legal-map-column")!.getBoundingClientRect().bottom,
+        };
+      });
+      expect(layout).toEqual({ fits: true, contained: true, headerClear: true, detailsClear: true });
+      await expect(aspect).toBeVisible();
+      await expect(page.locator("[data-legal-map-lot]")).toHaveText("SUB NO. 37Lot");
+      await page.screenshot({ path: testInfo.outputPath(`map-fit-${scope}-${width}.png`), fullPage: true });
+      const saved = (await block.boundingBox())!;
+      await page.reload();
+      await expect(page.locator("[data-legal-map-fit]")).toHaveCount(0);
+      await expect.poll(async () => (await block.boundingBox())!.height).toBeCloseTo(saved.height, 0);
+    });
+  }
+}
+
+
+
 for (const width of [1440, 900, 390]) {
   test(`property map tabs and address fit at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
@@ -15,7 +140,7 @@ for (const width of [1440, 900, 390]) {
       const label = node.querySelector("[data-legal-map-grid]")!.querySelector("[data-legal-map-subdivision]")!.previousElementSibling!.getBoundingClientRect();
       return {
         fits: node.scrollWidth <= node.clientWidth,
-        tabsFit: tabs.right <= map.right && tabs.left >= map.left && tabs.top >= map.top && tabs.bottom <= map.bottom,
+        tabsFit: tabs.right <= map.right && tabs.left >= map.left && tabs.bottom <= map.top,
         titleClear: label.top >= tabs.bottom,
         mapHeight: map.height,
       };
@@ -34,7 +159,7 @@ for (const width of [1440, 900, 390]) {
     const bounds = await iframe.boundingBox();
     expect(bounds!.width).toBeGreaterThan(250);
     expect(bounds!.height).toBeGreaterThan(200);
-    expect(overlay!.y).toBeGreaterThanOrEqual(bounds!.y);
+    expect(overlay!.y + overlay!.height).toBeLessThanOrEqual(bounds!.y);
     expect(overlay!.x + overlay!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
     await page.screenshot({ path: testInfo.outputPath(`map-address-${width}.png`), fullPage: true });
     await address.focus();

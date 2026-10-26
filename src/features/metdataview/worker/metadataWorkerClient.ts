@@ -1,10 +1,11 @@
-import { auditStoreApi } from "../../audit/store/auditStore";
+import { loadAuditReport } from "../../audit/data/loadAuditReport";
 import { createAuditWorkerClient } from "../../audit/worker/auditWorkerClient";
 import { createPageSegmentsWorkerClient } from "../../pagesegments/worker/pageSegmentsWorkerClient";
 import type { MetdataPatchResult, MetdataReprocessResult, MetdataWorkerClient, MetdataWorkerConfig } from "../type/metadataView.types";
 import type { MetadataPayload } from "aurora-core";
 import { retryWorker } from "../../../shared/worker/retryWorker";
 import { queueStoreApi } from "../../queue/store/queueStore";
+import { indexStoreApi } from "../store/metadataStore";
 import type { MetdataWorkerCommand } from "../type/metadataView.types";
 
 type WorkerError = Error & {
@@ -61,10 +62,31 @@ async function runWorkerOnce<T>(command: MetdataWorkerCommand): Promise<T> {
 
 export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWorkerClient {
   const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
+  const pagesClient = createPageSegmentsWorkerClient({ apiBaseUrl });
   const auditClient = createAuditWorkerClient({ apiBaseUrl, retryIntervalMs, retryLimit });
   const runReadWorker = <T>(command: MetdataWorkerCommand) => retryWorker(() => runWorkerOnce<T>(command), retryIntervalMs, retryLimit, onRetry);
+  const pagesData = async (token: string, session: string, refresh: boolean) => {
+    const generation = queueStoreApi.getState().generation;
+    const request = indexStoreApi.getState().setPageLoading(session);
+    try {
+      const result = await retryWorker(() => pagesClient.pagesData(token, session, refresh ? null : queueStoreApi.getState().pagePaths[session] ?? null), retryIntervalMs, retryLimit, onRetry);
+      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().pageRequests[session] === request) {
+        queueStoreApi.getState().setPagePath(session, result.path);
+        if (result.etag !== undefined) queueStoreApi.getState().setPageEtag(session, result.etag);
+        indexStoreApi.getState().setPageError(session, null);
+      }
+      return result.data;
+    } catch (error) {
+      const failure = error as WorkerError;
+      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().pageRequests[session] === request) {
+        indexStoreApi.getState().setPageError(session, { error: failure.message, code: failure.code, details: failure.details, status: failure.status });
+      }
+      throw error;
+    }
+  };
   return {
-    updatePageSegments: createPageSegmentsWorkerClient({ apiBaseUrl }).updatePageSegments,
+    updatePageSegments: pagesClient.updatePageSegments,
+    pagesData,
     patchIndex(token, session, segment, change) {
       return runWorkerOnce<MetdataPatchResult>({ apiBaseUrl, change, segment, session, token, type: "patchIndex" });
     },
@@ -76,19 +98,14 @@ export function createIndexWorkerClient(config: MetdataWorkerConfig): MetdataWor
     },
     async indexData(token, session, refresh) {
       const generation = queueStoreApi.getState().generation;
-      const metadata = await runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData", path: refresh ? null : queueStoreApi.getState().paths[session] ?? null });
+      const [metadata, pages] = await Promise.all([
+        runReadWorker<MetadataPayload>({ apiBaseUrl, session, token, type: "indexData", path: refresh ? null : queueStoreApi.getState().paths[session] ?? null }),
+        pagesData(token, session, Boolean(refresh)).catch(() => undefined),
+      ]);
       if (generation === queueStoreApi.getState().generation) {
-        const request = auditStoreApi.getState().setLoading(session, true);
-        void auditClient.loadReport(token, session).then(report => {
-          if (generation === queueStoreApi.getState().generation && auditStoreApi.getState().requests[session] === request) auditStoreApi.getState().setLoaded(session, report);
-        }).catch((error: WorkerError) => {
-          const state = auditStoreApi.getState();
-          if (generation === queueStoreApi.getState().generation && state.requests[session] === request && (state.activeSession === null || state.activeSession === session)) {
-            state.setError({ error: error.message, code: error.code, details: error.details, status: error.status });
-          }
-        });
+        void loadAuditReport({ authToken: token, session, background: true, workerClient: auditClient });
       }
-      return metadata;
+      return { ...metadata, pages };
     },
     patchStatus(token, session, version) {
       return runReadWorker<MetdataPatchResult>({ apiBaseUrl, session, token, type: "patchStatus", version });

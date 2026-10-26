@@ -1,3 +1,4 @@
+import type { ResourceRequest } from "aurora-core";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { auditStoreApi } from "../store/auditStore";
@@ -31,12 +32,10 @@ const report: AuditReport = {
       segment: "party",
     },
   ],
-  usage: {
-    costs: ["$1.66"],
-  },
+  usage: { services: [] },
 };
 
-const resource = vi.fn(async () => ({ aspects: { reference: ["recording_number"], party: ["grantor"], transaction: ["recording_date"] } }));
+const resource = vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { reference: ["recording_number"], party: ["grantor"], transaction: ["recording_date"] } } }));
 
 function client(loadReport = vi.fn(async () => report)): AuditWorkerClient {
   return {
@@ -51,7 +50,7 @@ describe("AuditPanel", () => {
     resource.mockClear();
   });
 
-  it("shows all four service groups below audit gaps without a total-cost label", async () => {
+  it("shows all four service groups below audit gaps", async () => {
     const service = { code: "one", cost: 11, time: 2, page_num: 2, timestamp: "2025-01-01T00:00:00Z" };
     const grouped: AuditReport = { ...report, usage: { ...report.usage, services: [
       { ...service, name: "extraction" },
@@ -60,62 +59,50 @@ describe("AuditPanel", () => {
       { ...service, code: "refine", name: "refinement", time: undefined },
       { ...service, code: "model", name: "model_generation", cost: 5.5, page_num: 0 },
     ] } };
-    render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}}
-      onReadyChange={vi.fn()} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => grouped))} />);
+    render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => grouped))} />);
     const table = await screen.findByRole("table", { name: "Audit service usage" });
     const usage = screen.getByRole("region", { name: "Audit usage" });
     expect(screen.getByRole("region", { name: "Audit report body" }).lastElementChild).toBe(usage);
     expect(screen.getByRole("region", { name: "Audit gaps" }).nextElementSibling).toBe(usage);
-    expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
+    expect(within(table).getAllByRole("columnheader").map(header => header.textContent)).toEqual(["Service", "Cost", "Time", "Pages"]);
     expect(within(table).getAllByRole("row")).toHaveLength(5);
-    const extraction = within(table).getByRole("row", { name: "Extraction $33.0000 5.00 s 5" });
+    const extraction = within(table).getByRole("row", { name: "Index Extraction $33.0000 5.00 s 5" });
     expect(extraction).toBeInTheDocument();
-    expect(within(table).getByRole("row", { name: "Model generation $5.5000 2.00 s 0" })).toBeInTheDocument();
-    expect(within(table).getByRole("row", { name: "Refinement $11.0000 2" }).children[2]).toHaveTextContent("");
+    expect(within(table).getByRole("row", { name: "Model Generation $5.5000 2.00 s 0" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "User Refinement $11.0000 2" }).children[2]).toHaveTextContent("");
     fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "ADD" } });
     expect(within(table).getAllByRole("row")).toHaveLength(5);
     expect(extraction).toBeInTheDocument();
   });
 
   it("does not add service rows when the audit contains no service usage", async () => {
-    render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}}
-      onReadyChange={vi.fn()} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
+    render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
     await screen.findByText("Newest addition message");
     expect(screen.queryByRole("table", { name: "Audit service usage" })).not.toBeInTheDocument();
-    expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Audit usage" })).not.toBeInTheDocument();
   });
 
-  it("reports loading to the host without package loading presentation", async () => {
-    const onLoaderChange = vi.fn();
+  it("keeps per-session totals isolated when changing sessions", async () => {
+    const service = { name: "extraction" as const, code: "first", cost: 0.125, time: 0, page_num: 1, timestamp: "2025-01-01T00:00:00Z" };
+    const workerClient: AuditWorkerClient = { loadReport: vi.fn(async (_token, session) => ({
+      gaps: [], usage: { services: session === "first" ? [service, { ...service, code: "second", cost: 0.25 }] : [{ ...service, code: "other", cost: 2 }] },
+    })) };
+    const props = { onResource: resource, apiGatewayUrl: "https://api", authToken: "token", callbacks: {}, retryLimit: 5, retryIntervalMs: 0, workerClient };
+    const { rerender } = render(<AuditPanel {...props} session="first" />);
+    expect(await screen.findByRole("row", { name: "Index Extraction $0.3750 0.00 s 2" })).toBeInTheDocument();
+    rerender(<AuditPanel {...props} session="other" />);
+    expect(await screen.findByRole("row", { name: "Index Extraction $2.0000 0.00 s 1" })).toBeInTheDocument();
+    expect(screen.queryByText("$0.3750")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("table", { name: "Audit service usage" })).getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("renders the approved audit header and scrolling report body", async () => {
     render(
       <AuditPanel
         onResource={resource}
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
-        onLoaderChange={onLoaderChange}
-        onReadyChange={vi.fn()}
-        retryLimit={5}
-        retryIntervalMs={0}
-        session="session-1"
-        workerClient={client(vi.fn(() => new Promise(() => undefined)))}
-      />,
-    );
-
-    await act(async () => {});
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving audit report...", "Attempt 1 of 5"]);
-    expect(screen.queryByText("No gaps found.")).not.toBeInTheDocument();
-  });
-
-  it("renders the approved audit header and scrolling report body without a total-cost label", async () => {
-    render(
-      <AuditPanel
-        onResource={resource}
-        apiGatewayUrl="https://api"
-        authToken="token"
-        callbacks={{}}
-        onReadyChange={vi.fn()}
         retryLimit={5}
         retryIntervalMs={0}
         session="session-1"
@@ -126,7 +113,7 @@ describe("AuditPanel", () => {
     await screen.findByText("Newest addition message");
     expect(within(screen.getByText("Out of 3").parentElement!).getByText("3")).toBeInTheDocument();
     expect(screen.getByText("Out of 3")).toBeInTheDocument();
-    expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Audit usage" })).not.toBeInTheDocument();
     expect(screen.getByText("Change type")).toBeInTheDocument();
     expect(screen.getByText("Process")).toBeInTheDocument();
     expect(screen.queryByText("Audit gaps", { exact: true })).not.toBeInTheDocument();
@@ -156,7 +143,6 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
-        onReadyChange={vi.fn()}
         retryLimit={5}
         retryIntervalMs={0}
         session="session-1"
@@ -181,17 +167,16 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
-        onReadyChange={vi.fn()}
         retryLimit={5}
         retryIntervalMs={0}
         session="session-1"
-        workerClient={client(vi.fn(async () => ({ gaps: [], usage: { costs: [] } })))}
+        workerClient={client(vi.fn(async () => ({ gaps: [], usage: { services: [] } })))}
       />,
     );
 
     await screen.findByText("No gaps found.");
     expect(screen.getAllByRole("option", { name: "All (0)" })).toHaveLength(3);
-    expect(screen.queryByText("$1.66")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Audit usage" })).not.toBeInTheDocument();
   });
 
   it("filters GapEntry solution and owner through the existing controls", async () => {
@@ -201,7 +186,6 @@ describe("AuditPanel", () => {
         apiGatewayUrl="https://api"
         authToken="token"
         callbacks={{}}
-        onReadyChange={vi.fn()}
         retryLimit={5}
         retryIntervalMs={0}
         session="session-1"
@@ -233,11 +217,10 @@ describe("AuditPanel", () => {
     expect(screen.getAllByRole("option", { name: "All (3)" })).toHaveLength(3);
   });
   it("loads the catalog through the resource callback and filters by catalog segment names", async () => {
-    render(<AuditPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onResource={resource}
-      onReadyChange={vi.fn()} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
+    render(<AuditPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onResource={resource} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
     await screen.findByText("Newest addition message");
     expect(resource).toHaveBeenCalledTimes(1);
-    expect(resource).toHaveBeenCalledWith({ resource: "aspects" });
+    expect(resource).toHaveBeenCalledWith(expect.objectContaining({ resource: "aspects", session: "session-1", callback: expect.any(Function) }));
     const segment = screen.getByLabelText("Segment");
     expect(within(segment).getAllByRole("option").map(option => option.textContent)).toEqual(["All (3)", "Reference (1)", "Party (1)", "Transaction (0)"]);
     fireEvent.change(segment, { target: { value: "party" } });
@@ -256,45 +239,78 @@ describe("AuditPanel", () => {
     expect(resource).toHaveBeenCalledTimes(1);
   });
 
-  it("waits for the catalog before exposing the report and reports resource failures", async () => {
-    let reject!: (error: Error) => void;
-    const onReadyChange = vi.fn();
+
+  it.each(["pending", "failed"])("keeps report data visible when aspects are %s", async state => {
+    let callback!: ResourceRequest["callback"];
     const onAuditError = vi.fn();
     render(<AuditPanel apiGatewayUrl="https://api" authToken="token" callbacks={{ onAuditError }}
-      onResource={() => new Promise((_, fail) => { reject = fail; })} onReadyChange={onReadyChange}
-      retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
-    expect(screen.queryByLabelText("Segment")).not.toBeInTheDocument();
-    await act(async () => reject(new Error("Catalog unavailable")));
-    expect(onAuditError).toHaveBeenCalledWith(expect.objectContaining({ error: "Catalog unavailable" }));
-    expect(screen.queryByRole("article")).not.toBeInTheDocument();
-    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+      onResource={request => { callback = request.callback; }} retryLimit={5} retryIntervalMs={0}
+      session="session-1" workerClient={client()} />);
+    expect(screen.getByRole("region", { name: "Audit report body" })).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Loading audit gaps" })).toBeInTheDocument();
+    expect(await screen.findByText("Newest addition message")).toBeVisible();
+    expect(screen.getByLabelText("Change type")).toBeEnabled();
+    expect(screen.getByRole("status", { name: "Loading segment options" })).toBeVisible();
+    if (state === "failed") {
+      await act(async () => callback({ ok: false, error: "Catalog unavailable", code: "catalog_failed", status: 503 }));
+      expect(screen.getByRole("alert")).toHaveTextContent("Segment options could not be loaded. Refresh the audit report to try again.");
+      expect(screen.getByRole("alert")).toHaveStyle({ color: "var(--error-text-color-light)", background: "#FEF2F2" });
+      expect(screen.getByText("Newest addition message")).toBeVisible();
+      expect(onAuditError).not.toHaveBeenCalled();
+    }
   });
 
-  it("keeps host loading active until the catalog resolves", async () => {
-    let resolve!: (value: unknown) => void;
-    const onReadyChange = vi.fn();
-    const onLoaderChange = vi.fn();
-    const worker = client();
-    render(<AuditPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} onResource={() => new Promise(done => { resolve = done; })}
-      onReadyChange={onReadyChange} onLoaderChange={onLoaderChange} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={worker} />);
-    await act(async () => { await worker.loadReport("token", "session-1"); });
-    expect(screen.queryByRole("article")).not.toBeInTheDocument();
-    expect(onReadyChange).not.toHaveBeenCalledWith(true);
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving audit report..."]);
-    await act(async () => resolve({ aspects: { reference: ["recording_number"], party: ["grantor"] } }));
-    expect(screen.getAllByRole("article")).toHaveLength(3);
-    expect(onReadyChange).toHaveBeenLastCalledWith(true);
-    expect(onLoaderChange).toHaveBeenLastCalledWith(null);
+  it("mounts independent placeholders and starts report and aspects concurrently", async () => {
+    let callback!: ResourceRequest["callback"];
+    let resolve!: (value: AuditReport) => void;
+    const loadReport = vi.fn(() => new Promise<AuditReport>(done => { resolve = done; }));
+    const onResource = vi.fn((request: ResourceRequest) => { callback = request.callback; });
+    render(<AuditPanel onResource={onResource} apiGatewayUrl="https://api" authToken="token" callbacks={{}}
+      retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(loadReport)} />);
+    for (const name of ["Loading audit filters", "Loading audit summary", "Loading audit gaps", "Loading service usage"])
+      expect(screen.getByRole("status", { name })).toBeInTheDocument();
+    expect(loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1");
+    expect(onResource).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ resource: "aspects", session: "session-1", callback: expect.any(Function) }));
+    await act(async () => callback({ ok: true, data: { aspects: { party: ["grantor"] } } }));
+    expect(screen.getByRole("status", { name: "Loading audit gaps" })).toBeVisible();
+    await act(async () => resolve(report));
+    expect(screen.getByText("Newest addition message")).toBeVisible();
+    expect(screen.getByLabelText("Segment")).toBeEnabled();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("rejects an invalid catalog through the existing error callback", async () => {
+  it("loads segment options after the report without resetting active filters", async () => {
+    let callback!: ResourceRequest["callback"];
+    render(<AuditPanel onResource={request => { callback = request.callback; }} apiGatewayUrl="https://api"
+      authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
+    await screen.findByText("Newest addition message");
+    fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "REMOVE" } });
+    await act(async () => callback({ ok: true, data: { aspects: { reference: ["recording_number"], party: ["grantor"], transaction: ["recording_date"] } } }));
+    expect(screen.getByLabelText("Change type")).toHaveValue("REMOVE");
+    expect(screen.getByText("Old remove message")).toBeVisible();
+    expect(screen.queryByText("Newest addition message")).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("Segment")).getByRole("option", { name: "Transaction (0)" })).toBeInTheDocument();
+  });
+
+  it("ignores a previous session catalog callback", async () => {
+    const callbacks: ResourceRequest["callback"][] = [];
+    const onResource = (request: ResourceRequest) => { callbacks.push(request.callback); };
+    const props = { onResource, apiGatewayUrl: "https://api", authToken: "token", callbacks: {}, retryLimit: 5, retryIntervalMs: 0, workerClient: client() };
+    const view = render(<AuditPanel {...props} session="first" />);
+    await screen.findByText("Newest addition message");
+    view.rerender(<AuditPanel {...props} session="second" />);
+    await act(async () => callbacks[1]({ ok: true, data: { aspects: { party: ["grantor"] } } }));
+    await act(async () => callbacks[0]({ ok: true, data: { aspects: { old: ["stale"] } } }));
+    expect(within(screen.getByLabelText("Segment")).queryByRole("option", { name: /Old/ })).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText("Segment")).getByRole("option", { name: /Party/ })).toBeInTheDocument();
+  });
+
+  it("keeps report failure in the existing report error callback", async () => {
     const onAuditError = vi.fn();
-    render(<AuditPanel apiGatewayUrl="https://api" authToken="token" callbacks={{ onAuditError }}
-      onResource={async () => ({ aspects: { party: [1] } })} onReadyChange={vi.fn()}
-      retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
+    render(<AuditPanel onResource={() => undefined} apiGatewayUrl="https://api" authToken="token" callbacks={{ onAuditError }}
+      retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => { throw new Error("Audit unavailable"); }))} />);
     await act(async () => {});
-    expect(onAuditError).toHaveBeenCalledWith(expect.objectContaining({ error: "Aspects resource is invalid." }));
-    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    expect(onAuditError).toHaveBeenCalledWith(expect.objectContaining({ error: "Audit unavailable" }));
+    expect(screen.queryByText("No gaps found.")).not.toBeInTheDocument();
   });
-
 });

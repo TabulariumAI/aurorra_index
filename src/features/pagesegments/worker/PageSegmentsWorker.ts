@@ -1,4 +1,5 @@
-import type { PageSegmentsWorkerCommand, PageSegmentsWorkerResult } from "../type/pageSegments.types";
+import { fetchJson } from "../../../shared/worker/fetchJson";
+import type { PagesData, PageSegmentsWorkerCommand, PageSegmentsWorkerResult } from "../type/pageSegments.types";
 
 type ParsedResponse = {
   invalidJson: boolean;
@@ -47,8 +48,9 @@ function httpError(parsed: ParsedResponse): PageSegmentsWorkerResult<never> {
 }
 
 export class PageSegmentsWorker {
-  buildRequest(command: PageSegmentsWorkerCommand): { body: string; method: "POST"; url: string } {
+  buildRequest(command: PageSegmentsWorkerCommand): { body: string | null; method: "GET" | "POST"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
+    if (command.type === "pagesData") return { body: null, method: "GET", url: `${apiBaseUrl}/v1/content/${encodeURIComponent(command.session)}/pages` };
     return {
       body: JSON.stringify({ segments: command.segments }),
       method: "POST",
@@ -56,7 +58,33 @@ export class PageSegmentsWorker {
     };
   }
 
-  async run(command: PageSegmentsWorkerCommand): Promise<PageSegmentsWorkerResult<void>> {
+  private async loadPages(command: Extract<PageSegmentsWorkerCommand, { type: "pagesData" }>): Promise<PageSegmentsWorkerResult<PagesData>> {
+    let path = command.path;
+    let etag: string | undefined;
+    if (!path) {
+      const request = this.buildRequest(command);
+      let response: Response;
+      try {
+        response = await fetch(request.url, { headers: { Authorization: `Bearer ${command.token}` }, method: request.method });
+      } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : String(error) };
+      }
+      const parsed = await parseResponse(response);
+      if (!response.ok) return httpError(parsed);
+      const envelope = parsed.payload;
+      if (!isObject(envelope) || envelope.status !== "completed" || typeof envelope.data !== "string" || typeof envelope.etag !== "string") {
+        return { ok: false, code: "validation_error", error: "Pages export is incomplete or invalid." };
+      }
+      path = envelope.data;
+      etag = envelope.etag;
+    }
+    const result = await fetchJson(path);
+    if (!result.ok) return result;
+    if (!isObject(result.data) || typeof result.data.num_of_pages !== "number") return { ok: false, code: "validation_error", error: "Invalid pages data." };
+    return { ok: true, data: result.data as PagesData, path, ...(etag !== undefined ? { etag } : {}) };
+  }
+
+  async run(command: PageSegmentsWorkerCommand): Promise<PageSegmentsWorkerResult<void | PagesData>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }
@@ -66,6 +94,7 @@ export class PageSegmentsWorker {
     if (typeof command.session !== "string" || !command.session.trim()) {
       return { ok: false, code: "invalid_session", error: "Session is missing or invalid." };
     }
+    if (command.type === "pagesData") return this.loadPages(command);
     if (typeof command.pageCode !== "string" || !command.pageCode.trim()) {
       return { ok: false, code: "invalid_page_code", error: "Page code is missing or invalid." };
     }

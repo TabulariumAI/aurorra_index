@@ -38,7 +38,6 @@ export type AuditUsageService = {
 };
 
 export type AuditUsage = {
-  costs?: string[] | null;
   services?: AuditUsageService[] | null;
 };
 
@@ -124,9 +123,7 @@ export type AuditPanelProps = {
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: AuditCallbacks;
-  onResource(request: ResourceRequest): Promise<unknown>;
-  onLoaderChange?(lines: readonly string[] | null): void;
-  onReadyChange(ready: boolean): void;
+  onResource(request: ResourceRequest): void;
   retryLimit: number;
   retryIntervalMs: number;
   session: string;

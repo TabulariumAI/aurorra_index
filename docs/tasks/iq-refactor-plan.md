@@ -37,3 +37,5 @@ Verification covers the worker query contract, metadata resource selection,
 forced refresh, shared success/error callbacks, reset/reopen races, event forwarding,
 service reuse/generation/waiting branches, report hashing, and Edge rendering at
 390px and 1440px.
+
+Open and Restore wait inside Index for the session metadata eTag; they never issue an unversioned request while metadata is unavailable. Metadata failure and owner reset reject the wait. IQ renders content-shaped placeholders for the score card, segment table, and compliance gates using its existing layout styles and Core loading semantics and skeleton styling, without host loading/readiness callbacks. Unknown scores, counts, and statuses remain neutral shapes hidden from assistive technology; section labels and table headers remain readable. Header Refresh and background generation still omit the eTag. A matching running gateway build is awaited and reused, including its failure result.

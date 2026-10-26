@@ -22,7 +22,7 @@ function runtime(): QueueRuntime {
   return {
     onChange: vi.fn(), authToken: "token", intervalMs: 0,
     client: {
-      updatePageSegments: vi.fn(async () => undefined),
+      pagesData: vi.fn(), updatePageSegments: vi.fn(async () => undefined),
       patchIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
@@ -473,6 +473,7 @@ describe("queued row recovery and pages", () => {
   });
   it("applies page segments immediately and processes them behind an index task", async () => {
     const config = runtime(); const response = pendingResponse();
+    vi.mocked(config.client.pagesData).mockResolvedValue({ num_of_pages: 1, recordables: [{ code: "page-1", name: "1", segments: ["legal"] }] });
     vi.mocked(config.client.indexData).mockResolvedValue({ indexes: [index], pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", segments: ["legal"] }] } });
     vi.mocked(config.client.patchIndex).mockReturnValue(response.promise);
     await enqueue([update], config);
@@ -483,6 +484,30 @@ describe("queued row recovery and pages", () => {
     await waitFor(() => expect(config.client.updatePageSegments).toHaveBeenCalledWith("token", "session-1", "page-1", ["legal"]));
     await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
     expect(config.client.patchStatus).not.toHaveBeenCalled();
+  });
+  it("refreshes only content pages after a page edit and preserves loaded indexes", async () => {
+    const config = runtime();
+    const pages = { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", segments: ["reference"] }] };
+    vi.mocked(config.client.pagesData).mockResolvedValue(pages);
+    await queueStoreApi.getState().enqueue({ session: "session-1", batch: "batch-1", segment: "page", action: "page", code: "page-1", segments: ["reference"] }, config);
+    await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
+    expect(config.client.pagesData).toHaveBeenCalledWith("token", "session-1", true);
+    expect(config.client.indexData).not.toHaveBeenCalled();
+    expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.pages).toEqual(pages);
+    expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes).toEqual([index]);
+  });
+  it("refreshes indexes as well when a page edit follows an index edit", async () => {
+    const config = runtime();
+    const response = pendingResponse();
+    vi.mocked(config.client.patchIndex).mockReturnValue(response.promise);
+    vi.mocked(config.client.indexData).mockResolvedValue({ indexes: [{ ...index, value: "Bob" }], pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", segments: ["reference"] }] } });
+    await enqueue([update], config);
+    await queueStoreApi.getState().enqueue({ session: "session-1", batch: "batch-1", segment: "page", action: "page", code: "page-1", segments: ["reference"] }, config);
+    response.resolve({ data: "", status: "completed", version: 1 });
+    await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
+    expect(config.client.indexData).toHaveBeenCalledOnce();
+    expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes?.[0].value).toBe("Bob");
+    expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.pages?.recordables?.[0].segments).toEqual(["reference"]);
   });
   it("retries failed page changes and restores segments when canceled", async () => {
     const config = runtime(); vi.mocked(config.client.updatePageSegments).mockRejectedValue(new Error("Page failed"));

@@ -20,6 +20,6 @@ export type EditIndexPanelProps = {
   onClose(): void;
   onError(error: MetadataError): void;
   onReadyChange(ready: boolean): void;
-  onResource(request: ResourceRequest): Promise<unknown>;
+  onResource(request: ResourceRequest): void;
   workerClient?: MetdataWorkerClient;
 };

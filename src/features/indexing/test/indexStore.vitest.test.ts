@@ -22,7 +22,7 @@ describe("index store", () => {
     expect(parts?.legalJSON.legals).toEqual(payload.legals);
     expect(composeMetadataJSON(parts)).toEqual(payload);
     expect(normalizeLegalData(parts?.legalJSON.legals).subdivisions[0].divisions[0].blocks).toEqual([
-      { name: "1/4482C", lots: [{ name: "32" }] },
+      { name: "1/4482C", lots: [{ kind: "lot", name: "32" }] },
     ]);
     expect(payload.legals.groups).toHaveLength(2);
     expect(payload.legals.groups.map(group => group.elements[2].value)).toEqual(["1", "4482C"]);

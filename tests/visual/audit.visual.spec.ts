@@ -19,7 +19,7 @@ test("Audit panel renders filters, sorting, and message expansion", async ({ pag
   const changeType = page.getByLabel("Change type");
   const process = page.getByLabel("Process");
   const badgeLabel = page.getByText("Out of 3");
-  await expect(page.getByText("$1.6641 $0.0190")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Audit usage" })).toHaveCount(0);
 
   const changeTypeBox = await changeType.boundingBox();
   const processBox = await process.boundingBox();

@@ -8,7 +8,7 @@ import { pageSegmentsStoreApi } from "../store/pageSegmentsStore";
 
 const metadata: MetadataPayload = { indexes: [], pages: { num_of_pages: 2, recordables: [{ code: "page-a", name: "1", segments: ["reference"] }], nonrecordables: [{ code: "page-b", name: "2", segments: ["property"] }] } };
 function setup() {
-  const workerClient = { updatePageSegments: vi.fn(() => new Promise<void>(() => {})), indexData: vi.fn(async () => metadata), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn() };
+  const workerClient = { pagesData: vi.fn(async () => metadata.pages!), updatePageSegments: vi.fn(() => new Promise<void>(() => {})), indexData: vi.fn(async () => metadata), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn() };
   const onClose = vi.fn(); const onError = vi.fn();
   render(<PageSegmentsPanel onQueueChange={vi.fn()} apiGatewayUrl="https://gateway" authToken="token" batchCode="batch-1" intervalMs={0} retryIntervalMs={0} retryLimit={0} choices={[{ level: 1, service: "RecitalIndexing" }, { level: 1, service: "ConfidentialIndexing" }]} onClose={onClose} onError={onError} onReadyChange={vi.fn()} pageClass="blank" pageCode="page-a" segments={["reference"]} session="session-1" workerClient={workerClient} />);
   return { workerClient, onClose, onError };

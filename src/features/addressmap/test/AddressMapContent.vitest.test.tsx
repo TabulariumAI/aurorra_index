@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { StrictMode } from "react";
+import { StrictMode, useLayoutEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appendAddressMapZoom, buildAddressMapEmbedUrl } from "../data/addressMap";
 import { AddressMapContent } from "../component/AddressMapContent";
@@ -12,6 +12,18 @@ describe("AddressMapContent", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+  });
+
+  it("retains a load received during the initial commit without restarting its timeout", () => {
+    const onReadyChange = vi.fn();
+    function EarlyLoad() {
+      useLayoutEffect(() => { screen.getByTestId("address-map-iframe").dispatchEvent(new Event("load")); }, []);
+      return <AddressMapContent onLoaderChange={vi.fn()} onReadyChange={onReadyChange} source={source} zoom={14} />;
+    }
+    render(<EarlyLoad />);
+    expect(screen.getByTestId("address-map-iframe")).toHaveStyle({ visibility: "visible" });
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("starts eager navigation and remains not ready until the iframe loads", () => {

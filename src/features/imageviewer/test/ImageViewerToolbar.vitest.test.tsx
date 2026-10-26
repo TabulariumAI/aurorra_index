@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImageViewerFooterToolbar, ImageViewerTopToolbar } from "../component/ImageViewerToolbar";
 
@@ -124,7 +124,7 @@ describe("ImageViewerToolbar", () => {
     expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "zoomIn" });
     expect(screen.queryByRole("button", { name: "Find selected index" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Selection controls")).toBeInTheDocument();
-    expect(scaleOptions).toHaveAttribute("title", "Scale options");
+    expect(scaleOptions).not.toHaveAttribute("title");
     expect(screen.queryByRole("button", { name: "Copy selected words" })).not.toBeInTheDocument();
   });
 
@@ -278,7 +278,9 @@ describe("ImageViewerToolbar", () => {
     expect(exitSelect.style.background).toBe("var(--white)");
     expect(exitSelect.style.boxShadow).toBe("inset 0 0 0 2px var(--primary)");
     expect(exitSelect).toHaveStyle({ color: "var(--primary-dark)" });
-    expect(exitSelect).toHaveAttribute("title", "Exit select mode");
+    expect(exitSelect).not.toHaveAttribute("title");
+    act(() => exitSelect.focus());
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Exit select mode");
     expect(screen.queryByRole("button", { name: "Select" })).not.toBeInTheDocument();
 
     fireEvent.click(exitSelect);
@@ -386,4 +388,43 @@ describe("ImageViewerToolbar", () => {
     expect(console.info).toHaveBeenCalledWith("imageviewer toolbar action", { action: "next", page: 2, pageCount: 4 });
     expect(screen.queryByText(/add|remove|reorder|export|draw/i)).not.toBeInTheDocument();
   });
+});
+
+it.each(["Zoom out", "Zoom in", "Scale options", "Search", "Select", "Clear selections", "More"])("shows the %s top action tooltip on focus", async label => {
+  render(<ImageViewerTopToolbar canActualSize canClearSearch canExport canFitHeight canFitPage canFitWidth canSearch canSelect canZoomIn canZoomOut compact={false} selecting={false} onAction={vi.fn()} onSearchText={vi.fn()} searchText="Cedar" zoom={1} />);
+  const button = screen.getByRole("button", { name: label });
+  expect(button).not.toHaveAttribute("title");
+  act(() => button.focus());
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(label);
+  expect(button).toHaveAccessibleDescription(label);
+  fireEvent.keyDown(button, { key: "Escape" });
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  expect(button).toHaveFocus();
+});
+
+it.each(["Thumbnails", "First page", "Previous page", "Next page", "Last page"])("shows the %s footer action tooltip on focus", async label => {
+  render(<ImageViewerFooterToolbar canGoFirst canGoLast canGoNext canGoPrevious canShowThumbnails onAction={vi.fn()} page={2} pageCount={4} />);
+  const button = screen.getByRole("button", { name: label });
+  expect(button).not.toHaveAttribute("title");
+  act(() => button.focus());
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(label);
+  expect(button).toHaveAccessibleDescription(label);
+  fireEvent.keyDown(button, { key: "Escape" });
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  expect(button).toHaveFocus();
+});
+
+it("keeps unavailable footer actions natively disabled without adding focus targets", () => {
+  const onAction = vi.fn();
+  render(<ImageViewerFooterToolbar canGoFirst={false} canGoLast={false} canGoNext={false} canGoPrevious={false} canShowThumbnails={false} onAction={onAction} page={1} pageCount={1} />);
+  const buttons = screen.getAllByRole("button");
+  expect(buttons).toHaveLength(5);
+  for (const button of buttons) {
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    act(() => button.focus());
+    expect(button).not.toHaveFocus();
+  }
+  expect(onAction).not.toHaveBeenCalled();
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 });

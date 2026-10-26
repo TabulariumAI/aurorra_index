@@ -23,7 +23,7 @@ export type AddIndexPanelProps = {
   onClose(): void;
   onError(error: MetadataError): void;
   onReadyChange(ready: boolean): void;
-  onResource(request: ResourceRequest): Promise<unknown>;
+  onResource(request: ResourceRequest): void;
   intervalMs: number;
   batchCode: string | null;
   retryIntervalMs: number;

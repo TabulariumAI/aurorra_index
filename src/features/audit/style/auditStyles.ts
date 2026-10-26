@@ -139,6 +139,12 @@ export const auditStyles = {
     flex: "1 1 10rem",
     minWidth: "10rem",
   } as CSSProperties,
+  filterError: {
+    background: "#FEF2F2",
+    borderRadius: "var(--radius-control)",
+    color: "var(--error-text-color-light)",
+    padding: "0.45rem 0.6rem",
+  } as CSSProperties,
   empty: {
     color: gapMetaPalette.muted,
   } as CSSProperties,
@@ -163,6 +169,8 @@ export const auditStyles = {
   gapHeader: {
     alignItems: "center",
     display: "flex",
+    flexWrap: "wrap",
+    gap: "0.35rem 0.75rem",
     justifyContent: "space-between",
   } as CSSProperties,
   gapAspect: {

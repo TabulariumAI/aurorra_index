@@ -20,6 +20,18 @@ function panel(metadata: MetadataPayload, openSegment: string, callbacks: Metada
 }
 
 describe("metadata page and title previews", () => {
+  it("renders changed page segments and supplies the same values when editing", () => {
+    const onEditPage = vi.fn();
+    const view = panel({ pages: { recordables: [{ name: "1", code: "page-1", class: "instrument", segments: ["party"] }] } }, "page", { onEditPage });
+    expect(screen.getByText("Party")).toBeVisible();
+    view.unmount();
+    panel({ pages: { recordables: [{ name: "1", code: "page-1", class: "instrument", segments: ["reference", "secrets"] }] } }, "page", { onEditPage });
+    expect(screen.queryByText("Party")).not.toBeInTheDocument();
+    expect(screen.getByText("Reference, Secrets")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
+    expect(onEditPage).toHaveBeenCalledWith(expect.objectContaining({ pageSegments: ["reference", "secrets"] }), expect.any(HTMLElement));
+  });
+
   it.each([
     ["1", "instrument", "Instrument"], ["26", "Title", "Title"], ["Exhibit-A", "TITLE", "Title"],
     ["01", "deed", "Title"], ["1", "title", "Title"], ["2", "title", "Title"],

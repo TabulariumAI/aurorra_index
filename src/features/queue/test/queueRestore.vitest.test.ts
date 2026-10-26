@@ -8,7 +8,7 @@ function runtime(): QueueRuntime {
     patchIndex: vi.fn(() => new Promise<never>(() => {})),
     patchStatus: vi.fn(() => new Promise<never>(() => {})),
     indexData: vi.fn(async () => ({ indexes: [] })),
-    confirmIndex: vi.fn(), dropIndex: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+    confirmIndex: vi.fn(), dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
   } };
 }
 
@@ -205,6 +205,6 @@ it("persists refreshed baselines and ignores responses after approved cancellati
   respond({ status: "completed", data: "", version: 7 });
   await Promise.resolve();
   expect(config.client.indexData).not.toHaveBeenCalled();
-  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {}, paths: {}, etags: {} });
+  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {}, paths: {}, etags: {}, pagePaths: {}, pageEtags: {} });
   expect(JSON.stringify(storeApi.getState().getJSON("session"))).toContain("Fresh");
 });

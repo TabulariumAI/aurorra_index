@@ -20,8 +20,8 @@ export function IndexInput({ value, aspects, segment, selected, onChange, onSele
   }, [eligible, onEnrichmentChange]);
   return <>
     <div data-testid="add-index-field" style={formStyles.field}>
-      <label htmlFor={id} style={formStyles.label}>Index</label>
-      <input id={id} onChange={(event) => onChange(event.target.value)} style={formStyles.input} type="text" value={value} />
+      <label htmlFor={id} style={formStyles.label}>Index (required)</label>
+      <input id={id} onChange={(event) => onChange(event.target.value)} required style={formStyles.input} type="text" value={value} />
     </div>
     <TypeSelect aspects={aspects} segment={segment} selected={selected} onChange={onSelect} />
     <label htmlFor={`${id}-enrichment`} style={formStyles.checkboxRow}>

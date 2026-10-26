@@ -261,7 +261,7 @@ describe("metadata visual surface", () => {
     if (segmentRoot) {
       expect(segmentRoot).toHaveStyle({
         margin: "0px",
-        overflow: "hidden",
+        overflow: "visible",
         width: "100%",
       });
     }

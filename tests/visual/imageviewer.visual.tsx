@@ -140,7 +140,7 @@ function VisualImageViewer() {
             onReadyChange={(ready) => {
               stage.dataset.addIndexReady = String(ready);
             }}
-            onResource={async () => ({ aspects: { party: ["grantor", "grantee"] } })}
+            onResource={request => request.callback({ ok: true, data: { aspects: { party: ["grantor", "grantee"] } } })}
             segment="party"
             request={request}
             session={hostInput.session}

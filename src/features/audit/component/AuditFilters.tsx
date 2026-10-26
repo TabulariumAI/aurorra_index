@@ -1,11 +1,16 @@
-import { formatLabel } from "aurora-core";
+import { formatLabel, LoadPlaceholder, type MetadataError, type ResourceRequest } from "aurora-core";
+import { useMemo, useState } from "react";
 import { auditStyles } from "../style/auditStyles";
-import type { AuditFilters as AuditFiltersState, AuditReportView } from "../type/audit.types";
+import type { AuditFilters as AuditFiltersState, AuditReport } from "../type/audit.types";
+import { prepareAuditReport } from "../data/auditData";
+import { useAspects } from "../../../shared/hook/useAspects";
 
 type AuditFiltersProps = {
   onFiltersChange: (filters: AuditFiltersState) => void;
   filters: AuditFiltersState;
-  report: AuditReportView;
+  report: AuditReport | null;
+  session: string;
+  onResource(request: ResourceRequest): void;
 };
 
 const changeOptions = [
@@ -24,7 +29,13 @@ const processOptions = [
   ["OTHER", "Other"],
 ];
 
-export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersProps) {
+export function AuditFilters({ filters, onFiltersChange, report: data, session, onResource }: AuditFiltersProps) {
+  const request = useMemo(() => ({ session }), [session]);
+  const [resourceReady, setResourceReady] = useState(false);
+  const [error, setError] = useState<MetadataError | null>(null);
+  const { aspects, ready } = useAspects(request, session, onResource, setResourceReady, setError);
+  if (data === null) return <LoadPlaceholder label="Loading audit filters" />;
+  const report = prepareAuditReport(data, filters, Object.keys(aspects));
   const allChanges = Object.values(report.changeCounts).reduce((total, count) => total + count, 0);
   const allProcesses = Object.values(report.processCounts).reduce((total, count) => total + count, 0);
 
@@ -73,7 +84,9 @@ export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersP
         </label>
         <label style={{ ...auditStyles.filterLabel, ...auditStyles.filterSelectGroup }}>
           <span>Segment</span>
-          <select
+          {!resourceReady ? <LoadPlaceholder label="Loading segment options" /> : error ? (
+            <span role="alert" style={auditStyles.filterError}>Segment options could not be loaded. Refresh the audit report to try again.</span>
+          ) : ready ? <select
             aria-label="Segment"
             onChange={(event) => onFiltersChange({ ...filters, segment: event.target.value })}
             style={auditStyles.filterSelect}
@@ -83,7 +96,7 @@ export function AuditFilters({ filters, onFiltersChange, report }: AuditFiltersP
             {Object.entries(report.segmentCounts).map(([segment, count]) => (
               <option key={segment} value={segment}>{`${formatLabel(segment)} (${count})`}</option>
             ))}
-          </select>
+          </select> : null}
         </label>
       </div>
     </div>

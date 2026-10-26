@@ -34,9 +34,7 @@ const report: AuditReport = {
       segment: null,
     },
   ],
-  usage: {
-    costs: ["$1.6641", "$0.0190"],
-  },
+  usage: { services: [] },
 };
 
 const workerClient: AuditWorkerClient = {
@@ -55,11 +53,15 @@ stage.innerHTML = "";
 
 createRoot(stage).render(
   <AuditPanel
-    onResource={() => fetch("https://doc.example.com/v1/model/aspects").then(response => response.json())}
+    onResource={request => {
+      void fetch("https://doc.example.com/v1/model/aspects").then(response => response.json()).then(
+        data => request.callback({ ok: true, data }),
+        error => request.callback({ ok: false, error: error.message }),
+      );
+    }}
     apiGatewayUrl="https://doc.example.com"
     authToken="token"
     callbacks={{}}
-    onReadyChange={() => undefined}
     session="session-1"
     retryLimit={1}
     retryIntervalMs={0}

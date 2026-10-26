@@ -5,6 +5,32 @@ import { loadImagePackage } from "../data/loadImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 describe("loadImagePackage", () => {
+  it("retries a failed package through the existing request and then reuses its loaded output", async () => {
+    const onError = vi.fn();
+    const workerClient = {
+      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
+      imageStatus: vi.fn()
+        .mockResolvedValueOnce({ status: "error", data: "image_failed: Upload failed" })
+        .mockResolvedValueOnce({ status: "completed", data: "" }),
+      imageData: vi.fn(async () => ({ status: "completed" as const, data: { data: "https://storage.test/retry.json", tiff: "https://storage.test/retry.tiff" } })),
+      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
+    };
+    const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "retry-session", workerClient };
+    await loadImagePackage(input);
+    expect(imageViewerStoreApi.getState().status).toBe("error");
+    expect(onError).toHaveBeenCalledOnce();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+
+    await loadImagePackage(input);
+    expect(workerClient.packageImage).toHaveBeenCalledTimes(2);
+    expect(workerClient.packageImage).toHaveBeenLastCalledWith("token", "retry-session");
+    expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", error: null, packageStatus: "completed" });
+    expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
+    await loadImagePackage(input);
+    expect(workerClient.packageImage).toHaveBeenCalledTimes(2);
+    expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
+  });
+
   it.each([
     ["pending", "completed"], ["processing", "completed"],
     ["pending", "error"], ["processing", "error"],

@@ -29,11 +29,11 @@ for (const width of [1440, 390]) {
           await expect(checkbox).not.toBeChecked();
           await checkbox.check();
         }
-        await page.getByRole("textbox", { name: "Index" }).fill("Changed value");
+        await page.getByRole("textbox", { name: "Index (required)" }).fill("Changed value");
         if (mode === "add") {
-          await page.getByRole("combobox", { name: "Type" }).click();
-          await page.getByRole("option", { name: segment === "party" ? "Person" : segment === "property" ? "Parcel Id" : "Recording Number" }).click();
-          await page.getByRole("textbox", { name: "Index" }).click();
+          await page.getByRole("combobox", { name: "Type (required)" }).click();
+          await page.getByRole("option", { name: segment === "party" ? "Person" : segment === "property" ? "Property Id" : "Recording Number" }).click();
+          await page.getByRole("textbox", { name: "Index (required)" }).click();
         }
         const command = page.getByRole("button", { name: mode === "add" ? "Add" : "Update", exact: true });
         const checkBox = await checkbox.boundingBox();

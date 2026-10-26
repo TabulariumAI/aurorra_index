@@ -1,0 +1,29 @@
+
+Running 1 test using 1 worker
+
+
+(node:68764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [visual edge] › tests\visual\cogo.visual.spec.ts:32:3 › confirmed parcel and partial parcel preserve the requested layout at 390px
+  1) [visual edge] › tests\visual\cogo.visual.spec.ts:32:3 › confirmed parcel and partial parcel preserve the requested layout at 390px 
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 18
+    Received:    9.75
+
+      41 |     await expect(maps.nth(1).getByText("Unconfirmed call", { exact: true })).toBeVisible();
+      42 |     const warning = page.getByRole("note").filter({ hasText: "Partial COGO map shown" });
+    > 43 |     expect((await warning.locator("svg").boundingBox())!.width).toBeGreaterThanOrEqual(18);
+         |                                                                 ^
+      44 |     await expect(page.getByRole("button", { name: "Reprocess legal" })).toHaveCount(0);
+      45 |     const table = page.getByRole("table", { name: "Boundary Calls" }).nth(1);
+      46 |     await expect(table.getByRole("columnheader")).toHaveText(["#", "Boundary", "Bearing", "Distance", "Status"]);
+        at C:\GitHub\Tabularium\aurorra_index\tests\visual\cogo.visual.spec.ts:43:65
+
+    Error Context: test-results\cogo.visual-confirmed-parc-16d79-e-requested-layout-at-390px-visual-edge\error-context.md
+
+
+  1 failed
+    [visual edge] › tests\visual\cogo.visual.spec.ts:32:3 › confirmed parcel and partial parcel preserve the requested layout at 390px 

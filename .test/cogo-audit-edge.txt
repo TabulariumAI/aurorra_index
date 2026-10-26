@@ -1,0 +1,20 @@
+
+[WebServer] (node:63164) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+
+(node:69220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/9] [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 1440px
+[2/9] [visual edge] › tests\visual\cogo.visual.spec.ts:21:3 › legacy measurements remain available at 1440px
+[3/9] [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 900px
+[4/9] [visual edge] › tests\visual\cogo.visual.spec.ts:21:3 › legacy measurements remain available at 900px
+[5/9] [visual edge] › tests\visual\cogo.visual.spec.ts:4:3 › COGO gap details and anchored sections at 390px
+[6/9] [visual edge] › tests\visual\cogo.visual.spec.ts:21:3 › legacy measurements remain available at 390px
+[7/9] [visual edge] › tests\visual\cogo.visual.spec.ts:32:3 › confirmed parcel and partial parcel preserve the requested layout at 1440px
+[8/9] [visual edge] › tests\visual\cogo.visual.spec.ts:32:3 › confirmed parcel and partial parcel preserve the requested layout at 900px
+[9/9] [visual edge] › tests\visual\cogo.visual.spec.ts:32:3 › confirmed parcel and partial parcel preserve the requested layout at 390px
+  9 passed (47.3s)

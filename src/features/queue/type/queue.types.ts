@@ -56,7 +56,9 @@ export type QueueTask = {
 };
 
 export type QueueState = {
-  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload>; paths: Record<string, string>; etags: Record<string, string> }>;
+  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload>; paths: Record<string, string>; etags: Record<string, string>; pagePaths: Record<string, string>; pageEtags: Record<string, string> }>;
+  pagePaths: Record<string, string>;
+  pageEtags: Record<string, string>;
   paths: Record<string, string>;
   etags: Record<string, string>;
   generation: number;
@@ -67,6 +69,8 @@ export type QueueState = {
   retry(id: string): Promise<{ status: "accepted" }>;
   cancel(id: string, code?: string): void;
   setMetadata(session: string, metadata: MetadataPayload): void;
+  setPagePath(session: string, path: string): void;
+  setPageEtag(session: string, etag: string): void;
   setPath(session: string, path: string): void;
   setEtag(session: string, etag: string): void;
   reset(): void;

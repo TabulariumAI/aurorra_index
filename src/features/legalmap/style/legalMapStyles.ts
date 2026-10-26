@@ -14,6 +14,7 @@ export const legalMapColors = {
   parcelFill: "#63b5d5",
   parcelLine: "#2496c8",
   secondaryText: "#62727d",
+  unconfirmed: "#b45309",
   sectionLine: "#62727d",
   lotBg: "#fbe9e3",
   lotBorder: "#cf7258",
@@ -35,6 +36,7 @@ export const legalMapConstants = {
   plssCenter: 0.4,
   plssScale: 0.9,
   mapMin: 16,
+  platWidth: 30,
   mapMax: 56,
   detailsMin: 8,
   detailsHeight: 9.2,
@@ -51,20 +53,19 @@ export const legalMapCss = `
 .legal-map-view-tabs button[aria-selected="true"] { --icon-surface: var(--accent-surface); }
 .legal-map-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .legal-map-detail-tabs button:focus-visible { outline-color: var(--primary-dark); outline-offset: -2px; }
-.legal-map [role="tabpanel"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.legal-map [role="tabpanel"]:focus-visible, .legal-map [role="region"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 .legal-map-column:empty { display: none; }
 .legal-map-divider:hover, .legal-map-divider:focus-visible { border-color: var(--primary-dark); }
 .legal-map-divider:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
 .legal-map-divider:hover span, .legal-map-divider:focus-visible span { background: var(--primary-dark); }
-.survey-layout { display: flex; flex: 1 1 0; flex-direction: column; min-height: min-content; min-width: 0; }
+.survey-layout { display: flex; flex: 1 1 0; flex-direction: column; min-height: ${legalMapConstants.mapMin}rem; min-width: 0; }
+.survey-layout:has([data-plat-scroll="true"]) { min-height: min-content; }
+.legal-map-column { flex: 1 0 auto; }
+.legal-map-column:has([data-plat-scroll="true"]) { flex: 1 1 0; }
 .legal-map-table { flex: 0 0 auto; min-width: 0; }
+@media (max-width: 40rem) { .legal-map-calls > caption { text-align: left; } }
 .legal-map-table thead th { background: var(--white); position: sticky; top: 0; z-index: 1; }
 .legal-map-acreage li + li { border-top: 1px solid var(--border-subtle); margin-top: 0.5rem; padding-top: 0.5rem; }
-@media (max-width: 48rem) {
-  .legal-map-header:has([data-survey-tie-label]) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
-  .legal-map-incomplete { grid-template-columns: minmax(0, 1fr) !important; }
-  .legal-map-incomplete > .legal-map-view-tabs { grid-column: 1 !important; }
-}
 `;
 
 export const legalMapStyles = {
@@ -95,7 +96,6 @@ export const legalMapStyles = {
     boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
-    flex: "1 0 auto",
     minWidth: 0,
     minHeight: `${legalMapConstants.mapMin}rem`,
     maxHeight: `${legalMapConstants.mapMax}rem`,
@@ -109,16 +109,18 @@ export const legalMapStyles = {
     display: "flex",
     flexWrap: "wrap",
     gap: "0.125rem",
-    gridColumn: 2,
-    justifySelf: "end",
+    justifyContent: "flex-end",
     maxWidth: "100%",
     padding: "0.125rem",
     zIndex: 2,
   },
-  mapHeader: { alignItems: "start", display: "grid", flex: "0 0 auto", gap: "0.75rem", gridTemplateColumns: "minmax(0, 1fr) auto", minWidth: 0, padding: "0.75rem" },
+  incomplete: { display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "min-content", minWidth: 0 },
+  errorArea: { alignItems: "center", display: "flex", flex: "1 1 0", justifyContent: "center", minWidth: 0, padding: "0.75rem", textAlign: "center" },
   mapError: { color: "#991b1b", display: "grid", fontSize: "clamp(0.875rem, 1.2vw, 1.125rem)", gap: "0.5rem", gridTemplateColumns: "1.125rem minmax(0, 1fr)", lineHeight: 1.55, margin: 0, overflowWrap: "anywhere" },
   mapDrawing: { display: "flex", flex: "1 1 0", minHeight: `${legalMapConstants.drawingMin}rem`, minWidth: 0, position: "relative" },
-  mapNorth: { position: "absolute", left: "0.75rem", bottom: "0.75rem", zIndex: 1 },
+  toolbar: { display: "flex", flex: "0 0 auto", justifyContent: "flex-end", minWidth: 0 },
+  parcelTitle: { flex: "0 0 auto", fontSize: "1rem", fontWeight: 600, margin: "0 0 0.5rem", overflowWrap: "anywhere", textAlign: "center" },
+  cellLabel: { display: "flex", flexDirection: "column", maxWidth: "100%", overflowWrap: "anywhere" },
   infoTitle: { fontSize: "inherit", margin: "0 0 0.5rem" },
   infoNote: { color: legalMapColors.secondaryText, fontSize: "0.875em", lineHeight: 1.4, margin: "0.5rem 0 0", whiteSpace: "pre-wrap" },
   acreageList: { listStyle: "none", margin: 0, padding: 0, textAlign: "left" },
@@ -129,15 +131,8 @@ export const legalMapStyles = {
     fontFamily: "inherit",
     fontSize: "0.875rem",
     fontWeight: 600,
-    outline: undefined,
     padding: "0.25rem 0.65rem",
     width: "auto",
-  },
-  panel: {
-    flex: "1 1 0",
-    minHeight: "min-content",
-    minWidth: 0,
-    display: "flex",
   },
   detailTabs: {
     borderBottom: "1px solid var(--border-card)",
@@ -252,11 +247,12 @@ export const legalMapStyles = {
     width: "100%",
   },
   mapFooter: {
-    alignItems: "flex-end",
+    alignItems: "center",
     display: "flex",
     flex: "0 0 auto",
     gap: "0.75rem",
-    padding: "0.75rem 0.75rem 0.75rem 4rem",
+    minWidth: 0,
+    padding: "0.75rem",
   },
   grid: {
     alignItems: "stretch",
@@ -267,12 +263,15 @@ export const legalMapStyles = {
     flexDirection: "column",
     fontFamily: "var(--font-ui)",
     fontSize: "15px",
-    justifyContent: "safe center",
+    justifyContent: "center",
     margin: "0",
-    maxHeight: "100%",
-    minHeight: "0",
-    overflow: "auto",
+    left: "50%",
+    minHeight: 0,
+    overflow: "visible",
     padding: "1rem 1rem 2rem",
+    position: "absolute",
+    top: "50%",
+    transformOrigin: "center",
     width: "100%",
   },
   northMarker: {
@@ -290,8 +289,14 @@ export const legalMapStyles = {
     minHeight: "3.25rem",
     width: "2.5rem",
   },
-  fittedGrid: { display: "block", position: "relative", overflow: "hidden", padding: 0 },
-  fittedContent: { position: "absolute", left: "50%", top: "50%", transformOrigin: "center", boxSizing: "border-box" },
+  parcelList: { boxSizing: "border-box", display: "flex", flex: "1 1 0", flexDirection: "column", gap: "1rem", minHeight: 0, minWidth: 0, overflow: "auto", overscrollBehavior: "contain", width: "100%" },
+  parcelLayout: { boxSizing: "border-box", flex: "0 0 100%" },
+  issueLayout: { flex: "0 0 auto", minHeight: 0 },
+  fitViewport: { position: "relative", flex: "1 1 0", minHeight: 0, minWidth: 0, overflow: "hidden", width: "100%" },
+  annotatedBlock: { boxSizing: "border-box", paddingLeft: "1.5rem", position: "relative", width: "100%" },
+  acreageLabels: { display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem", minWidth: 0 },
+  lotAcreage: { color: legalMapColors.lotText, fontSize: legalMapConstants.lotBaseFontSize, fontWeight: 500, lineHeight: 1.25, minWidth: 0, overflowWrap: "anywhere", textAlign: "left", whiteSpace: "break-spaces" },
+  acreageLeaders: { height: "100%", inset: 0, overflow: "visible", pointerEvents: "none", position: "absolute", width: "100%" },
   gridContent: {
     alignItems: "center",
     display: "flex",
@@ -300,7 +305,7 @@ export const legalMapStyles = {
     gap: `${legalMapConstants.gridSize * 2}px`,
     justifyContent: "center",
     minHeight: 0,
-    minWidth: "24rem",
+    minWidth: 0,
     overflow: "visible",
     paddingRight: "2px",
     textAlign: "center",
@@ -313,7 +318,7 @@ export const legalMapStyles = {
     minWidth: 0,
     position: "relative",
     verticalAlign: "middle",
-    width: "min(100%, 30rem)",
+    width: `min(100%, ${legalMapConstants.platWidth}rem)`,
   },
   subdivisionBoundary: {
     border: `2px dashed ${legalMapColors.subdivisionBorder}`,
@@ -372,6 +377,7 @@ export const legalMapStyles = {
     minWidth: 0,
   },
   blockGrid: {
+    alignItems: "stretch",
     background: legalMapColors.gridLine,
     border: `1px solid ${legalMapColors.gridLine}`,
     borderRadius: "2px",
@@ -399,11 +405,9 @@ export const legalMapStyles = {
     marginBottom: "0.75rem",
     textAlign: "center",
   },
-  legendItems: {
+  legendFrame: {
     marginLeft: "auto",
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.35rem",
+    minWidth: 0,
     padding: "0.6rem 0.75rem",
     background: "var(--white)",
     border: `1px solid ${legalMapColors.gridLine}`,
@@ -415,7 +419,16 @@ export const legalMapStyles = {
     maxWidth: "100%",
     boxSizing: "border-box",
   },
-  legendItem: { display: "flex", alignItems: "center", gap: "0.6rem" },
+  legendItems: {
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: "0.35rem 0.75rem",
+    lineHeight: "1.25rem",
+    maxHeight: "2.85rem",
+    overflow: "hidden",
+  },
+  legendItem: { display: "flex", alignItems: "center", flexShrink: 0, gap: "0.6rem", whiteSpace: "nowrap" },
   legendLabel: { color: legalMapColors.text, fontSize: "0.875rem", fontWeight: 400 },
   legendBox: {
     borderRadius: "0.25rem",
@@ -426,6 +439,8 @@ export const legalMapStyles = {
     width: "0.875rem",
   },
   location: {
+    boxSizing: "border-box",
+    padding: "0.75rem 0.75rem 0",
     alignItems: "center",
     color: legalMapColors.text,
     display: "flex",
@@ -436,13 +451,15 @@ export const legalMapStyles = {
     justifyContent: "center",
     opacity: 0.9,
     overflow: "visible",
+    overflowWrap: "anywhere",
+    textAlign: "center",
   },
 } satisfies Record<string, CSSProperties | ((active: boolean) => CSSProperties)>;
 
 export function divisionStyle(empty: boolean): CSSProperties {
   return {
     background: empty ? "transparent" : legalMapColors.divisionBg,
-    border: empty ? "none" : `2px solid ${legalMapColors.divisionBorder}`,
+    border: `2px solid ${legalMapColors.divisionBorder}`,
     borderRadius: "var(--radius-card)",
     boxSizing: "border-box",
     display: "grid",
@@ -464,7 +481,7 @@ export const divisionLabelStyle: CSSProperties = {
 export const blockStyle: CSSProperties = {
   alignItems: "center",
   background: legalMapColors.blockBg,
-  border: "none",
+  border: `1px solid ${legalMapColors.blockBorder}`,
   boxSizing: "border-box",
   boxShadow: "none",
   color: legalMapColors.blockText,
@@ -477,29 +494,27 @@ export const blockStyle: CSSProperties = {
   textAlign: "center",
 };
 
-export function blockLabelStyle(scale: number): CSSProperties {
-  return {
-    fontSize: `${legalMapConstants.blockBaseFontSize * scale}px`,
-    maxWidth: "100%",
-    overflowWrap: "anywhere",
-    textAlign: "center",
-  };
-}
+export const blockLabelStyle: CSSProperties = {
+  fontSize: `${legalMapConstants.blockBaseFontSize}px`,
+  maxWidth: "100%",
+  overflowWrap: "anywhere",
+  textAlign: "center",
+};
 
-export function lotStyle(empty: boolean, scale: number, gridColumn: string, gridRow: number): CSSProperties {
+export function lotStyle(empty: boolean, gridColumn: string, gridRow: number): CSSProperties {
   return {
     alignItems: "center",
     aspectRatio: "1",
     minWidth: 0,
     minHeight: 0,
     background: empty ? legalMapColors.blockBg : legalMapColors.lotBg,
-    border: empty ? "none" : `1px solid ${legalMapColors.lotBorder}`,
+    border: `1px solid ${empty ? legalMapColors.blockBorder : legalMapColors.lotBorder}`,
     borderRadius: empty ? 0 : "2px",
     boxSizing: "border-box",
     color: empty ? legalMapColors.secondaryText : legalMapColors.lotText,
     display: "flex",
     flexDirection: "column",
-    fontSize: `${legalMapConstants.lotBaseFontSize * scale}px`,
+    fontSize: `${legalMapConstants.lotBaseFontSize}px`,
     fontWeight: 600,
     gridColumn,
     gridRow,

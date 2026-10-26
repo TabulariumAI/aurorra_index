@@ -1,4 +1,4 @@
-import "../../../document_web/assets/root.css";
+import "../../../document_web/src/bootstrap/style/root.css";
 import { createRoot } from "react-dom/client";
 import type { MetadataSegments } from "aurora-core";
 import { IndexContainer } from "../../src/features/indexing/component/IndexContainer";

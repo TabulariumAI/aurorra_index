@@ -1,0 +1,10 @@
+
+ RUN  v4.1.9 C:/GitHub/Tabularium/aurorra_index
+
+·······················
+
+ Test Files  1 passed (1)
+      Tests  23 passed (23)
+   Start at  12:53:07
+   Duration  14.30s (transform 3.02s, setup 667ms, import 4.44s, tests 2.74s, environment 5.45s)
+

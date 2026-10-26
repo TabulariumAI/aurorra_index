@@ -21,7 +21,7 @@ export const typeSelectStyles = {
     minWidth: "2.75rem", minHeight: "2.75rem", padding: "0.2rem", borderRadius: "var(--radius-control)",
   },
   search: {
-    background: "transparent", border: 0, outline: "none", boxShadow: "none",
+    background: "transparent", border: 0, boxShadow: "none",
     boxSizing: "border-box", color: "var(--title-ink)", font: "inherit",
     minHeight: "2.5rem", width: "100%", minWidth: 0, padding: "0.5rem",
   },

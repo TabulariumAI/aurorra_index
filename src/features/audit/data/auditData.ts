@@ -9,11 +9,6 @@ export const PROCESS_REPROCESS = "Reprocess |";
 export const PROCESS_USER = "USER";
 export const PROCESS_OTHER = "OTHER";
 
-type RawUsage = {
-  costs?: unknown;
-  services?: unknown;
-};
-
 type RawReport = {
   gaps?: unknown;
   usage?: unknown;
@@ -50,12 +45,8 @@ function normalizeProcess(value: unknown): string {
 }
 
 function normalizeUsage(value: unknown): { usage?: AuditUsage } {
-  if (!isObject(value)) return {};
-  const source = value as RawUsage;
-  const usage: AuditUsage = {};
-  if (Array.isArray(source.costs)) usage.costs = source.costs.map(cost => String(cost));
-  if (Array.isArray(source.services)) usage.services = source.services as AuditUsage["services"];
-  return usage.costs || usage.services ? { usage } : {};
+  if (!isObject(value) || !Array.isArray(value.services)) return {};
+  return { usage: { services: value.services as AuditUsage["services"] } };
 }
 
 function toAuditGap(raw: unknown): AuditGap | null {

@@ -82,7 +82,7 @@ function renderMetadata() {
   let remote = structuredClone(metadata);
   const pending: { drop?: () => void; reprocess?: () => void } = {};
   const workerClient = {
-    updatePageSegments: vi.fn(),
+    pagesData: vi.fn(), updatePageSegments: vi.fn(),
     patchIndex: vi.fn(),
     confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
     dropIndex: vi.fn(() => new Promise<{ data: string; status: "completed"; version: number }>((resolve) => {
@@ -226,7 +226,7 @@ describe("IndexContainer", () => {
     expect(onReadyChange).toHaveBeenLastCalledWith(true);
     expect(onViewStarted).toHaveBeenCalledTimes(1);
     expect(onView).toHaveBeenCalledWith(metadata);
-    expect(onMetadataLoaded).toHaveBeenCalledWith(metadata);
+    expect(onMetadataLoaded).toHaveBeenCalledWith(metadata, "session-1");
     expect(screen.getByText("Deed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Endorsements/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Parties\(Party Clause\)/i })).toBeVisible();
@@ -390,7 +390,7 @@ describe("IndexContainer", () => {
         segments={segments}
         session="session-1"
         workerClient={{
-          updatePageSegments: vi.fn(),
+          pagesData: vi.fn(), updatePageSegments: vi.fn(),
       patchIndex: vi.fn(),
           confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
           dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
@@ -419,7 +419,7 @@ describe("IndexContainer", () => {
   it("retains visible metadata while a refresh is loading", async () => {
     let resolveRefresh: ((value: MetadataPayload) => void) | undefined;
     const workerClient = {
-      updatePageSegments: vi.fn(),
+      pagesData: vi.fn(), updatePageSegments: vi.fn(),
       patchIndex: vi.fn(),
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
@@ -461,7 +461,7 @@ describe("IndexContainer", () => {
   it("emits view canceled on unmount", () => {
     const onViewCanceled = vi.fn();
     const workerClient = {
-      updatePageSegments: vi.fn(),
+      pagesData: vi.fn(), updatePageSegments: vi.fn(),
       patchIndex: vi.fn(),
       confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),

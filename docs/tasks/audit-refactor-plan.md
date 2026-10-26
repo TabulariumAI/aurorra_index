@@ -127,8 +127,17 @@ export type AuditGap = {
   process: string;
 };
 
+export type AuditUsageService = {
+  name: "extraction" | "iq_refinement" | "refinement" | "model_generation";
+  cost: number;
+  time?: number;
+  page_num: number;
+  code: string;
+  timestamp: string;
+};
+
 export type AuditUsage = {
-  costs: string[];
+  services?: AuditUsageService[] | null;
 };
 
 export type AuditReport = {
@@ -242,8 +251,8 @@ Exports:
 Function behavior must match `document_web\src\domains\audit\data\auditdatahelper.js` and `document_web\src\domains\audit\shell\auditviewer.js`:
 - Default `gaps` is `[]`.
 - Default `usage` is omitted.
-- `usage.costs` is preserved only when `costs` is an array.
-- `usage.costs` values are converted with `String`.
+- `usage.services` is preserved only when `services` is an array.
+- Per-session usage is aggregated by the shared Usage calculation; costs are numeric service fields.
 - Gaps may come in as arrays or objects.
 - Array gaps use `[aspect, message, page, process, date, changeHint]`.
 - Object gaps use the equivalent named fields.
@@ -282,8 +291,8 @@ Initial state:
 - `status: "idle"`
 
 State transitions:
-- `setLoading(session)` sets `activeSession`, clears `error`, preserves `report`, sets `status` to `"loading"`.
-- `setRefreshing(session)` sets `activeSession`, clears `error`, preserves `report`, sets `status` to `"refreshing"`.
+- `setLoading(session)` sets `activeSession`, clears `error`, selects `reportsBySession[session]` or a null report for placeholders, sets `status` to `"loading"`.
+- `setRefreshing(session)` sets `activeSession`, clears `error`, selects `reportsBySession[session]` or a null report for placeholders, sets `status` to `"refreshing"`.
 - `setLoaded(session, report)` sets `activeSession`, clears `error`, stores `report`, sets `status` to `"success"`.
 - `setError(error)` stores `error` and sets `status` to `"error"`.
 - `resetAudit()` restores the initial state and a fresh `report` reference.
@@ -303,13 +312,13 @@ Behavior:
 - Do not add start, ack, controller, or dialog behavior.
 
 ## Component Implementation Details
-Create `AuditPanel.tsx`, `AuditSummary.tsx`, `AuditFilters.tsx`, and `AuditGaps.tsx` as pure React components.
+Create `AuditPanel.tsx`, `AuditSummary.tsx`, `AuditFilters.tsx`, `AuditGaps.tsx`, and `AuditUsage.tsx` as React components.
 
 Audit panel rules:
-- `AuditPanel` owns the local filter state with this exact initial value: `{ changeType: "", process: "" }`.
-- `AuditPanel` renders a loading progress indicator while the report is loading or refreshing.
+- `AuditPanel` owns the local filter state with this exact initial value: `{ changeType: "", process: "", segment: "" }`.
+- The report body mounts immediately. Each subcomponent renders Core's `LoadPlaceholder` while its report data is absent. Cached reports remain scoped to their session during refresh.
 - `AuditPanel` renders `No gaps found.` when the report is empty.
-- `AuditPanel` renders `AuditSummary`, `AuditFilters`, and `AuditGaps` when data is present.
+- `AuditPanel` mounts `AuditSummary`, `AuditFilters`, `AuditGaps`, and `AuditUsage` independently of the aspects catalog.
 - `AuditPanel` must not render a `dialog` role.
 - `AuditPanel` must not import, create, or close the host dialog.
 
@@ -319,7 +328,7 @@ Summary rules:
 - `AuditSummary` renders the filtered count and the `Out of {total}` badge text.
 
 Filter rules:
-- `AuditFilters` renders change type and process selects.
+- `AuditFilters` renders change type, process, and segment selects. It requests aspects through the host's configured Zustand exchange using `ResourceRequest` and its result callback. Only Segment waits for aspects; a catalog failure remains local to that control.
 - Change type options are `All`, `Addition`, `Remove`, and `Correction`.
 - Process options are `All`, `Verification`, `Enrichment`, `Reprocess`, `User change`, and `Other`.
 - Option labels include the current counts.
@@ -351,7 +360,7 @@ Visual harness:
   - first raw gap: `{ aspect: "ADD", changeType: "ADD", date: "2026-01-03T12:00:00Z", message: "Newest addition message", page: 3, process: "verification" }`
   - second raw gap: `{ aspect: "REMOVE", changeType: "REMOVE", date: "2026-01-01T12:00:00Z", message: "Old remove message", page: 1, process: "user" }`
   - third raw gap: `{ aspect: "CORRECTION", changeType: "CORRECTION", date: "2026-01-02T12:00:00Z", message: "<long message over 200 characters>", page: 2, process: "enrichment" }`
-  - one usage block with costs
+  - one usage block with service records
 - Browser test must verify:
   - `Audit report` is visible.
   - The standalone total-cost text is absent.

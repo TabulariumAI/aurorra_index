@@ -20,18 +20,22 @@ describe("auditStore", () => {
     auditStoreApi.getState().resetAudit();
   });
 
-  it("sets loading and refreshing while preserving report", () => {
+  it("preserves only the requested session's report while loading and refreshing", () => {
     auditStoreApi.getState().setLoaded("session-1", report);
+    auditStoreApi.getState().setLoading("session-1", false);
+    expect(auditStoreApi.getState().report).toBe(report);
     auditStoreApi.getState().setLoading("session-2", false);
-    expect(auditStoreApi.getState()).toMatchObject({ activeSession: "session-2", error: null, report, status: "loading" });
+    expect(auditStoreApi.getState()).toMatchObject({ activeSession: "session-2", error: null, report: null, status: "loading" });
 
     auditStoreApi.getState().setRefreshing("session-3");
     expect(auditStoreApi.getState()).toMatchObject({
       activeSession: "session-3",
       error: null,
-      report,
+      report: null,
       status: "refreshing",
     });
+    auditStoreApi.getState().setRefreshing("session-1");
+    expect(auditStoreApi.getState().report).toBe(report);
   });
 
   it("sets loaded and error states", () => {
