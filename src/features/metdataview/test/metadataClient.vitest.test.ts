@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createIndexWorkerClient } from "../worker/metadataWorkerClient";
+import { createMetadataClient } from "../data/metadataClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
 
 import type { MetadataPayload } from "aurora-core";
@@ -27,13 +27,13 @@ function stubMetadata(data: MetadataPayload) {
 
 beforeEach(() => { auditClient.loadReport.mockReset().mockResolvedValue({ gaps: [] }); auditStoreApi.getState().resetAudit(); });
 
-describe("metadataWorkerClient", () => {
+describe("metadataClient", () => {
   it("keeps content paths and etags separate from metadata and discards late content after reset", async () => {
     queueStoreApi.getState().reset();
     queueStoreApi.getState().setPath("pages-session", "https://blob/metadata.json");
     queueStoreApi.getState().setEtag("pages-session", "metadata-etag");
     pagesClient.pagesData.mockClear();
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await client.pagesData("token", "pages-session", true);
     await client.pagesData("token", "pages-session", false);
     expect(pagesClient.pagesData.mock.calls).toEqual([
@@ -63,7 +63,7 @@ describe("metadataWorkerClient", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
     queueStoreApi.getState().reset();
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await client.indexData("token", "session-1", true);
     etag = "second";
     await client.indexData("token", "session-2", true);
@@ -82,7 +82,7 @@ describe("metadataWorkerClient", () => {
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     const request = client.indexData("token", "session", true);
     queueStoreApi.getState().reset();
     complete();
@@ -103,7 +103,7 @@ describe("metadataWorkerClient", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
     queueStoreApi.getState().reset();
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await client.indexData("token", "session", false);
     await client.indexData("token", "session", false);
     await client.indexData("token", "session", true);
@@ -134,7 +134,7 @@ describe("metadataWorkerClient", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
 
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
 
     await expect(client.indexData("token", "session-1", false)).resolves.toEqual({ pages: { num_of_pages: 0 } });
     await expect(client.patchStatus("token", "session-1", 1)).resolves.toEqual({});
@@ -159,7 +159,7 @@ describe("metadataWorkerClient", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
 
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
 
     await expect(client.confirmIndex("token", "session-1", "index-1")).rejects.toThrow("Failed to fetch");
     await expect(client.dropIndex("token", "session-1", "index-1")).rejects.toThrow("Failed to fetch");
@@ -173,7 +173,7 @@ it("loads fresh audit on index completion and refresh without waiting to display
   let finish!: (report: { gaps: never[] }) => void;
   auditClient.loadReport.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
   stubMetadata({ heading: { title: "NOTICE" } });
-  const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+  const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
   expect(await client.indexData("token", "s", false)).toEqual({ heading: { title: "NOTICE" }, pages: { num_of_pages: 0 } });
   expect(auditClient.loadReport).toHaveBeenCalledWith("token", "s");
   finish({ gaps: [] });
@@ -185,7 +185,7 @@ it("loads fresh audit on index completion and refresh without waiting to display
 it("reports audit failure separately after metadata succeeds", async () => {
   auditClient.loadReport.mockRejectedValueOnce(new Error("Audit unavailable"));
   stubMetadata({ heading: { title: "NOTICE" } });
-  const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+  const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
   await expect(client.indexData("token", "s", true)).resolves.toEqual({ heading: { title: "NOTICE" }, pages: { num_of_pages: 0 } });
   await vi.waitFor(() => expect(auditStoreApi.getState().error?.error).toBe("Audit unavailable"));
 });
@@ -194,7 +194,7 @@ it("does not ingest a late audit after the queue owner is reset", async () => {
   let finish!: (report: { gaps: never[] }) => void;
   auditClient.loadReport.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
   stubMetadata({});
-  const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+  const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
   await client.indexData("token", "s", false);
   queueStoreApi.getState().reset();
   finish({ gaps: [] });
@@ -207,7 +207,7 @@ it("keeps the newer audit when an earlier download finishes last", async () => {
   const latest = { gaps: [], usage: { services: [{ name: "extraction" as const, cost: 2, page_num: 1, code: "latest", timestamp: "2026-10-20T00:00:00Z" }] } };
   auditClient.loadReport.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockResolvedValueOnce(latest);
   stubMetadata({});
-  const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+  const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
   await client.indexData("token", "s", false);
   await client.indexData("token", "s", true);
   await vi.waitFor(() => expect(auditStoreApi.getState().report).toEqual(latest));
@@ -232,7 +232,7 @@ describe("Pages failure isolation", () => {
 
   it.each([pageError, new Error("Invalid JSON response")])("returns metadata and loads Audit when Pages fails: %s", async error => {
     pagesClient.pagesData.mockRejectedValueOnce(error);
-    const client = createIndexWorkerClient(config);
+    const client = createMetadataClient(config);
     const result = await client.indexData("token", "first", false);
     expect(result).toEqual(metadata);
     expect(result.pages).toBeUndefined();
@@ -243,7 +243,7 @@ describe("Pages failure isolation", () => {
   });
 
   it("preserves direct Pages rejection and clears only the recovered session error", async () => {
-    const client = createIndexWorkerClient(config);
+    const client = createMetadataClient(config);
     pagesClient.pagesData.mockRejectedValueOnce(pageError);
     await expect(client.pagesData("token", "first", true)).rejects.toBe(pageError);
     indexStoreApi.getState().setPageError("second", { error: "Other failure" });
@@ -254,7 +254,7 @@ describe("Pages failure isolation", () => {
   it("removes embedded page data when the authoritative Pages export fails", async () => {
     stubMetadata({ ...metadata, pages: { num_of_pages: 7, recordables: [{ code: "stale", name: "7" }] } });
     pagesClient.pagesData.mockRejectedValueOnce(pageError);
-    const result = await createIndexWorkerClient(config).indexData("token", "session", true);
+    const result = await createMetadataClient(config).indexData("token", "session", true);
     expect(result.pages).toBeUndefined();
     expect(result.indexes).toEqual(metadata.indexes);
   });
@@ -266,13 +266,13 @@ describe("Pages failure isolation", () => {
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-    await expect(createIndexWorkerClient(config).indexData("token", "session", false)).rejects.toMatchObject({ message: "Metadata unavailable", code: "index_error" });
+    await expect(createMetadataClient(config).indexData("token", "session", false)).rejects.toMatchObject({ message: "Metadata unavailable", code: "index_error" });
   });
 
   it("does not store a late Pages failure after the queue owner is reset", async () => {
     let fail!: (error: Error) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
-    const pending = createIndexWorkerClient(config).indexData("token", "old", true);
+    const pending = createMetadataClient(config).indexData("token", "old", true);
     queueStoreApi.getState().reset();
     fail(pageError);
     await expect(pending).resolves.toEqual(metadata);
@@ -283,7 +283,7 @@ describe("Pages failure isolation", () => {
   it.each(["resetMetadata", "invalidateSession"] as const)("discards a late Pages failure after %s", async reset => {
     let fail!: (error: Error) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
-    const pending = createIndexWorkerClient(config).indexData("token", "first", true);
+    const pending = createMetadataClient(config).indexData("token", "first", true);
     if (reset === "invalidateSession") indexStoreApi.getState().invalidateSession("first");
     else indexStoreApi.getState().resetMetadata();
     fail(pageError);
@@ -294,7 +294,7 @@ describe("Pages failure isolation", () => {
   it("keeps the latest Pages error when an earlier request succeeds last", async () => {
     let finish!: (value: { data: { num_of_pages: number }; path: string; etag: string }) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; })).mockRejectedValueOnce(pageError);
-    const client = createIndexWorkerClient(config);
+    const client = createMetadataClient(config);
     const earlier = client.indexData("token", "first", true);
     await client.indexData("token", "first", true);
     finish({ data: { num_of_pages: 1 }, path: "https://blob/earlier.json", etag: "earlier" });
@@ -305,7 +305,7 @@ describe("Pages failure isolation", () => {
   it("discards an earlier Pages failure when a newer request succeeds first", async () => {
     let fail!: (error: Error) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
-    const client = createIndexWorkerClient(config);
+    const client = createMetadataClient(config);
     const earlier = client.indexData("token", "first", true);
     await client.indexData("token", "first", true);
     fail(pageError);
@@ -314,7 +314,7 @@ describe("Pages failure isolation", () => {
   });
 
   it("keeps view callbacks successful, clears cached pages on failed refresh, and recovers", async () => {
-    const client = createIndexWorkerClient(config);
+    const client = createMetadataClient(config);
     const onViewError = vi.fn();
     const onMetadataError = vi.fn();
     const onMetadataLoaded = vi.fn();

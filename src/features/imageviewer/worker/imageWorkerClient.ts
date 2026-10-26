@@ -1,13 +1,11 @@
 import type {
   DataResponse,
   LocalPackage,
-  PackageResponse,
   PackageUrls,
   WorkerClient,
   WorkerConfig,
   WorkerResult,
 } from "../type/imageViewer.types";
-import type { GenerationInput } from "../../../shared/type/generation.types";
 
 type WorkerError = Error & {
   code?: string;
@@ -30,12 +28,11 @@ function runWorker<T>(command: unknown): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const worker = new Worker(new URL("./ImageWorker.ts", import.meta.url), { type: "module" });
     let settled = false;
-    const cleanup = () => worker.terminate();
 
     worker.onmessage = (event) => {
       if (settled) return;
       settled = true;
-      cleanup();
+      worker.terminate();
 
       const payload = event?.data as WorkerResult<T> & { data?: T };
       if (payload && payload.ok === true) {
@@ -48,7 +45,7 @@ function runWorker<T>(command: unknown): Promise<T> {
     worker.onerror = () => {
       if (settled) return;
       settled = true;
-      cleanup();
+      worker.terminate();
       reject(new Error("Image viewer worker failed"));
     };
 
@@ -56,21 +53,11 @@ function runWorker<T>(command: unknown): Promise<T> {
   });
 }
 
-export function generateImagePackage(input: GenerationInput): Promise<PackageResponse> {
-  return runWorker<PackageResponse>({ apiBaseUrl: input.apiGatewayUrl, session: input.session, token: input.authToken, type: "imagePackage" });
-}
-
 export function createWorkerClient(config: WorkerConfig): WorkerClient {
   const { apiBaseUrl } = config;
   return {
-    packageImage(token, session) {
-      return generateImagePackage({ apiGatewayUrl: apiBaseUrl, authToken: token, session });
-    },
-    imageStatus(token, session) {
-      return runWorker<PackageResponse>({ apiBaseUrl, session, token, type: "imageStatus" });
-    },
-    imageData(token, session) {
-      return runWorker<DataResponse>({ apiBaseUrl, session, token, type: "imageData" });
+    packageImage(token, session, etag) {
+      return runWorker<DataResponse>({ apiBaseUrl, session, token, type: "imagePackage", etag });
     },
     downloadPackage(token: string, urls: PackageUrls) {
       return runWorker<LocalPackage>({ jsonUrl: urls.jsonUrl, tiffUrl: urls.tiffUrl, token, type: "imageDownload" });

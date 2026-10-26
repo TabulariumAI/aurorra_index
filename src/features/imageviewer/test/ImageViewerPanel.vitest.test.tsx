@@ -3,8 +3,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { PageSizeFailure, ViewerState } from "@tabulariumai/aurora-lens";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
+import { queueStoreApi } from "../../queue/store/queueStore";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 import { storeApi } from "../../../store/state/store";
 import { splitMetadataJSON } from "aurora-core";
@@ -91,6 +92,7 @@ const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: stri
 const onReadyChange = vi.fn();
 
 describe("ImageViewerPanel", () => {
+  beforeEach(() => queueStoreApi.setState({ etags: { "session-1": "metadata-etag", "session-2": "second-etag" } }));
   it("duplicates the Intake decision with a Scale options anchor and preview-only scope", () => {
     sizeFailure = { sourceName: "document-image-package.tiff", pageNumber: 1, width: 2550, height: 3479, tolerance: 0.02, requiredTolerance: 0.0348 };
     const renderer = vi.fn(({ children }: Parameters<ToleranceRenderer>[0]) => <div role="dialog">{children}</div>);
@@ -160,9 +162,7 @@ describe("ImageViewerPanel", () => {
     const onError = vi.fn();
     const onLoaderChange = vi.fn();
     const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
+      packageImage: vi.fn(async () => ({
         status: "completed" as const,
         data: directPackage,
       })),
@@ -174,7 +174,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError,
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -191,8 +191,7 @@ describe("ImageViewerPanel", () => {
     expect(screen.getByRole("button", { name: "More" })).toBeEnabled();
     await waitFor(() => expect(imageViewerStoreApi.getState().status).toBe("ready"));
     await waitFor(() => expect(onReadyChange).toHaveBeenLastCalledWith(true));
-    expect(workerClient.packageImage).toHaveBeenCalledBefore(workerClient.imageStatus);
-    expect(workerClient.imageData).toHaveBeenCalled();
+    expect(workerClient.packageImage).toHaveBeenCalledBefore(workerClient.downloadPackage);
     expect(workerClient.downloadPackage).toHaveBeenCalledWith("token", {
       jsonUrl: directPackage.data,
       tiffUrl: directPackage.tiff,
@@ -348,9 +347,7 @@ describe("ImageViewerPanel", () => {
 
   it("does not restart package download when same-session panel remounts with cached package", async () => {
     const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
+      packageImage: vi.fn(async () => ({
         status: "completed" as const,
         data: directPackage,
       })),
@@ -362,7 +359,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError: vi.fn(),
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -378,7 +375,6 @@ describe("ImageViewerPanel", () => {
 
     await waitFor(() => expect(screen.queryByRole("progressbar", { name: "image viewer progress" })).not.toBeInTheDocument());
     expect(workerClient.packageImage).toHaveBeenCalledTimes(1);
-    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
   });
 
@@ -386,9 +382,7 @@ describe("ImageViewerPanel", () => {
     viewerReloadId = 1;
     const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
+      packageImage: vi.fn(async () => ({
         status: "completed" as const,
         data: directPackage,
       })),
@@ -400,7 +394,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError: vi.fn(),
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -411,7 +405,6 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
-    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
     expect(consoleInfo).toHaveBeenCalledWith("imageviewer package load start", {
       hasPackage: true,
@@ -428,8 +421,6 @@ describe("ImageViewerPanel", () => {
     viewerRestoring = true;
     const workerClient = {
       packageImage: vi.fn(),
-      imageStatus: vi.fn(),
-      imageData: vi.fn(),
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
@@ -438,7 +429,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError: vi.fn(),
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -448,8 +439,6 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
-    expect(workerClient.imageStatus).not.toHaveBeenCalled();
-    expect(workerClient.imageData).not.toHaveBeenCalled();
     expect(workerClient.downloadPackage).not.toHaveBeenCalled();
   });
 
@@ -457,8 +446,6 @@ describe("ImageViewerPanel", () => {
     viewerRestoredSession = true;
     const workerClient = {
       packageImage: vi.fn(),
-      imageStatus: vi.fn(),
-      imageData: vi.fn(),
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
@@ -467,7 +454,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError: vi.fn(),
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -477,16 +464,12 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
-    expect(workerClient.imageStatus).not.toHaveBeenCalled();
-    expect(workerClient.imageData).not.toHaveBeenCalled();
     expect(workerClient.downloadPackage).not.toHaveBeenCalled();
   });
 
   it("does not start package flow while restored lens state reaches the hook", () => {
     const workerClient = {
       packageImage: vi.fn(),
-      imageStatus: vi.fn(),
-      imageData: vi.fn(),
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
@@ -495,7 +478,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError: vi.fn(),
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -510,16 +493,12 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
-    expect(workerClient.imageStatus).not.toHaveBeenCalled();
-    expect(workerClient.imageData).not.toHaveBeenCalled();
     expect(workerClient.downloadPackage).not.toHaveBeenCalled();
   });
 
   it("starts package flow when ready status has no local package", async () => {
     const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
+      packageImage: vi.fn(async () => ({
         status: "completed" as const,
         data: directPackage,
       })),
@@ -531,7 +510,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError: vi.fn(),
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",
@@ -542,16 +521,13 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
-    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
   });
 
   it("bubbles package errors without rendering a package alert", async () => {
     const onError = vi.fn();
     const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
+      packageImage: vi.fn(async () => ({
         status: "completed" as const,
         data: { data: "", tiff: "" },
       })),
@@ -563,7 +539,7 @@ describe("ImageViewerPanel", () => {
       authToken: "token",
       onError,
       pageMap: new Map(),
-      packagePollIntervalMs: 1,
+
       request: null,
       selectedIndex: null,
       session: "session-1",

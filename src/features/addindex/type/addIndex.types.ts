@@ -1,6 +1,6 @@
 import type { QueueTransition } from "../../queue/type/queue.types";
 import type { MetadataError, ResourceRequest } from "aurora-core";
-import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
+import type { MetadataClient } from "../../metdataview/type/metadataView.types";
 import type { SelectedGroup } from "@tabulariumai/aurora-lens";
 
 export type AddIndexSelection = {
@@ -31,5 +31,5 @@ export type AddIndexPanelProps = {
   segment: string;
   request: AddIndexRequest;
   session: string;
-  workerClient?: MetdataWorkerClient;
+  workerClient?: MetadataClient;
 };

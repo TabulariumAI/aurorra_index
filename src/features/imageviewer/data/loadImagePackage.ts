@@ -1,3 +1,4 @@
+import { generateImagePackage } from "./generateImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 import type { HostInput, LoadPackageInput } from "../type/imageViewer.types";
 import { createWorkerClient } from "../worker/imageWorkerClient";
@@ -13,7 +14,6 @@ async function runImagePackage(input: LoadPackageInput): Promise<void> {
     authToken: input.authToken,
     onError: input.onError,
     pageMap: state.pageMap,
-    packagePollIntervalMs: input.packagePollIntervalMs,
     request: state.request,
     selectedIndex: state.selectedIndex,
     session: input.session,
@@ -28,26 +28,10 @@ async function runImagePackage(input: LoadPackageInput): Promise<void> {
   const client = input.workerClient || createWorkerClient({ apiBaseUrl: input.apiGatewayUrl });
   try {
     imageViewerStoreApi.getState().setStatus("packaging");
-    await client.packageImage(input.authToken, input.session);
+    const data = await generateImagePackage(input, input.restart, client);
     if (imageViewerStoreApi.getState().session !== input.session) return;
-    let current = await client.imageStatus(input.authToken, input.session);
-    if (imageViewerStoreApi.getState().session !== input.session) return;
-    while (current.status === "pending" || current.status === "processing") {
-      imageViewerStoreApi.getState().setStatus("polling");
-      imageViewerStoreApi.getState().setPackageStatus(current.status);
-      await new Promise((resolve) => setTimeout(resolve, imageViewerStoreApi.getState().packagePollIntervalMs));
-      if (imageViewerStoreApi.getState().session !== input.session) return;
-      current = await client.imageStatus(input.authToken, input.session);
-      if (imageViewerStoreApi.getState().session !== input.session) return;
-    }
-    imageViewerStoreApi.getState().setPackageStatus(current.status === "completed" ? "completed" : "error");
-    if (current.status !== "completed") {
-      imageViewerStoreApi.getState().setError({ code: "image_package_error", details: current, error: current.data });
-      return;
-    }
+    imageViewerStoreApi.getState().setPackageStatus("completed");
     imageViewerStoreApi.getState().setStatus("downloading");
-    const data = await client.imageData(input.authToken, input.session);
-    if (imageViewerStoreApi.getState().session !== input.session) return;
     const urls = parsePackageUrls(data.data);
     const localPackage = await client.downloadPackage(input.authToken, urls);
     if (imageViewerStoreApi.getState().session === input.session) {

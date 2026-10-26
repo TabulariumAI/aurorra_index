@@ -161,3 +161,32 @@ export const surveyFixture: LegalPayload = {
     }
   ]
 };
+
+export const acreageText = "30.210 ACRES, MORE OR LESS; 29.184 ACRES IN NORTHWEST QUARTER; 0.487 ACRES IN NORTHEAST QUARTER; 0.539 ACRES IN SOUTHWEST QUARTER";
+
+export const boundaryFixture: LegalPayload = {
+  summary: "One parcel is described by metes-and-bounds calls with stated acreage portions.",
+  groups: surveyFixture.groups!.filter(group => group.type === "metes_bounds").map(group => ({
+    ...group,
+    elements: group.elements!.map(element => element.aspect === "acreage" ? { ...element, value: acreageText } : element),
+  })),
+};
+
+export const tieFixture: LegalPayload = {
+  summary: "One parcel has a commencement tie and eight boundary calls.",
+  parcels_num: 1,
+  groups: [{ type: "metes_bounds", source: "COMMENCING AT A REFERENCE POINT; S85°30'00\"E 71.16 ft TO THE POINT OF BEGINNING; THENCE N50°45'14\"E 70.79 ft; THENCE S82°55'32\"E 81.62 ft; THENCE N32°31'24\"E 71.16 ft; THENCE N13°56'44\"W 143.82 ft; THENCE N10°04'59\"E 298.87 ft; THENCE S39°52'03\"E 320.51 ft; THENCE S26°15'42\"W 336.86 ft; THENCE N85°30'00\"W 248.91 ft.", elements: [
+    { aspect: "bearings", value: "S85°30'00\"E; N50°45'14\"E; S82°55'32\"E; N32°31'24\"E; N13°56'44\"W; N10°04'59\"E; S39°52'03\"E; S26°15'42\"W; N85°30'00\"W" },
+    { aspect: "distances", value: "71.16 ft; 70.79 ft; 81.62 ft; 71.16 ft; 143.82 ft; 298.87 ft; 320.51 ft; 336.86 ft; 248.91 ft" },
+    { aspect: "acreage", value: "2.005 ACRES OF LAND, MORE OR LESS" },
+  ] }],
+};
+
+export const clusterFixture: LegalPayload = {
+  summary: "A schematic parcel with closely spaced commencement and boundary points.",
+  groups: [{ type: "metes_bounds", source: "COMMENCING AT A REFERENCE POINT; SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST 375.07 ft TO THE POINT OF BEGINNING; THENCE S61°48'34\"W 53.61 ft; THENCE N56°33'30\"W 512.68 ft; THENCE N44°17'45\"W 758.82 ft; THENCE N1°42'48\"E 534.01 ft; THENCE N83°12'15\"E 791.49 ft; THENCE S31°12'27\"E 1405.55 ft; THENCE S66°45'13.32\"W 571.58115 ft.", elements: [
+    { aspect: "bearings", value: "SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST; S61°48'34\"W; N56°33'30\"W; N44°17'45\"W; N1°42'48\"E; N83°12'15\"E; S31°12'27\"E; S66°45'13.32\"W" },
+    { aspect: "distances", value: "375.07 ft; 53.61 ft; 512.68 ft; 758.82 ft; 534.01 ft; 791.49 ft; 1405.55 ft; 571.58115 ft" },
+    { aspect: "acreage", value: acreageText },
+  ] }],
+};

@@ -1,6 +1,6 @@
 import type { MetadataPayload } from "aurora-core";
 import type { QueueTransition } from "../../queue/type/queue.types";
-import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
+import type { MetadataClient } from "../../metdataview/type/metadataView.types";
 export type PageSegmentsWorkerError = {
   code?: string;
   details?: unknown;
@@ -57,5 +57,5 @@ export type PageSegmentsPanelProps = {
   pageCode: string;
   segments: string[];
   session: string;
-  workerClient?: MetdataWorkerClient;
+  workerClient?: MetadataClient;
 };

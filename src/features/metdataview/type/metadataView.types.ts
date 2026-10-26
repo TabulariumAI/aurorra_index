@@ -10,39 +10,41 @@ import type {
   MetadataError,
 } from "aurora-core";
 
-export type MetdataChoice = {
+export type MetadataChoice = {
   service: string;
   level: number | string;
 };
 
-export type MetdataDeferredState = {
+export type MetadataDeferredState = {
   pageMap: ReadonlyMap<string, string>;
   segment: string | null;
   selectedIndex: MetadataSelected | null;
 };
 
-export type MetdataMetadataRefresh = {
+export type MetadataRefresh = {
   id: number;
   segment: string;
   session: string;
 };
 
-export type MetdataWorkerResult<T> =
-  | { ok: true; data: T; path?: string; etag?: string }
+export type MetadataResponse<T> = { ok: true; data: T; path?: string; etag?: string };
+
+export type MetadataWorkerResult<T> =
+  | MetadataResponse<T>
   | ({ ok: false } & MetadataError);
 
-export type MetdataPatchResult = {
+export type MetadataPatchResult = {
   data: string;
   status: "completed" | "error" | "pending" | "processing";
   version: number;
 };
 
-export type MetdataReprocessResult = {
+export type MetadataReprocessResult = {
   data: string;
   status: "completed";
 };
 
-export type MetdataWorkerCommand = ({
+export type MetadataWorkerCommand = ({
   apiBaseUrl: string;
   session: string;
   token: string;
@@ -55,32 +57,32 @@ export type MetdataWorkerCommand = ({
   | { type: "patchStatus"; version: number }
 ));
 
-export type MetdataWorkerClient = {
+export type MetadataClient = {
   pagesData(token: string, session: string, refresh: boolean): Promise<NonNullable<MetadataPayload["pages"]>>;
   updatePageSegments(token: string, session: string, pageCode: string, segments: string[]): Promise<void>;
-  patchIndex(token: string, session: string, segment: string, change: IndexChange): Promise<MetdataPatchResult>;
-  confirmIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
-  dropIndex(token: string, session: string, code: string): Promise<MetdataPatchResult>;
+  patchIndex(token: string, session: string, segment: string, change: IndexChange): Promise<MetadataPatchResult>;
+  confirmIndex(token: string, session: string, code: string): Promise<MetadataPatchResult>;
+  dropIndex(token: string, session: string, code: string): Promise<MetadataPatchResult>;
   indexData(token: string, session: string, refresh: boolean): Promise<MetadataPayload>;
-  patchStatus(token: string, session: string, version: number): Promise<MetdataPatchResult>;
-  reprocessSegment(token: string, session: string, segment: string): Promise<MetdataReprocessResult>;
+  patchStatus(token: string, session: string, version: number): Promise<MetadataPatchResult>;
+  reprocessSegment(token: string, session: string, segment: string): Promise<MetadataReprocessResult>;
 };
 
-export type MetdataWorkerConfig = {
+export type MetadataConfig = {
   apiBaseUrl: string;
   onRetry?(attempt: number): void;
   retryIntervalMs: number;
   retryLimit: number;
 };
 
-export type MetdataStoreState = {
+export type MetadataStoreState = {
   openSegment: string | null;
   getSegment(pageSegment: string): string;
   activeSession: string | null;
   error: MetadataError | null;
   pageErrors: Record<string, MetadataError>;
   pageRequests: Record<string, string>;
-  refresh: MetdataMetadataRefresh | null;
+  refresh: MetadataRefresh | null;
   refreshId: number;
   retryAttempt: number;
   status: MetadataStatus;
@@ -96,7 +98,7 @@ export type MetdataStoreState = {
   invalidateSession(session: string): void;
 };
 
-export type MetdataMetadataProps = {
+export type MetadataProps = {
   onQueueChange(event: QueueTransition): void;
   authToken: string | null;
   apiGatewayUrl: string;
@@ -105,14 +107,14 @@ export type MetdataMetadataProps = {
   callbacks: MetadataCallbacks;
   choices: unknown;
   children?: ReactNode;
-  deferredState: MetdataDeferredState;
+  deferredState: MetadataDeferredState;
   intervalMs: number;
   onLoaderChange?(lines: readonly string[] | null): void;
   onReadyChange(ready: boolean): void;
-  refresh: MetdataMetadataRefresh | null;
+  refresh: MetadataRefresh | null;
   retryLimit: number;
   retryIntervalMs: number;
   segments: MetadataSegments;
   session: string;
-  workerClient?: MetdataWorkerClient;
+  workerClient?: MetadataClient;
 };

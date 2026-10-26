@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { useState } from "react";
 import { PageSegmentsPanel, type PageSegmentsPanelProps } from "../../src/features/pagesegments";
 import { composeMetadataJSON, replaceMetadataPageSegments, splitMetadataJSON } from "aurora-core";
-import { createIndexWorkerClient, useQueueStore } from "../../src/public-api";
+import { createMetadataClient, useQueueStore } from "../../src/public-api";
 import { storeApi } from "../../src/store/state/store";
 import type { MetadataPayload } from "aurora-core";
 
@@ -61,7 +61,7 @@ storeApi.getState().setJSON(session, splitMetadataJSON(metadata));
 
 let saved = metadata;
 const workerClient: PageSegmentsPanelProps["workerClient"] = {
-  ...createIndexWorkerClient({ apiBaseUrl: "https://doc.example.com", retryIntervalMs: 0, retryLimit: 0 }),
+  ...createMetadataClient({ apiBaseUrl: "https://doc.example.com", retryIntervalMs: 0, retryLimit: 0 }),
   async updatePageSegments(_token, _session, pageCode, segments) {
     if (forceFailure) throw buildError("Could not save page segments.");
     saved = composeMetadataJSON(replaceMetadataPageSegments(splitMetadataJSON(saved), pageCode, segments))!;

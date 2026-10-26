@@ -1,247 +1,103 @@
 import { pageSize } from "../../../test/pageSize";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ViewerState } from "@tabulariumai/aurora-lens";
+import { queueStoreApi } from "../../queue/store/queueStore";
 import { loadImagePackage } from "../data/loadImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
+const response = { status: "completed" as const, data: { data: "https://storage.test/image.json", tiff: "https://storage.test/image.tiff" } };
+const local = { packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" };
+function client() {
+  return { packageImage: vi.fn(async () => response), downloadPackage: vi.fn(async () => local) };
+}
+const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", session: "session-1", onError: vi.fn() };
+
+beforeEach(() => queueStoreApi.setState({ etags: { "session-1": "first-etag", "session-2": "second-etag" } }));
+
+afterEach(() => { imageViewerStoreApi.getState().resetViewer(); vi.clearAllMocks(); });
+
 describe("loadImagePackage", () => {
-  it("retries a failed package through the existing request and then reuses its loaded output", async () => {
-    const onError = vi.fn();
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn()
-        .mockResolvedValueOnce({ status: "error", data: "image_failed: Upload failed" })
-        .mockResolvedValueOnce({ status: "completed", data: "" }),
-      imageData: vi.fn(async () => ({ status: "completed" as const, data: { data: "https://storage.test/retry.json", tiff: "https://storage.test/retry.tiff" } })),
-      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
-    };
-    const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "retry-session", workerClient };
-    await loadImagePackage(input);
-    expect(imageViewerStoreApi.getState().status).toBe("error");
-    expect(onError).toHaveBeenCalledOnce();
-    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
-
-    await loadImagePackage(input);
-    expect(workerClient.packageImage).toHaveBeenCalledTimes(2);
-    expect(workerClient.packageImage).toHaveBeenLastCalledWith("token", "retry-session");
-    expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", error: null, packageStatus: "completed" });
-    expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
-    await loadImagePackage(input);
-    expect(workerClient.packageImage).toHaveBeenCalledTimes(2);
-    expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
+  it("downloads the orchestrated response without status or data requests", async () => {
+    const workerClient = client();
+    await loadImagePackage({ ...input, workerClient });
+    expect(workerClient.packageImage).toHaveBeenCalledExactlyOnceWith("token", "session-1", "first-etag");
+    expect(workerClient.downloadPackage).toHaveBeenCalledExactlyOnceWith("token", { jsonUrl: response.data.data, tiffUrl: response.data.tiff });
+    expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", packageStatus: "completed", ...local });
   });
-
-  it.each([
-    ["pending", "completed"], ["processing", "completed"],
-    ["pending", "error"], ["processing", "error"],
-  ])("polls %s packages every 500 ms until %s without restarting", async (initial, terminal) => {
-    vi.useFakeTimers();
-    const onError = vi.fn();
-    const session = `${initial}-${terminal}`;
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: initial, data: "" })),
-      imageStatus: vi.fn()
-        .mockResolvedValueOnce({ status: initial, data: "" })
-        .mockResolvedValueOnce({ status: "processing", data: "" })
-        .mockResolvedValueOnce({ status: terminal, data: terminal === "error" ? "Package failed" : "" }),
-      imageData: vi.fn(async () => ({ status: "completed" as const, data: { data: "https://storage.test/image.json", tiff: "https://storage.test/image.tiff" } })),
-      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
-    };
-    const loading = loadImagePackage({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session, workerClient });
-    await vi.advanceTimersByTimeAsync(499);
-    expect(workerClient.imageStatus).toHaveBeenCalledExactlyOnceWith("token", session);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(workerClient.imageStatus).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(499);
-    expect(workerClient.imageStatus).toHaveBeenCalledTimes(2);
-    await vi.advanceTimersByTimeAsync(1);
-    await loading;
-    expect(workerClient.packageImage).toHaveBeenCalledExactlyOnceWith("token", session);
-    expect(workerClient.imageStatus).toHaveBeenCalledTimes(3);
-    if (terminal === "completed") {
-      expect(imageViewerStoreApi.getState().status).toBe("ready");
-      expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
-      expect(onError).not.toHaveBeenCalled();
-    } else {
-      expect(imageViewerStoreApi.getState().status).toBe("error");
-      expect(onError).toHaveBeenCalledWith({ code: "image_package_error", details: { status: "error", data: "Package failed" }, error: "Package failed" });
-      expect(workerClient.imageData).not.toHaveBeenCalled();
-      expect(workerClient.downloadPackage).not.toHaveBeenCalled();
-    }
-  });
-
-  it.each(["packageImage", "imageStatus", "imageData", "downloadPackage"] as const)("ignores session A after switching to B during %s", async stage => {
-    let release!: () => void;
-    const gate = new Promise<void>(resolve => { release = resolve; });
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "error", data: "A failed" })),
-      imageData: vi.fn(async () => ({ status: "completed" as const, data: { data: "https://storage.test/A.json", tiff: "https://storage.test/A.tiff" } })),
-      downloadPackage: vi.fn(async () => ({ packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" })),
-    };
-    if (stage !== "imageStatus") workerClient.imageStatus.mockResolvedValue({ status: "completed", data: "" });
-    const original = workerClient[stage].getMockImplementation()!;
-    workerClient[stage].mockImplementation((async () => { await gate; return original(); }) as never);
-    const onError = vi.fn();
-    const loading = loadImagePackage({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "A", workerClient });
-    await vi.waitFor(() => expect(workerClient[stage]).toHaveBeenCalledOnce());
-    imageViewerStoreApi.getState().setHostInput({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "B", pageMap: new Map(), request: null, selectedIndex: null });
-    release(); await loading;
-    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "B", status: "idle", packageStatus: null, error: null, tiffBytes: null });
-    expect(onError).not.toHaveBeenCalled();
-  });
-
-  it("does not run a queued restart after the host switches sessions", async () => {
-    let release!: () => void;
-    const gate = new Promise<void>(resolve => { release = resolve; });
-    const workerClient = { packageImage: vi.fn(async () => { await gate; return { status: "completed", data: "" }; }), imageStatus: vi.fn(async () => ({ status: "error", data: "A" })), imageData: vi.fn(), downloadPackage: vi.fn() };
-    const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(), session: "A", workerClient };
-    const loading = loadImagePackage(input);
-    const restart = loadImagePackage({ ...input, restart: true });
-    imageViewerStoreApi.getState().setHostInput({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(), session: "B", pageMap: new Map(), request: null, selectedIndex: null });
-    release(); await Promise.all([loading, restart]);
+  it("reuses loaded packages and omits the etag only for recovery", async () => {
+    const workerClient = client();
+    const request = { ...input, workerClient };
+    await loadImagePackage(request);
+    await loadImagePackage(request);
     expect(workerClient.packageImage).toHaveBeenCalledOnce();
-    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "B", status: "idle", error: null });
-  });
-
-  it("does not report a rejected previous-session request to the host", async () => {
-    let reject!: (error: Error) => void;
-    const gate = new Promise<never>((_, fail) => { reject = fail; });
-    const onError = vi.fn();
-    const workerClient = { packageImage: vi.fn(() => gate), imageStatus: vi.fn(), imageData: vi.fn(), downloadPackage: vi.fn() };
-    const loading = loadImagePackage({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "A", workerClient });
-    imageViewerStoreApi.getState().setHostInput({ pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError, session: "B", pageMap: new Map(), request: null, selectedIndex: null });
-    reject(new Error("A failed")); await loading;
-    expect(onError).not.toHaveBeenCalled();
-    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "B", status: "idle", error: null });
-  });
-
-  afterEach(() => {
-    imageViewerStoreApi.getState().resetViewer();
-    vi.useRealTimers();
-  });
-
-  it("loads and stores an image package without rendering the viewer", async () => {
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
-        status: "completed" as const,
-        data: {
-          data: "https://storage.test/image.json",
-          tiff: "https://storage.test/image.tiff",
-        },
-      })),
-      downloadPackage: vi.fn(async () => ({
-        packageMetadata: { pages: [{ pageNumber: 1 }] },
-        tiffBytes: new ArrayBuffer(4),
-        tiffType: "image/tiff",
-      })),
-    };
-
-    await loadImagePackage({
-      pageSize,
-      apiGatewayUrl: "https://gateway",
-      authToken: "token",
-      onError: vi.fn(),
-      session: "session-1",
-      workerClient,
-    });
-
-    expect(workerClient.packageImage).toHaveBeenCalledWith("token", "session-1");
-    expect(workerClient.imageStatus).toHaveBeenCalledWith("token", "session-1");
-    expect(workerClient.imageData).toHaveBeenCalledWith("token", "session-1");
-    expect(workerClient.downloadPackage).toHaveBeenCalledWith("token", {
-      jsonUrl: "https://storage.test/image.json",
-      tiffUrl: "https://storage.test/image.tiff",
-    });
-    expect(imageViewerStoreApi.getState()).toMatchObject({
-      pageSize,
-      apiGatewayUrl: "https://gateway",
-      authToken: "token",
-      packageMetadata: { pages: [{ pageNumber: 1 }] },
-      packageStatus: "completed",
-      session: "session-1",
-      status: "ready",
-      tiffType: "image/tiff",
-    });
-    expect(imageViewerStoreApi.getState().tiffBytes?.byteLength).toBe(4);
-  });
-
-  it("does not restart same-session loaded package", async () => {
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
-        status: "completed" as const,
-        data: {
-          data: "https://storage.test/image.json",
-          tiff: "https://storage.test/image.tiff",
-        },
-      })),
-      downloadPackage: vi.fn(async () => ({
-        packageMetadata: { pages: [] },
-        tiffBytes: new ArrayBuffer(4),
-        tiffType: "image/tiff",
-      })),
-    };
-    const input = {
-      pageSize,
-      apiGatewayUrl: "https://gateway",
-      authToken: "token",
-      onError: vi.fn(),
-      session: "session-1",
-      workerClient,
-    };
-
-    await loadImagePackage(input);
-    await loadImagePackage(input);
-
-    expect(workerClient.packageImage).toHaveBeenCalledTimes(1);
-    expect(workerClient.imageData).toHaveBeenCalledTimes(1);
-    expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
-  });
-
-  it("restarts a same-session loaded package when requested", async () => {
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "completed", data: "" })),
-      imageData: vi.fn(async () => ({
-        status: "completed" as const,
-        data: {
-          data: "https://storage.test/image.json",
-          tiff: "https://storage.test/image.tiff",
-        },
-      })),
-      downloadPackage: vi.fn(async () => ({
-        packageMetadata: { pages: [] },
-        tiffBytes: new ArrayBuffer(4),
-        tiffType: "image/tiff",
-      })),
-    };
-    const input = {
-      pageSize,
-      apiGatewayUrl: "https://gateway",
-      authToken: "token",
-      onError: vi.fn(),
-      session: "session-1",
-      workerClient,
-    };
-
-    await loadImagePackage(input);
-    await loadImagePackage({ ...input, restart: true });
-
-    expect(workerClient.packageImage).toHaveBeenCalledTimes(2);
-    expect(workerClient.imageData).toHaveBeenCalledTimes(2);
+    await loadImagePackage({ ...request, restart: true });
+    expect(workerClient.packageImage).toHaveBeenLastCalledWith("token", "session-1", null);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(2);
-    expect(imageViewerStoreApi.getState().packageVersion).toBe(2);
   });
-
+  it("retries failed loads through the normal etag flow", async () => {
+    const workerClient = client();
+    workerClient.packageImage.mockRejectedValueOnce({ code: "image_timeout", error: "Image package timed out" });
+    const request = { ...input, workerClient };
+    await loadImagePackage(request);
+    expect(input.onError).toHaveBeenCalledWith(expect.objectContaining({ code: "image_timeout", error: "Image package timed out" }));
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+    await loadImagePackage(request);
+    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", "first-etag"], ["token", "session-1", "first-etag"]]);
+    expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", error: null });
+  });
+  it("deduplicates simultaneous loads", async () => {
+    const workerClient = client();
+    await Promise.all([loadImagePackage({ ...input, workerClient }), loadImagePackage({ ...input, workerClient })]);
+    expect(workerClient.packageImage).toHaveBeenCalledOnce();
+    expect(workerClient.downloadPackage).toHaveBeenCalledOnce();
+  });
+  it.each(["packageImage", "downloadPackage"] as const)("ignores a previous session while awaiting %s", async stage => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const workerClient = {
+      packageImage: vi.fn(async () => { if (stage === "packageImage") await gate; return response; }),
+      downloadPackage: vi.fn(async () => { if (stage === "downloadPackage") await gate; return local; }),
+    };
+    const loading = loadImagePackage({ ...input, workerClient });
+    await vi.waitFor(() => expect(workerClient[stage]).toHaveBeenCalledOnce());
+    imageViewerStoreApi.getState().setHostInput({ ...input, session: "session-2", pageMap: new Map(), request: null, selectedIndex: null });
+    release(); await loading;
+    expect(imageViewerStoreApi.getState()).toMatchObject({ session: "session-2", status: "idle", error: null, tiffBytes: null });
+    expect(input.onError).not.toHaveBeenCalled();
+  });
+  it("loads each selected session using its own request", async () => {
+    const workerClient = client();
+    await loadImagePackage({ ...input, workerClient });
+    await loadImagePackage({ ...input, session: "session-2", workerClient });
+    await loadImagePackage({ ...input, workerClient });
+    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", "first-etag"], ["token", "session-2", "second-etag"], ["token", "session-1", "first-etag"]]);
+  });
+  it("does not execute queued recovery after switching sessions", async () => {
+    let release!: () => void;
+    const workerClient = client();
+    workerClient.packageImage.mockImplementationOnce(async () => { await new Promise<void>(resolve => { release = resolve; }); return response; });
+    const loading = loadImagePackage({ ...input, workerClient });
+    const recovery = loadImagePackage({ ...input, workerClient, restart: true });
+    await vi.waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledOnce());
+    imageViewerStoreApi.getState().setHostInput({ ...input, session: "session-2", pageMap: new Map(), request: null, selectedIndex: null });
+    release(); await Promise.all([loading, recovery]);
+    expect(workerClient.packageImage).toHaveBeenCalledOnce();
+    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
+  });
+  it("does not report errors from a previous session", async () => {
+    let reject!: (error: Error) => void;
+    const workerClient = client();
+    workerClient.packageImage.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
+    const loading = loadImagePackage({ ...input, workerClient });
+    await vi.waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledOnce());
+    imageViewerStoreApi.getState().setHostInput({ ...input, session: "session-2", pageMap: new Map(), request: null, selectedIndex: null });
+    reject(new Error("Previous session failed")); await loading;
+    expect(input.onError).not.toHaveBeenCalled();
+    expect(imageViewerStoreApi.getState()).toMatchObject({ status: "idle", error: null });
+  });
   it("does not restart package flow after same-session lens restore", async () => {
     const workerClient = {
       packageImage: vi.fn(),
-      imageStatus: vi.fn(),
-      imageData: vi.fn(),
       downloadPackage: vi.fn(),
     };
     imageViewerStoreApi.getState().setHostInput({
@@ -285,39 +141,7 @@ describe("loadImagePackage", () => {
     });
 
     expect(workerClient.packageImage).not.toHaveBeenCalled();
-    expect(workerClient.imageStatus).not.toHaveBeenCalled();
-    expect(workerClient.imageData).not.toHaveBeenCalled();
     expect(workerClient.downloadPackage).not.toHaveBeenCalled();
   });
 
-  it("stores package errors through the viewer store error path", async () => {
-    const onError = vi.fn();
-    const workerClient = {
-      packageImage: vi.fn(async () => ({ status: "processing", data: "" })),
-      imageStatus: vi.fn(async () => ({ status: "error", data: "package failed" })),
-      imageData: vi.fn(),
-      downloadPackage: vi.fn(),
-    };
-
-    await loadImagePackage({
-      pageSize,
-      apiGatewayUrl: "https://gateway",
-      authToken: "token",
-      onError,
-      session: "session-1",
-      workerClient,
-    });
-
-    expect(onError).toHaveBeenCalledWith({
-      code: "image_package_error",
-      details: { status: "error", data: "package failed" },
-      error: "package failed",
-    });
-    expect(imageViewerStoreApi.getState()).toMatchObject({
-      packageStatus: "error",
-      status: "error",
-    });
-    expect(workerClient.imageData).not.toHaveBeenCalled();
-    expect(workerClient.downloadPackage).not.toHaveBeenCalled();
-  });
 });

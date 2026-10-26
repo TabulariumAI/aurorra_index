@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { MetadataSegments } from "aurora-core";
 import { IndexContainer } from "../../src/features/indexing/component/IndexContainer";
 import { createDeferredState } from "../../src/features/indexing/data/deferredState";
-import { createIndexWorkerClient } from "../../src/features/metdataview/worker/metadataWorkerClient";
+import { createMetadataClient } from "../../src/features/metdataview/data/metadataClient";
 import { queueStoreApi } from "../../src/features/queue/store/queueStore";
 
 const segments: MetadataSegments = {
@@ -12,7 +12,7 @@ const segments: MetadataSegments = {
   PARTY: "party", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TITLE: "title",
   TRANSACTION: "transaction", VITAL: "vital",
 };
-const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway.example.test", retryIntervalMs: 0, retryLimit: 0 });
+const client = createMetadataClient({ apiBaseUrl: "https://gateway.example.test", retryIntervalMs: 0, retryLimit: 0 });
 const onQueueChange = () => {};
 queueStoreApi.getState().restore("queue-visual-owner", { authToken: "token", client, intervalMs: 1, onChange: onQueueChange });
 

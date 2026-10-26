@@ -1,6 +1,6 @@
 import type { QueueTransition } from "../../queue/type/queue.types";
 import type { MetadataError, MetadataIndex, ResourceRequest } from "aurora-core";
-import type { MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
+import type { MetadataClient } from "../../metdataview/type/metadataView.types";
 
 export type EditIndexRequest = { index: MetadataIndex; segment: string; session: string };
 export type EditIndexStoreState = {
@@ -21,5 +21,5 @@ export type EditIndexPanelProps = {
   onError(error: MetadataError): void;
   onReadyChange(ready: boolean): void;
   onResource(request: ResourceRequest): void;
-  workerClient?: MetdataWorkerClient;
+  workerClient?: MetadataClient;
 };

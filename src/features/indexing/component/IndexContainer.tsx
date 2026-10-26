@@ -4,7 +4,7 @@ import { useEffect, type JSX } from "react";
 import { useMetadata } from "../../metdataview/hook/useMetadata";
 import { type MetadataActionPayload, metadataStyles } from "aurora-core";
 import { MetadataPanel } from "../../metdataview/component/MetadataPanel";
-import type { MetdataMetadataProps } from "../../metdataview/type/metadataView.types";
+import type { MetadataProps } from "../../metdataview/type/metadataView.types";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { addIndexStoreApi } from "../../addindex";
 import { editIndexStoreApi } from "../../editindex";
@@ -15,7 +15,7 @@ function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
   return ["Retrieving metadata...", `Attempt ${attempt} of ${retryLimit}`];
 }
 
-export function IndexContainer(props: MetdataMetadataProps): JSX.Element {
+export function IndexContainer(props: MetadataProps): JSX.Element {
   const { callbacks, children, segments, session } = props;
   const metadata = useMetadata(props);
   const tasks = useQueueStore((state) => state.tasks);

@@ -8,8 +8,8 @@ import {
 } from "aurora-core";
 import { indexStoreApi, useIndexStore } from "../store/metadataStore";
 import { storeApi, useStore } from "../../../store/state/store";
-import type { MetdataMetadataProps } from "../type/metadataView.types";
-import { createIndexWorkerClient } from "../worker/metadataWorkerClient";
+import type { MetadataProps } from "../type/metadataView.types";
+import { createMetadataClient } from "../data/metadataClient";
 import { loadAuditReport } from "../../audit/data/loadAuditReport";
 import { createAuditWorkerClient } from "../../audit/worker/auditWorkerClient";
 
@@ -38,7 +38,7 @@ export function useMetadata({
   segments,
   session,
   workerClient,
-}: MetdataMetadataProps) {
+}: MetadataProps) {
   const callbacksRef = useRef(callbacks);
   const store = useIndexStore();
   const json = useStore((state) => state.getJSON(session));
@@ -48,7 +48,7 @@ export function useMetadata({
   const [selectedIndex, setSelectedIndex] = useState(deferredState.selectedIndex);
   const refreshIdRef = useRef<number | null>(null);
   const loadIdRef = useRef(0);
-  const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => indexStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
+  const client = useMemo(() => workerClient || createMetadataClient({ apiBaseUrl: apiGatewayUrl, onRetry: (attempt) => indexStoreApi.getState().setRetryAttempt(attempt), retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
 
   useEffect(() => {
     callbacksRef.current = callbacks;

@@ -3,17 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 
 describe("imageViewerStore", () => {
-  it("uses 500 ms for initial and reset polling while preserving host overrides", () => {
-    expect(imageViewerStoreApi.getState().packagePollIntervalMs).toBe(500);
-    const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", onError: vi.fn(), pageMap: new Map(), request: null, selectedIndex: null, session: "poll-session" };
-    imageViewerStoreApi.getState().setHostInput({ ...input, packagePollIntervalMs: 125 });
-    expect(imageViewerStoreApi.getState().packagePollIntervalMs).toBe(125);
-    imageViewerStoreApi.getState().resetViewer();
-    expect(imageViewerStoreApi.getState().packagePollIntervalMs).toBe(500);
-    imageViewerStoreApi.getState().setHostInput(input);
-    expect(imageViewerStoreApi.getState().packagePollIntervalMs).toBe(500);
-  });
-
   afterEach(() => {
     imageViewerStoreApi.getState().resetViewer();
     vi.restoreAllMocks();

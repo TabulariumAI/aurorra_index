@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { IndexWorker } from "../../metdataview/worker/metdataWorker";
+import { MetadataWorker } from "../../metdataview/worker/MetadataWorker";
 
 const metadata = {
   fees: [],
@@ -22,27 +22,27 @@ function plainResponse(text = "plain", status = 200) {
   return new Response(text, { status });
 }
 
-describe("IndexWorker", () => {
+describe("MetadataWorker", () => {
   it("retrieves the metadata etag with its blob path", async () => {
     const path = "https://blob/metadata.json?sig=test";
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce(jsonResponse({ status: "completed", data: path, etag: "metadata-etag" }))
       .mockResolvedValueOnce(jsonResponse(metadata)));
-    const result = await new IndexWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData" });
+    const result = await new MetadataWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData" });
     expect(result).toEqual({ ok: true, data: metadata, path, etag: "metadata-etag" });
   });
   it("transports null unchanged fields without replacing original selectors", () => {
     const change = { action: "update" as const, explanation: "User correction", new_index_value: "04 22, 2029",
       new_index_label: null, new_index_aspect: null, new_index_ambiguous: null,
       old_index_label: "notary_expiration_date", old_index_aspect: "notary_expiration_date", old_index_value: "September 22, 2029" };
-    const request = new IndexWorker().buildRequest({ apiBaseUrl: "https://gateway", token: "token", session: "session", segment: "acknowledgment", change, type: "patchIndex" });
+    const request = new MetadataWorker().buildRequest({ apiBaseUrl: "https://gateway", token: "token", session: "session", segment: "acknowledgment", change, type: "patchIndex" });
     const { action: _action, ...fields } = change;
     expect(JSON.parse(request.body!)).toEqual({ segment: "acknowledgment", allow_enrichment: false, ...fields });
   });
   it("reads a saved SAS URL directly without sending gateway credentials", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(metadata)));
     const path = "https://blob/metadata.json?sig=test";
-    const result = await new IndexWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData", path });
+    const result = await new MetadataWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData", path });
     expect(result).toEqual({ ok: true, data: metadata, path });
     expect(fetch).toHaveBeenCalledExactlyOnceWith(path);
   });
@@ -51,7 +51,7 @@ describe("IndexWorker", () => {
       const command = { apiBaseUrl: "https://gateway", token: "token", session: "session", segment: "party", type: "patchIndex" as const,
         change: { action, allow_enrichment, explanation: "Change", new_index_label: "party", new_index_aspect: "grantor",
           new_index_value: "Bob", new_index_ambiguous: null, old_index_label: "party", old_index_aspect: "grantor", old_index_value: "Alice" } };
-      const body = JSON.parse(new IndexWorker().buildRequest(command).body!);
+      const body = JSON.parse(new MetadataWorker().buildRequest(command).body!);
       if (action === "remove") expect(body).not.toHaveProperty("allow_enrichment");
       else expect(body.allow_enrichment).toBe(allow_enrichment);
     }
@@ -70,7 +70,7 @@ describe("IndexWorker", () => {
       old_index_value: "Alice",
     };
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing", version: 5 })));
-    const result = await new IndexWorker().run({ apiBaseUrl: "https://gateway/", token: "token", session: "session/1", segment: "party", change, type: "patchIndex" });
+    const result = await new MetadataWorker().run({ apiBaseUrl: "https://gateway/", token: "token", session: "session/1", segment: "party", change, type: "patchIndex" });
     expect(result).toEqual({ ok: true, data: { data: "", status: "processing", version: 5 } });
     expect(fetch).toHaveBeenCalledOnce();
     const [url, init] = vi.mocked(fetch).mock.calls[0];
@@ -88,7 +88,7 @@ describe("IndexWorker", () => {
   });
 
   it("builds the required metadata route", () => {
-    const request = new IndexWorker().buildRequest({
+    const request = new MetadataWorker().buildRequest({
       apiBaseUrl: "https://doc.example.com/",
       session: "session/1",
       token: "token",
@@ -103,7 +103,7 @@ describe("IndexWorker", () => {
   });
 
   it("builds all mutation routes", () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
 
     expect(worker.buildRequest({
       apiBaseUrl: "https://doc.example.com",
@@ -158,7 +158,7 @@ describe("IndexWorker", () => {
       .mockResolvedValueOnce(jsonResponse(metadata));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await new IndexWorker().run({
+    const result = await new MetadataWorker().run({
       apiBaseUrl: "https://doc.example.com",
       session: "session-1",
       token: "token-1",
@@ -180,7 +180,7 @@ describe("IndexWorker", () => {
       .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
       .mockResolvedValueOnce(jsonResponse({ error: "SAS denied" }, { status: 403 })));
 
-    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
+    await expect(new MetadataWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
       details: { error: "SAS denied" },
       error: "SAS denied",
       ok: false,
@@ -194,7 +194,7 @@ describe("IndexWorker", () => {
       .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
       .mockRejectedValueOnce(new Error("Blob unavailable")));
 
-    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
+    await expect(new MetadataWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
       error: "Blob unavailable",
       ok: false,
     });
@@ -206,7 +206,7 @@ describe("IndexWorker", () => {
       .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
       .mockResolvedValueOnce(new Response("{", { headers: { "content-type": "application/json" }, status: 200 })));
 
-    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
+    await expect(new MetadataWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toEqual({
       code: "invalid_json",
       error: "Response JSON could not be parsed.",
       ok: false,
@@ -220,7 +220,7 @@ describe("IndexWorker", () => {
       .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
       .mockResolvedValueOnce(jsonResponse({ heading: {} })));
 
-    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
+    await expect(new MetadataWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
       code: "validation_error",
       error: "Missing required key: secrets",
       ok: false,
@@ -229,14 +229,14 @@ describe("IndexWorker", () => {
 
   it("rejects error and incomplete metadata envelopes", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "metadata failed", status: "error" })));
-    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
+    await expect(new MetadataWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
       code: "index_error",
       error: "metadata failed",
       ok: false,
     });
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "processing" })));
-    await expect(new IndexWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
+    await expect(new MetadataWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({
       code: "index_not_completed",
       error: "processing",
       ok: false,
@@ -258,7 +258,7 @@ describe("IndexWorker", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     await expect(worker.run({
       apiBaseUrl: "https://doc.example.com",
       segment: "party/clause",
@@ -299,7 +299,7 @@ describe("IndexWorker", () => {
   });
 
   it("rejects missing inputs and invalid sessions", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
 
     await expect(worker.run({ apiBaseUrl: "", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({ code: "missing_api_base_url", ok: false });
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "", token: "t", type: "indexData" })).resolves.toMatchObject({ code: "invalid_session", ok: false });
@@ -307,7 +307,7 @@ describe("IndexWorker", () => {
   });
 
   it("handles network failures for all index routes", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     vi.stubGlobal("fetch", vi.fn(async () => {
       throw new Error("offline");
     }));
@@ -319,7 +319,7 @@ describe("IndexWorker", () => {
   });
 
   it("handles non-json and invalid-json success responses for all routes", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
 
     vi.stubGlobal("fetch", vi.fn(async () => plainResponse("plain")));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({ code: "non_json_response", ok: false });
@@ -338,7 +338,7 @@ describe("IndexWorker", () => {
   });
 
   it("requires HTTP 200 for every mutation success", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "ok", status: "completed" }, { status: 201 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", segment: "party", type: "reprocessSegment" })).resolves.toMatchObject({ code: "validation_error", ok: false, status: 201 });
 
@@ -348,7 +348,7 @@ describe("IndexWorker", () => {
   });
 
   it("handles upstream failures for all routes", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ code: "bad", error: "Nope" }, { status: 500 })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", type: "indexData" })).resolves.toMatchObject({ code: "bad", error: "Nope", ok: false, status: 500 });
@@ -358,7 +358,7 @@ describe("IndexWorker", () => {
   });
 
   it("validates malformed route payloads", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: 1, status: "completed" })));
     await expect(worker.run({ apiBaseUrl: "https://doc.example.com", session: "s", token: "t", segment: "party", type: "reprocessSegment" })).resolves.toMatchObject({ code: "validation_error", ok: false });

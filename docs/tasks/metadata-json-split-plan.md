@@ -62,7 +62,7 @@ Update `metadataView.types.ts` with explicit types for each stored JSON part:
 - `MetadataFinancialJSON`
 - `MetadataJSONParts`
 
-Update `MetdataStoreState` so the store owns split metadata by session:
+Update `MetadataStoreState` so the store owns split metadata by session:
 
 - Replace `dataBySession: Record<string, MetadataPayload>` with `metadataJSONBySession: Record<string, MetadataJSONParts>`.
 - Keep `setData(session: string, data: MetadataPayload): void` as the public write API.

@@ -1,5 +1,5 @@
 import type { MetadataIndex, MetadataPayload, QueueStatus } from "aurora-core";
-import type { MetdataPatchResult, MetdataWorkerClient } from "../../metdataview/type/metadataView.types";
+import type { MetadataPatchResult, MetadataClient } from "../../metdataview/type/metadataView.types";
 
 export type IndexChange = {
   action: "add" | "update" | "remove";
@@ -34,7 +34,7 @@ export type QueueRuntime = {
   onChange(event: QueueTransition): void;
   authToken: string;
   intervalMs: number;
-  client: MetdataWorkerClient;
+  client: MetadataClient;
 };
 
 export type QueueChange = { action: "reprocess"; segment: string } | ({
@@ -49,7 +49,7 @@ export type QueueTask = {
   segment: string;
   changes: QueueChange[];
   cursor: number;
-  result: MetdataPatchResult | null;
+  result: MetadataPatchResult | null;
   status: "queued" | "processing" | "completed" | "failed";
   error: string | null;
   runtime: QueueRuntime;

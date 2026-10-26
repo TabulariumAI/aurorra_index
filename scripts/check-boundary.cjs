@@ -33,6 +33,9 @@ if (existsSync(root)) {
   for (const file of walk(root)) {
     if (!/\.(ts|tsx|js|jsx)$/.test(file)) continue;
     const source = readFileSync(file, "utf8");
+    if (/[\\/]worker[\\/]/.test(file) && (/from ["'][^"']*\/(?:store|state)\//.test(source) || /\.getState\s*\(/.test(source))) {
+      failures.push(`${file}: worker inputs must be supplied through arguments`);
+    }
     for (const pattern of forbidden) {
       if (pattern.test(file) || pattern.test(source)) {
         failures.push(`${file}: ${pattern}`);

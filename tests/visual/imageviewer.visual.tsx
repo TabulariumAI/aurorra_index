@@ -1,9 +1,9 @@
 import { pageSize } from "../../src/test/pageSize";
 import { QueueActions } from "../../src/features/queue/component/QueueActions";
-import { useQueueStore } from "../../src/features/queue/store/queueStore";
+import { queueStoreApi, useQueueStore } from "../../src/features/queue/store/queueStore";
 import { createRoot } from "react-dom/client";
 import { AddIndexPanel, addIndexStoreApi, useAddIndexStore } from "../../src/features/addindex";
-import { ImageViewerPanel } from "../../src/features/imageviewer";
+import { createWorkerClient, loadImagePackage, ImageViewerPanel } from "../../src/features/imageviewer";
 import { imageViewerStoreApi } from "../../src/features/imageviewer/store/imageViewerStore";
 import { storeApi } from "../../src/store/state/store";
 import type { WorkerClient } from "../../src/features/imageviewer";
@@ -12,6 +12,7 @@ import tiffUrl from "../../src/test/package/image.tiff?url";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
+const api = new URLSearchParams(window.location.search).has("api");
 const compact = new URLSearchParams(window.location.search).has("compact");
 
 stage.style.overflow = "auto";
@@ -21,11 +22,16 @@ stage.innerHTML = "";
 
 declare global {
   interface Window {
+    recoverVisualPackage?: () => Promise<void>;
     completeDocumentPackage?: boolean;
     clearVisualMatches?: () => void;
     searchVisualIndex?: (value: string) => void;
   }
 }
+
+let completePackage!: () => void;
+const packageReady = new Promise<void>(resolve => { completePackage = resolve; if (window.completeDocumentPackage) resolve(); });
+Object.defineProperty(window, "completeDocumentPackage", { configurable: true, set(value: boolean) { if (value) completePackage(); } });
 
 const workerClient: WorkerClient = {
   async downloadPackage() {
@@ -33,7 +39,8 @@ const workerClient: WorkerClient = {
     const tiffBlob = await tiff.blob();
     return { packageMetadata, tiffBytes: await tiffBlob.arrayBuffer(), tiffType: tiffBlob.type };
   },
-  async imageData() {
+  async packageImage() {
+    await packageReady;
     return {
       status: "completed",
       data: {
@@ -41,12 +48,6 @@ const workerClient: WorkerClient = {
         tiff: "https://storage.example.test/image.tiff",
       },
     };
-  },
-  async imageStatus() {
-    return { status: window.completeDocumentPackage ? "completed" : "processing", data: "" };
-  },
-  async packageImage() {
-    return { status: "processing", data: "" };
   },
 };
 
@@ -72,7 +73,6 @@ const hostInput = {
   authToken: "token",
   pageCount: 4,
   pageMap: new Map([["1", "page-cover"], ["2", "page-legal"], ["3", "page-reference"], ["4", "page-ack"]]),
-  packagePollIntervalMs: 50,
   request: {
     code: "idx-property-address",
     highlightOptions: { scroll: false },
@@ -85,8 +85,10 @@ const hostInput = {
   },
   selectedIndex: { code: "idx-property-address", segment: "property" },
   session: "visual-session-001",
-  workerClient,
+  workerClient: api ? createWorkerClient({ apiBaseUrl: "https://gateway.example.test" }) : workerClient,
 };
+if (!new URLSearchParams(window.location.search).has("uncached")) queueStoreApi.getState().setEtag(hostInput.session, "visual-etag");
+window.recoverVisualPackage = () => loadImagePackage({ ...hostInput, pageSize, onError(error) { stage.dataset.error = error.error; }, restart: true });
 
 window.searchVisualIndex = value => imageViewerStoreApi.getState().setRequest({
   ...hostInput.request,

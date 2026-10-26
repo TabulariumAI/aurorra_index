@@ -45,7 +45,7 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexF
     const state = imageViewerStoreApi.getState();
     const hasPackage = Boolean(state.packageMetadata && state.tiffBytes && state.tiffType !== null);
     const restoredLensReady = state.status === "ready" && state.viewerState?.status === "ready" && !hasPackage;
-    if (state.status === "packaging" || state.status === "polling" || state.status === "downloading") return;
+    if (state.status === "packaging" || state.status === "downloading") return;
     if (!state.onError) return;
     const restart = viewer.reloadId > reloadRef.current;
     if (!restart && viewer.isRestoredSession) return;
@@ -65,14 +65,13 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexF
       apiGatewayUrl,
       authToken,
       onError: state.onError,
-      packagePollIntervalMs: state.packagePollIntervalMs,
       restart,
       session,
       workerClient: workerClient ?? undefined,
     });
   }, [pageSize, apiGatewayUrl, authToken, requestVersion, session, viewer.hasRequestError, viewer.isRestoredSession, viewer.isRestoring, viewer.reloadId, workerClient]);
 
-  const loading = status === "packaging" || status === "polling" || status === "downloading";
+  const loading = status === "packaging" || status === "downloading";
   const lensLoading = !viewer.isNavigating && (viewer.isRestoring || viewer.isLoading || viewerStatus === "addingPages" || viewerStatus === "loadingPage");
   const progress = loading || lensLoading;
 

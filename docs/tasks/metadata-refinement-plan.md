@@ -10,7 +10,7 @@ Chat/refine is explicitly out of scope. Do not move or change the chat dialog, c
 
 - `src/features/metdataview/component/MetadataPanel.tsx` and `MetadataRows.tsx` render metadata actions through host callbacks.
 - `src/features/metdataview/hook/useMetadata.ts` loads metadata JSON through `GET /v1/index/{session}/data`.
-- `src/features/metdataview/worker/metdataWorker.ts` and `metadataWorkerClient.ts` are the package worker/client pattern for authenticated metadata requests.
+- `src/features/metdataview/worker/MetadataWorker.ts` and `metadataWorkerClient.ts` are the package worker/client pattern for authenticated metadata requests.
 - `document_web/src/features/metadata/legacy/metadataRuntime.ts` currently performs reprocess, confirm, and drop through the legacy worker path.
 - `document_web/src/domains/refine/svc/refine_service.js` opens the legacy `PageSegmentsDialog` after `EVENTS.reFinePage`.
 - `document_web/src/domains/shared/viewer/shell/pagesegmentsdialog.js` renders the legacy page-segment UI. Its Submit and Reprocess callbacks only show success state; they do not call the page-segment endpoint.
@@ -92,7 +92,7 @@ Use this exact panel contract:
 export type PageSegmentsPanelProps = {
   apiGatewayUrl: string;
   authToken: string;
-  choices: MetdataChoice[] | string | null;
+  choices: MetadataChoice[] | string | null;
   onClose: () => void;
   batchCode: string | null;
   intervalMs: number;
@@ -104,7 +104,7 @@ export type PageSegmentsPanelProps = {
   pageCode: string;
   segments: string[];
   session: string;
-  workerClient?: MetdataWorkerClient;
+  workerClient?: MetadataClient;
 };
 ```
 
@@ -195,7 +195,7 @@ The package never displays host alerts, opens host dialogs, or emits global even
 Update these files:
 
 - `src/features/metdataview/type/metadataView.types.ts`
-- `src/features/metdataview/worker/metdataWorker.ts`
+- `src/features/metdataview/worker/MetadataWorker.ts`
 - `src/features/metdataview/worker/metadataWorkerClient.ts`
 - `src/features/metdataview/hook/useMetadata.ts`
 - `src/features/metdataview/component/MetadataPanel.tsx`

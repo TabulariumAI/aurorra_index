@@ -2,7 +2,7 @@ import { formStyles, ConfButton, formatLabel } from "aurora-core";
 import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import { formatSelection } from "../data/addIndexData";
 import type { AddIndexPanelProps } from "../type/addIndex.types";
-import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
+import { createMetadataClient } from "../../metdataview/data/metadataClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
 import { IndexInput } from "../../../shared/component/IndexInput";
 import { IndexDetails } from "../../../shared/component/IndexDetails";
@@ -35,7 +35,7 @@ export function AddIndexPanel({
     source: "",
   });
   const client = useMemo(
-    () => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }),
+    () => workerClient || createMetadataClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }),
     [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient],
   );
 

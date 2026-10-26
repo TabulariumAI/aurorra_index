@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 test("image viewer package flow renders toolbar and lens controls", async ({ page }, testInfo) => {
@@ -270,4 +271,44 @@ for (const width of [1440, 440]) {
     await page.evaluate(() => window.searchVisualIndex?.("1428 Cedar Street"));
     await expect(result).toHaveCount(0);
   });
+}
+
+
+for (const uncached of [false, true]) {
+test(`image package sends metadata etag, renders signed downloads, and recovers without etag (uncached=${uncached})`, async ({ page }) => {
+  const requests: unknown[] = [];
+  await page.route("https://gateway.example.test/**", async route => {
+    if (route.request().url().includes("/metadata/")) {
+      expect(uncached).toBe(true);
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ status: "completed", data: "https://storage.example.test/metadata.json?sig=fresh", etag: "visual-etag" }) });
+      return;
+    }
+    expect(route.request().url()).toBe("https://gateway.example.test/v1/image/visual-session-001/package");
+    expect(route.request().method()).toBe("POST");
+    expect(route.request().headers().authorization).toBe("Bearer token");
+    requests.push(route.request().postDataJSON());
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ status: "completed", data: { tiff: "https://storage.example.test/image.tiff?sig=fresh", data: "https://storage.example.test/image.json?sig=fresh" } }) });
+  });
+  await page.route("https://storage.example.test/**", async route => {
+    expect(route.request().url()).toContain("?sig=fresh");
+    const tiff = route.request().url().includes("image.tiff");
+    await route.fulfill({ contentType: tiff ? "image/tiff" : "application/json", body: route.request().url().includes("metadata.json") ? JSON.stringify({ heading: {}, indexes: [], secrets: [], fees: [], funds: [] }) : readFileSync(`src/test/package/image.${tiff ? "tiff" : "json"}`) });
+  });
+  await page.goto(`/?scenario=imageviewer&api${uncached ? "&uncached" : ""}`);
+  await expect(page.getByText(process.env.AURORA_REAL_LENS === "1" ? "Page 2 of 5" : "Page 2 of 4")).toBeVisible();
+  expect(requests).toEqual([{ etag: "visual-etag" }]);
+  await page.evaluate(() => window.recoverVisualPackage?.());
+  await expect(page.getByText(process.env.AURORA_REAL_LENS === "1" ? "Page 2 of 5" : "Page 2 of 4")).toBeVisible();
+  expect(requests).toEqual([{ etag: "visual-etag" }, {}]);
+  await expect(page.getByRole("button", { name: "Zoom in", exact: true })).toBeEnabled();
+  await expect(page.locator("#visual-stage")).not.toHaveAttribute("data-error");
+  if (process.env.AURORA_REAL_LENS === "1") {
+    await expect(page.locator("canvas").first()).toBeVisible();
+    await page.getByRole("button", { name: "Next page", exact: true }).click();
+    await expect(page.getByText("Page 3 of 5")).toBeVisible();
+    await page.getByRole("button", { name: "Previous page", exact: true }).click();
+    await expect(page.getByText("Page 2 of 5")).toBeVisible();
+  }
+  await page.screenshot({ path: `test-results/image-package-edge-${process.env.AURORA_REAL_LENS === "1" ? "real" : "fixture"}-${uncached ? "uncached" : "cached"}.png` });
+});
 }

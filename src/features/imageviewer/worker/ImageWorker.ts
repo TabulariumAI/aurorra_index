@@ -3,7 +3,6 @@ import type {
   DataResponse,
   LocalPackage,
   PackageData,
-  PackageResponse,
   WorkerCommand,
   WorkerResult,
 } from "../type/imageViewer.types";
@@ -26,20 +25,6 @@ function packageError(payload: Record<string, unknown>): WorkerResult<never> {
     return { ok: false, code: "validation_error", error: "Missing required key: data" };
   }
   return { ok: false, code: "image_package_error", details: payload, error: payload.data };
-}
-
-function readEnvelope(payload: unknown): WorkerResult<PackageResponse> {
-  if (!isObject(payload)) {
-    return { ok: false, code: "validation_error", error: "Response is not a valid object." };
-  }
-  if (typeof payload.status !== "string") {
-    return { ok: false, code: "validation_error", error: "Missing required key: status" };
-  }
-  if (typeof payload.data !== "string") {
-    return { ok: false, code: "validation_error", error: "Missing required key: data" };
-  }
-  if (payload.status === "error") return packageError(payload);
-  return { ok: true, data: { data: payload.data, status: payload.status } };
 }
 
 function readDataEnvelope(payload: unknown): WorkerResult<DataResponse> {
@@ -102,8 +87,7 @@ async function fetchApi(
   url: string,
   token: string,
   init: RequestInit,
-  type: Exclude<WorkerCommand["type"], "imageDownload">,
-): Promise<WorkerResult<DataResponse | PackageResponse>> {
+): Promise<WorkerResult<DataResponse>> {
   let response: Response;
   try {
     response = await fetch(url, {
@@ -119,7 +103,7 @@ async function fetchApi(
   const parsed = await parseResponse(response);
   if (!parsed.ok) return parsed;
   if (!response.ok) return readHttpError(parsed.data);
-  return type === "imageData" ? readDataEnvelope(parsed.data.payload) : readEnvelope(parsed.data.payload);
+  return readDataEnvelope(parsed.data.payload);
 }
 
 async function downloadPackage(tiffUrl: string, jsonUrl: string): Promise<LocalPackage> {
@@ -136,19 +120,13 @@ async function downloadPackage(tiffUrl: string, jsonUrl: string): Promise<LocalP
 }
 
 export class ImageViewerWorker {
-  buildRequest(command: Exclude<WorkerCommand, { type: "imageDownload" }>): { body: BodyInit | null; method: "GET" | "POST"; url: string } {
+  buildRequest(command: Exclude<WorkerCommand, { type: "imageDownload" }>): { body: string; method: "POST"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
-    if (command.type === "imagePackage") {
-      return { body: "{}", method: "POST", url: `${apiBaseUrl}/v1/image/${session}/package` };
-    }
-    if (command.type === "imageStatus") {
-      return { body: null, method: "GET", url: `${apiBaseUrl}/v1/image/${session}/status` };
-    }
-    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/image/${session}/data` };
+    return { body: JSON.stringify(command.etag === null ? {} : { etag: command.etag }), method: "POST", url: `${apiBaseUrl}/v1/image/${session}/package` };
   }
 
-  async run(command: WorkerCommand): Promise<WorkerResult<DataResponse | PackageResponse | LocalPackage>> {
+  async run(command: WorkerCommand): Promise<WorkerResult<DataResponse | LocalPackage>> {
     if (!command?.token) return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     if (command.type === "imageDownload") {
       if (!command.tiffUrl || !command.jsonUrl) return commandError("Signed package URLs are missing.");
@@ -165,15 +143,15 @@ export class ImageViewerWorker {
     }
     if (!("apiBaseUrl" in command) || !command.apiBaseUrl) return { ok: false, code: "missing_api_base_url", error: "Missing service base URL" };
     if (typeof command.session !== "string" || !command.session.trim()) return { ok: false, code: "invalid_session", error: "Session is missing or invalid." };
-    if (command.type !== "imagePackage" && command.type !== "imageStatus" && command.type !== "imageData") {
+    if (command.type !== "imagePackage") {
       return commandError("Unknown image viewer worker command.");
     }
     const request = this.buildRequest(command);
     return fetchApi(request.url, command.token, {
       body: request.body,
-      headers: request.body ? { "Content-Type": "application/json" } : undefined,
+      headers: { "Content-Type": "application/json" },
       method: request.method,
-    }, command.type);
+    });
   }
 }
 

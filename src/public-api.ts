@@ -30,7 +30,7 @@ export { createDeferredState } from "./features/indexing/data/deferredState";
 export { indexStoreApi, useIndexStore } from "./features/metdataview/store/metadataStore";
 export { AddressMapContent } from "./features/addressmap";
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
-export { createIndexWorkerClient } from "./features/metdataview/worker/metadataWorkerClient";
+export { createMetadataClient } from "./features/metdataview/data/metadataClient";
 export { requestResource } from "./features/metdataview/data/metadataResource";
 export {
   PageSegmentsPanel,
@@ -76,7 +76,7 @@ export {
   useImageViewerStore,
 } from "./features/imageviewer/store/imageViewerStore";
 export { loadImagePackage } from "./features/imageviewer/data/loadImagePackage";
-export { generateImagePackage } from "./features/imageviewer/worker/imageWorkerClient";
+export { generateImagePackage } from "./features/imageviewer/data/generateImagePackage";
 export type { GenerationInput } from "./shared/type/generation.types";
 export type {
   HostInput,
@@ -95,17 +95,17 @@ export { useStore } from "./store/hook/useStore";
 export { storeApi } from "./store/state/store";
 export type { StateKey, StoreActions, StoreState, StoreValues } from "./store/type/store.types";
 export type {
-  MetdataMetadataProps,
-  MetdataChoice,
-  MetdataDeferredState,
-  MetdataMetadataRefresh,
-  MetdataPatchResult,
-  MetdataStoreState,
-  MetdataWorkerClient,
-  MetdataWorkerCommand,
-  MetdataWorkerConfig,
-  MetdataWorkerResult,
-  MetdataReprocessResult,
+  MetadataProps,
+  MetadataChoice,
+  MetadataDeferredState,
+  MetadataRefresh,
+  MetadataPatchResult,
+  MetadataStoreState,
+  MetadataClient,
+  MetadataWorkerCommand,
+  MetadataConfig,
+  MetadataWorkerResult,
+  MetadataReprocessResult,
 } from "./features/metdataview/type/metadataView.types";
 export type {
   PagesData,

@@ -50,7 +50,7 @@ Move the metadata feature out of `document_pwa` into `aurorra_index` as a pure R
 
 Required exports:
 - `IndexMetadata`: React component that renders the metadata feature.
-- `createIndexWorkerClient`: worker client factory matching the `aurorra_intake` provision worker pattern.
+- `createMetadataClient`: worker client factory matching the `aurorra_intake` provision worker pattern.
 - `useIndexStore` / `indexStoreApi`: Zustand state API for package-owned metadata data and refresh state.
 - Metadata normalization helpers required by tests and package internals.
 - Type exports for metadata payloads, worker commands/results, component props, callback contracts, and store state.

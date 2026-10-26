@@ -8,6 +8,7 @@ import { surveyStyles } from "../style/surveyStyles";
 import { MapIssue, MapSurface } from "./MapSurface";
 
 const contextFont = legalMapConstants.lotBaseFontSize * 1.35;
+const labelGap = 2;
 
 export function SurveyMap({ scenes }: { scenes: SurveyScene[] }) {
   const id = useId();
@@ -63,7 +64,11 @@ export function SurveyMap({ scenes }: { scenes: SurveyScene[] }) {
       if (matrix) {
         const bounds = drawing.getBoundingClientRect();
         const inverse = matrix.inverse();
-        const occupied: DOMRect[] = [];
+        const occupied = [...drawing.querySelectorAll("[data-survey-point]")].map(point => point.getBoundingClientRect());
+        const segments = [...drawing.querySelectorAll<SVGLineElement>("line[data-survey-line], line[data-survey-reference]")].map(line => ({
+          from: new DOMPoint(line.x1.baseVal.value, line.y1.baseVal.value).matrixTransform(matrix),
+          to: new DOMPoint(line.x2.baseVal.value, line.y2.baseVal.value).matrixTransform(matrix),
+        }));
         const labels = [...drawing.querySelectorAll<SVGTextElement>("[data-survey-label]"), ...drawing.querySelectorAll<SVGTextElement>("[data-survey-vertex]")];
         const activeLabel = activePoint && drawing.contains(activePoint) ? activePoint.parentElement!.querySelector<SVGTextElement>("[data-survey-vertex]") : null;
         if (activeLabel) {
@@ -71,35 +76,42 @@ export function SurveyMap({ scenes }: { scenes: SurveyScene[] }) {
           labels.unshift(activeLabel);
         }
         for (const label of labels) {
-          const point = label.parentElement!.querySelector<SVGCircleElement>("[data-survey-point]")!;
-          const leader = label.parentElement!.querySelector<SVGLineElement>("[data-survey-leader]");
-          if (leader) {
-            label.setAttribute("x", String(point.cx.baseVal.value + fontSize / 2));
-            label.setAttribute("y", String(point.cy.baseVal.value - fontSize / 2));
-            leader.style.visibility = "hidden";
-          }
+          const leader = label.hasAttribute("data-survey-vertex") ? label.parentElement!.querySelector<SVGLineElement>("[data-survey-leader]") : null;
+          label.removeAttribute("transform");
+          if (leader) leader.style.visibility = "hidden";
           const box = label.getBoundingClientRect();
           const candidates = [{ x: box.left, y: box.top }];
-          if (leader) {
-            for (let y = bounds.top + 2; y + box.height <= bounds.bottom - 2; y += box.height + 4) {
-              for (let x = bounds.left + 2; x + box.width <= bounds.right - 2; x += box.width + 4) candidates.push({ x, y });
-            }
-            candidates.sort((a, b) => Math.hypot(a.x - box.left, a.y - box.top) - Math.hypot(b.x - box.left, b.y - box.top));
+          for (let y = bounds.top + labelGap; y + box.height <= bounds.bottom - labelGap; y += box.height + labelGap * 2) {
+            for (let x = bounds.left + labelGap; x + box.width <= bounds.right - labelGap; x += box.width + labelGap * 2) candidates.push({ x, y });
           }
+          candidates.sort((a, b) => Math.hypot(a.x - box.left, a.y - box.top) - Math.hypot(b.x - box.left, b.y - box.top));
           const position = candidates.find(({ x, y }) => x >= bounds.left && y >= bounds.top && x + box.width <= bounds.right && y + box.height <= bounds.bottom
-            && !occupied.some(previous => x < previous.right + 2 && x + box.width > previous.left - 2 && y < previous.bottom + 2 && y + box.height > previous.top - 2));
+            && !occupied.some(previous => x < previous.right + labelGap && x + box.width > previous.left - labelGap && y < previous.bottom + labelGap && y + box.height > previous.top - labelGap)
+            && !segments.some(({ from, to }) => {
+              const left = x - labelGap;
+              const right = x + box.width + labelGap;
+              const top = y - labelGap;
+              const bottom = y + box.height + labelGap;
+              const dx = to.x - from.x;
+              const dy = to.y - from.y;
+              return [from, to].some(point => point.x >= left && point.x <= right && point.y >= top && point.y <= bottom)
+                || [left, right].some(edge => dx !== 0 && (edge - from.x) / dx >= 0 && (edge - from.x) / dx <= 1 && from.y + (edge - from.x) / dx * dy >= top && from.y + (edge - from.x) / dx * dy <= bottom)
+                || [top, bottom].some(edge => dy !== 0 && (edge - from.y) / dy >= 0 && (edge - from.y) / dy <= 1 && from.x + (edge - from.y) / dy * dx >= left && from.x + (edge - from.y) / dy * dx <= right);
+            }));
           label.style.visibility = position ? "visible" : "hidden";
           if (!position) continue;
           occupied.push(new DOMRect(position.x, position.y, box.width, box.height));
-          if (leader && (position.x !== box.left || position.y !== box.top)) {
+          if (position.x !== box.left || position.y !== box.top) {
             const offset = new DOMPoint(position.x - box.left, position.y - box.top).matrixTransform(new DOMMatrix([inverse.a, inverse.b, inverse.c, inverse.d, 0, 0]));
-            label.setAttribute("x", String(Number(label.getAttribute("x")) + offset.x));
-            label.setAttribute("y", String(Number(label.getAttribute("y")) + offset.y));
-            const anchor = new DOMPoint(point.cx.baseVal.value, point.cy.baseVal.value).matrixTransform(matrix);
-            const end = new DOMPoint(Math.max(position.x, Math.min(position.x + box.width, anchor.x)), Math.max(position.y, Math.min(position.y + box.height, anchor.y))).matrixTransform(inverse);
-            leader.setAttribute("x2", String(end.x));
-            leader.setAttribute("y2", String(end.y));
-            leader.style.visibility = "visible";
+            label.setAttribute("transform", `translate(${offset.x} ${offset.y})`);
+            if (leader) {
+              const point = label.parentElement!.querySelector<SVGCircleElement>("[data-survey-point]")!;
+              const anchor = new DOMPoint(point.cx.baseVal.value, point.cy.baseVal.value).matrixTransform(matrix);
+              const end = new DOMPoint(Math.max(position.x, Math.min(position.x + box.width, anchor.x)), Math.max(position.y, Math.min(position.y + box.height, anchor.y))).matrixTransform(inverse);
+              leader.setAttribute("x2", String(end.x));
+              leader.setAttribute("y2", String(end.y));
+              leader.style.visibility = "visible";
+            }
           }
         }
       }

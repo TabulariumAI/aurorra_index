@@ -1,70 +1,36 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createWorkerClient } from "../worker/imageWorkerClient";
 
-describe("WorkerClient", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+const response = { status: "completed", data: { tiff: "https://storage.test/image.tiff", data: "https://storage.test/image.json" } };
+afterEach(() => vi.unstubAllGlobals());
 
-  it("creates module worker commands and resolves package results", async () => {
-    const posted: unknown[] = [];
+describe("image worker client", () => {
+  it.each(["first-etag", "second-etag", null])("passes the caller's etag %s unchanged", async etag => {
+    const commands: unknown[] = [];
+    const terminate = vi.fn();
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
-      onerror: (() => void) | null = null;
-      constructor(_url: URL, options: WorkerOptions) {
-        expect(options).toEqual({ type: "module" });
-      }
-      postMessage(command: unknown) {
-        posted.push(command);
-        this.onmessage?.({ data: { ok: true, data: { status: "completed", data: "" } } } as MessageEvent);
-      }
+      onerror = null;
+      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: response } } as MessageEvent); }
+      terminate = terminate;
+    }
+    vi.stubGlobal("Worker", WorkerMock);
+    await expect(createWorkerClient({ apiBaseUrl: "https://gateway" }).packageImage("token", "session", etag)).resolves.toEqual(response);
+    expect(commands).toEqual([{ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "imagePackage", etag }]);
+    expect(terminate).toHaveBeenCalledOnce();
+  });
+
+  it("passes download inputs and transfers the result without store access", async () => {
+    const commands: unknown[] = [];
+    const local = { packageMetadata: { pages: [] }, tiffBytes: new ArrayBuffer(4), tiffType: "image/tiff" };
+    class WorkerMock {
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror = null;
+      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: local } } as MessageEvent); }
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-
-    const client = createWorkerClient({ apiBaseUrl: "https://gateway" });
-    await expect(client.packageImage("token", "session-1")).resolves.toEqual({ status: "completed", data: "" });
-
-    expect(posted).toEqual([{ apiBaseUrl: "https://gateway", session: "session-1", token: "token", type: "imagePackage" }]);
-  });
-
-  it("resolves downloaded package bytes from worker result", async () => {
-    const tiffBytes = new TextEncoder().encode("tiff").buffer;
-    const posted: unknown[] = [];
-    class WorkerMock {
-      onmessage: ((event: MessageEvent) => void) | null = null;
-      onerror: (() => void) | null = null;
-      postMessage(command: unknown) {
-        posted.push(command);
-        this.onmessage?.({
-          data: {
-            data: {
-              packageMetadata: { pages: [1] },
-              tiffBytes,
-              tiffType: "image/tiff",
-            },
-            ok: true,
-          },
-        } as MessageEvent);
-      }
-      terminate() {}
-    }
-    vi.stubGlobal("Worker", WorkerMock);
-
-    const client = createWorkerClient({ apiBaseUrl: "https://gateway" });
-    await expect(client.downloadPackage("token", {
-      jsonUrl: "https://storage.test/image.json",
-      tiffUrl: "https://storage.test/image.tiff",
-    })).resolves.toEqual({
-      packageMetadata: { pages: [1] },
-      tiffBytes,
-      tiffType: "image/tiff",
-    });
-    expect(posted).toEqual([{
-      jsonUrl: "https://storage.test/image.json",
-      tiffUrl: "https://storage.test/image.tiff",
-      token: "token",
-      type: "imageDownload",
-    }]);
+    await expect(createWorkerClient({ apiBaseUrl: "https://gateway" }).downloadPackage("token", { tiffUrl: response.data.tiff, jsonUrl: response.data.data })).resolves.toBe(local);
+    expect(commands).toEqual([{ token: "token", type: "imageDownload", tiffUrl: response.data.tiff, jsonUrl: response.data.data }]);
   });
 });

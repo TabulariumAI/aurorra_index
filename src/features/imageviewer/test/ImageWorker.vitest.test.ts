@@ -26,37 +26,14 @@ describe("ImageViewerWorker", () => {
     vi.restoreAllMocks();
   });
 
-  it("builds image package routes and sends bearer auth", async () => {
-    const fetchMock = vi.fn(async (url: string) => {
-      if (url.endsWith("/data")) {
-        return jsonResponse({
-          data: {
-            data: "https://storage.test/image.json",
-            tiff: "https://storage.test/image.tiff",
-          },
-          status: "completed",
-        });
-      }
-      return jsonResponse({ status: "completed", data: "" });
-    });
+  it.each(["metadata-etag", null])("sends etag %s with bearer authentication", async etag => {
+    const fetchMock = vi.fn(async () => jsonResponse({ status: "completed", data: { tiff: "https://storage.test/image.tiff", data: "https://storage.test/image.json" } }));
     vi.stubGlobal("fetch", fetchMock);
-    const worker = new ImageViewerWorker();
-
-    await worker.run({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "imagePackage" });
-    await worker.run({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "imageStatus" });
-    await worker.run({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "imageData" });
-
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://gateway/v1/image/session%201/package", expect.objectContaining({
-      headers: expect.objectContaining({ Authorization: "Bearer token" }),
-      method: "POST",
-    }));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://gateway/v1/image/session%201/status", expect.objectContaining({
-      headers: expect.objectContaining({ Authorization: "Bearer token" }),
-      method: "GET",
-    }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://gateway/v1/image/session%201/data", expect.objectContaining({
-      headers: expect.objectContaining({ Authorization: "Bearer token" }),
-      method: "GET",
+    const result = await new ImageViewerWorker().run({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "imagePackage", etag });
+    expect(result.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("https://gateway/v1/image/session%201/package", expect.objectContaining({
+      method: "POST", body: JSON.stringify(etag === null ? {} : { etag }),
+      headers: { Authorization: "Bearer token", "Content-Type": "application/json" },
     }));
   });
 
@@ -70,7 +47,7 @@ describe("ImageViewerWorker", () => {
     })));
     const worker = new ImageViewerWorker();
 
-    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imageData" })).resolves.toEqual({
+    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).resolves.toEqual({
       data: {
         data: {
           data: "https://storage.test/image.json",
@@ -87,7 +64,7 @@ describe("ImageViewerWorker", () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(payload)));
     const worker = new ImageViewerWorker();
 
-    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imageData" })).resolves.toEqual({
+    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).resolves.toEqual({
       code: "image_package_error",
       details: payload,
       error: "failed",
@@ -143,12 +120,12 @@ describe("ImageViewerWorker", () => {
 
   it("validates required command fields and backend error status", async () => {
     const worker = new ImageViewerWorker();
-    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "", type: "imageData" })).toMatchObject({ code: "missing_auth_token", ok: false });
-    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "t", type: "imageData" })).toMatchObject({ code: "missing_api_base_url", ok: false });
-    expect(await worker.run({ apiBaseUrl: "x", session: "", token: "t", type: "imageData" })).toMatchObject({ code: "invalid_session", ok: false });
+    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({ code: "missing_auth_token", ok: false });
+    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({ code: "missing_api_base_url", ok: false });
+    expect(await worker.run({ apiBaseUrl: "x", session: "", token: "t", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({ code: "invalid_session", ok: false });
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ status: "error", data: "failed" })));
-    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imageStatus" })).toMatchObject({
+    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({
       code: "image_package_error",
       error: "failed",
       ok: false,

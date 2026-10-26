@@ -2,8 +2,6 @@ import { create } from "zustand";
 import type { StoreState } from "../type/imageViewer.types";
 import { isPageError } from "../data/imageViewerData";
 
-const DEFAULT_POLL_INTERVAL_MS = 500;
-
 export const useImageViewerStore = create<StoreState>()((set, get) => ({
   pageSize: null,
   apiGatewayUrl: "",
@@ -13,7 +11,6 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
   onError: null,
   pageMap: new Map(),
   packageMetadata: null,
-  packagePollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
   packageStatus: null,
   packageVersion: 0,
   request: null,
@@ -52,7 +49,6 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       onError: null,
       pageMap: new Map(),
       packageMetadata: null,
-      packagePollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
       packageStatus: null,
       packageVersion: 0,
       request: null,
@@ -88,7 +84,6 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
       onError: input.onError,
       pageMap: new Map(input.pageMap),
       packageMetadata: sameSession ? current.packageMetadata : null,
-      packagePollIntervalMs: input.packagePollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
       packageStatus: sameSession ? current.packageStatus : null,
       packageVersion: sameSession ? current.packageVersion : 0,
       request: input.request,

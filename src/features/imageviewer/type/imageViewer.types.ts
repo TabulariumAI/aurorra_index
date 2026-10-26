@@ -37,7 +37,6 @@ export type HostInput = {
   authToken: string;
   onError: (error: ViewerError) => void;
   pageMap: ReadonlyMap<string, string>;
-  packagePollIntervalMs?: number;
   request: PageRequest | null;
   session: string;
   selectedIndex: MetadataSelected | null;
@@ -55,14 +54,9 @@ export type PanelProps = {
   onReadyChange(ready: boolean): void;
 };
 
-export type Status = "idle" | "packaging" | "polling" | "downloading" | "ready" | "error";
+export type Status = "idle" | "packaging" | "downloading" | "ready" | "error";
 
 export type PackageStatus = "pending" | "processing" | "completed" | "error";
-
-export type PackageResponse = {
-  data: string;
-  status: PackageStatus | string;
-};
 
 export type DataResponse = {
   data: PackageData;
@@ -85,9 +79,7 @@ export type WorkerResult<T> =
   | ({ ok: false } & ViewerError);
 
 export type WorkerCommand =
-  | { apiBaseUrl: string; session: string; token: string; type: "imagePackage" }
-  | { apiBaseUrl: string; session: string; token: string; type: "imageStatus" }
-  | { apiBaseUrl: string; session: string; token: string; type: "imageData" }
+  | { apiBaseUrl: string; session: string; token: string; type: "imagePackage"; etag: string | null }
   | { token: string; tiffUrl: string; jsonUrl: string; type: "imageDownload" };
 
 export type WorkerConfig = {
@@ -95,9 +87,7 @@ export type WorkerConfig = {
 };
 
 export type WorkerClient = {
-  packageImage(token: string, session: string): Promise<PackageResponse>;
-  imageStatus(token: string, session: string): Promise<PackageResponse>;
-  imageData(token: string, session: string): Promise<DataResponse>;
+  packageImage(token: string, session: string, etag: string | null): Promise<DataResponse>;
   downloadPackage(token: string, urls: PackageUrls): Promise<LocalPackage>;
 };
 
@@ -106,7 +96,6 @@ export type LoadPackageInput = {
   apiGatewayUrl: string;
   authToken: string;
   onError: (error: ViewerError) => void;
-  packagePollIntervalMs?: number;
   restart?: boolean;
   session: string;
   workerClient?: WorkerClient;
@@ -121,7 +110,6 @@ export type StoreState = {
   onError: ((error: ViewerError) => void) | null;
   pageMap: ReadonlyMap<string, string>;
   packageMetadata: PackageMetadata | null;
-  packagePollIntervalMs: number;
   packageStatus: PackageStatus | null;
   packageVersion: number;
   request: PageRequest | null;

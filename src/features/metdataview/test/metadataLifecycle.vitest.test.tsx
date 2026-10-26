@@ -12,7 +12,7 @@ import type { AuditWorkerClient } from "../../audit/type/audit.types";
 import { useUsage } from "../../usage/hook/useUsage";
 import { syncUsage } from "../../usage/storage/usageStorage";
 import type { UsageCommand } from "../../usage/type/usage.types";
-import type { MetdataMetadataProps, MetdataWorkerCommand } from "../type/metadataView.types";
+import type { MetadataProps, MetadataWorkerCommand } from "../type/metadataView.types";
 
 const auditClient = vi.hoisted(() => ({ loadReport: vi.fn<AuditWorkerClient["loadReport"]>() }));
 vi.mock("../../audit/worker/auditWorkerClient", () => ({ createAuditWorkerClient: () => auditClient }));
@@ -24,7 +24,7 @@ beforeEach(() => {
   vi.stubGlobal("indexedDB", indexedDB);
   vi.stubGlobal("Worker", class {
     onmessage: ((event: MessageEvent) => void) | null = null;
-    postMessage(command: MetdataWorkerCommand | UsageCommand) {
+    postMessage(command: MetadataWorkerCommand | UsageCommand) {
       if ("owner" in command) void syncUsage(command.owner, command.services, command.now).then(data => this.onmessage?.({ data: { ok: true, data } } as MessageEvent));
       else queueMicrotask(() => this.onmessage?.({ data: { ok: true, data: metadata } } as MessageEvent));
     }
@@ -46,7 +46,7 @@ it.each([false, true].flatMap(cached => [false, true].map(failed => ({ cached, f
   let reject!: (error: Error) => void;
   auditClient.loadReport.mockImplementationOnce(() => new Promise((resolve, fail) => { finish = resolve; reject = fail; }));
   const onMetadataLoaded = vi.fn();
-  const props: MetdataMetadataProps = {
+  const props: MetadataProps = {
     apiGatewayUrl: "https://gateway", authToken: "token", session: "source", batchCode: null,
     callbacks: { onMetadataLoaded }, choices: null, deferredState: createDeferredState(), intervalMs: 0,
     onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null, retryIntervalMs: 0, retryLimit: 0,

@@ -11,7 +11,7 @@ import {
 import { pageSegmentsStyles } from "../style/pageSegmentsStyles";
 import { pageSegmentsStoreApi, usePageSegmentsStore } from "../store/pageSegmentsStore";
 import type { PageSegmentsPanelProps, PageSegmentsWorkerError } from "../type/pageSegments.types";
-import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
+import { createMetadataClient } from "../../metdataview/data/metadataClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
 
 function toWorkerError(error: unknown): PageSegmentsWorkerError {
@@ -50,7 +50,7 @@ export function PageSegmentsPanel({
   const error = usePageSegmentsStore((state) => state.error);
   const selected = usePageSegmentsStore((state) => state.selected);
   const status = usePageSegmentsStore((state) => state.status);
-  const client = useMemo(() => workerClient ?? createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
+  const client = useMemo(() => workerClient ?? createMetadataClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
   const normalizedInputKey = normalizePageSegments(segments).join("|");
   const isDirty = !sameSegments(committed, selected);
   const blankChecked = pageClass === "blank" && selected.length === 0;

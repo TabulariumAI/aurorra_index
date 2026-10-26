@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
+import { createMetadataClient } from "../../metdataview/data/metadataClient";
 
-describe("IndexWorker add client", () => {
+describe("MetadataWorker add client", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -30,7 +30,7 @@ describe("IndexWorker add client", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
 
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await expect(client.patchIndex("token", "session-1", "party", { action: "add" as const, explanation: "P 3  Selected context", new_index_label: "party", new_index_aspect: "party", new_index_value: "Selected value", new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null })).resolves.toEqual({ data: "", status: "processing", version: 3 });
 
     expect(posted).toEqual([{
@@ -66,7 +66,7 @@ describe("IndexWorker add client", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
 
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await expect(client.patchIndex("token", "session-1", "party", { action: "add" as const, explanation: "P 3  Selected context", new_index_label: "party", new_index_aspect: "party", new_index_value: "Selected value", new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null })).rejects.toMatchObject({
       code: "patch_error",
       details: { data: "Index already exists.", status: "error", version: 3 },
@@ -90,7 +90,7 @@ describe("IndexWorker add client", () => {
     }
     vi.stubGlobal("Worker", WorkerMock);
 
-    const client = createIndexWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
+    const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await expect(client.patchIndex("token", "session-1", "party", { action: "add" as const, explanation: "P 3  Selected context", new_index_label: "party", new_index_aspect: "party", new_index_value: "Selected value", new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null })).rejects.toThrow("Index worker failed");
     expect(terminate).toHaveBeenCalledTimes(1);
   });

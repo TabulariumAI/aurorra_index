@@ -3,7 +3,10 @@ import { requestResource } from "../data/metadataResource";
 import { queueStoreApi } from "../../queue/store/queueStore";
 import { indexStoreApi } from "../store/metadataStore";
 
-beforeEach(() => indexStoreApi.getState().resetView());
+const metadata = vi.hoisted(() => ({ loadMetadata: vi.fn() }));
+vi.mock("../data/metadataClient", () => metadata);
+
+beforeEach(() => { indexStoreApi.getState().resetView(); metadata.loadMetadata.mockReset(); });
 afterEach(() => { queueStoreApi.getState().reset(); vi.restoreAllMocks(); });
 
 it("provides the locally stored metadata etag for the requested session", async () => {
@@ -61,4 +64,27 @@ it("releases a wait when its active metadata session is replaced", async () => {
 
 it("rejects a resource that Index does not own", async () => {
   await expect(requestResource({ resource: "aspects" }, "session")).rejects.toThrow("Unknown resource: aspects");
+});
+
+
+it("loads an uncached metadata etag through its owner", async () => {
+  const input = { apiGatewayUrl: "https://gateway", authToken: "token", session: "uncached" };
+  metadata.loadMetadata.mockImplementationOnce(async () => queueStoreApi.getState().setEtag(input.session, "loaded-etag"));
+  await expect(requestResource({ resource: "metadata_etag" }, input.session, input)).resolves.toBe("loaded-etag");
+  expect(metadata.loadMetadata).toHaveBeenCalledExactlyOnceWith(input, null);
+});
+
+it("propagates metadata retrieval failure without adding subscriptions", async () => {
+  const input = { apiGatewayUrl: "https://gateway", authToken: "token", session: "uncached" };
+  const error = new Error("Metadata unavailable");
+  metadata.loadMetadata.mockRejectedValueOnce(error);
+  const subscribe = vi.spyOn(queueStoreApi, "subscribe");
+  await expect(requestResource({ resource: "metadata_etag" }, input.session, input)).rejects.toBe(error);
+  expect(subscribe).not.toHaveBeenCalled();
+});
+
+it("rejects a retrieved result missing its metadata etag", async () => {
+  const input = { apiGatewayUrl: "https://gateway", authToken: "token", session: "uncached" };
+  metadata.loadMetadata.mockResolvedValueOnce({});
+  await expect(requestResource({ resource: "metadata_etag" }, input.session, input)).rejects.toMatchObject({ code: "metadata_version_missing" });
 });

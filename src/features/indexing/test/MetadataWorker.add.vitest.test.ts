@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { MetdataWorkerCommand } from "../../metdataview/type/metadataView.types";
-import { IndexWorker } from "../../metdataview/worker/metdataWorker";
+import type { MetadataWorkerCommand } from "../../metdataview/type/metadataView.types";
+import { MetadataWorker } from "../../metdataview/worker/MetadataWorker";
 
-function command(overrides: Partial<{ apiBaseUrl: string; session: string; token: string; label: string; aspect: string; value: string; explanation: string; segment: string }> = {}): Extract<MetdataWorkerCommand, { type: "patchIndex" }> {
+function command(overrides: Partial<{ apiBaseUrl: string; session: string; token: string; label: string; aspect: string; value: string; explanation: string; segment: string }> = {}): Extract<MetadataWorkerCommand, { type: "patchIndex" }> {
   const { label = "party", aspect = "party", value = "Selected value", explanation = "P 3  Selected context", ...runtime } = overrides;
   return {
     apiBaseUrl: "https://gateway.example.com", segment: "party", session: "session-1", token: "token-1", type: "patchIndex", ...runtime,
@@ -19,13 +19,13 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
   });
 }
 
-describe("IndexWorker", () => {
+describe("MetadataWorker", () => {
   it.each([null, "false", 1])("rejects non-boolean enrichment %j before fetching", async (allow_enrichment) => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const input = command();
     Object.assign(input.change, { allow_enrichment });
-    await expect(new IndexWorker().run(input)).resolves.toMatchObject({ ok: false, code: "invalid_enrichment" });
+    await expect(new MetadataWorker().run(input)).resolves.toMatchObject({ ok: false, code: "invalid_enrichment" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -36,7 +36,7 @@ describe("IndexWorker", () => {
   it.each([["1", "Notary source\nSecond line"], ["", ""], [null, null]])("sends page %s and source separately", (page, source) => {
     const input = command({ explanation: "Index created by user." });
     Object.assign(input.change, { new_index_page: page, new_index_source: source });
-    const body = JSON.parse(new IndexWorker().buildRequest(input).body!);
+    const body = JSON.parse(new MetadataWorker().buildRequest(input).body!);
     expect(body).toMatchObject({ new_index_page: page, new_index_source: source, explanation: "Index created by user." });
   });
 
@@ -45,12 +45,12 @@ describe("IndexWorker", () => {
     Object.assign(input.change, { [`new_index_${field}`]: 7 });
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
-    await expect(new IndexWorker().run(input)).resolves.toMatchObject({ ok: false, code: `invalid_${field}` });
+    await expect(new MetadataWorker().run(input)).resolves.toMatchObject({ ok: false, code: `invalid_${field}` });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("builds and sends the Add Index request with bearer auth", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     expect(worker.buildRequest(command({
       apiBaseUrl: "https://gateway.example.com/",
       session: "session/1",
@@ -111,7 +111,7 @@ describe("IndexWorker", () => {
   });
 
   it("builds and sends patch status requests", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "completed", version: 3 })));
 
     await expect(worker.run({ apiBaseUrl: "https://gateway.example.com", session: "session-1", token: "token-1", type: "patchStatus", version: 3 })).resolves.toEqual({
@@ -125,7 +125,7 @@ describe("IndexWorker", () => {
   });
 
   it("preserves backend and network errors", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
       code: "refine_add_index_failed",
       message: "Failed to add index",
@@ -145,7 +145,7 @@ describe("IndexWorker", () => {
   });
 
   it("rejects invalid success responses", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ data: "", status: "unknown", version: 3 })));
     await expect(worker.run(command())).resolves.toMatchObject({
       code: "validation_error",
@@ -181,7 +181,7 @@ describe("IndexWorker", () => {
   });
 
   it("validates required command fields before fetching", async () => {
-    const worker = new IndexWorker();
+    const worker = new MetadataWorker();
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
@@ -192,7 +192,7 @@ describe("IndexWorker", () => {
     await expect(worker.run(command({ explanation: null as unknown as string }))).resolves.toMatchObject({ code: "invalid_explanation", ok: false });
     await expect(worker.run(command({ segment: "" }))).resolves.toMatchObject({ code: "invalid_segment", ok: false });
     await expect(worker.run(command({ aspect: "" }))).resolves.toMatchObject({ code: "invalid_aspect", ok: false });
-    await expect(worker.run({ ...command(), type: "unknown" } as unknown as MetdataWorkerCommand)).resolves.toMatchObject({ code: "invalid_command", ok: false });
+    await expect(worker.run({ ...command(), type: "unknown" } as unknown as MetadataWorkerCommand)).resolves.toMatchObject({ code: "invalid_command", ok: false });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

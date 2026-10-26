@@ -4,7 +4,7 @@ import { IndexInput } from "../../../shared/component/IndexInput";
 import { IndexDetails } from "../../../shared/component/IndexDetails";
 import { useAspects } from "../../../shared/hook/useAspects";
 import type { IndexFields } from "../../../shared/type/indexFields.types";
-import { createIndexWorkerClient } from "../../metdataview/worker/metadataWorkerClient";
+import { createMetadataClient } from "../../metdataview/data/metadataClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
 import type { IndexChange } from "../../queue/type/queue.types";
 import type { EditIndexPanelProps } from "../type/editIndex.types";
@@ -21,7 +21,7 @@ export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs
     element.style.height = "auto";
     if (ready) element.style.height = `${element.getBoundingClientRect().height}px`;
   }, [ready, request]);
-  const client = useMemo(() => workerClient || createIndexWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
+  const client = useMemo(() => workerClient || createMetadataClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
 
   const pending = useRef(false);
   const [submitting, setSubmitting] = useState(false);

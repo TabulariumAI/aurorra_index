@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import type { MetdataStoreState } from "../type/metadataView.types";
+import type { MetadataStoreState } from "../type/metadataView.types";
 import { storeApi } from "../../../store/state/store";
 
-export const useIndexStore = create<MetdataStoreState>()((set, get) => ({
+export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
   activeSession: null,
   openSegment: null,
   error: null,
