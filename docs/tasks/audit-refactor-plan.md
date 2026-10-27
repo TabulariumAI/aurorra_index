@@ -291,8 +291,8 @@ Initial state:
 - `status: "idle"`
 
 State transitions:
-- `setLoading(session)` sets `activeSession`, clears `error`, selects `reportsBySession[session]` or a null report for placeholders, sets `status` to `"loading"`.
-- `setRefreshing(session)` sets `activeSession`, clears `error`, selects `reportsBySession[session]` or a null report for placeholders, sets `status` to `"refreshing"`.
+- `setLoading(session)` sets `activeSession`, clears `error`, preserves `report` only when it belongs to the same current session; otherwise clears it for placeholders, sets `status` to `"loading"`.
+- `setRefreshing(session)` sets `activeSession`, clears `error`, preserves `report` only when it belongs to the same current session; otherwise clears it for placeholders, sets `status` to `"refreshing"`.
 - `setLoaded(session, report)` sets `activeSession`, clears `error`, stores `report`, sets `status` to `"success"`.
 - `setError(error)` stores `error` and sets `status` to `"error"`.
 - `resetAudit()` restores the initial state and a fresh `report` reference.

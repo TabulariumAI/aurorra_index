@@ -18,8 +18,9 @@ export function useUsage(owner: string | null) {
       if (active) setState({ owner, records: [], error: "Usage could not be loaded.", loading: false });
     };
     function sync() {
-      worker.postMessage({ owner, now: Date.now(), services: Object.entries(auditStoreApi.getState().reportsBySession)
-        .flatMap(([session, report]) => (report.usage?.services ?? []).map(service => ({ ...service, session }))) });
+      const audit = auditStoreApi.getState();
+      worker.postMessage({ owner, now: Date.now(), services: audit.activeSession === null ? []
+        : (audit.report?.usage?.services ?? []).map(service => ({ ...service, session: audit.activeSession })) });
     }
     function schedule() {
       const now = new Date();
@@ -28,7 +29,7 @@ export function useUsage(owner: string | null) {
     sync();
     schedule();
     const unsubscribe = auditStoreApi.subscribe((next, previous) => {
-      if (Object.entries(next.reportsBySession).some(([session, report]) => report.usage?.services !== previous.reportsBySession[session]?.usage?.services)) sync();
+      if (next.activeSession !== previous.activeSession || next.report?.usage?.services !== previous.report?.usage?.services) sync();
     });
     return () => { active = false; clearTimeout(timer); unsubscribe(); worker.terminate(); };
   }, [owner]);

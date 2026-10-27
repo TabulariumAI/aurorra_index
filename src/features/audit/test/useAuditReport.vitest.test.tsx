@@ -150,5 +150,5 @@ it("never renders another session's report or error while the requested report i
   const next: AuditReport = { gaps: [] };
   await act(async () => resolve(next));
   expect(view.result.current.report).toBe(next);
-  expect(auditStoreApi.getState().reportsBySession.previous).toBe(report);
+  expect(auditStoreApi.getState().report).toBe(next);
 });

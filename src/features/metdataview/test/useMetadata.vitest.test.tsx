@@ -75,7 +75,7 @@ describe("useMetadata", () => {
     auditStoreApi.getState().resetAudit();
     queueStoreApi.getState().reset();
     indexStoreApi.getState().resetMetadata();
-    storeApi.getState().resetAllState();
+    storeApi.getState().resetJSON();
   });
 
   it.each((["resetMetadata", "invalidateSession", "resetView"] as const).flatMap(reset => [false, true].map(failed => ({ reset, failed }))))("does not restore cleared metadata after $reset with failed=$failed", async ({ reset, failed }) => {
@@ -130,6 +130,32 @@ describe("useMetadata", () => {
     expect(indexStoreApi.getState().getSegment(segments.PAGE)).toBe("property");
     act(() => indexStoreApi.getState().resetView());
     expect(indexStoreApi.getState().openSegment).toBeNull();
+  });
+
+  it.each([false, true])("does not restore a refreshed segment after session cleanup, switching=%s", async switching => {
+    const client = createClient();
+    const props: MetadataProps = {
+      apiGatewayUrl: "https://doc.example.com", authToken: "token", batchCode: null,
+      callbacks: {}, choices, deferredState: createDeferredState({ segment: "party" }),
+      intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
+      retryIntervalMs: 0, retryLimit: 1, segments, session: "session-1", workerClient: client,
+    };
+    const view = renderHook(value => useMetadata(value), { initialProps: props });
+    await waitFor(() => expect(indexStoreApi.getState().status).toBe("success"));
+    let finish!: (data: MetadataPayload) => void;
+    vi.mocked(client.indexData).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    view.rerender({ ...props, refresh: { id: 1, segment: "legal", session: "session-1" } });
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(2));
+    act(() => {
+      indexStoreApi.getState().resetMetadata();
+      if (switching) {
+        indexStoreApi.getState().setLoaded("session-2");
+        indexStoreApi.setState({ openSegment: "property" });
+      }
+    });
+    await act(async () => { finish(baseMetadata); });
+    expect(indexStoreApi.getState().openSegment).toBe(switching ? "property" : null);
+    view.unmount();
   });
 
   it("queues reprocess without changing the active segment", async () => {
@@ -246,7 +272,7 @@ describe("useMetadata", () => {
     expect(result.current.choices).toBeNull();
     expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata, "session-1");
     await waitFor(() => expect(auditClient.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1"));
-    await waitFor(() => expect(auditStoreApi.getState().reportsBySession["session-1"]).toEqual({ gaps: [] }));
+    await waitFor(() => expect(auditStoreApi.getState().report).toEqual({ gaps: [] }));
   });
 
   it("reports a rejecting host load callback as a view error", async () => {
@@ -284,7 +310,7 @@ describe("useMetadata", () => {
     expect(onMetadataError).toHaveBeenCalledWith(expect.objectContaining({ error: "Required choices are missing." }));
   });
 
-  it("keeps queued changes scoped when switching to cached metadata", async () => {
+  it("cancels the previous queue and reloads replacement metadata when switching", async () => {
     const client = createClient();
     vi.mocked(client.confirmIndex).mockReturnValue(new Promise(() => undefined));
     const props: Omit<MetadataProps, "session"> = {
@@ -314,12 +340,14 @@ describe("useMetadata", () => {
     expect(result.current.metadata?.indexes?.find((item) => item.code === "idx-1")?.ambiguous).toBe("NO");
     const cached = splitMetadataJSON(baseMetadata);
     if (!cached) throw new Error("Metadata cache was not populated.");
-    storeApi.getState().setJSON("session-2", cached);
+    act(() => storeApi.getState().setJSON("session-2", cached));
 
     rerender({ session: "session-2" });
 
     await waitFor(() => expect(indexStoreApi.getState().activeSession).toBe("session-2"));
-    expect(client.indexData).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(client.indexData).toHaveBeenCalledTimes(2));
+    expect(queueStoreApi.getState().tasks).toEqual([]);
+    expect(storeApi.getState().getJSON("session-1")).toBeNull();
     expect(result.current.metadata?.indexes?.[0].ambiguous).toBeUndefined();
   });
 
@@ -528,9 +556,9 @@ describe("segment reprocess lifecycle", () => {
   beforeEach(() => {
     queueStoreApi.getState().reset();
     indexStoreApi.getState().resetMetadata();
-    storeApi.getState().resetAllState();
+    storeApi.getState().resetJSON();
   });
-  it("finishes the queued session after switching views without changing the new view", async () => {
+  it("cancels the previous session queue when switching metadata", async () => {
     const client = createClient();
     let finish!: () => void;
     vi.mocked(client.reprocessSegment).mockImplementation(() => new Promise(resolve => {
@@ -545,6 +573,7 @@ describe("segment reprocess lifecycle", () => {
     };
     const view = renderHook(value => useMetadata(value), { initialProps: props });
     await waitFor(() => expect(view.result.current.store.status).toBe("success"));
+    vi.mocked(props.onQueueChange).mockClear();
     await act(async () => { await view.result.current.onReprocess("party"); });
     view.rerender({ ...props, session: "session-2", deferredState: createDeferredState({ segment: "property" }) });
     await waitFor(() => expect(view.result.current.store.activeSession).toBe("session-2"));
@@ -553,6 +582,7 @@ describe("segment reprocess lifecycle", () => {
     expect(view.result.current.store.activeSession).toBe("session-2");
     expect(view.result.current.openSegment).toBe("property");
     expect(props.callbacks.onActionComplete).not.toHaveBeenCalled();
-    expect(props.onQueueChange).toHaveBeenCalledWith(expect.objectContaining({ session: "session-1", status: "completed" }));
+    expect(queueStoreApi.getState().tasks).toEqual([]);
+    expect(props.onQueueChange).not.toHaveBeenCalledWith(expect.objectContaining({ session: "session-1", status: "completed" }));
   });
 });

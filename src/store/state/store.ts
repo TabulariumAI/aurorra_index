@@ -2,30 +2,19 @@ import { create } from "zustand";
 import type { StoreState } from "../type/store.types";
 
 export const useStore = create<StoreState>()((set, get) => ({
-  jsonBySession: {},
+  session: null,
+  json: null,
   getJSON(session) {
-    return get().jsonBySession[session] ?? null;
+    return get().session === session ? get().json : null;
   },
   removeJSON(session) {
-    set((state) => {
-      const next = { ...state.jsonBySession };
-      delete next[session];
-      return { jsonBySession: next };
-    });
-  },
-  resetAllState() {
-    set({ jsonBySession: {} });
+    if (get().session === session) set({ json: null });
   },
   resetJSON() {
-    set({ jsonBySession: {} });
+    set({ session: null, json: null });
   },
   setJSON(session, json) {
-    set((state) => ({
-      jsonBySession: {
-        ...state.jsonBySession,
-        [session]: json,
-      },
-    }));
+    set({ session, json });
   },
 }));
 

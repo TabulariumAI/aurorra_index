@@ -102,6 +102,7 @@ export type LoadPackageInput = {
 };
 
 export type StoreState = {
+  generation: number;
   pageSize: PageSizeConfig | null;
   apiGatewayUrl: string;
   authToken: string | null;

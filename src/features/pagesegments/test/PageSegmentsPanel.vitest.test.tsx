@@ -13,7 +13,7 @@ function setup() {
   render(<PageSegmentsPanel onQueueChange={vi.fn()} apiGatewayUrl="https://gateway" authToken="token" batchCode="batch-1" intervalMs={0} retryIntervalMs={0} retryLimit={0} choices={[{ level: 1, service: "RecitalIndexing" }, { level: 1, service: "ConfidentialIndexing" }]} onClose={onClose} onError={onError} onReadyChange={vi.fn()} pageClass="blank" pageCode="page-a" segments={["reference"]} session="session-1" workerClient={workerClient} />);
   return { workerClient, onClose, onError };
 }
-beforeEach(() => { queueStoreApi.getState().reset(); storeApi.getState().resetAllState(); storeApi.getState().setJSON("session-1", splitMetadataJSON(metadata)); });
+beforeEach(() => { queueStoreApi.getState().reset(); storeApi.getState().resetJSON(); storeApi.getState().setJSON("session-1", splitMetadataJSON(metadata)); });
 afterEach(() => { cleanup(); queueStoreApi.getState().reset(); pageSegmentsStoreApi.getState().reset([]); });
 it("has no panel close action and disables actions after manual reversion", () => {
   const { onClose, workerClient } = setup();
@@ -61,7 +61,7 @@ it("keeps background failures in the queue rather than the closed editor", async
   expect(onClose).toHaveBeenCalledOnce(); expect(onError).not.toHaveBeenCalled();
 });
 it("rejects acceptance without metadata and preserves the editor", async () => {
-  storeApi.getState().resetAllState(); const { workerClient, onClose, onError } = setup();
+  storeApi.getState().resetJSON(); const { workerClient, onClose, onError } = setup();
   fireEvent.click(screen.getByRole("checkbox", { name: "Confidential" })); fireEvent.click(screen.getByRole("button", { name: "Update" }));
   await waitFor(() => expect(onError).toHaveBeenCalledOnce());
   expect(onClose).not.toHaveBeenCalled(); expect(workerClient.updatePageSegments).not.toHaveBeenCalled();

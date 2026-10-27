@@ -76,12 +76,13 @@ export type MetadataConfig = {
 };
 
 export type MetadataStoreState = {
+  selectSession(session: string): void;
   openSegment: string | null;
   getSegment(pageSegment: string): string;
   activeSession: string | null;
   error: MetadataError | null;
-  pageErrors: Record<string, MetadataError>;
-  pageRequests: Record<string, string>;
+  pageError: MetadataError | null;
+  pageRequest: string | null;
   refresh: MetadataRefresh | null;
   refreshId: number;
   retryAttempt: number;

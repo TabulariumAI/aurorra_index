@@ -23,6 +23,9 @@ export type QueueRequest = {
 } & ({ data: string } | { action: "confirm" | "drop"; code: string } | { action: "page"; code: string; segments: string[] } | { action: "reprocess" });
 
 export type QueueTransition = {
+  type?: "metadata-updated";
+  etag?: string | null;
+  tags?: string[];
   session: string;
   batch: string | null;
   status: "queued" | "processing" | "completed" | "failed" | "retried" | "canceled";
@@ -56,11 +59,13 @@ export type QueueTask = {
 };
 
 export type QueueState = {
-  snapshots: Record<string, { tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; bases: Record<string, MetadataPayload>; paths: Record<string, string>; etags: Record<string, string>; pagePaths: Record<string, string>; pageEtags: Record<string, string> }>;
-  pagePaths: Record<string, string>;
-  pageEtags: Record<string, string>;
-  paths: Record<string, string>;
-  etags: Record<string, string>;
+  snapshot: { owner: string; session: string | null; tasks: Omit<QueueTask, "runtime">[]; queues: QueueStatus[]; base: MetadataPayload | null; path: string | null; etag: string | null; pagePath: string | null; pageEtag: string | null } | null;
+  session: string | null;
+  base: MetadataPayload | null;
+  path: string | null;
+  etag: string | null;
+  pagePath: string | null;
+  pageEtag: string | null;
   generation: number;
   tasks: QueueTask[];
   queues: QueueStatus[];
@@ -72,6 +77,6 @@ export type QueueState = {
   setPagePath(session: string, path: string): void;
   setPageEtag(session: string, etag: string): void;
   setPath(session: string, path: string): void;
-  setEtag(session: string, etag: string): void;
+  setEtag(session: string, etag: string | null): void;
   reset(): void;
 };

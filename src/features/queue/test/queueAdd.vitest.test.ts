@@ -23,7 +23,7 @@ function runtime(): QueueRuntime {
 
 beforeEach(() => {
   queueStoreApi.getState().reset();
-  storeApi.getState().resetAllState();
+  storeApi.getState().resetJSON();
   storeApi.getState().setJSON("session", splitMetadataJSON(base));
 });
 afterEach(() => queueStoreApi.getState().reset());
@@ -106,12 +106,13 @@ it("cancels only the selected failed addition and resets remaining provisional r
   expect(composeMetadataJSON(storeApi.getState().getJSON("session"))).toEqual(base);
 });
 
-it("does not duplicate an existing addition or leak it into another session", async () => {
-  storeApi.getState().setJSON("other", splitMetadataJSON(base));
+it("does not duplicate additions and retains only the replacement metadata", async () => {
   const config = runtime();
   for (const value of ["Alice", "Bob", "Bob"]) {
     await queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "party", data: JSON.stringify([{ ...addition, new_index_value: value }]) }, config);
   }
   expect(getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session"))!).parties.map(item => item.value)).toEqual(["Bob", "Alice"]);
+  storeApi.getState().setJSON("other", splitMetadataJSON(base));
+  expect(storeApi.getState().getJSON("session")).toBeNull();
   expect(composeMetadataJSON(storeApi.getState().getJSON("other"))).toEqual(base);
 });

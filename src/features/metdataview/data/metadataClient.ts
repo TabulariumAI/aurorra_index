@@ -9,14 +9,14 @@ import { retryWorker } from "../../../shared/worker/retryWorker";
 import { queueStoreApi } from "../../queue/store/queueStore";
 import { indexStoreApi } from "../store/metadataStore";
 
-export async function loadMetadata(input: GenerationInput, path: string | null): Promise<MetadataPayload> {
+export async function loadMetadata(input: GenerationInput, path: string | null): Promise<{ data: MetadataPayload; etag: string | null }> {
   const generation = queueStoreApi.getState().generation;
   const result = await runMetadataWorker<MetadataPayload>({ apiBaseUrl: input.apiGatewayUrl, token: input.authToken, session: input.session, type: "indexData", path });
-  if (generation === queueStoreApi.getState().generation) {
+  if (generation === queueStoreApi.getState().generation && (queueStoreApi.getState().session === null || queueStoreApi.getState().session === input.session)) {
     if (result.path) queueStoreApi.getState().setPath(input.session, result.path);
-    if (result.etag !== undefined) queueStoreApi.getState().setEtag(input.session, result.etag);
+    if (path === null || result.etag !== undefined) queueStoreApi.getState().setEtag(input.session, result.etag ?? null);
   }
-  return result.data;
+  return { data: result.data, etag: result.etag ?? null };
 }
 
 export function createMetadataClient(config: MetadataConfig): MetadataClient {
@@ -24,11 +24,11 @@ export function createMetadataClient(config: MetadataConfig): MetadataClient {
   const pagesClient = createPageSegmentsWorkerClient({ apiBaseUrl });
   const auditClient = createAuditWorkerClient({ apiBaseUrl, retryIntervalMs, retryLimit });
   const pagesData = async (token: string, session: string, refresh: boolean) => {
-    const generation = queueStoreApi.getState().generation;
     const request = indexStoreApi.getState().setPageLoading(session);
+    const generation = queueStoreApi.getState().generation;
     try {
-      const result = await retryWorker(() => pagesClient.pagesData(token, session, refresh ? null : queueStoreApi.getState().pagePaths[session] ?? null), retryIntervalMs, retryLimit, onRetry);
-      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().pageRequests[session] === request) {
+      const result = await retryWorker(() => pagesClient.pagesData(token, session, refresh ? null : queueStoreApi.getState().session === session ? queueStoreApi.getState().pagePath : null), retryIntervalMs, retryLimit, onRetry);
+      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().activeSession === session && indexStoreApi.getState().pageRequest === request) {
         queueStoreApi.getState().setPagePath(session, result.path);
         if (result.etag !== undefined) queueStoreApi.getState().setPageEtag(session, result.etag);
         indexStoreApi.getState().setPageError(session, null);
@@ -36,7 +36,7 @@ export function createMetadataClient(config: MetadataConfig): MetadataClient {
       return result.data;
     } catch (error) {
       const failure = error as Error & MetadataError;
-      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().pageRequests[session] === request) {
+      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().activeSession === session && indexStoreApi.getState().pageRequest === request) {
         indexStoreApi.getState().setPageError(session, { error: failure.message, code: failure.code, details: failure.details, status: failure.status });
       }
       throw error;
@@ -55,15 +55,16 @@ export function createMetadataClient(config: MetadataConfig): MetadataClient {
       return (await runMetadataWorker<MetadataPatchResult>({ apiBaseUrl, code, session, token, type: "dropIndex" })).data;
     },
     async indexData(token, session, refresh) {
+      if (indexStoreApi.getState().activeSession === null) indexStoreApi.getState().setLoading(session);
       const generation = queueStoreApi.getState().generation;
-      const [metadata, pages] = await Promise.all([
-        retryWorker(() => loadMetadata({ apiGatewayUrl: apiBaseUrl, authToken: token, session }, refresh ? null : queueStoreApi.getState().paths[session] ?? null), retryIntervalMs, retryLimit, onRetry),
+      const [result, pages] = await Promise.all([
+        retryWorker(() => loadMetadata({ apiGatewayUrl: apiBaseUrl, authToken: token, session }, refresh ? null : queueStoreApi.getState().session === session ? queueStoreApi.getState().path : null), retryIntervalMs, retryLimit, onRetry),
         pagesData(token, session, Boolean(refresh)).catch(() => undefined),
       ]);
-      if (generation === queueStoreApi.getState().generation) {
+      if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().activeSession === session) {
         void loadAuditReport({ authToken: token, session, background: true, workerClient: auditClient });
       }
-      return { ...metadata, pages };
+      return { ...result.data, pages };
     },
     async patchStatus(token, session, version) {
       const result = await retryWorker(() => runMetadataWorker<MetadataPatchResult>({ apiBaseUrl, session, token, type: "patchStatus", version }), retryIntervalMs, retryLimit, onRetry);

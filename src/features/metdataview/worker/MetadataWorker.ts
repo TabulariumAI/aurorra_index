@@ -6,7 +6,7 @@ import { fetchJson } from "../../../shared/worker/fetchJson";
 type IndexDataEnvelope = {
   data: string;
   status: string;
-  etag: string;
+  etag?: string;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {

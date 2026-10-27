@@ -3,7 +3,7 @@ import type { IqReport, IqWorkerError, LoadIqInput } from "../type/iq.types";
 import { createIqWorkerClient } from "../worker/iqWorkerClient";
 import { toIqError } from "./iqData";
 
-const activeLoads = new Map<string, { generation: number; load: Promise<IqReport | IqWorkerError | undefined> }>();
+let activeLoad: { session: string; generation: number; load: Promise<IqReport | IqWorkerError | undefined> } | null = null;
 
 async function runIqReport(input: LoadIqInput, generation: number): Promise<IqReport | IqWorkerError | undefined> {
   const client = input.workerClient || createIqWorkerClient({
@@ -31,21 +31,21 @@ async function runIqReport(input: LoadIqInput, generation: number): Promise<IqRe
 
 export async function loadIqReport(input: LoadIqInput): Promise<void> {
   const generation = iqStoreApi.getState().generation;
-  let active = activeLoads.get(input.session);
-  if (active && (active.generation !== generation || iqStoreApi.getState().activeSession !== input.session)) active = undefined;
+  let active = activeLoad?.session === input.session ? activeLoad : null;
+  if (active && (active.generation !== generation || iqStoreApi.getState().activeSession !== input.session)) active = null;
   const load = active && !input.restart ? active.load : active ? active.load.then(() => {
     if (iqStoreApi.getState().generation === generation && iqStoreApi.getState().activeSession === input.session) {
       return runIqReport(input, generation);
     }
   }) : runIqReport(input, generation);
 
-  activeLoads.set(input.session, { generation, load });
+  activeLoad = { session: input.session, generation, load };
   try {
     const result = await load;
     if (!result || iqStoreApi.getState().generation !== generation || iqStoreApi.getState().activeSession !== input.session) return;
     if ("error" in result) input.onError(result);
     else input.onComplete?.(result);
   } finally {
-    if (activeLoads.get(input.session)?.load === load) activeLoads.delete(input.session);
+    if (activeLoad?.load === load) activeLoad = null;
   }
 }

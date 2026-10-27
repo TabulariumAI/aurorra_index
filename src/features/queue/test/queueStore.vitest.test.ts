@@ -185,7 +185,7 @@ describe("index mutation queue", () => {
 
   beforeEach(() => {
     queueStoreApi.getState().reset();
-    storeApi.getState().resetAllState();
+    storeApi.getState().resetJSON();
     storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [index] }));
   });
 
@@ -341,15 +341,13 @@ describe("index mutation queue", () => {
     expect(config.client.patchIndex).not.toHaveBeenCalled();
   });
 
-  it("isolates metadata and notifications between sessions", async () => {
+  it("rejects edits for metadata that is no longer current", async () => {
     const config = runtime();
     storeApi.getState().setJSON("session-2", splitMetadataJSON({ indexes: [{ ...index, value: "Other" }] }));
-    vi.mocked(config.client.patchIndex).mockRejectedValueOnce(new Error("Update failed"));
-    await enqueue([update], config);
-    await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
+    await expect(enqueue([update], config)).rejects.toThrow("Load metadata before changing indexes.");
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-2"))?.indexes?.[0].value).toBe("Other");
-    expect(queueStoreApi.getState().queues).toHaveLength(1);
-    expect(queueStoreApi.getState().queues[0].session).toBe("session-1");
+    expect(queueStoreApi.getState().tasks).toEqual([]);
+    expect(config.client.patchIndex).not.toHaveBeenCalled();
   });
 
   it("keeps displayed data unchanged until both edits finish", async () => {
@@ -395,7 +393,7 @@ describe("index mutation queue", () => {
     vi.mocked(config.client.patchIndex).mockReturnValue(response.promise);
     await enqueue([update], config);
     queueStoreApi.getState().reset();
-    storeApi.getState().resetAllState();
+    storeApi.getState().resetJSON();
     response.resolve({ data: "", status: "completed", version: 1 });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(queueStoreApi.getState().queues).toEqual([]);
@@ -451,7 +449,7 @@ describe("index mutation queue", () => {
 });
 
 describe("queued row recovery and pages", () => {
-  beforeEach(() => { queueStoreApi.getState().reset(); storeApi.getState().resetAllState(); storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [index], pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", segments: ["party"] }] } })); });
+  beforeEach(() => { queueStoreApi.getState().reset(); storeApi.getState().resetJSON(); storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [index], pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1", segments: ["party"] }] } })); });
   it("keeps a deleted index visible until successful completion", async () => {
     const config = runtime(); const response = pendingResponse();
     vi.mocked(config.client.dropIndex).mockReturnValue(response.promise);

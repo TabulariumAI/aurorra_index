@@ -5,6 +5,7 @@ import {
   getPanelData,
   type MetadataActionPayload,
   type MetadataError,
+  type MetadataPayload,
 } from "aurora-core";
 import { indexStoreApi, useIndexStore } from "../store/metadataStore";
 import { storeApi, useStore } from "../../../store/state/store";
@@ -56,35 +57,41 @@ export function useMetadata({
 
   useEffect(() => () => callbacksRef.current.onViewCanceled?.(), []);
 
+  const publishMetadata = useCallback((metadata: MetadataPayload) => {
+    indexStoreApi.getState().setLoaded(session);
+    callbacks.onView?.(metadata);
+    callbacks.onMetadataLoaded?.(metadata, session);
+    onQueueChange({ type: "metadata-updated", session, batch: batchCode, status: "completed", changes: [], error: null,
+      etag: queueStoreApi.getState().etag, tags: metadata.tags });
+  }, [batchCode, callbacks, onQueueChange, session]);
+
   const loadMetadata = useCallback(
     async (refresh: boolean) => {
+      if (indexStoreApi.getState().activeSession !== session) indexStoreApi.getState().setLoading(session);
       const cached = refresh ? null : composeMetadataJSON(storeApi.getState().getJSON(session));
       if (cached) {
-        indexStoreApi.getState().setLoaded(session);
-        callbacks.onView?.(cached);
-        callbacks.onMetadataLoaded?.(cached, session);
+        publishMetadata(cached);
         void loadAuditReport({ authToken: authToken ?? "", session, background: true,
           workerClient: createAuditWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }),
         });
         return cached;
       }
       const loadId = ++loadIdRef.current;
+      const generation = queueStoreApi.getState().generation;
       indexStoreApi.getState().setLoading(session);
       callbacks.onViewStarted?.();
       try {
         const data = await client.indexData(authToken ?? "", session, refresh);
         const state = indexStoreApi.getState();
-        if (loadId !== loadIdRef.current || state.activeSession !== session || state.status === "idle") return data;
+        if (generation !== queueStoreApi.getState().generation || loadId !== loadIdRef.current || state.activeSession !== session || state.status === "idle") return;
         queueStoreApi.getState().setMetadata(session, data);
-        state.setLoaded(session);
-        callbacks.onView?.(data);
-        callbacks.onMetadataLoaded?.(data, session);
+        publishMetadata(data);
         if (refresh) callbacks.onRefresh?.(data);
         return data;
       } catch (error) {
         const workerError = toWorkerError(error);
         const state = indexStoreApi.getState();
-        if (loadId === loadIdRef.current && state.activeSession === session && state.status !== "idle") {
+        if (generation === queueStoreApi.getState().generation && loadId === loadIdRef.current && state.activeSession === session && state.status !== "idle") {
           state.setError(workerError);
           callbacks.onViewError?.(workerError);
           callbacks.onMetadataError?.(workerError);
@@ -92,7 +99,7 @@ export function useMetadata({
         throw workerError;
       }
     },
-    [apiGatewayUrl, authToken, callbacks, client, retryIntervalMs, retryLimit, session],
+    [apiGatewayUrl, authToken, callbacks, client, publishMetadata, retryIntervalMs, retryLimit, session],
   );
 
   useEffect(() => {
@@ -103,8 +110,8 @@ export function useMetadata({
     if (!refresh || refresh.session !== session || refresh.id === refreshIdRef.current) return;
     refreshIdRef.current = refresh.id;
     void loadMetadata(true)
-      .then(() => {
-        indexStoreApi.setState({ openSegment: refresh.segment });
+      .then(data => {
+        if (data) indexStoreApi.setState({ openSegment: refresh.segment });
       })
       .catch(() => undefined);
   }, [loadMetadata, refresh, session]);
@@ -154,7 +161,7 @@ export function useMetadata({
     onDrop,
     onReprocess,
     openSegment,
-    pageError: store.pageErrors[session],
+    pageError: store.activeSession === session ? store.pageError : null,
     retryAttempt: store.retryAttempt,
     selectedIndex,
     setSectionOpen,

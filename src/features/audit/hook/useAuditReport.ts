@@ -33,7 +33,7 @@ export function useAuditReport({
 
   return {
     error: store.activeSession === session ? store.error : null,
-    report: store.reportsBySession[session] ?? null,
+    report: store.activeSession === session ? store.report : null,
     retryAttempt: store.retryAttempt,
     status: store.status,
   };

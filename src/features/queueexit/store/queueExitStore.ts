@@ -3,7 +3,8 @@ import { queueStoreApi } from "../../queue/store/queueStore";
 
 type QueueExitState = {
   open: boolean;
-  request(): Promise<boolean>;
+  reason: "logout" | "session";
+  request(reason: "logout" | "session"): Promise<boolean>;
   decide(accepted: boolean): void;
 };
 
@@ -12,11 +13,12 @@ export const useQueueExitStore = create<QueueExitState>()((set) => {
   let resolve: ((value: boolean) => void) | null = null;
   return {
     open: false,
-    request() {
+    reason: "logout",
+    request(reason) {
       if (pending) return pending;
       if (!queueStoreApi.getState().tasks.length) return Promise.resolve(true);
       pending = new Promise<boolean>((done) => { resolve = done; });
-      set({ open: true });
+      set({ open: true, reason });
       return pending;
     },
     decide(accepted) {

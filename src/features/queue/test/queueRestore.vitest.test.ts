@@ -20,19 +20,18 @@ async function load() {
 
 beforeEach(() => { localStorage.clear(); vi.resetModules(); });
 
-it("retains the last SAS path across reloads and isolates owners", async () => {
+it("restores the current owner but never revives a replaced owner's session", async () => {
   const first = await load();
-  first.queueStoreApi.getState().restore("user-one", runtime());
-  first.queueStoreApi.getState().setPath("session", "https://blob/metadata.json?sig=test");
-  first.queueStoreApi.getState().setEtag("session", "metadata-etag");
+  first.queueStoreApi.getState().restore("one", runtime());
+  first.queueStoreApi.getState().setPath("session", "https://blob/metadata.json");
+  first.queueStoreApi.getState().setEtag("session", "version");
   vi.resetModules();
   const restored = await load();
-  restored.queueStoreApi.getState().restore("user-two", runtime());
-  expect(restored.queueStoreApi.getState().paths).toEqual({});
-  expect(restored.queueStoreApi.getState().etags).toEqual({});
-  restored.queueStoreApi.getState().restore("user-one", runtime());
-  expect(restored.queueStoreApi.getState().paths.session).toBe("https://blob/metadata.json?sig=test");
-  expect(restored.queueStoreApi.getState().etags.session).toBe("metadata-etag");
+  restored.queueStoreApi.getState().restore("one", runtime());
+  expect(restored.queueStoreApi.getState()).toMatchObject({ session: "session", path: "https://blob/metadata.json", etag: "version" });
+  restored.queueStoreApi.getState().restore("two", runtime());
+  restored.queueStoreApi.getState().restore("one", runtime());
+  expect(restored.queueStoreApi.getState()).toMatchObject({ session: null, path: null, etag: null });
 });
 
 it.each([false, true])("restores reprocess with acknowledged=%s without resending", async (acknowledged) => {
@@ -142,7 +141,7 @@ it("keeps queues isolated by owner and clears the approved owner's durable queue
   queueStoreApi.getState().restore("two", runtime());
   expect(queueStoreApi.getState().tasks).toHaveLength(0);
   queueStoreApi.getState().restore("one", runtime());
-  expect(queueStoreApi.getState().tasks).toHaveLength(1);
+  expect(queueStoreApi.getState().tasks).toHaveLength(0);
   queueStoreApi.getState().reset();
   vi.resetModules();
   const restored = await load();
@@ -187,7 +186,7 @@ it("refreshes metadata without repeating acknowledged changes and removes comple
   expect(next.client.indexData).toHaveBeenCalledOnce();
   expect(next.client.confirmIndex).not.toHaveBeenCalled();
   expect(next.client.patchStatus).not.toHaveBeenCalled();
-  expect(restored.queueStoreApi.getState().snapshots.one.bases).toEqual({});
+  expect(restored.queueStoreApi.getState().snapshot?.base).toBeNull();
 });
 
 it("persists refreshed baselines and ignores responses after approved cancellation", async () => {
@@ -200,11 +199,11 @@ it("persists refreshed baselines and ignores responses after approved cancellati
   await queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "property", action: "confirm", code: "index" }, config);
   const metadata = { indexes: [{ code: "index", value: "Fresh" }] };
   queueStoreApi.getState().setMetadata("session", metadata);
-  expect(queueStoreApi.getState().snapshots.one.bases.session).toEqual(metadata);
+  expect(queueStoreApi.getState().snapshot?.base).toEqual(metadata);
   queueStoreApi.getState().reset();
   respond({ status: "completed", data: "", version: 7 });
   await Promise.resolve();
   expect(config.client.indexData).not.toHaveBeenCalled();
-  expect(queueStoreApi.getState().snapshots.one).toEqual({ tasks: [], queues: [], bases: {}, paths: {}, etags: {}, pagePaths: {}, pageEtags: {} });
+  expect(queueStoreApi.getState().snapshot).toMatchObject({ session: null, tasks: [], queues: [], base: null, path: null, etag: null, pagePath: null, pageEtag: null });
   expect(JSON.stringify(storeApi.getState().getJSON("session"))).toContain("Fresh");
 });

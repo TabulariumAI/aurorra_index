@@ -134,8 +134,7 @@ export type AuditStoreState = {
   activeSession: string | null;
   error: AuditWorkerError | null;
   report: AuditReport | null;
-  reportsBySession: Record<string, AuditReport>;
-  requests: Record<string, string>;
+  request: string | null;
   refresh: { id: number; session: string } | null;
   refreshId: number;
   retryAttempt: number;

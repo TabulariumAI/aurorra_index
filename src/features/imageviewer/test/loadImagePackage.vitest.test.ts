@@ -12,11 +12,31 @@ function client() {
 }
 const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", session: "session-1", onError: vi.fn() };
 
-beforeEach(() => queueStoreApi.setState({ etags: { "session-1": "first-etag", "session-2": "second-etag" } }));
+beforeEach(() => queueStoreApi.setState({ session: "session-1", etag: "first-etag" }));
 
 afterEach(() => { imageViewerStoreApi.getState().resetViewer(); vi.clearAllMocks(); });
 
 describe("loadImagePackage", () => {
+  it.each(["packageImage", "downloadPackage"] as const)("does not reuse or apply an exited session's %s when reopened", async stage => {
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const oldClient = {
+      packageImage: vi.fn(async () => { if (stage === "packageImage") await gate; return response; }),
+      downloadPackage: vi.fn(async () => { if (stage === "downloadPackage") await gate; return local; }),
+    };
+    const old = loadImagePackage({ ...input, workerClient: oldClient });
+    await vi.waitFor(() => expect(oldClient[stage]).toHaveBeenCalledOnce());
+    imageViewerStoreApi.getState().resetViewer();
+    const nextClient = client();
+    const next = { ...local, tiffBytes: new ArrayBuffer(8) };
+    nextClient.downloadPackage.mockResolvedValueOnce(next);
+    await loadImagePackage({ ...input, workerClient: nextClient });
+    expect(nextClient.packageImage).toHaveBeenCalledOnce();
+    release();
+    await old;
+    expect(imageViewerStoreApi.getState().tiffBytes).toBe(next.tiffBytes);
+    expect(input.onError).not.toHaveBeenCalled();
+  });
   it("downloads the orchestrated response without status or data requests", async () => {
     const workerClient = client();
     await loadImagePackage({ ...input, workerClient });
@@ -68,7 +88,11 @@ describe("loadImagePackage", () => {
   it("loads each selected session using its own request", async () => {
     const workerClient = client();
     await loadImagePackage({ ...input, workerClient });
+    queueStoreApi.getState().reset();
+    queueStoreApi.getState().setEtag("session-2", "second-etag");
     await loadImagePackage({ ...input, session: "session-2", workerClient });
+    queueStoreApi.getState().reset();
+    queueStoreApi.getState().setEtag("session-1", "first-etag");
     await loadImagePackage({ ...input, workerClient });
     expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", "first-etag"], ["token", "session-2", "second-etag"], ["token", "session-1", "first-etag"]]);
   });

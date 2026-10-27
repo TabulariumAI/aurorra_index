@@ -67,7 +67,7 @@ const metadata: MetadataPayload = {
 
 describe("MetadataPanel legal map trigger", () => {
   afterEach(() => {
-    storeApi.getState().resetAllState();
+    storeApi.getState().resetJSON();
   });
 
   it("opens one summary plat for all matching groups and keeps legal rows separate", async () => {

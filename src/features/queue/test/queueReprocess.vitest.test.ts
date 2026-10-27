@@ -21,8 +21,19 @@ function runtime(): QueueRuntime {
 
 beforeEach(() => {
   queueStoreApi.getState().reset();
-  storeApi.getState().resetAllState();
+  storeApi.getState().resetJSON();
   storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [index] }));
+});
+
+it("emits the refreshed metadata ETag and tags through the Index event callback", async () => {
+  const config = runtime();
+  vi.mocked(config.client.indexData).mockImplementation(async () => {
+    queueStoreApi.getState().setEtag("session", "refreshed-version");
+    return { indexes: [index], tags: ["refreshed"] };
+  });
+  await queueStoreApi.getState().enqueue(request, config);
+  await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
+  expect(config.onChange).toHaveBeenCalledWith(expect.objectContaining({ type: "metadata-updated", session: "session", etag: "refreshed-version", tags: ["refreshed"] }));
 });
 
 it("accepts reprocess behind an index operation and stays pending until metadata refresh completes", async () => {

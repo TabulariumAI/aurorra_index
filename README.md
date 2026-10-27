@@ -4,6 +4,9 @@ Aurorra Index provides React components for document metadata review, visual ind
 
 It is a host-integrated package. The host provides authentication, API gateway configuration, document/session context, and presentation framing. Aurora service implementations, credentials, customer documents, and live storage URLs are not included.
 
+Index retains one current metadata session: one document, metadata ETag and path, Pages ETag and path, audit report, and change queue. Session switching uses the same unfinished-change confirmation as logout. Approval cancels the queue, clears the previous session, and invalidates its pending responses before loading the selected session. Declining keeps the current session. An absent metadata ETag does not delay or reject loading.
+
+
 ## Features
 
 - Metadata review and index add, edit, confirm, drop, refine, and reprocess workflows
@@ -64,7 +67,7 @@ Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
 `useUsage(owner)` runs the IndexedDB job for service events in loaded audit reports. Fetched and cached metadata loads, metadata refresh,
 and queued reprocessing retrieve the latest audit URL from the gateway and download
 the audit in the background. Opening Audit and refreshing Audit also retrieve a
-fresh URL and report. All Audit ingestion uses `loadAuditReport`. An audit failure does not hide successful metadata or clear stored usage. Metadata callbacks carry the source session ID and metadata tags so the host can request Batch-owned updates. Use the workspace owner key formed
+fresh URL and report. All Audit ingestion uses `loadAuditReport`. An audit failure does not hide successful metadata or clear stored usage. The Index event callback emits `metadata-updated` with the source session ID, metadata tags, and optional metadata ETag after loads and queued refreshes. The framework routes that event to Batch to persist the latest ETag in IndexedDB. Batch session selection supplies its stored ETag to the public Index `selectSession` callback through the framework event registry. Use the workspace owner key formed
 from gateway URL, subscription, and email. The job ignores existing GUIDs, keeps
 only the previous and current UTC calendar months, and repeats cleanup at UTC
 midnight. Unmounting the host stops the worker, subscription, and timer.

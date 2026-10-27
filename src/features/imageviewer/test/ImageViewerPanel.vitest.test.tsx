@@ -92,7 +92,7 @@ const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: stri
 const onReadyChange = vi.fn();
 
 describe("ImageViewerPanel", () => {
-  beforeEach(() => queueStoreApi.setState({ etags: { "session-1": "metadata-etag", "session-2": "second-etag" } }));
+  beforeEach(() => queueStoreApi.setState({ session: "session-1", etag: "metadata-etag" }));
   it("duplicates the Intake decision with a Scale options anchor and preview-only scope", () => {
     sizeFailure = { sourceName: "document-image-package.tiff", pageNumber: 1, width: 2550, height: 3479, tolerance: 0.02, requiredTolerance: 0.0348 };
     const renderer = vi.fn(({ children }: Parameters<ToleranceRenderer>[0]) => <div role="dialog">{children}</div>);

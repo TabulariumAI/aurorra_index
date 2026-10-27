@@ -1,13 +1,21 @@
+import type { MetadataUpdate } from "aurora-core";
 import { create } from "zustand";
 import type { MetadataStoreState } from "../type/metadataView.types";
 import { storeApi } from "../../../store/state/store";
+import { queueStoreApi } from "../../queue/store/queueStore";
+import { auditStoreApi } from "../../audit/store/auditStore";
+import { iqStoreApi } from "../../iq/store/iqStore";
+import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
+import { editIndexStoreApi } from "../../editindex/store/editIndexStore";
+import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
+import { pageSegmentsStoreApi } from "../../pagesegments/store/pageSegmentsStore";
 
 export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
   activeSession: null,
   openSegment: null,
   error: null,
-  pageErrors: {},
-  pageRequests: {},
+  pageError: null,
+  pageRequest: null,
   refresh: null,
   refreshId: 0,
   retryAttempt: 0,
@@ -19,67 +27,56 @@ export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
     return pageSegment;
   },
   invalidateSession(session) {
+    if (get().activeSession !== session) return;
     storeApi.getState().removeJSON(session);
-    set((state) => {
-      const pageErrors = { ...state.pageErrors };
-      const pageRequests = { ...state.pageRequests };
-      delete pageErrors[session];
-      delete pageRequests[session];
-      return {
-        pageErrors,
-        pageRequests,
-        error: state.activeSession === session ? null : state.error,
-        status: state.activeSession === session ? "idle" : state.status,
-      };
-    });
+    set({ pageError: null, pageRequest: null, error: null, status: "idle" });
   },
   resetMetadata() {
+    queueStoreApi.getState().reset();
     storeApi.getState().resetJSON();
-    set({ pageErrors: {} });
+    auditStoreApi.getState().resetAudit();
+    iqStoreApi.getState().resetIq();
+    imageViewerStoreApi.getState().resetViewer();
+    editIndexStoreApi.getState().close();
+    addIndexStoreApi.getState().close();
+    pageSegmentsStoreApi.getState().close();
+    pageSegmentsStoreApi.getState().reset([]);
+    set({ pageError: null });
     get().resetView();
   },
   resetView() {
-    set({
-      activeSession: null,
-      openSegment: null,
-      error: null,
-      pageRequests: {},
-      refresh: null,
-      refreshId: 0,
-      retryAttempt: 0,
-      status: "idle",
-    });
+    set({ activeSession: null, openSegment: null, error: null, pageRequest: null,
+      refresh: null, refreshId: 0, retryAttempt: 0, status: "idle" });
   },
   refreshMetadata(session, segment) {
-    set((state) => {
-      const id = state.refreshId + 1;
-      return {
-        refresh: { id, segment, session },
-        refreshId: id,
-      };
-    });
+    if (get().activeSession !== session) return;
+    set(state => ({ refreshId: state.refreshId + 1, refresh: { id: state.refreshId + 1, segment, session } }));
   },
   setError(error) {
     set({ error, retryAttempt: 0, status: "error" });
   },
   setPageError(session, error) {
-    set(state => {
-      const pageErrors = { ...state.pageErrors };
-      if (error) pageErrors[session] = error;
-      else delete pageErrors[session];
-      return { pageErrors };
-    });
+    if (get().activeSession === session) set({ pageError: error });
   },
   setPageLoading(session) {
     const request = crypto.randomUUID();
-    set(state => ({ pageRequests: { ...state.pageRequests, [session]: request } }));
+    if (get().activeSession === null) get().setLoading(session);
+    if (get().activeSession === session) set({ pageRequest: request });
     return request;
   },
   setLoaded(session) {
+    if (get().activeSession !== session) get().setLoading(session);
     set({ activeSession: session, error: null, retryAttempt: 0, status: "success" });
   },
   setLoading(session) {
+    get().selectSession(session);
     set({ activeSession: session, error: null, retryAttempt: 1, status: "loading" });
+  },
+  selectSession(session) {
+    if ([get().activeSession, queueStoreApi.getState().session, storeApi.getState().session]
+      .some(owner => owner !== null && owner !== session)) get().resetMetadata();
+    queueStoreApi.setState(state => state.session === session ? state : { session });
+    storeApi.setState(state => state.session === session ? state : { session, json: null });
   },
   setRetryAttempt(retryAttempt) {
     set({ retryAttempt });
@@ -87,3 +84,8 @@ export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
 }));
 
 export const indexStoreApi = useIndexStore;
+
+export function selectSession(input: Pick<MetadataUpdate, "session" | "etag">): void {
+  indexStoreApi.getState().selectSession(input.session);
+  queueStoreApi.getState().setEtag(input.session, input.etag ?? null);
+}

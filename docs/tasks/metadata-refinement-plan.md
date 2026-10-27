@@ -241,7 +241,7 @@ Required behavior:
 
 ### 3. Metadata Cache Update
 
-Add a metadata data helper and tests that locate a page by its code in either `pages.recordables` or `pages.nonrecordables` and replace only that page's `segments` value. It must update the package's existing `jsonBySession` state without changing unrelated metadata sections.
+Add a metadata data helper and tests that locate a page by its code in either `pages.recordables` or `pages.nonrecordables` and replace only that page's `segments` value. It must update the package's current-session `json` state without changing unrelated metadata sections.
 
 The queue reuses the shared core metadata split, page replacement, and compose functions. The form owns checkbox state; the queue owns metadata projection, processing, retry, and cancellation.
 

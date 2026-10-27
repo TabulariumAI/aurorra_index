@@ -7,7 +7,7 @@ import { useQueueExitStore } from "../store/queueExitStore";
 beforeEach(() => { useQueueExitStore.getState().decide(false); queueStoreApi.getState().reset(); });
 
 it("approves immediately when no tasks remain", async () => {
-  await expect(useQueueExitStore.getState().request()).resolves.toBe(true);
+  await expect(useQueueExitStore.getState().request("logout")).resolves.toBe(true);
   expect(useQueueExitStore.getState().open).toBe(false);
 });
 
@@ -36,7 +36,7 @@ it.each([false, true])("lists unfinished tasks and resolves approval=%s before l
   }] });
   const done = vi.fn();
   let approval!: Promise<boolean>;
-  act(() => { approval = useQueueExitStore.getState().request(); });
+  act(() => { approval = useQueueExitStore.getState().request("logout"); });
   void approval.then(done);
   render(<QueueExitPanel />);
   expect(screen.getByText("Parcel value")).toBeVisible();
@@ -44,5 +44,23 @@ it.each([false, true])("lists unfinished tasks and resolves approval=%s before l
   expect(done).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: accept ? "Cancel changes and log out" : "Stay signed in" }));
   await expect(approval).resolves.toBe(accept);
+  expect(queueStoreApi.getState().tasks).toHaveLength(accept ? 0 : 1);
+});
+
+it.each([false, true])("uses the same exit confirmation for session changes, accepted=%s", async accept => {
+  queueStoreApi.setState({ tasks: [{ id: "task", session: "first", segment: "party", batch: null,
+    cursor: 0, status: "failed", result: null, error: "Failed", changes: [{ action: "reprocess", segment: "party" }],
+    runtime: { onChange: vi.fn(), authToken: "token", intervalMs: 0, client: {
+      patchIndex: vi.fn(), patchStatus: vi.fn(), indexData: vi.fn(), confirmIndex: vi.fn(),
+      dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+    } },
+  }] });
+  let pending!: Promise<boolean>;
+  act(() => { pending = useQueueExitStore.getState().request("session"); });
+  render(<QueueExitPanel />);
+  expect(screen.getByText(/Switching sessions will cancel/)).toBeVisible();
+  expect(screen.queryByText(/Logging out will/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: accept ? "Cancel changes and switch" : "Stay in session" }));
+  await expect(pending).resolves.toBe(accept);
   expect(queueStoreApi.getState().tasks).toHaveLength(accept ? 0 : 1);
 });

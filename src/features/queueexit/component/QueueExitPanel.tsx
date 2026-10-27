@@ -5,9 +5,10 @@ import { queueExitStyles as styles } from "../style/queueExitStyles";
 
 export function QueueExitPanel() {
   const tasks = useQueueStore((state) => state.tasks);
+  const reason = useQueueExitStore((state) => state.reason);
   const decide = useQueueExitStore((state) => state.decide);
   return <section style={styles.root} aria-label="Unfinished index changes">
-    <p style={styles.message}>Logging out will cancel these unfinished queue tasks. Requests already sent to the server cannot be undone.</p>
+    <p style={styles.message}>{reason === "session" ? "Switching sessions" : "Logging out"} will cancel these unfinished queue tasks. Requests already sent to the server cannot be undone.</p>
     <ul style={styles.list}>
       {tasks.map((task) => <li key={task.id} style={styles.task}>
         <strong>{task.session} · {formatLabel(task.segment)}</strong>
@@ -22,8 +23,8 @@ export function QueueExitPanel() {
       </li>)}
     </ul>
     <div style={styles.actions}>
-      <ConfButton label="Stay signed in" variant="secondary" requireConfirmation={false} onConfirm={() => decide(false)} />
-      <ConfButton label="Cancel changes and log out" variant="danger" requireConfirmation={false} onConfirm={() => decide(true)} />
+      <ConfButton label={reason === "session" ? "Stay in session" : "Stay signed in"} variant="secondary" requireConfirmation={false} onConfirm={() => decide(false)} />
+      <ConfButton label={reason === "session" ? "Cancel changes and switch" : "Cancel changes and log out"} variant="danger" requireConfirmation={false} onConfirm={() => decide(true)} />
     </div>
   </section>;
 }

@@ -13,10 +13,13 @@ describe("iqWorkerClient", () => {
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-    queueStoreApi.setState({ etags: { first: "first-etag", second: "second-etag" } });
+    queueStoreApi.setState({ session: "first", etag: "first-etag" });
     const worker = createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 });
     await worker.loadReport("token", "first", false);
+    queueStoreApi.getState().reset();
+    queueStoreApi.getState().setEtag("second", "second-etag");
     await worker.loadReport("token", "second", false);
+    queueStoreApi.getState().reset();
     queueStoreApi.getState().setEtag("first", "latest");
     await worker.loadReport("token", "first", false);
     await worker.loadReport("token", "first", true);
@@ -44,7 +47,7 @@ describe("iqWorkerClient", () => {
     expect(onRetry).toHaveBeenCalledExactlyOnceWith(2);
   });
 
-  it("does not create an IQ worker until the requested metadata eTag arrives", async () => {
+  it("starts IQ immediately without an ETag", async () => {
     const commands: unknown[] = [];
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
@@ -52,21 +55,7 @@ describe("iqWorkerClient", () => {
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-    const pending = createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 }).loadReport("token", "waiting", false);
-    await Promise.resolve();
-    expect(commands).toEqual([]);
-    queueStoreApi.getState().setEtag("waiting", "ready-etag");
-    await pending;
-    expect(commands).toEqual([{ apiBaseUrl: "https://gateway", session: "waiting", token: "token", type: "iqData", etag: "ready-etag" }]);
-  });
-
-  it("propagates a metadata failure without issuing an IQ request", async () => {
-    const worker = vi.fn();
-    vi.stubGlobal("Worker", worker);
-    indexStoreApi.getState().setLoading("failed");
-    const pending = expect(createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 }).loadReport("token", "failed", false)).rejects.toMatchObject({ error: "Metadata failed" });
-    indexStoreApi.getState().setError({ error: "Metadata failed" });
-    await pending;
-    expect(worker).not.toHaveBeenCalled();
+    await createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 }).loadReport("token", "waiting", false);
+    expect(commands).toEqual([{ apiBaseUrl: "https://gateway", session: "waiting", token: "token", type: "iqData", etag: null }]);
   });
 });

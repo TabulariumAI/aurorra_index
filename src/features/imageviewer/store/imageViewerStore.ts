@@ -3,6 +3,7 @@ import type { StoreState } from "../type/imageViewer.types";
 import { isPageError } from "../data/imageViewerData";
 
 export const useImageViewerStore = create<StoreState>()((set, get) => ({
+  generation: 0,
   pageSize: null,
   apiGatewayUrl: "",
   authToken: null,
@@ -41,6 +42,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
   },
   resetViewer() {
     set({
+      generation: get().generation + 1,
       pageSize: null,
       apiGatewayUrl: "",
       authToken: null,
@@ -76,6 +78,7 @@ export const useImageViewerStore = create<StoreState>()((set, get) => ({
     const current = get();
     const sameSession = current.session === input.session;
     set({
+      generation: sameSession ? current.generation : current.generation + 1,
       pageSize: input.pageSize,
       apiGatewayUrl: input.apiGatewayUrl,
       authToken: input.authToken,

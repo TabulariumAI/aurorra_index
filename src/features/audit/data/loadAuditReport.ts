@@ -12,12 +12,12 @@ export async function loadAuditReport(input: {
   const request = auditStoreApi.getState().setLoading(input.session, input.background);
   try {
     const report = await input.workerClient.loadReport(input.authToken, input.session);
-    if (generation !== queueStoreApi.getState().generation || auditStoreApi.getState().requests[input.session] !== request) return;
+    if (generation !== queueStoreApi.getState().generation || auditStoreApi.getState().request !== request) return;
     auditStoreApi.getState().setLoaded(input.session, report);
     return report;
   } catch (error) {
     const state = auditStoreApi.getState();
-    if (generation !== queueStoreApi.getState().generation || state.requests[input.session] !== request
+    if (generation !== queueStoreApi.getState().generation || state.request !== request
       || state.activeSession !== null && state.activeSession !== input.session) return;
     const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
     const failure: AuditWorkerError = {

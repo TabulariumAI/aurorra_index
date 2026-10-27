@@ -77,7 +77,7 @@ export type MetadataPanelProps = {
   choices: unknown;
   children?: ReactNode;
   metadata: MetadataPayload | null;
-  pageError?: MetadataError;
+  pageError?: MetadataError | null;
   onConfirm?: (payload: MetadataActionPayload) => Promise<void> | void;
   onDrop?: (payload: MetadataActionPayload) => Promise<void> | void;
   onAddIndex?: (segment: string) => void;

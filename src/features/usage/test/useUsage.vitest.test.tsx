@@ -17,7 +17,7 @@ const service = { code: "a", name: "extraction" as const, cost: 11, page_num: 1,
 
 beforeEach(() => {
   workers.length = 0;
-  storeApi.getState().resetAllState();
+  storeApi.getState().resetJSON();
   auditStoreApi.getState().resetAudit();
   vi.stubGlobal("Worker", WorkerMock);
 });
@@ -30,9 +30,10 @@ it("ingests loaded audit on startup and later store updates while the dialog is 
   act(() => workers[0].onmessage?.({ data: { ok: true, data: [{ ...service, session: "s" }] } } as MessageEvent));
   await waitFor(() => expect(result.current.records).toEqual([{ ...service, session: "s" }]));
   act(() => auditStoreApi.getState().setLoaded("s", { gaps: [], usage: { services: [service, { ...service, code: "b" }] } }));
+  act(() => auditStoreApi.getState().setLoading("other", true));
   act(() => auditStoreApi.getState().setLoaded("other", { gaps: [], usage: { services: [{ ...service, code: "c" }] } }));
   expect(workers[0].postMessage.mock.lastCall?.[0].services).toEqual([
-    { ...service, session: "s" }, { ...service, code: "b", session: "s" }, { ...service, code: "c", session: "other" },
+    { ...service, code: "c", session: "other" },
   ]);
 });
 

@@ -25,7 +25,7 @@ function stubMetadata(data: MetadataPayload) {
   vi.stubGlobal("Worker", WorkerMock);
 }
 
-beforeEach(() => { auditClient.loadReport.mockReset().mockResolvedValue({ gaps: [] }); auditStoreApi.getState().resetAudit(); });
+beforeEach(() => { indexStoreApi.getState().resetMetadata(); auditClient.loadReport.mockReset().mockResolvedValue({ gaps: [] }); auditStoreApi.getState().resetAudit(); });
 
 describe("metadataClient", () => {
   it("keeps content paths and etags separate from metadata and discards late content after reset", async () => {
@@ -40,19 +40,19 @@ describe("metadataClient", () => {
       ["token", "pages-session", null],
       ["token", "pages-session", "https://blob/pages.json?sig=test"],
     ]);
-    expect(queueStoreApi.getState().etags["pages-session"]).toBe("metadata-etag");
-    expect(queueStoreApi.getState().pageEtags["pages-session"]).toBe("pages-etag");
+    expect(queueStoreApi.getState().etag).toBe("metadata-etag");
+    expect(queueStoreApi.getState().pageEtag).toBe("pages-etag");
     let finish!: (value: { data: { num_of_pages: number }; path: string; etag: string }) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     const pending = client.pagesData("token", "pages-session", true);
     queueStoreApi.getState().reset();
     finish({ data: { num_of_pages: 1 }, path: "https://blob/old-owner.json", etag: "old-owner" });
     await pending;
-    expect(queueStoreApi.getState().pagePaths).toEqual({});
-    expect(queueStoreApi.getState().pageEtags).toEqual({});
+    expect(queueStoreApi.getState().pagePath).toBeNull();
+    expect(queueStoreApi.getState().pageEtag).toBeNull();
   });
 
-  it("stores metadata etags by session and replaces them on refresh", async () => {
+  it("stores only the current metadata ETag and replaces it on refresh", async () => {
     let etag = "first";
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
@@ -66,12 +66,14 @@ describe("metadataClient", () => {
     const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
     await client.indexData("token", "session-1", true);
     etag = "second";
+    indexStoreApi.getState().setLoading("session-2");
     await client.indexData("token", "session-2", true);
-    expect(queueStoreApi.getState().etags).toEqual({ "session-1": "first", "session-2": "second" });
+    expect(queueStoreApi.getState()).toMatchObject({ session: "session-2", etag: "second" });
+    indexStoreApi.getState().setLoading("session-1");
     await client.indexData("token", "session-1", true);
-    expect(queueStoreApi.getState().etags["session-1"]).toBe("second");
+    expect(queueStoreApi.getState().etag).toBe("second");
     queueStoreApi.getState().reset();
-    expect(queueStoreApi.getState().etags).toEqual({});
+    expect(queueStoreApi.getState().etag).toBeNull();
   });
   it("does not save a late metadata path after the queue owner is reset", async () => {
     let complete!: () => void;
@@ -87,8 +89,8 @@ describe("metadataClient", () => {
     queueStoreApi.getState().reset();
     complete();
     await request;
-    expect(queueStoreApi.getState().paths).toEqual({});
-    expect(queueStoreApi.getState().etags).toEqual({});
+    expect(queueStoreApi.getState().path).toBeNull();
+    expect(queueStoreApi.getState().etag).toBeNull();
   });
   it("reuses the saved SAS URL and replaces it only on an explicit refresh", async () => {
     const commands: Array<{ type: string; path: string | null }> = [];
@@ -236,10 +238,10 @@ describe("Pages failure isolation", () => {
     const result = await client.indexData("token", "first", false);
     expect(result).toEqual(metadata);
     expect(result.pages).toBeUndefined();
-    expect(indexStoreApi.getState().pageErrors.first).toMatchObject({ error: error.message });
+    expect(indexStoreApi.getState().pageError).toMatchObject({ error: error.message });
     expect(indexStoreApi.getState().error).toBeNull();
     expect(auditClient.loadReport).toHaveBeenCalledExactlyOnceWith("token", "first");
-    if (error === pageError) expect(indexStoreApi.getState().pageErrors.first).toEqual({ error: error.message, code: "content_result_invalid", details: { segment: "pages" }, status: 500 });
+    if (error === pageError) expect(indexStoreApi.getState().pageError).toEqual({ error: error.message, code: "content_result_invalid", details: { segment: "pages" }, status: 500 });
   });
 
   it("preserves direct Pages rejection and clears only the recovered session error", async () => {
@@ -248,7 +250,7 @@ describe("Pages failure isolation", () => {
     await expect(client.pagesData("token", "first", true)).rejects.toBe(pageError);
     indexStoreApi.getState().setPageError("second", { error: "Other failure" });
     await expect(client.pagesData("token", "first", true)).resolves.toEqual({ num_of_pages: 0 });
-    expect(indexStoreApi.getState().pageErrors).toEqual({ second: { error: "Other failure" } });
+    expect(indexStoreApi.getState().pageError).toBeNull();
   });
 
   it("removes embedded page data when the authoritative Pages export fails", async () => {
@@ -276,7 +278,7 @@ describe("Pages failure isolation", () => {
     queueStoreApi.getState().reset();
     fail(pageError);
     await expect(pending).resolves.toEqual(metadata);
-    expect(indexStoreApi.getState().pageErrors).toEqual({});
+    expect(indexStoreApi.getState().pageError).toBeNull();
     expect(auditClient.loadReport).not.toHaveBeenCalled();
   });
 
@@ -288,7 +290,7 @@ describe("Pages failure isolation", () => {
     else indexStoreApi.getState().resetMetadata();
     fail(pageError);
     await pending;
-    expect(indexStoreApi.getState().pageErrors).toEqual({});
+    expect(indexStoreApi.getState().pageError).toBeNull();
   });
 
   it("keeps the latest Pages error when an earlier request succeeds last", async () => {
@@ -299,7 +301,7 @@ describe("Pages failure isolation", () => {
     await client.indexData("token", "first", true);
     finish({ data: { num_of_pages: 1 }, path: "https://blob/earlier.json", etag: "earlier" });
     await earlier;
-    expect(indexStoreApi.getState().pageErrors.first?.code).toBe("content_result_invalid");
+    expect(indexStoreApi.getState().pageError?.code).toBe("content_result_invalid");
   });
 
   it("discards an earlier Pages failure when a newer request succeeds first", async () => {
@@ -310,7 +312,7 @@ describe("Pages failure isolation", () => {
     await client.indexData("token", "first", true);
     fail(pageError);
     await earlier;
-    expect(indexStoreApi.getState().pageErrors).toEqual({});
+    expect(indexStoreApi.getState().pageError).toBeNull();
   });
 
   it("keeps view callbacks successful, clears cached pages on failed refresh, and recovers", async () => {
@@ -346,11 +348,11 @@ describe("Pages failure isolation", () => {
     await act(async () => { await view.result.current.loadMetadata(false); });
     expect(view.result.current.pageError).toMatchObject({ code: "content_result_invalid" });
     await act(async () => { await view.result.current.loadMetadata(true); });
-    expect(view.result.current.pageError).toBeUndefined();
+    expect(view.result.current.pageError).toBeNull();
     expect(view.result.current.metadata?.pages).toEqual({ num_of_pages: 0 });
     let finish!: (value: { data: { num_of_pages: number }; path: string; etag: string }) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    let refreshing!: ReturnType<typeof client.indexData>;
+    let refreshing!: ReturnType<typeof view.result.current.loadMetadata>;
     await act(async () => {
       refreshing = view.result.current.loadMetadata(true);
       await view.result.current.loadMetadata(false);
@@ -362,14 +364,14 @@ describe("Pages failure isolation", () => {
     expect(view.result.current.metadata?.pages).toEqual({ num_of_pages: 2 });
     let fail!: (error: Error) => void;
     pagesClient.pagesData.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
-    let earlier!: ReturnType<typeof client.indexData>;
+    let earlier!: ReturnType<typeof view.result.current.loadMetadata>;
     await act(async () => {
       earlier = view.result.current.loadMetadata(true);
       await view.result.current.loadMetadata(true);
     });
     await act(async () => { fail(pageError); await earlier; });
     expect(view.result.current.metadata?.pages).toEqual({ num_of_pages: 0 });
-    expect(view.result.current.pageError).toBeUndefined();
+    expect(view.result.current.pageError).toBeNull();
     view.unmount();
   });
 });

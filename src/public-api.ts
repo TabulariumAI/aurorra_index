@@ -27,7 +27,7 @@ export { getMapGroups } from "./features/legalmap/data/surveyData";
 export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
 export type { LegalMapPayload } from "./features/legalmap/data/legalData";
 export { createDeferredState } from "./features/indexing/data/deferredState";
-export { indexStoreApi, useIndexStore } from "./features/metdataview/store/metadataStore";
+export { indexStoreApi, selectSession, useIndexStore } from "./features/metdataview/store/metadataStore";
 export { AddressMapContent } from "./features/addressmap";
 export { appendAddressMapZoom, buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "./features/addressmap/data/addressMap";
 export { createMetadataClient } from "./features/metdataview/data/metadataClient";

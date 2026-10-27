@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateImagePackage, imageViewerStoreApi, iqStoreApi } from "../../../public-api";
 
 import { queueStoreApi } from "../../queue/store/queueStore";
-beforeEach(() => queueStoreApi.setState({ etags: { "session-1": "metadata-etag" } }));
+beforeEach(() => queueStoreApi.setState({ session: "session-1", etag: "metadata-etag" }));
 
 const input = { apiGatewayUrl: "https://gateway", authToken: "token", session: "session-1" };
 
@@ -55,7 +55,7 @@ describe.each([
   });
 
   it("loads an unopened session's metadata in the caller before starting the image worker", async () => {
-    queueStoreApi.setState({ etags: {} });
+    queueStoreApi.setState({ session: null, etag: null });
     const commands: unknown[] = [];
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
@@ -78,7 +78,7 @@ describe.each([
 
   it("does not start image work after the owner changes during metadata retrieval", async () => {
     const workers: WorkerMock[] = [];
-    queueStoreApi.setState({ etags: {} });
+    queueStoreApi.setState({ session: null, etag: null });
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
       onerror = null;
@@ -94,7 +94,7 @@ describe.each([
     workers[0].onmessage?.({ data: { ok: true, data: {}, path: "https://storage.test/old.json", etag: "old-owner-etag" } } as MessageEvent);
     await rejected;
     expect(workers).toHaveLength(1);
-    expect(queueStoreApi.getState().etags[input.session]).toBe("new-owner-etag");
+    expect(queueStoreApi.getState().etag).toBe("new-owner-etag");
   });
 
   it("propagates a failed start without retrying the POST or downloading", async () => {

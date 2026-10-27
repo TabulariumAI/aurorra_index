@@ -7,7 +7,7 @@ import { normalizeLegalData } from "../../legalmap/data/legalData";
 describe("index store", () => {
   afterEach(() => {
     indexStoreApi.getState().resetMetadata();
-    storeApi.getState().resetAllState();
+    storeApi.getState().resetJSON();
   });
 
   it("preserves parcel counts through metadata storage and recomposition into the legal map", () => {
@@ -46,7 +46,7 @@ describe("index store", () => {
     indexStoreApi.getState().setLoaded("session-1");
 
     expect(indexStoreApi.getState().status).toBe("success");
-    expect(storeApi.getState().jsonBySession["session-1"]).toEqual({
+    expect(storeApi.getState().getJSON("session-1")).toEqual({
       chainJSON: {},
       financialJSON: {
         fees: [],
@@ -83,7 +83,7 @@ describe("index store", () => {
     indexStoreApi.getState().setLoaded("session-1");
     indexStoreApi.getState().invalidateSession("session-1");
 
-    expect(storeApi.getState().jsonBySession["session-1"]).toBeUndefined();
+    expect(storeApi.getState().getJSON("session-1")).toBeNull();
     expect(indexStoreApi.getState().status).toBe("idle");
   });
 
@@ -113,7 +113,7 @@ describe("index store", () => {
 
     indexStoreApi.getState().resetMetadata();
 
-    expect(storeApi.getState().jsonBySession).toEqual({});
+    expect(storeApi.getState().json).toBeNull();
     expect(indexStoreApi.getState().activeSession).toBeNull();
     expect(indexStoreApi.getState().status).toBe("idle");
   });
