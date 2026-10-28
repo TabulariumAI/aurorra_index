@@ -89,6 +89,7 @@ export type AuditReportView = {
 };
 
 export type AuditWorkerError = {
+  cause?: unknown;
   code?: string;
   details?: unknown;
   error: string;

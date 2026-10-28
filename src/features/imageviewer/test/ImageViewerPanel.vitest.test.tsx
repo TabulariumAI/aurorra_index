@@ -3,9 +3,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { PageSizeFailure, ViewerState } from "@tabulariumai/aurora-lens";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
-import { queueStoreApi } from "../../queue/store/queueStore";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 import { storeApi } from "../../../store/state/store";
 import { splitMetadataJSON } from "aurora-core";
@@ -15,6 +14,7 @@ const acceptSize = vi.hoisted(() => vi.fn());
 const cancelSize = vi.hoisted(() => vi.fn());
 let viewerPageCount = 2;
 let viewerPage = 2;
+let viewerPageName: string | null = "26";
 let viewerReloadId = 0;
 let viewerRestoring = false;
 let viewerRestoredSession = false;
@@ -68,6 +68,7 @@ vi.mock("../hook/useImageViewer", () => ({
     lensHostRef: { current: null },
     nextPage: vi.fn(),
     page: viewerPage,
+    pageName: viewerPageName,
     pageCount: viewerPageCount,
     previousPage: vi.fn(),
     reloadId: viewerReloadId,
@@ -92,7 +93,6 @@ const directPackage = JSON.parse(directPackageRaw) as { data: string; tiff: stri
 const onReadyChange = vi.fn();
 
 describe("ImageViewerPanel", () => {
-  beforeEach(() => queueStoreApi.setState({ session: "session-1", etag: "metadata-etag" }));
   it("duplicates the Intake decision with a Scale options anchor and preview-only scope", () => {
     sizeFailure = { sourceName: "document-image-package.tiff", pageNumber: 1, width: 2550, height: 3479, tolerance: 0.02, requiredTolerance: 0.0348 };
     const renderer = vi.fn(({ children }: Parameters<ToleranceRenderer>[0]) => <div role="dialog">{children}</div>);
@@ -128,6 +128,7 @@ describe("ImageViewerPanel", () => {
     cancelSize.mockClear();
     viewerPageCount = 2;
     viewerPage = 2;
+    viewerPageName = "26";
     viewerReloadId = 0;
     viewerRestoring = false;
     viewerRestoredSession = false;
@@ -210,6 +211,7 @@ describe("ImageViewerPanel", () => {
     expect(showThumbnails).not.toHaveBeenCalled();
 
     viewerPage = 3;
+    viewerPageName = "Exhibit-A";
     view.rerender(<ImageViewerPanel renderTolerance={({ children }) => children} compact onReadyChange={onReadyChange} />);
     expect(showThumbnails).not.toHaveBeenCalled();
 
@@ -405,6 +407,7 @@ describe("ImageViewerPanel", () => {
     render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
 
     await waitFor(() => expect(workerClient.packageImage).toHaveBeenCalledTimes(1));
+    expect(workerClient.packageImage).toHaveBeenCalledWith("token", "session-1", true);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(1);
     expect(consoleInfo).toHaveBeenCalledWith("imageviewer package load start", {
       hasPackage: true,
@@ -576,7 +579,7 @@ describe("ImageViewerPanel", () => {
     const view = render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
     const top = screen.getByLabelText("Image viewer top toolbar");
     const footer = screen.getByLabelText("Image viewer footer toolbar");
-    for (const page of [3, 2]) {
+    for (const [page, pageName] of [[3, "Exhibit-A"], [2, null], [1, "01"]] as const) {
       viewerNavigating = true;
       act(() => imageViewerStoreApi.getState().setViewerStatus("loadingPage"));
       expect(screen.getByLabelText("Image viewer top toolbar")).toBe(top);
@@ -584,10 +587,11 @@ describe("ImageViewerPanel", () => {
       expect(onReadyChange).toHaveBeenLastCalledWith(true);
       expect(onLoaderChange).toHaveBeenLastCalledWith(null);
       viewerPage = page;
+      viewerPageName = pageName;
       viewerNavigating = false;
       act(() => imageViewerStoreApi.getState().setViewerStatus("ready"));
       view.rerender(<ImageViewerPanel renderTolerance={({ children }) => children} compact={compact} onLoaderChange={onLoaderChange} onReadyChange={onReadyChange} />);
-      expect(screen.getByText(`Page ${page} of 4`)).toBeVisible();
+      expect(screen.getByText(`Page ${page}${pageName ? ` (${pageName})` : ""} of 4`)).toBeVisible();
       expect(screen.getByLabelText("Image viewer footer toolbar")).toBe(footer);
     }
   });

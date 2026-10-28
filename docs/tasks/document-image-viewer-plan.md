@@ -12,9 +12,9 @@ The document image viewer is owned by `aurorra_index/src/features/imageviewer`.
 1. Metadata page actions in `aurorra_index` write the active image viewer request into `imageViewerStore`.
 2. `metadataCallbacks.onPageClick` invokes the named `showDocumentPage` operation in `document_web/src/orchestration/flow/show-document-page/flow.ts`. That operation activates the image panel and sets the app store's `layoutType`, `layoutPage`, and selected index.
 3. `ImageViewerHost` resolves host inputs and passes them to `ImageViewerPanel`.
-4. `ImageViewerPanel` requests image package generation through `POST /v1/image/{session}/package`.
-5. `ImageViewerPanel` polls `GET /v1/image/{session}/status`.
-6. After `completed`, `ImageViewerPanel` calls `GET /v1/image/{session}/data`.
+4. `ImageViewerPanel` retrieves the package through `GET /v1/image/{session}/data`, without a metadata ETag.
+5. Intake and explicit recovery use `POST /v1/image/{session}/generate` with `{}`.
+6. `user_svc` reuses valid success-flag TIFF/JSON paths for GET; missing, empty, or malformed paths and missing success trigger generation. It waits for generation in `document_svc` and returns signed URLs.
 7. The package data response must be:
 
 ```json
@@ -100,7 +100,7 @@ Footer toolbar:
 - Thumbnails
 - First page
 - Previous page
-- Current page / total pages
+- `Page [position] ([name]) of [count]`; omit the name and parentheses when no mapped name is available. Position is `ViewerState.pageIndex + 1`; the optional name is `ViewerState.pageName`.
 - Next page
 - Last page
 

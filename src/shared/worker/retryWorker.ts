@@ -5,6 +5,7 @@ type RetryError = Error & {
 };
 
 function retryable(error: unknown): boolean {
+  if (error instanceof ErrorEvent) return false;
   const value = error as { error?: unknown; message?: unknown; name?: unknown; status?: unknown };
   if (value?.name === "AbortError") return false;
   if (value?.status === 502 || value?.status === 503 || value?.status === 504) return true;

@@ -1,6 +1,13 @@
 import { expect, it, vi } from "vitest";
 import { retryWorker } from "../retryWorker";
 
+it("does not retry runtime events even when their message describes connectivity", async () => {
+  const event = new ErrorEvent("error", { message: "Failed to fetch network module" });
+  const request = vi.fn(async () => { throw event; });
+  await expect(retryWorker(request, 0, 3)).rejects.toBe(event);
+  expect(request).toHaveBeenCalledOnce();
+});
+
 it("retries connectivity failures through the configured limit before exposing one exhausted failure", async () => {
   const request = vi.fn(async () => {
     throw new Error("Failed to fetch");

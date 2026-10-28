@@ -365,13 +365,15 @@ describe("ImageViewerToolbar", () => {
         canShowThumbnails
         onAction={onAction}
         page={2}
+        pageName="26"
         pageCount={4}
       />,
     );
 
     expect(screen.getByLabelText("Image viewer footer toolbar")).toBeInTheDocument();
     expect(screen.getByLabelText("Image viewer footer toolbar")).toHaveStyle({ padding: "0.55rem" });
-    expect(screen.getByText("Page 2 of 4")).toBeInTheDocument();
+    expect(screen.getByText("Page 2 (26) of 4")).toBeInTheDocument();
+    expect(screen.queryByText("Page 2 of 4")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Thumbnails" }));
     fireEvent.click(screen.getByRole("button", { name: "First page" }));
@@ -390,6 +392,12 @@ describe("ImageViewerToolbar", () => {
   });
 });
 
+it.each(["01", "Exhibit-A", "26", "2", null, undefined, ""])("shows the position and optional name %s in the footer", pageName => {
+  render(<ImageViewerFooterToolbar canGoFirst canGoLast canGoNext canGoPrevious canShowThumbnails onAction={vi.fn()} page={2} pageName={pageName} pageCount={4} />);
+  expect(screen.getByText(pageName ? `Page 2 (${pageName}) of 4` : "Page 2 of 4")).toBeVisible();
+  expect(screen.getByLabelText("Image viewer footer toolbar")).not.toHaveTextContent("()");
+});
+
 it.each(["Zoom out", "Zoom in", "Scale options", "Search", "Select", "Clear selections", "More"])("shows the %s top action tooltip on focus", async label => {
   render(<ImageViewerTopToolbar canActualSize canClearSearch canExport canFitHeight canFitPage canFitWidth canSearch canSelect canZoomIn canZoomOut compact={false} selecting={false} onAction={vi.fn()} onSearchText={vi.fn()} searchText="Cedar" zoom={1} />);
   const button = screen.getByRole("button", { name: label });
@@ -403,7 +411,7 @@ it.each(["Zoom out", "Zoom in", "Scale options", "Search", "Select", "Clear sele
 });
 
 it.each(["Thumbnails", "First page", "Previous page", "Next page", "Last page"])("shows the %s footer action tooltip on focus", async label => {
-  render(<ImageViewerFooterToolbar canGoFirst canGoLast canGoNext canGoPrevious canShowThumbnails onAction={vi.fn()} page={2} pageCount={4} />);
+  render(<ImageViewerFooterToolbar canGoFirst canGoLast canGoNext canGoPrevious canShowThumbnails onAction={vi.fn()} page={2} pageName={null} pageCount={4} />);
   const button = screen.getByRole("button", { name: label });
   expect(button).not.toHaveAttribute("title");
   act(() => button.focus());
@@ -416,7 +424,7 @@ it.each(["Thumbnails", "First page", "Previous page", "Next page", "Last page"])
 
 it("keeps unavailable footer actions natively disabled without adding focus targets", () => {
   const onAction = vi.fn();
-  render(<ImageViewerFooterToolbar canGoFirst={false} canGoLast={false} canGoNext={false} canGoPrevious={false} canShowThumbnails={false} onAction={onAction} page={1} pageCount={1} />);
+  render(<ImageViewerFooterToolbar canGoFirst={false} canGoLast={false} canGoNext={false} canGoPrevious={false} canShowThumbnails={false} onAction={onAction} page={1} pageName={null} pageCount={1} />);
   const buttons = screen.getAllByRole("button");
   expect(buttons).toHaveLength(5);
   for (const button of buttons) {

@@ -21,6 +21,7 @@ export async function loadAuditReport(input: {
       || state.activeSession !== null && state.activeSession !== input.session) return;
     const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
     const failure: AuditWorkerError = {
+      ...(error instanceof ErrorEvent ? { cause: error } : {}),
       code: typeof candidate?.code === "string" ? candidate.code : undefined,
       details: candidate?.details,
       error: typeof candidate?.error === "string" ? candidate.error

@@ -1,3 +1,4 @@
+import type { SessionChoices } from "../../choices/type/choices.types";
 import type { QueueTransition } from "../../queue/type/queue.types";
 import type { IndexChange } from "../../queue/type/queue.types";
 import type { ReactNode } from "react";
@@ -76,6 +77,7 @@ export type MetadataConfig = {
 };
 
 export type MetadataStoreState = {
+  choices: SessionChoices | null;
   selectSession(session: string): void;
   openSegment: string | null;
   getSegment(pageSegment: string): string;

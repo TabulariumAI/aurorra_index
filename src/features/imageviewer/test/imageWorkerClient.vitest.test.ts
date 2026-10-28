@@ -5,7 +5,7 @@ const response = { status: "completed", data: { tiff: "https://storage.test/imag
 afterEach(() => vi.unstubAllGlobals());
 
 describe("image worker client", () => {
-  it.each(["first-etag", "second-etag", null])("passes the caller's etag %s unchanged", async etag => {
+  it.each([false, true])("passes the explicit operation %s without metadata access", async refresh => {
     const commands: unknown[] = [];
     const terminate = vi.fn();
     class WorkerMock {
@@ -15,8 +15,8 @@ describe("image worker client", () => {
       terminate = terminate;
     }
     vi.stubGlobal("Worker", WorkerMock);
-    await expect(createWorkerClient({ apiBaseUrl: "https://gateway" }).packageImage("token", "session", etag)).resolves.toEqual(response);
-    expect(commands).toEqual([{ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "imagePackage", etag }]);
+    await expect(createWorkerClient({ apiBaseUrl: "https://gateway" }).packageImage("token", "session", refresh)).resolves.toEqual(response);
+    expect(commands).toEqual([{ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "imagePackage", refresh }]);
     expect(terminate).toHaveBeenCalledOnce();
   });
 

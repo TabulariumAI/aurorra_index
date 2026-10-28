@@ -12,11 +12,27 @@ function client() {
 }
 const input = { pageSize, apiGatewayUrl: "https://gateway", authToken: "token", session: "session-1", onError: vi.fn() };
 
-beforeEach(() => queueStoreApi.setState({ session: "session-1", etag: "first-etag" }));
+beforeEach(() => queueStoreApi.getState().reset());
 
 afterEach(() => { imageViewerStoreApi.getState().resetViewer(); vi.clearAllMocks(); });
 
 describe("loadImagePackage", () => {
+  it("loads without a metadata ETag or metadata retrieval", async () => {
+    queueStoreApi.getState().reset();
+    const workerClient = client();
+    await loadImagePackage({ ...input, workerClient });
+    expect(workerClient.packageImage).toHaveBeenCalledExactlyOnceWith("token", "session-1", false);
+    expect(imageViewerStoreApi.getState().status).toBe("ready");
+  });
+  it.each(["packageImage", "downloadPackage"] as const)("recovers after %s fails", async stage => {
+    const workerClient = client();
+    workerClient[stage].mockRejectedValueOnce(new Error("Package unavailable"));
+    await loadImagePackage({ ...input, workerClient });
+    expect(input.onError).toHaveBeenCalledOnce();
+    await loadImagePackage({ ...input, workerClient, restart: true });
+    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", false], ["token", "session-1", true]]);
+    expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", error: null });
+  });
   it.each(["packageImage", "downloadPackage"] as const)("does not reuse or apply an exited session's %s when reopened", async stage => {
     let release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });
@@ -40,21 +56,21 @@ describe("loadImagePackage", () => {
   it("downloads the orchestrated response without status or data requests", async () => {
     const workerClient = client();
     await loadImagePackage({ ...input, workerClient });
-    expect(workerClient.packageImage).toHaveBeenCalledExactlyOnceWith("token", "session-1", "first-etag");
+    expect(workerClient.packageImage).toHaveBeenCalledExactlyOnceWith("token", "session-1", false);
     expect(workerClient.downloadPackage).toHaveBeenCalledExactlyOnceWith("token", { jsonUrl: response.data.data, tiffUrl: response.data.tiff });
     expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", packageStatus: "completed", ...local });
   });
-  it("reuses loaded packages and omits the etag only for recovery", async () => {
+  it("reuses loaded packages and uses generation only for recovery", async () => {
     const workerClient = client();
     const request = { ...input, workerClient };
     await loadImagePackage(request);
     await loadImagePackage(request);
     expect(workerClient.packageImage).toHaveBeenCalledOnce();
     await loadImagePackage({ ...request, restart: true });
-    expect(workerClient.packageImage).toHaveBeenLastCalledWith("token", "session-1", null);
+    expect(workerClient.packageImage).toHaveBeenLastCalledWith("token", "session-1", true);
     expect(workerClient.downloadPackage).toHaveBeenCalledTimes(2);
   });
-  it("retries failed loads through the normal etag flow", async () => {
+  it("retries failed loads through the normal GET flow", async () => {
     const workerClient = client();
     workerClient.packageImage.mockRejectedValueOnce({ code: "image_timeout", error: "Image package timed out" });
     const request = { ...input, workerClient };
@@ -62,7 +78,7 @@ describe("loadImagePackage", () => {
     expect(input.onError).toHaveBeenCalledWith(expect.objectContaining({ code: "image_timeout", error: "Image package timed out" }));
     expect(workerClient.downloadPackage).not.toHaveBeenCalled();
     await loadImagePackage(request);
-    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", "first-etag"], ["token", "session-1", "first-etag"]]);
+    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", false], ["token", "session-1", false]]);
     expect(imageViewerStoreApi.getState()).toMatchObject({ status: "ready", error: null });
   });
   it("deduplicates simultaneous loads", async () => {
@@ -89,12 +105,10 @@ describe("loadImagePackage", () => {
     const workerClient = client();
     await loadImagePackage({ ...input, workerClient });
     queueStoreApi.getState().reset();
-    queueStoreApi.getState().setEtag("session-2", "second-etag");
     await loadImagePackage({ ...input, session: "session-2", workerClient });
     queueStoreApi.getState().reset();
-    queueStoreApi.getState().setEtag("session-1", "first-etag");
     await loadImagePackage({ ...input, workerClient });
-    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", "first-etag"], ["token", "session-2", "second-etag"], ["token", "session-1", "first-etag"]]);
+    expect(workerClient.packageImage.mock.calls).toEqual([["token", "session-1", false], ["token", "session-2", false], ["token", "session-1", false]]);
   });
   it("does not execute queued recovery after switching sessions", async () => {
     let release!: () => void;

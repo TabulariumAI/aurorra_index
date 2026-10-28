@@ -23,6 +23,6 @@ export const aspectFixture: LegalPayload = {
 
 export const aspectFields = [
   "subdivision_procedural", "lot_scope", "block_scope", "plat", "phase_scope",
-  "unit_scope", "parcel", "parcel_scope", "fraction", "fraction_scope", "part",
+  "unit_scope", "parcel_scope", "fraction", "fraction_scope", "part",
   "part_scope",
 ];

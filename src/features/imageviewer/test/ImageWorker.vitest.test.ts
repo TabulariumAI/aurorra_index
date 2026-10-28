@@ -26,15 +26,15 @@ describe("ImageViewerWorker", () => {
     vi.restoreAllMocks();
   });
 
-  it.each(["metadata-etag", null])("sends etag %s with bearer authentication", async etag => {
+  it.each([false, true])("uses the explicit operation (refresh=%s) without an ETag", async refresh => {
     const fetchMock = vi.fn(async () => jsonResponse({ status: "completed", data: { tiff: "https://storage.test/image.tiff", data: "https://storage.test/image.json" } }));
     vi.stubGlobal("fetch", fetchMock);
-    const result = await new ImageViewerWorker().run({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "imagePackage", etag });
-    expect(result.ok).toBe(true);
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("https://gateway/v1/image/session%201/package", expect.objectContaining({
-      method: "POST", body: JSON.stringify(etag === null ? {} : { etag }),
-      headers: { Authorization: "Bearer token", "Content-Type": "application/json" },
-    }));
+    expect((await new ImageViewerWorker().run({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "imagePackage", refresh })).ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(`https://gateway/v1/image/session%201/${refresh ? "generate" : "data"}`, {
+      method: refresh ? "POST" : "GET",
+      ...(refresh ? { body: "{}" } : {}),
+      headers: { Authorization: "Bearer token", ...(refresh ? { "Content-Type": "application/json" } : {}) },
+    });
   });
 
   it("accepts completed image data envelope with tiff and data urls", async () => {
@@ -47,7 +47,7 @@ describe("ImageViewerWorker", () => {
     })));
     const worker = new ImageViewerWorker();
 
-    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).resolves.toEqual({
+    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", refresh: false })).resolves.toEqual({
       data: {
         data: {
           data: "https://storage.test/image.json",
@@ -64,7 +64,7 @@ describe("ImageViewerWorker", () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse(payload)));
     const worker = new ImageViewerWorker();
 
-    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).resolves.toEqual({
+    await expect(worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", refresh: false })).resolves.toEqual({
       code: "image_package_error",
       details: payload,
       error: "failed",
@@ -120,12 +120,12 @@ describe("ImageViewerWorker", () => {
 
   it("validates required command fields and backend error status", async () => {
     const worker = new ImageViewerWorker();
-    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({ code: "missing_auth_token", ok: false });
-    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({ code: "missing_api_base_url", ok: false });
-    expect(await worker.run({ apiBaseUrl: "x", session: "", token: "t", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({ code: "invalid_session", ok: false });
+    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "", type: "imagePackage", refresh: false })).toMatchObject({ code: "missing_auth_token", ok: false });
+    expect(await worker.run({ apiBaseUrl: "", session: "s", token: "t", type: "imagePackage", refresh: false })).toMatchObject({ code: "missing_api_base_url", ok: false });
+    expect(await worker.run({ apiBaseUrl: "x", session: "", token: "t", type: "imagePackage", refresh: false })).toMatchObject({ code: "invalid_session", ok: false });
 
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ status: "error", data: "failed" })));
-    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", etag: "metadata-etag" })).toMatchObject({
+    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "imagePackage", refresh: false })).toMatchObject({
       code: "image_package_error",
       error: "failed",
       ok: false,

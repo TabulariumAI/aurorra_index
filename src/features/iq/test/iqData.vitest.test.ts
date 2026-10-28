@@ -45,7 +45,7 @@ describe("iqData", () => {
     expect(normalizeIqReport({ decision: "Unknown" }).decision).toBe("Review");
   });
 
-  it("renders stored gate violation descriptions", () => {
+  it("uses the approved message for older reports without descriptions", () => {
     const view = prepareIqReport({
       gates: [
         {
@@ -65,8 +65,8 @@ describe("iqData", () => {
       ],
     });
 
-    expect(view.gates.items[0].description).toBe("Person or 0 >= 1 - condition not satisfied by any available values. Tested 0 combination(s).");
-    expect(view.gates.items[1].description).toBe("Missing indexes: Party Address or Legal Description. Cue verification did not confirm the existence of required indexes.");
+    expect(view.gates.items[0].description).toBe("Detailed values are unavailable for this saved result.");
+    expect(view.gates.items[1].description).toBe("Detailed values are unavailable for this saved result.");
   });
 
   it("does not stringify missing gate descriptions", () => {
@@ -74,7 +74,20 @@ describe("iqData", () => {
       gates: [{ code: "gate-1", status: "FAIL" }],
     });
 
-    expect(report.gates[0].description).toBe("");
-    expect(prepareIqReport(report).gates.items[0].description).toBe("");
+    expect(report.gates[0].description).toBe("Detailed values are unavailable for this saved result.");
+    expect(prepareIqReport(report).gates.items[0].description).toBe("Detailed values are unavailable for this saved result.");
+  });
+
+  it("preserves service descriptions and gate identity for both report shapes", () => {
+    const description = "Effective Date must be on or after Acknowledgment Date. The available dates do not satisfy this requirement. Effective Date is unavailable. One acknowledgment-date entry was found.";
+    for (const extra of [{}, { kind: "Generic", human_expr: "wrong >= expression", bindings: [{ field: "acknowledgment_date", value: "1" }] }]) {
+      const report = normalizeIqReport({ gates: [{ ...extra, code: "date-gate", status: "FAIL", description }] });
+      expect(report.gates).toEqual([{ code: "date-gate", status: "FAIL", description }]);
+      expect(prepareIqReport(report).gates.items[0]).toMatchObject({ code: "date-gate", description, isFailure: true });
+    }
+  });
+
+  it("does not replace an explicit empty service description", () => {
+    expect(normalizeIqReport({ gates: [{ code: "empty", status: "INFO", description: "" }] }).gates[0].description).toBe("");
   });
 });

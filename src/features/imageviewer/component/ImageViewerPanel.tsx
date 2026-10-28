@@ -178,6 +178,7 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexF
             if (action === "thumbs") viewer.showThumbnails();
           }}
           page={viewer.page}
+          pageName={viewer.pageName}
           pageCount={viewer.pageCount}
         />
       )}

@@ -1,4 +1,3 @@
-import { generateImagePackage } from "./generateImagePackage";
 import { imageViewerStoreApi } from "../store/imageViewerStore";
 import type { HostInput, LoadPackageInput } from "../type/imageViewer.types";
 import { createWorkerClient } from "../worker/imageWorkerClient";
@@ -15,7 +14,7 @@ async function runImagePackage(input: LoadPackageInput, generation: number): Pro
   const client = input.workerClient || createWorkerClient({ apiBaseUrl: input.apiGatewayUrl });
   try {
     imageViewerStoreApi.getState().setStatus("packaging");
-    const data = await generateImagePackage(input, input.restart, client);
+    const data = await client.packageImage(input.authToken, input.session, input.restart === true);
     if (imageViewerStoreApi.getState().generation !== generation || imageViewerStoreApi.getState().session !== input.session) return;
     imageViewerStoreApi.getState().setPackageStatus("completed");
     imageViewerStoreApi.getState().setStatus("downloading");

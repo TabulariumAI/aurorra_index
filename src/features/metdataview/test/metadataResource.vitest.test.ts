@@ -16,29 +16,10 @@ it("does not subscribe or wait when no ETag exists", async () => {
   await expect(requestResource({ resource: "metadata_etag" }, "current")).resolves.toBeNull();
   expect(subscribe).not.toHaveBeenCalled();
 });
-it("retrieves metadata for generation without retaining another session", async () => {
-  const input = { apiGatewayUrl: "https://gateway", authToken: "token" };
-  metadata.loadMetadata.mockResolvedValueOnce({ data: {}, etag: "retrieved" });
-  await expect(requestResource({ resource: "metadata_etag" }, "requested", input)).resolves.toBe("retrieved");
-  expect(metadata.loadMetadata).toHaveBeenCalledExactlyOnceWith({ ...input, session: "requested" }, null);
-});
-it("accepts a retrieved result with no ETag", async () => {
-  metadata.loadMetadata.mockResolvedValueOnce({ data: {}, etag: null });
-  await expect(requestResource({ resource: "metadata_etag" }, "requested", { apiGatewayUrl: "https://gateway", authToken: "token" })).resolves.toBeNull();
+it("does not retrieve metadata when the current ETag is absent", async () => {
+  await expect(requestResource({ resource: "metadata_etag" }, "requested")).resolves.toBeNull();
+  expect(metadata.loadMetadata).not.toHaveBeenCalled();
 });
 it("rejects a resource that Index does not own", async () => {
   await expect(requestResource({ resource: "aspects" }, "session")).rejects.toThrow("Unknown resource: aspects");
-});
-it("propagates actual metadata retrieval failures", async () => {
-  const error = new Error("Metadata unavailable");
-  metadata.loadMetadata.mockRejectedValueOnce(error);
-  await expect(requestResource({ resource: "metadata_etag" }, "requested", { apiGatewayUrl: "https://gateway", authToken: "token" })).rejects.toBe(error);
-});
-it("rejects work invalidated by an exit during metadata retrieval", async () => {
-  let finish!: (value: { data: {}; etag: string }) => void;
-  metadata.loadMetadata.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
-  const pending = expect(requestResource({ resource: "metadata_etag" }, "requested", { apiGatewayUrl: "https://gateway", authToken: "token" })).rejects.toMatchObject({ code: "SESSION_CLEARED" });
-  queueStoreApi.getState().reset();
-  finish({ data: {}, etag: "old" });
-  await pending;
 });

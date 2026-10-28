@@ -36,6 +36,7 @@ type FooterProps = {
   canShowThumbnails: boolean;
   onAction(action: FooterAction): void;
   page: number;
+  pageName: string | null | undefined;
   pageCount: number;
 };
 
@@ -307,6 +308,7 @@ export function ImageViewerFooterToolbar({
   canShowThumbnails,
   onAction,
   page,
+  pageName,
   pageCount,
 }: FooterProps): JSX.Element {
   return (
@@ -324,7 +326,7 @@ export function ImageViewerFooterToolbar({
         console.info("imageviewer toolbar action", { action: "previous", page, pageCount });
         onAction("previous");
       }} />
-      <span style={imageViewerStyles.pageText}>Page {page} of {pageCount}</span>
+      <span style={imageViewerStyles.pageText}>Page {page}{pageName ? ` (${pageName})` : ""} of {pageCount}</span>
       <ViewerButton disabled={!canGoNext} label="Next page" name="next" onClick={() => {
         console.info("imageviewer toolbar action", { action: "next", page, pageCount });
         onAction("next");

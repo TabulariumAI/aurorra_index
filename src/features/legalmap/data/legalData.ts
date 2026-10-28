@@ -66,8 +66,8 @@ const stateAbbr: Record<string, string> = {
 export const subdivisionKinds = ["subdivision", "condominium"] as const;
 export const divisionKinds = ["phase", "unit", "section"] as const;
 export const blockKinds = ["block", "tract", "building"] as const;
-export const lotKinds = ["lot", "condominium_unit"] as const;
-export const lotLabels = { lot: "Lot", condominium_unit: "Condo Unit" } as const;
+export const lotKinds = ["lot", "condominium_unit", "parcel"] as const;
+export const lotLabels = { lot: "Lot", condominium_unit: "Condo Unit", parcel: "Parcel" } as const;
 const stateNames = Object.values(stateAbbr);
 const stateNameRegex = new RegExp(`\\b(${stateNames.map((value) => value.replace(/ /g, "\\s+")).join("|")})\\b`, "i");
 

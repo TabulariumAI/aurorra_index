@@ -15,6 +15,7 @@ export type PageRequest = {
 };
 
 export type ViewerError = {
+  cause?: unknown;
   code?: string;
   details?: unknown;
   error: string;
@@ -79,7 +80,7 @@ export type WorkerResult<T> =
   | ({ ok: false } & ViewerError);
 
 export type WorkerCommand =
-  | { apiBaseUrl: string; session: string; token: string; type: "imagePackage"; etag: string | null }
+  | { apiBaseUrl: string; session: string; token: string; type: "imagePackage"; refresh: boolean }
   | { token: string; tiffUrl: string; jsonUrl: string; type: "imageDownload" };
 
 export type WorkerConfig = {
@@ -87,7 +88,7 @@ export type WorkerConfig = {
 };
 
 export type WorkerClient = {
-  packageImage(token: string, session: string, etag: string | null): Promise<DataResponse>;
+  packageImage(token: string, session: string, refresh: boolean): Promise<DataResponse>;
   downloadPackage(token: string, urls: PackageUrls): Promise<LocalPackage>;
 };
 

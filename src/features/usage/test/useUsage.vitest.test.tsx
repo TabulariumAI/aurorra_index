@@ -8,7 +8,7 @@ import { splitMetadataJSON } from "aurora-core";
 const workers: WorkerMock[] = [];
 class WorkerMock {
   onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: (() => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
   postMessage = vi.fn();
   terminate = vi.fn();
   constructor() { workers.push(this); }
@@ -68,8 +68,9 @@ it("reports worker failures and does not start a job without an owner", () => {
   const { result, rerender } = renderHook(({ owner }) => useUsage(owner), { initialProps: { owner: null as string | null } });
   expect(workers).toHaveLength(0);
   rerender({ owner: "owner" });
-  act(() => workers[0].onerror?.());
-  expect(result.current.error).toBeTruthy();
+  const event = new ErrorEvent("error", { message: "Usage database unavailable", error: new Error("Usage database unavailable") });
+  act(() => workers[0].onerror?.(event));
+  expect(result.current.error).toBe(event);
 });
 
 it("ignores metadata updates and leaves stored usage intact when audit loading fails", () => {

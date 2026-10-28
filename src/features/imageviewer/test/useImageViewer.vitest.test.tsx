@@ -12,6 +12,7 @@ const packageMetadata = JSON.parse(readFileSync(path.join(packageRoot, "image.js
 const tiffBytes = readFileSync(path.join(packageRoot, "image.tiff"));
 
 const restoredPages = vi.hoisted(() => ({ value: [1, 2, 3, 4] as (string | number)[] }));
+const viewerPageNames = vi.hoisted(() => ({ value: null as string[] | null }));
 const indexedDbViewerSessionStore = vi.hoisted(() => vi.fn(function () {
   return {
     read: vi.fn(async () => ({ pages: restoredPages.value.map((pageNumber, index) => ({ pageId: String(index), sequenceNumber: index })) })),
@@ -39,6 +40,7 @@ const auroraLensCtor = vi.hoisted(() =>
     let pageIndex = 1;
     let pageCount = 4;
     let pageMap: Record<string, number> = Object.fromEntries([1, 2, 3, 4].map((name, index) => [name, index]));
+    const readPageName = vi.fn<() => string | null>(() => viewerPageNames.value === null ? "Exhibit-A" : viewerPageNames.value[pageIndex]);
     const resolvePage = vi.fn((name: string | number) => {
       const index = pageMap[String(name)];
       if (index === undefined) throw { code: "page_out_of_range", error: "Page is outside the available page range." };
@@ -64,6 +66,7 @@ const auroraLensCtor = vi.hoisted(() =>
         canZoomOut: status === "ready",
         pageCount: status === "ready" ? pageCount : 0,
         pageIndex: status === "ready" ? pageIndex : -1,
+        pageName: status === "ready" ? readPageName() : null,
         pageInfo: status === "ready" && viewerHasMetadata.value ? { class: "Deed", indexes: [], pageNumber: pageIndex + 1, segments: [] } : null,
         drawMode: false,
         status,
@@ -115,7 +118,7 @@ const auroraLensCtor = vi.hoisted(() =>
       nextPage: vi.fn(async () => {}),
       previousPage: vi.fn(async () => {}),
       readPageInfo: vi.fn(() => ({ class: "Deed", indexes: [], pageNumber: 3, segments: [] })),
-      readPageName: vi.fn(() => "Exhibit-A"),
+      readPageName,
       restoreSession: vi.fn(async () => {
         await restoreSessionWait.promise;
         if (restoreSessionResult.value) {
@@ -186,6 +189,8 @@ function Harness() {
       <span data-testid="exported-page">{exportedPage}</span>
       <span data-testid="reload-id">{viewer.reloadId}</span>
       <span data-testid="zoom">{viewer.zoom}</span>
+      <span data-testid="page-name">{viewer.pageName}</span>
+      <span data-testid="page-number">{viewer.page}</span>
     </>
   );
 }
@@ -236,6 +241,30 @@ function seedPackage(metadata: { pages: { pageNumber: number }[]; pageMap?: Reco
 }
 
 describe("useImageViewer", () => {
+  it.each([false, true])("reads the Lens page name after load, navigation and restore (restored=%s)", async restored => {
+    setHost();
+    setRequest();
+    imageViewerStoreApi.getState().setRequest({ ...imageViewerStoreApi.getState().request!, page: "26" });
+    restoredPages.value = ["01", "26", "Exhibit-A", "4"];
+    viewerPageNames.value = ["01", "26", "Exhibit-A", "4"];
+    restoreSessionResult.value = restored;
+    if (!restored) setPackage({ pages: [1, 1, 1, 1].map(pageNumber => ({ pageNumber })), pageMap: { "01": 0, "26": 1, "Exhibit-A": 2, "4": 3 } });
+    render(<Harness />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "next page" })).toBeEnabled(), { timeout: 5000 });
+    const lens = lensInstances[0];
+    for (const [name, position] of [["26", 2], ["Exhibit-A", 3], ["01", 1], ["26", 2]] as const) {
+      await act(async () => imageViewerStoreApi.getState().setRequest({ ...imageViewerStoreApi.getState().request!, page: name }));
+      await waitFor(() => expect(screen.getByTestId("page-name")).toHaveTextContent(name));
+      expect(screen.getByTestId("page-number")).toHaveTextContent(String(position));
+      expect(screen.getByRole("button", { name: "next page" })).toBeEnabled();
+    }
+    expect(lens.decodeDoc).toHaveBeenCalledTimes(restored ? 0 : 1);
+    vi.mocked(lens.readPageName).mockReturnValue(null);
+    await act(async () => imageViewerStoreApi.getState().setRequest({ ...imageViewerStoreApi.getState().request!, page: "01" }));
+    expect(screen.getByTestId("page-name")).toBeEmptyDOMElement();
+    expect(screen.getByTestId("page-number")).toHaveTextContent("1");
+  });
+
   it("shows no-match status for false, dismisses it on actions and replaces it on success", async () => {
     seedPackage();
     render(<ImageViewerPanel compact={false} renderTolerance={({ children }) => children} onReadyChange={() => {}} />);
@@ -465,6 +494,7 @@ describe("useImageViewer", () => {
     restoreSessionWait.promise = null;
     restoreSessionResult.value = false;
     restoredPages.value = [1, 2, 3, 4];
+    viewerPageNames.value = null;
     viewerCanExport.value = true;
     viewerHasMetadata.value = true;
     viewerCanSelect.value = true;
@@ -924,7 +954,7 @@ describe("useImageViewer", () => {
     expect(lensInstances[0].actualSize).toHaveBeenCalledTimes(1);
     expect(lensInstances[0].clearSelection).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(lensInstances[0].exportSelection).toHaveBeenCalledTimes(1));
-    expect(lensInstances[0].readPageName).toHaveBeenCalledTimes(1);
+    expect(lensInstances[0].readPageName).toHaveBeenCalled();
     expect(screen.getByTestId("exported-page")).toHaveTextContent("Exhibit-A");
     expect(lensInstances[0].setDrawMode).toHaveBeenCalledWith(true);
     expect(lensInstances[0].fitHeight).toHaveBeenCalledTimes(1);

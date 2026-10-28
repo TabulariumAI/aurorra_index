@@ -3,6 +3,7 @@ import type { IqBucket, IqDecision, IqGate, IqGateStatus, IqReport, IqReportView
 export function toIqError(error: unknown): IqWorkerError {
   const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
   return {
+    ...(error instanceof ErrorEvent ? { cause: error } : {}),
     code: typeof candidate?.code === "string" ? candidate.code : undefined,
     details: candidate?.details,
     error: typeof candidate?.error === "string"
@@ -77,149 +78,6 @@ function text(value: unknown): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
-function titleWords(value: string): string {
-  const words = value
-    .split(/[_\s]+/)
-    .filter((part) => part.trim() !== "")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase());
-  return words.length > 0 ? words.join(" ") : value.trim();
-}
-
-function humanizeExpr(value: string): string {
-  const coalesced = value.replace(
-    /coalesce\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*([A-Za-z_][A-Za-z0-9_]*|\d+(?:\.\d+)?)\s*\)/gi,
-    (_match, left: string, right: string) => {
-      const rightText = /^[0-9.]+$/.test(right) ? right : titleWords(right);
-      return `${titleWords(left)} or ${rightText}`;
-    },
-  );
-  return coalesced.replace(/[A-Za-z_][A-Za-z0-9_]*/g, (token) => {
-    if (/^(coalesce|true|false|or|and)$/i.test(token)) return token;
-    return titleWords(token);
-  });
-}
-
-function joinOr(items: string[]): string {
-  return items.map((item) => item.trim()).filter(Boolean).join(" or ");
-}
-
-function joinAnd(items: string[]): string {
-  if (items.length === 0) return "";
-  if (items.length === 1) return items[0];
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-}
-
-function formatCount(value: unknown): string {
-  const n = num(value);
-  return Math.abs(n - Math.round(n)) < 1e-9 ? String(Math.round(n)) : String(n);
-}
-
-function humanizeValue(value: unknown): string {
-  const raw = text(value).trim();
-  if (!raw) return "";
-  const parsed = Number.parseInt(raw, 10);
-  if (String(parsed) === raw && parsed >= 0 && parsed <= 10) {
-    return ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"][parsed];
-  }
-  return titleWords(raw);
-}
-
-function bindingsText(bindings: unknown): string {
-  if (!Array.isArray(bindings)) return "";
-  return bindings
-    .map((entry) => {
-      const binding = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
-      const field = text(binding.field).trim();
-      const value = text(binding.value).trim();
-      if (!field || value.toLowerCase() === "not available") return "";
-      const valueText = Number.isFinite(Number(value)) ? value : titleWords(value);
-      return `${titleWords(field)}=${valueText}`;
-    })
-    .filter(Boolean)
-    .join("; ");
-}
-
-function positiveBindings(bindings: unknown, fields: string[]): string[] {
-  if (!Array.isArray(bindings)) return [];
-  return bindings
-    .map((entry) => {
-      const binding = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
-      const field = text(binding.field).trim();
-      if (!fields.some((allowed) => allowed === field)) return "";
-      const value = num(binding.value);
-      if (!Number.isFinite(value) || value <= 0) return "";
-      return `${titleWords(field)}(${formatCount(value)})`;
-    })
-    .filter(Boolean);
-}
-
-function storedGateDescription(gate: Record<string, unknown>): string {
-  const kind = text(gate.kind);
-  const status = text(gate.status);
-  const tested = formatCount(gate.combinations_tested);
-  const fields = Array.isArray(gate.fields) ? gate.fields.map(text) : [];
-  const aspects = Array.isArray(gate.aspects) ? gate.aspects.map(text) : [];
-  const bindingText = bindingsText(gate.bindings);
-
-  if (kind === "Generic") {
-    const expr = humanizeExpr(text(gate.human_expr));
-    if (status === GATE_PASS) {
-      return bindingText ? `${expr} - satisfied with ${bindingText}.` : `${expr} - satisfied.`;
-    }
-    return bindingText
-      ? `${expr} - condition not satisfied by any available values. Values: ${bindingText}. Tested ${tested} combination(s).`
-      : `${expr} - condition not satisfied by any available values. Tested ${tested} combination(s).`;
-  }
-
-  if (kind === "CoalescePresence") {
-    const prefix = `At least ${humanizeValue(gate.min_required)} of the following index fields must be present: ${fields.map(titleWords).join(", ")}`;
-    const found = positiveBindings(gate.bindings, fields);
-    if (status === GATE_PASS) {
-      return found.length > 0
-        ? `${prefix} - satisfied with ${found.join("; ")}. Tested ${tested} combination(s). Rule: coalesce.`
-        : `${prefix} - satisfied. Tested ${tested} combination(s). Rule: coalesce.`;
-    }
-    return found.length > 0
-      ? `${prefix} - found ${found.join("; ")} but fewer than required. Tested ${tested} combination(s). Rule: coalesce.`
-      : `${prefix} - none were found in the available values. Tested ${tested} combination(s). Rule: coalesce.`;
-  }
-
-  if (kind === "CoalesceOnOrBefore") {
-    const prefix = `${titleWords(text(gate.left_field))} must be on or before ${titleWords(text(gate.right_field))}`;
-    if (status === GATE_PASS) {
-      return bindingText
-        ? `${prefix} - satisfied with ${bindingText}. Tested ${tested} combination(s). Rule: coalesce.`
-        : `${prefix} - satisfied. Tested ${tested} combination(s). Rule: coalesce.`;
-    }
-    return bindingText
-      ? `${prefix} - condition not satisfied by the available values. Values: ${bindingText}. Tested ${tested} combination(s). Rule: coalesce.`
-      : `${prefix} - condition not satisfied by the available values. Tested ${tested} combination(s). Rule: coalesce.`;
-  }
-
-  if (kind === "MissingIndexes") {
-    return `Missing indexes: ${joinOr(fields.map(titleWords))}. Cue verification did not confirm the existence of required indexes.`;
-  }
-
-  if (kind === "NoGates") {
-    return "No Compliance gates defined for this document class.";
-  }
-
-  if (kind === "JoinError") {
-    return "<join_error> - evaluation failed.";
-  }
-
-  if (kind === "AmbiguousIndexes") {
-    return `The ${titleWords(text(gate.segment)).toLowerCase()} segment has ambiguous index values for ${joinAnd(aspects.map((aspect) => titleWords(aspect).toLowerCase()))}.`;
-  }
-
-  return "";
-}
-
-function gateDescription(gate: Record<string, unknown>): string {
-  return typeof gate.description === "string" ? gate.description : storedGateDescription(gate);
-}
-
 function computeGatesDecision(gates: IqReportView["gates"]["items"]): IqDecision {
   let fail = 0;
   let success = 0;
@@ -240,7 +98,7 @@ export function normalizeIqReport(raw: unknown): IqReport {
       return {
         code: text(gate.code),
         status: text(gate.status),
-        description: gateDescription(gate),
+        description: typeof gate.description === "string" ? gate.description : "Detailed values are unavailable for this saved result.",
       } satisfies IqGate;
     })
     : [];

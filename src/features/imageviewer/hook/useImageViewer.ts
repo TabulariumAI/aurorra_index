@@ -507,6 +507,7 @@ export function useImageViewer() {
     noMatch: Boolean(noMatch && request && request.session === session && pageReady && noMatch === `${requestKey(request, requestVersion)}:${imagePage}`),
     setNoMatch,
     page: viewerState && viewerState.pageIndex >= 0 ? viewerState.pageIndex + 1 : 0,
+    pageName: viewerState?.pageName,
     pageCount: viewerState?.pageCount ?? 0,
     previousPage,
     reloadId,

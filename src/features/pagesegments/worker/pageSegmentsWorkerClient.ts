@@ -38,11 +38,11 @@ async function runWorker<T>(command: unknown): Promise<T> {
       reject(resolveError(typeof payload?.error === "string" ? payload.error : "Page segments worker request failed", payload));
     };
 
-    worker.onerror = () => {
+    worker.onerror = (event) => {
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error("Page segments worker failed"));
+      reject(event);
     };
 
     worker.postMessage(command);

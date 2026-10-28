@@ -2,7 +2,6 @@ export { ImageViewerPanel } from "./component/ImageViewerPanel";
 export { loadImagePackage } from "./data/loadImagePackage";
 export { imageViewerStoreApi, useImageViewerStore } from "./store/imageViewerStore";
 export { createWorkerClient } from "./worker/imageWorkerClient";
-export { generateImagePackage } from "./data/generateImagePackage";
 export {
   parsePackageUrls,
   parsePackageMetadata,

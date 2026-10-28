@@ -33,8 +33,9 @@ export function toPageRequest(
 
 export function toViewerError(error: unknown, fallback: string): ViewerError {
   if (isObject(error)) {
-    const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
+    const candidate = error as { cause?: unknown; code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
     return {
+      ...(error instanceof ErrorEvent ? { cause: error } : candidate.cause instanceof ErrorEvent ? { cause: candidate.cause } : {}),
       code: typeof candidate.code === "string" ? candidate.code : undefined,
       details: candidate.details,
       error: typeof candidate.error === "string"

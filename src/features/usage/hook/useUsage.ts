@@ -3,7 +3,7 @@ import { auditStoreApi } from "../../audit/store/auditStore";
 import type { UsageRecord, UsageResult } from "../type/usage.types";
 
 export function useUsage(owner: string | null) {
-  const [state, setState] = useState<{ owner: string | null; records: UsageRecord[]; error: string | null; loading: boolean }>({ owner: null, records: [], error: null, loading: false });
+  const [state, setState] = useState<{ owner: string | null; records: UsageRecord[]; error: string | ErrorEvent | null; loading: boolean }>({ owner: null, records: [], error: null, loading: false });
   useEffect(() => {
     if (owner === null) return;
     let active = true;
@@ -14,8 +14,8 @@ export function useUsage(owner: string | null) {
       if (event.data.ok) setState({ owner, records: event.data.data, error: null, loading: false });
       else setState({ owner, records: [], error: event.data.error, loading: false });
     };
-    worker.onerror = () => {
-      if (active) setState({ owner, records: [], error: "Usage could not be loaded.", loading: false });
+    worker.onerror = (event) => {
+      if (active) setState({ owner, records: [], error: event, loading: false });
     };
     function sync() {
       const audit = auditStoreApi.getState();

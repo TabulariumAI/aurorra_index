@@ -37,7 +37,7 @@ export function createMetadataClient(config: MetadataConfig): MetadataClient {
     } catch (error) {
       const failure = error as Error & MetadataError;
       if (generation === queueStoreApi.getState().generation && indexStoreApi.getState().activeSession === session && indexStoreApi.getState().pageRequest === request) {
-        indexStoreApi.getState().setPageError(session, { error: failure.message, code: failure.code, details: failure.details, status: failure.status });
+        indexStoreApi.getState().setPageError(session, { ...(error instanceof ErrorEvent ? { cause: error } : {}), error: failure.message, code: failure.code, details: failure.details, status: failure.status });
       }
       throw error;
     }

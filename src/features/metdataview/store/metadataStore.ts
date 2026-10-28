@@ -11,6 +11,7 @@ import { addIndexStoreApi } from "../../addindex/store/addIndexStore";
 import { pageSegmentsStoreApi } from "../../pagesegments/store/pageSegmentsStore";
 
 export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
+  choices: null,
   activeSession: null,
   openSegment: null,
   error: null,
@@ -45,7 +46,7 @@ export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
     get().resetView();
   },
   resetView() {
-    set({ activeSession: null, openSegment: null, error: null, pageRequest: null,
+    set({ choices: null, activeSession: null, openSegment: null, error: null, pageRequest: null,
       refresh: null, refreshId: 0, retryAttempt: 0, status: "idle" });
   },
   refreshMetadata(session, segment) {

@@ -22,7 +22,7 @@ export default defineConfig({
   projects: [
     {
       name: "visual edge",
-      testMatch: ["**/audit*.visual.spec.ts", "**/imageviewer.visual.spec.ts", "**/addindex.visual.spec.ts", "**/legalmap.visual.spec.ts", "**/pages.visual.spec.ts"],
+      testMatch: ["**/audit*.visual.spec.ts", "**/imageviewer.visual.spec.ts", "**/addindex.visual.spec.ts", "**/legalmap.visual.spec.ts", "**/pages.visual.spec.ts", "**/iq.visual.spec.ts"],
       use: {
         ...devices["Desktop Edge"],
         channel: "msedge",

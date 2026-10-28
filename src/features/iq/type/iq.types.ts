@@ -66,6 +66,7 @@ export type IqReportView = {
 };
 
 export type IqWorkerError = {
+  cause?: unknown;
   code?: string;
   details?: unknown;
   error: string;

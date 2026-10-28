@@ -41,11 +41,11 @@ async function runWorkerOnce<T>(command: unknown): Promise<T> {
       reject(resolveError(typeof payload?.error === "string" ? payload.error : "IQ worker request failed", payload));
     };
 
-    worker.onerror = () => {
+    worker.onerror = (event) => {
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error("IQ worker failed"));
+      reject(event);
     };
 
     worker.postMessage(command);

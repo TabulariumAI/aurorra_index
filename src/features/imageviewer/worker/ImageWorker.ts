@@ -120,10 +120,14 @@ async function downloadPackage(tiffUrl: string, jsonUrl: string): Promise<LocalP
 }
 
 export class ImageViewerWorker {
-  buildRequest(command: Exclude<WorkerCommand, { type: "imageDownload" }>): { body: string; method: "POST"; url: string } {
+  buildRequest(command: Exclude<WorkerCommand, { type: "imageDownload" }>): RequestInit & { url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
-    return { body: JSON.stringify(command.etag === null ? {} : { etag: command.etag }), method: "POST", url: `${apiBaseUrl}/v1/image/${session}/package` };
+    return {
+      url: `${apiBaseUrl}/v1/image/${session}/${command.refresh ? "generate" : "data"}`,
+      method: command.refresh ? "POST" : "GET",
+      ...(command.refresh ? { body: "{}", headers: { "Content-Type": "application/json" } } : {}),
+    };
   }
 
   async run(command: WorkerCommand): Promise<WorkerResult<DataResponse | LocalPackage>> {
@@ -146,12 +150,8 @@ export class ImageViewerWorker {
     if (command.type !== "imagePackage") {
       return commandError("Unknown image viewer worker command.");
     }
-    const request = this.buildRequest(command);
-    return fetchApi(request.url, command.token, {
-      body: request.body,
-      headers: { "Content-Type": "application/json" },
-      method: request.method,
-    });
+    const { url, ...request } = this.buildRequest(command);
+    return fetchApi(url, command.token, request);
   }
 }
 

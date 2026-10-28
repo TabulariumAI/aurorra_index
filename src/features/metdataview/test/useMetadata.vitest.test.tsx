@@ -275,10 +275,13 @@ describe("useMetadata", () => {
     await waitFor(() => expect(auditStoreApi.getState().report).toEqual({ gaps: [] }));
   });
 
-  it("reports a rejecting host load callback as a view error", async () => {
+  it.each(["error", "runtime"] as const)("reports a rejecting host load callback as a view error: %s", async kind => {
     const client = createClient();
     const onMetadataError = vi.fn();
     const onViewError = vi.fn();
+    const failure = kind === "runtime" ? new ErrorEvent("error", {
+      message: "Required choices are missing.", error: new Error("Required choices are missing.", { cause: new Error("Worker import failed") }),
+    }) : new Error("Required choices are missing.");
     const props: MetadataProps = {
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
@@ -286,7 +289,7 @@ describe("useMetadata", () => {
       callbacks: {
         onMetadataError,
         onMetadataLoaded: () => {
-          throw new Error("Required choices are missing.");
+          throw failure;
         },
         onViewError,
       },
@@ -308,6 +311,7 @@ describe("useMetadata", () => {
     expect(indexStoreApi.getState().error).toMatchObject({ error: "Required choices are missing." });
     expect(onViewError).toHaveBeenCalledWith(expect.objectContaining({ error: "Required choices are missing." }));
     expect(onMetadataError).toHaveBeenCalledWith(expect.objectContaining({ error: "Required choices are missing." }));
+    if (kind === "runtime") expect(indexStoreApi.getState().error?.cause).toBe(failure);
   });
 
   it("cancels the previous queue and reloads replacement metadata when switching", async () => {

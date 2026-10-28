@@ -76,7 +76,6 @@ export {
   useImageViewerStore,
 } from "./features/imageviewer/store/imageViewerStore";
 export { loadImagePackage } from "./features/imageviewer/data/loadImagePackage";
-export { generateImagePackage } from "./features/imageviewer/data/generateImagePackage";
 export type { GenerationInput } from "./shared/type/generation.types";
 export type {
   HostInput,
@@ -164,3 +163,6 @@ export { queueStoreApi, useQueueStore } from "./features/queue/store/queueStore"
 export type { QueueRequest, QueueRuntime } from "./features/queue/type/queue.types";
 
 export type { QueueTransition, IndexChange } from "./features/queue/type/queue.types";
+
+export { loadChoices } from "./features/choices/data/loadChoices";
+export type { SessionChoices } from "./features/choices/type/choices.types";

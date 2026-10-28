@@ -35,11 +35,11 @@ export function runMetadataWorker<T>(command: MetadataWorkerCommand): Promise<Me
       reject(resolveError(typeof payload?.error === "string" ? payload.error : "Index worker request failed", payload));
     };
 
-    worker.onerror = () => {
+    worker.onerror = (event) => {
       if (settled) return;
       settled = true;
       worker.terminate();
-      reject(new Error("Index worker failed"));
+      reject(event);
     };
 
     worker.postMessage(command);

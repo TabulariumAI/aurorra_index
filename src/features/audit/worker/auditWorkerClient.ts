@@ -39,11 +39,11 @@ function runWorkerOnce<T>(command: unknown): Promise<T> {
       reject(resolveError(typeof payload?.error === "string" ? payload.error : "Audit request failed", payload));
     };
 
-    worker.onerror = () => {
+    worker.onerror = (event) => {
       if (settled) return;
       settled = true;
       cleanup();
-      reject(new Error("Audit worker failed"));
+      reject(event);
     };
 
     worker.postMessage(command);

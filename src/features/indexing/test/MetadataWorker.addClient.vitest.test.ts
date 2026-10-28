@@ -91,7 +91,7 @@ describe("MetadataWorker add client", () => {
     vi.stubGlobal("Worker", WorkerMock);
 
     const client = createMetadataClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 0 });
-    await expect(client.patchIndex("token", "session-1", "party", { action: "add" as const, explanation: "P 3  Selected context", new_index_label: "party", new_index_aspect: "party", new_index_value: "Selected value", new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null })).rejects.toThrow("Index worker failed");
+    await expect(client.patchIndex("token", "session-1", "party", { action: "add" as const, explanation: "P 3  Selected context", new_index_label: "party", new_index_aspect: "party", new_index_value: "Selected value", new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null })).rejects.toMatchObject({ message: "Worker crashed" });
     expect(terminate).toHaveBeenCalledTimes(1);
   });
 });

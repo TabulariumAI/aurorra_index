@@ -42,11 +42,11 @@ function runWorker<T>(command: unknown): Promise<T> {
       reject(resolveError(typeof payload?.error === "string" ? payload.error : "Image viewer request failed", payload));
     };
 
-    worker.onerror = () => {
+    worker.onerror = (event) => {
       if (settled) return;
       settled = true;
       worker.terminate();
-      reject(new Error("Image viewer worker failed"));
+      reject(event);
     };
 
     worker.postMessage(command);
@@ -56,8 +56,8 @@ function runWorker<T>(command: unknown): Promise<T> {
 export function createWorkerClient(config: WorkerConfig): WorkerClient {
   const { apiBaseUrl } = config;
   return {
-    packageImage(token, session, etag) {
-      return runWorker<DataResponse>({ apiBaseUrl, session, token, type: "imagePackage", etag });
+    packageImage(token, session, refresh) {
+      return runWorker<DataResponse>({ apiBaseUrl, session, token, type: "imagePackage", refresh });
     },
     downloadPackage(token: string, urls: PackageUrls) {
       return runWorker<LocalPackage>({ jsonUrl: urls.jsonUrl, tiffUrl: urls.tiffUrl, token, type: "imageDownload" });
