@@ -14,7 +14,9 @@ checks. Forced requests also request a rebuild during an active job; existing in
 lock waits serialize generation. The internal
 document_svc generation endpoint remains separate from the public user_svc API.
 
-`loadIqReport` coordinates panel loading, shared reads, queued forced refresh,
+`loadIqReport` resolves metadata ETags through the package resource owner and passes
+request values explicitly to the worker client. Workers and worker clients do not
+read stores. It coordinates panel loading, shared reads, queued forced refresh,
 per-caller completion/error callbacks, and late-response protection after session
 changes. Store reset advances the request generation so reopening the same session
 starts a new load and discards obsolete responses, retries, and queued refreshes.
@@ -37,5 +39,10 @@ Verification covers the worker query contract, metadata resource selection,
 forced refresh, shared success/error callbacks, reset/reopen races, event forwarding,
 service reuse/generation/waiting branches, report hashing, and Edge rendering at
 390px and 1440px.
+
+The IQ data response carries the report and its generated `metadataEtag` together.
+The report store retains that source until a replacement report loads and clears
+it on a session change. The package compares it with the current session metadata;
+the host receives only the resulting refresh presentation state.
 
 Open and Restore use the current session metadata ETag when present and issue an unversioned request when it is absent. Missing ETags do not block loading. IQ renders content-shaped placeholders for the score card, segment table, and compliance gates using its existing layout styles and Core loading semantics and skeleton styling, without host loading/readiness callbacks. Unknown scores, counts, and statuses remain neutral shapes hidden from assistive technology; section labels and table headers remain readable. Header Refresh and background generation still omit the eTag. A matching running gateway build is awaited and reused, including its failure result.

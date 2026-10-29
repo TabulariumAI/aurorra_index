@@ -16,7 +16,7 @@ const report: IqReport = {
 function createClient(): IqWorkerClient {
   return {
     ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
-    loadReport: vi.fn(async () => report),
+    loadReport: vi.fn(async () => ({ report, metadataEtag: "" })),
   };
 }
 
@@ -33,7 +33,7 @@ describe("useIqReport", () => {
 
     renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
-    await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1", false));
+    await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1", null));
     expect(iqStoreApi.getState().report).toEqual(report);
     expect(callbacks.onIqLoaded).toHaveBeenCalledWith(report);
   });
@@ -49,7 +49,7 @@ describe("useIqReport", () => {
     });
 
     expect(callbacks.onIqRefresh).toHaveBeenCalledWith(report);
-    expect(client.loadReport).toHaveBeenLastCalledWith("token", "session-1", true);
+    expect(client.loadReport).toHaveBeenLastCalledWith("token", "session-1", null);
   });
 
   it("acks a gate, removes it from store, and calls onIqAck", async () => {
@@ -80,7 +80,7 @@ describe("useIqReport", () => {
   it("discards retries from the default client after unmount and reopening the same session", async () => {
     const client = createClient();
     let resolve!: (value: IqReport) => void;
-    vi.mocked(client.loadReport).mockReturnValueOnce(new Promise<IqReport>(yes => { resolve = yes; }));
+    vi.mocked(client.loadReport).mockReturnValueOnce(new Promise<{ report: IqReport; metadataEtag: string }>(yes => { resolve = report => yes({ report, metadataEtag: "" }); }));
     const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(client);
     const callbacks = { onIqLoaded: vi.fn() };
     const { unmount } = renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks,
@@ -90,7 +90,7 @@ describe("useIqReport", () => {
     expect(iqStoreApi.getState().retryAttempt).toBe(2);
     unmount();
     iqStoreApi.getState().resetIq();
-    iqStoreApi.getState().setLoaded("session-1", { ...report, iq_doc: 55 });
+    iqStoreApi.getState().setLoaded("session-1", { ...report, iq_doc: 55 }, "");
     retry(3);
     await act(async () => resolve(report));
     expect(iqStoreApi.getState()).toMatchObject({ report: { iq_doc: 55 }, retryAttempt: 0, status: "success" });

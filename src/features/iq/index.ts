@@ -1,6 +1,7 @@
 export { IqPanel } from "./component/IqPanel";
 export { loadIqReport } from "./data/loadIqReport";
 export { useIqReport } from "./hook/useIqReport";
+export { useIqRefresh } from "./hook/useIqRefresh";
 export { createIqWorkerClient, generateIqReport } from "./worker/iqWorkerClient";
 export { iqStoreApi, useIqStore } from "./store/iqStore";
 export {
@@ -25,6 +26,7 @@ export type {
   IqGateView,
   IqPanelProps,
   IqReport,
+  IqResource,
   IqReportView,
   IqSegment,
   IqSegmentView,

@@ -94,8 +94,10 @@ export type IqAckResult = {
 
 export type IqWorkerClient = {
   ackGate(token: string, session: string, code: string): Promise<IqAckResult>;
-  loadReport(token: string, session: string, refresh: boolean): Promise<IqReport>;
+  loadReport(token: string, session: string, etag: string | null): Promise<IqResource>;
 };
+
+export type IqResource = { report: IqReport; metadataEtag: string };
 
 export type LoadIqInput = {
   apiGatewayUrl: string;
@@ -128,6 +130,7 @@ export type IqPanelProps = {
 };
 
 export type IqStoreState = {
+  metadataEtag: string | null;
   generation: number;
   activeSession: string | null;
   ackingCodes: ReadonlySet<string>;
@@ -139,8 +142,7 @@ export type IqStoreState = {
   ackSuccess(code: string): void;
   resetIq(): void;
   setError(error: IqWorkerError): void;
-  setLoaded(session: string, report: IqReport): void;
-  setLoading(session: string): void;
+  setLoaded(session: string, report: IqReport, metadataEtag: string): void;
+  setLoading(session: string, refresh: boolean): void;
   setRetryAttempt(attempt: number): void;
-  setRefreshing(session: string): void;
 };

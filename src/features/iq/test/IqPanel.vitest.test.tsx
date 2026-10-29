@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { iqStoreApi } from "../store/iqStore";
 import { IqPanel } from "../component/IqPanel";
-import type { IqReport, IqWorkerClient } from "../type/iq.types";
+import type { IqReport, IqResource, IqWorkerClient } from "../type/iq.types";
 
 const report: IqReport = {
   iq_doc: 90,
@@ -20,7 +20,7 @@ const report: IqReport = {
   explanation: ["Report note"],
 };
 
-function client(loadReport = vi.fn(async () => report)): IqWorkerClient {
+function client(loadReport = vi.fn(async () => ({ report, metadataEtag: "" }))): IqWorkerClient {
   return {
     ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
     loadReport,
@@ -34,15 +34,15 @@ describe("IqPanel", () => {
   });
 
   it("shows placeholders immediately instead of another session's report", () => {
-    iqStoreApi.getState().setLoaded("old-session", report);
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="new-session" workerClient={client(vi.fn(() => new Promise<IqReport>(() => undefined)))} />);
+    iqStoreApi.getState().setLoaded("old-session", report, "");
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="new-session" workerClient={client(vi.fn(() => new Promise<IqResource>(() => undefined)))} />);
     expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
     expect(screen.queryByText("90%")).not.toBeInTheDocument();
   });
 
   it("renders named placeholders immediately while the report is pending", async () => {
     let finish!: (value: IqReport) => void;
-    const pending = new Promise<IqReport>(resolve => { finish = resolve; });
+    const pending = new Promise<IqResource>(resolve => { finish = report => resolve({ report, metadataEtag: "" }); });
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(() => pending))} />);
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     for (const label of ["Loading IQ summary", "Loading indexing segments", "Loading IQ gates"]) {
@@ -83,7 +83,7 @@ describe("IqPanel", () => {
 
   it("renders notes only when present", async () => {
     const noNotes = { ...report, explanation: [] };
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => noNotes))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => ({ report: noNotes, metadataEtag: "" })))} />);
 
     await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
     expect(screen.queryByText("Notes")).not.toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("IqPanel", () => {
         { segment_name: "reference", expected_weight: 2, actual_weight: 2, iq: 100, explanations: [] },
       ],
     };
-    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => mixed))} />);
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => ({ report: mixed, metadataEtag: "" })))} />);
 
     await waitFor(() => expect(screen.getByText("Indexing Segments (5)")).toBeInTheDocument());
     const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);

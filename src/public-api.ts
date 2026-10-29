@@ -49,6 +49,7 @@ export {
 } from "./features/audit";
 export {
   IqPanel,
+  useIqRefresh,
   loadIqReport,
   generateIqReport,
   useIqReport,
@@ -126,6 +127,7 @@ export type {
   IqGateView,
   IqPanelProps,
   IqReport,
+  IqResource,
   IqReportView,
   IqSegment,
   IqSegmentView,

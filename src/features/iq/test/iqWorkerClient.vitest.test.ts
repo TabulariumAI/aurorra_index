@@ -1,28 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createIqWorkerClient } from "../worker/iqWorkerClient";
-import { queueStoreApi } from "../../queue/store/queueStore";
-import { indexStoreApi } from "../../metdataview/store/metadataStore";
 
-afterEach(() => { queueStoreApi.getState().reset(); indexStoreApi.getState().resetView(); vi.unstubAllGlobals(); });
+afterEach(() => vi.unstubAllGlobals());
 describe("iqWorkerClient", () => {
-  it("forwards current session metadata etags and omits them for forced refresh", async () => {
+  it("forwards explicitly supplied metadata ETags and permits an unversioned request", async () => {
     const commands: unknown[] = [];
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
-      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: {} } } as MessageEvent); }
+      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: { report: {}, metadataEtag: "" } } } as MessageEvent); }
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-    queueStoreApi.setState({ session: "first", etag: "first-etag" });
     const worker = createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 });
-    await worker.loadReport("token", "first", false);
-    queueStoreApi.getState().reset();
-    queueStoreApi.getState().setEtag("second", "second-etag");
-    await worker.loadReport("token", "second", false);
-    queueStoreApi.getState().reset();
-    queueStoreApi.getState().setEtag("first", "latest");
-    await worker.loadReport("token", "first", false);
-    await worker.loadReport("token", "first", true);
+    await worker.loadReport("token", "first", "first-etag");
+    await worker.loadReport("token", "second", "second-etag");
+    await worker.loadReport("token", "first", "latest");
+    await worker.loadReport("token", "first", null);
     expect(commands).toEqual(["first-etag", "second-etag", "latest", null].map((etag, i) => ({
       apiBaseUrl: "https://gateway", session: ["first", "second", "first", "first"][i], token: "token", type: "iqData", etag,
     })));
@@ -34,14 +27,13 @@ describe("iqWorkerClient", () => {
       onmessage: ((event: MessageEvent) => void) | null = null;
       postMessage(command: { type: string }) {
         commands.push(command);
-        this.onmessage?.({ data: commands.length === 2 ? { ok: true, data: {} } : { ok: false, error: "Failed to fetch" } } as MessageEvent);
+        this.onmessage?.({ data: commands.length === 2 ? { ok: true, data: { report: {}, metadataEtag: "" } } : { ok: false, error: "Failed to fetch" } } as MessageEvent);
       }
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
     const worker = createIqWorkerClient({ apiBaseUrl: "https://gateway", onRetry, retryIntervalMs: 0, retryLimit: 5 });
-    queueStoreApi.getState().setEtag("first", "metadata-etag");
-    await expect(worker.loadReport("token", "first", false)).resolves.toEqual({});
+    await expect(worker.loadReport("token", "first", "metadata-etag")).resolves.toEqual({ report: {}, metadataEtag: "" });
     await expect(worker.ackGate("token", "first", "gate-1")).rejects.toThrow("Failed to fetch");
     expect(commands.map(command => command.type)).toEqual(["iqData", "iqData", "iqAck"]);
     expect(onRetry).toHaveBeenCalledExactlyOnceWith(2);
@@ -51,11 +43,11 @@ describe("iqWorkerClient", () => {
     const commands: unknown[] = [];
     class WorkerMock {
       onmessage: ((event: MessageEvent) => void) | null = null;
-      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: {} } } as MessageEvent); }
+      postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: { report: {}, metadataEtag: "" } } } as MessageEvent); }
       terminate() {}
     }
     vi.stubGlobal("Worker", WorkerMock);
-    await createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 }).loadReport("token", "waiting", false);
+    await createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5 }).loadReport("token", "waiting", null);
     expect(commands).toEqual([{ apiBaseUrl: "https://gateway", session: "waiting", token: "token", type: "iqData", etag: null }]);
   });
 });

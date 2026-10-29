@@ -1,4 +1,4 @@
-import type { IqAckResult, IqReport, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
+import type { IqAckResult, IqReport, IqResource, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
 import { fetchJson } from "../../../shared/worker/fetchJson";
 
 type ParsedResponse = {
@@ -18,14 +18,15 @@ function validateReport(value: unknown): IqWorkerResult<IqReport> {
   return { ok: true, data: value as IqReport };
 }
 
-async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqReport>> {
+async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqResource>> {
   if (isObject(payload) && payload.status === "error") {
     return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
   }
-  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
+  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string" && typeof payload.metadata_etag === "string") {
     const result = await fetchJson(payload.data);
     if (!result.ok) return result;
-    return validateReport(result.data);
+    const report = validateReport(result.data);
+    return report.ok ? { ok: true, data: { report: report.data, metadataEtag: payload.metadata_etag } } : report;
   }
   return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
 }
@@ -87,7 +88,7 @@ export class IqWorker {
     return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
   }
 
-  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqReport | IqAckResult>> {
+  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqResource | IqAckResult>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }

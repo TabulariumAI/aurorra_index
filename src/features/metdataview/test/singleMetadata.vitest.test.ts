@@ -29,7 +29,7 @@ it("clears all metadata owners and durable queue data on exit", () => {
   queueStoreApi.getState().setPagePath("first", "https://blob/pages.json");
   queueStoreApi.getState().setPageEtag("first", "pages-version");
   auditStoreApi.getState().setLoaded("first", { gaps: [] });
-  iqStoreApi.getState().setLoaded("first", { iq_doc: 100, decision: "Pass", gates: [], segments: [], explanation: [] });
+  iqStoreApi.getState().setLoaded("first", { iq_doc: 100, decision: "Pass", gates: [], segments: [], explanation: [] }, "version");
   imageViewerStoreApi.setState({ session: "first", tiffBytes: new ArrayBuffer(1) });
   editIndexStoreApi.getState().open({ session: "first", segment: "party", index: { value: "First" } });
   pageSegmentsStoreApi.getState().reset(["party"]);

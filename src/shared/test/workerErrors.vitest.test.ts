@@ -24,8 +24,7 @@ it.each([
   ["Image", () => createWorkerClient({ apiBaseUrl: "https://gateway" }).packageImage("token", "session", false)],
   ["IQ generation", () => generateIqReport({ apiGatewayUrl: "https://gateway", authToken: "token", session: "session" })],
   ["IQ read", () => {
-    queueStoreApi.getState().setEtag("session", "etag");
-    return createIqWorkerClient({ apiBaseUrl: "https://gateway", retryLimit: 3, retryIntervalMs: 0 }).loadReport("token", "session", false);
+    return createIqWorkerClient({ apiBaseUrl: "https://gateway", retryLimit: 3, retryIntervalMs: 0 }).loadReport("token", "session", "etag");
   }],
   ["Index", () => runMetadataWorker({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData" })],
   ["Page segments", () => createPageSegmentsWorkerClient({ apiBaseUrl: "https://gateway" }).pagesData("token", "session")],

@@ -35,7 +35,7 @@ const workerClient: IqWorkerClient = {
     return { status: "ok", data: {}, isComplete: true };
   },
   async loadReport() {
-    return report;
+    return { report, metadataEtag: "" };
   },
 
 };

@@ -14,6 +14,13 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}) {
 }
 
 describe("IqWorker", () => {
+  it.each(["source-one", ""])("retains the generated source from the envelope, source=%s", async source => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: source }))
+      .mockResolvedValueOnce(jsonResponse({ iq_doc: 98 })));
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: "client-version" }))
+      .toEqual({ ok: true, data: { report: { iq_doc: 98 }, metadataEtag: source } });
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -25,9 +32,9 @@ describe("IqWorker", () => {
     });
     for (const etag of [null, ""]) expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag })).toEqual({ body: null, method: "GET", url: "https://gateway/v1/iq/s/data" });
     expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", code: "gate 1", token: "t", type: "iqAck" }).url).toBe("https://gateway/v1/iq/s/gates/gate%201/ack");
-    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" })).mockResolvedValueOnce(jsonResponse({ iq_doc: 98 }));
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: "" })).mockResolvedValueOnce(jsonResponse({ iq_doc: 98 }));
     vi.stubGlobal("fetch", fetchMock);
-    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: null })).toEqual({ ok: true, data: { iq_doc: 98 } });
+    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: null })).toEqual({ ok: true, data: { report: { iq_doc: 98 }, metadataEtag: "" } });
     expect(fetchMock).toHaveBeenNthCalledWith(1, "https://gateway/v1/iq/s/data", { body: null, method: "GET", cache: "no-store", headers: { Authorization: "Bearer t" } });
     expect(fetchMock).toHaveBeenNthCalledWith(2, "https://blob/report.json");
   });
@@ -76,7 +83,7 @@ describe("IqWorker", () => {
   it("returns the IQ Blob download failure", async () => {
     const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
     vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed", metadata_etag: "" }))
       .mockResolvedValueOnce(jsonResponse({ error: "SAS denied" }, { status: 403 })));
 
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null })).toEqual({
@@ -90,7 +97,7 @@ describe("IqWorker", () => {
   it("returns the IQ Blob network failure", async () => {
     const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
     vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed", metadata_etag: "" }))
       .mockRejectedValueOnce(new Error("Blob unavailable")));
 
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null })).toEqual({
@@ -102,7 +109,7 @@ describe("IqWorker", () => {
   it("returns invalid JSON from the IQ Blob", async () => {
     const sasUrl = "https://storage.test/subscription/session/iq.json?sig=token";
     vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed" }))
+      .mockResolvedValueOnce(jsonResponse({ data: sasUrl, status: "completed", metadata_etag: "" }))
       .mockResolvedValueOnce(new Response("{", { status: 200, headers: { "content-type": "application/json" } })));
 
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null })).toEqual({

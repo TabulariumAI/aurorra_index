@@ -19,16 +19,16 @@ describe("iqStore", () => {
   });
 
   it("sets loading and refreshing while preserving report", () => {
-    iqStoreApi.getState().setLoaded("session-1", report);
-    iqStoreApi.getState().setLoading("session-2");
+    iqStoreApi.getState().setLoaded("session-1", report, "");
+    iqStoreApi.getState().setLoading("session-2", false);
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-2", error: null, report, status: "loading" });
 
-    iqStoreApi.getState().setRefreshing("session-3");
+    iqStoreApi.getState().setLoading("session-3", true);
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-3", error: null, report, status: "refreshing" });
   });
 
   it("sets loaded and error states", () => {
-    iqStoreApi.getState().setLoaded("session-1", report);
+    iqStoreApi.getState().setLoaded("session-1", report, "");
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", error: null, report, status: "success" });
 
     iqStoreApi.getState().setError({ code: "x", error: "failed", status: 500 });
@@ -36,7 +36,7 @@ describe("iqStore", () => {
   });
 
   it("tracks acking gates and removes acknowledged gates", () => {
-    iqStoreApi.getState().setLoaded("session-1", report);
+    iqStoreApi.getState().setLoaded("session-1", report, "");
     iqStoreApi.getState().ackStart("gate-1");
     expect(iqStoreApi.getState().ackingCodes.has("gate-1")).toBe(true);
 
@@ -46,7 +46,7 @@ describe("iqStore", () => {
   });
 
   it("resets to initial state", () => {
-    iqStoreApi.getState().setLoaded("session-1", report);
+    iqStoreApi.getState().setLoaded("session-1", report, "");
     iqStoreApi.getState().ackStart("gate-1");
     const generation = iqStoreApi.getState().generation;
     iqStoreApi.getState().resetIq();
