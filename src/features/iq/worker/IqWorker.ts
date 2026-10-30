@@ -22,11 +22,14 @@ async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqRes
   if (isObject(payload) && payload.status === "error") {
     return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
   }
-  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string" && typeof payload.metadata_etag === "string") {
+  if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
     const result = await fetchJson(payload.data);
     if (!result.ok) return result;
     const report = validateReport(result.data);
-    return report.ok ? { ok: true, data: { report: report.data, metadataEtag: payload.metadata_etag } } : report;
+    return report.ok ? { ok: true, data: {
+      report: report.data,
+      ...(typeof payload.metadata_etag === "string" ? { metadataEtag: payload.metadata_etag } : {}),
+    } } : report;
   }
   return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
 }
@@ -85,7 +88,7 @@ export class IqWorker {
     if (command.type === "iqAck") {
       return { body: null, method: "POST", url: `${apiBaseUrl}/v1/iq/${session}/gates/${encodeURIComponent(command.code)}/ack` };
     }
-    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
+    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag !== null ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
   }
 
   async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqResource | IqAckResult>> {

@@ -14,6 +14,34 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}) {
 }
 
 describe("IqWorker", () => {
+  it.each(["client-version", null])("loads a report without a response ETag, request ETag=%s", async etag => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" }))
+      .mockResolvedValueOnce(jsonResponse({ iq_doc: 98 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await new IqWorker().run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag }))
+      .toEqual({ ok: true, data: { report: { iq_doc: 98 } } });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://blob/report.json");
+  });
+
+  it.each([[null], [[]], ["report"]])("rejects an invalid downloaded report without a response ETag: %j", async report => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" }))
+      .mockResolvedValueOnce(jsonResponse(report)));
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null }))
+      .toEqual({ ok: false, code: "validation_error", error: "Response is not a valid IQ report." });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([{ status: "completed" }, { status: "completed", data: {} }, { data: "https://blob/report.json" }])(
+    "rejects an invalid response envelope: %j", async payload => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(payload)));
+      expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null }))
+        .toEqual({ ok: false, code: "validation_error", error: "Response is not a valid IQ report." });
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it.each(["source-one", ""])("retains the generated source from the envelope, source=%s", async source => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: source }))
@@ -30,7 +58,8 @@ describe("IqWorker", () => {
     expect(worker.buildRequest({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "iqData", etag: 'tag /+&' })).toEqual({
       body: null, method: "GET", url: "https://gateway/v1/iq/session%201/data?etag=tag%20%2F%2B%26",
     });
-    for (const etag of [null, ""]) expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag })).toEqual({ body: null, method: "GET", url: "https://gateway/v1/iq/s/data" });
+    expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: "" })).toEqual({ body: null, method: "GET", url: "https://gateway/v1/iq/s/data?etag=" });
+    expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: null })).toEqual({ body: null, method: "GET", url: "https://gateway/v1/iq/s/data" });
     expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", code: "gate 1", token: "t", type: "iqAck" }).url).toBe("https://gateway/v1/iq/s/gates/gate%201/ack");
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: "" })).mockResolvedValueOnce(jsonResponse({ iq_doc: 98 }));
     vi.stubGlobal("fetch", fetchMock);

@@ -5,5 +5,5 @@ export function useIqRefresh(): boolean {
   const source = useIqStore(state => state.metadataEtag);
   const session = useIqStore(state => state.activeSession);
   const current = useQueueStore(state => state.session === session ? state.etag : undefined);
-  return source !== null && current !== undefined && source !== current;
+  return typeof source === "string" && current !== undefined && source !== current;
 }

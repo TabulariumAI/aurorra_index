@@ -1,5 +1,5 @@
 export { IqPanel } from "./component/IqPanel";
-export { loadIqReport } from "./data/loadIqReport";
+export { loadIqReport, refreshIqReport } from "./data/loadIqReport";
 export { useIqReport } from "./hook/useIqReport";
 export { useIqRefresh } from "./hook/useIqRefresh";
 export { createIqWorkerClient, generateIqReport } from "./worker/iqWorkerClient";

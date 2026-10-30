@@ -6,7 +6,7 @@ import { requestResource } from "../../metdataview/data/metadataResource";
 
 let activeLoad: { session: string; generation: number; load: Promise<IqReport | IqWorkerError | undefined> } | null = null;
 
-async function runIqReport(input: LoadIqInput, generation: number): Promise<IqReport | IqWorkerError | undefined> {
+async function runIqReport(input: LoadIqInput, generation: number, refresh: boolean): Promise<IqReport | IqWorkerError | undefined> {
   const client = input.workerClient || createIqWorkerClient({
     apiBaseUrl: input.apiGatewayUrl, retryIntervalMs: input.retryIntervalMs, retryLimit: input.retryLimit,
     onRetry: attempt => {
@@ -15,9 +15,9 @@ async function runIqReport(input: LoadIqInput, generation: number): Promise<IqRe
       }
     },
   });
-  iqStoreApi.getState().setLoading(input.session, input.restart === true);
+  iqStoreApi.getState().setLoading(input.session, refresh);
   try {
-    const etag = input.restart ? null : await requestResource({ resource: "metadata_etag" }, input.session);
+    const etag = refresh ? null : await requestResource({ resource: "metadata_etag" }, input.session) ?? "";
     if (iqStoreApi.getState().generation !== generation || iqStoreApi.getState().activeSession !== input.session) return;
     const { report, metadataEtag } = await client.loadReport(input.authToken, input.session, etag);
     if (iqStoreApi.getState().generation !== generation || iqStoreApi.getState().activeSession !== input.session) return;
@@ -31,15 +31,15 @@ async function runIqReport(input: LoadIqInput, generation: number): Promise<IqRe
   }
 }
 
-export async function loadIqReport(input: LoadIqInput): Promise<void> {
+async function requestIqReport(input: LoadIqInput, refresh: boolean): Promise<void> {
   const generation = iqStoreApi.getState().generation;
   let active = activeLoad?.session === input.session ? activeLoad : null;
   if (active && (active.generation !== generation || iqStoreApi.getState().activeSession !== input.session)) active = null;
-  const load = active && !input.restart ? active.load : active ? active.load.then(() => {
+  const load = active && !refresh ? active.load : active ? active.load.then(() => {
     if (iqStoreApi.getState().generation === generation && iqStoreApi.getState().activeSession === input.session) {
-      return runIqReport(input, generation);
+      return runIqReport(input, generation, refresh);
     }
-  }) : runIqReport(input, generation);
+  }) : runIqReport(input, generation, refresh);
 
   activeLoad = { session: input.session, generation, load };
   try {
@@ -50,4 +50,12 @@ export async function loadIqReport(input: LoadIqInput): Promise<void> {
   } finally {
     if (activeLoad?.load === load) activeLoad = null;
   }
+}
+
+export function loadIqReport(input: LoadIqInput): Promise<void> {
+  return requestIqReport(input, false);
+}
+
+export function refreshIqReport(input: LoadIqInput): Promise<void> {
+  return requestIqReport(input, true);
 }

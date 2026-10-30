@@ -20,7 +20,7 @@ const report: IqReport = {
   explanation: ["Report note"],
 };
 
-function client(loadReport = vi.fn(async () => ({ report, metadataEtag: "" }))): IqWorkerClient {
+function client(loadReport: IqWorkerClient["loadReport"] = vi.fn(async () => ({ report, metadataEtag: "" }))): IqWorkerClient {
   return {
     ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
     loadReport,

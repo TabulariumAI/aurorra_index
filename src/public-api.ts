@@ -51,6 +51,7 @@ export {
   IqPanel,
   useIqRefresh,
   loadIqReport,
+  refreshIqReport,
   generateIqReport,
   useIqReport,
   createIqWorkerClient,

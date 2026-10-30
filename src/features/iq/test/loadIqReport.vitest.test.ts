@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadIqReport } from "../data/loadIqReport";
+import { loadIqReport, refreshIqReport } from "../../../public-api";
 import { iqStoreApi } from "../store/iqStore";
 import * as iqWorker from "../worker/iqWorkerClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
@@ -23,6 +23,25 @@ function deferred() {
 describe("loadIqReport", () => {
   beforeEach(() => { iqStoreApi.getState().resetIq(); queueStoreApi.getState().reset(); });
   afterEach(() => vi.restoreAllMocks());
+  it("opens with an explicit empty ETag after reset and uses a separate Refresh facade", async () => {
+    const worker = client();
+    const request = input(worker);
+    await loadIqReport(request);
+    expect(worker.loadReport).toHaveBeenLastCalledWith("token", "session-1", "");
+    await refreshIqReport(request);
+    expect(worker.loadReport).toHaveBeenLastCalledWith("token", "session-1", null);
+  });
+  it("stores an unversioned report without retaining the previous source ETag", async () => {
+    iqStoreApi.getState().setLoaded("session-1", report, "previous-version");
+    const worker = client();
+    vi.mocked(worker.loadReport).mockResolvedValueOnce({ report });
+    const request = input(worker);
+    await loadIqReport(request);
+    expect(iqStoreApi.getState()).toMatchObject({ report, metadataEtag: undefined, status: "success", error: null });
+    expect(request.onError).not.toHaveBeenCalled();
+    expect(request.onComplete).toHaveBeenCalledExactlyOnceWith(report);
+  });
+
   it("does not dispatch an obsolete read after its metadata lookup settles", async () => {
     let finish!: (etag: string) => void;
     vi.spyOn(metadataResource, "requestResource").mockReturnValueOnce(new Promise<string>(resolve => { finish = resolve; }));
@@ -41,14 +60,14 @@ describe("loadIqReport", () => {
     queueStoreApi.getState().setEtag(request.session, "current-version");
     await loadIqReport(request);
     expect(worker.loadReport).toHaveBeenLastCalledWith("token", "session-1", "current-version");
-    await loadIqReport({ ...request, restart: true });
+    await refreshIqReport(request);
     expect(worker.loadReport).toHaveBeenLastCalledWith("token", "session-1", null);
   });
   it("loads through one GET and calls completion after storing the report", async () => {
     const worker = client();
     const request = input(worker);
     await loadIqReport(request);
-    expect(worker.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1", null);
+    expect(worker.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1", "");
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", report, status: "success" });
     expect(request.onComplete).toHaveBeenCalledWith(report);
   });
@@ -79,7 +98,7 @@ describe("loadIqReport", () => {
     vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
     const request = input(worker);
     const first = loadIqReport(request);
-    const refresh = loadIqReport({ ...request, restart: true });
+    const refresh = refreshIqReport(request);
     await vi.waitFor(() => expect(worker.loadReport).toHaveBeenCalledTimes(1));
     pending.resolve(report);
     await Promise.all([first, refresh]);
@@ -93,7 +112,7 @@ describe("loadIqReport", () => {
     vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
     const request = input(worker);
     const load = loadIqReport(request);
-    const queued = loadIqReport({ ...request, restart: true });
+    const queued = refreshIqReport(request);
     await vi.waitFor(() => expect(worker.loadReport).toHaveBeenCalledTimes(1));
     iqStoreApi.getState().resetIq();
     if (session) iqStoreApi.getState().setLoaded(session, { ...report, iq_doc: 55 }, "");
@@ -149,7 +168,7 @@ describe("loadIqReport", () => {
     vi.mocked(oldWorker.loadReport).mockReturnValueOnce(pending.promise);
     const oldRequest = input(oldWorker);
     const oldLoad = loadIqReport(oldRequest);
-    const oldRefresh = loadIqReport({ ...oldRequest, restart: true });
+    const oldRefresh = refreshIqReport(oldRequest);
     await vi.waitFor(() => expect(oldWorker.loadReport).toHaveBeenCalledTimes(1));
     iqStoreApi.getState().resetIq();
     const worker = client();
@@ -162,7 +181,7 @@ describe("loadIqReport", () => {
     if (outcome === "success") pending.resolve(report);
     else pending.reject(new Error("obsolete failure"));
     await Promise.all([oldLoad, oldRefresh, reopened]);
-    expect(worker.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1", null);
+    expect(worker.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1", "");
     expect(oldWorker.loadReport).toHaveBeenCalledTimes(1);
     expect(oldRequest.onComplete).not.toHaveBeenCalled();
     expect(oldRequest.onError).not.toHaveBeenCalled();
@@ -200,7 +219,7 @@ describe("loadIqReport", () => {
     vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
     const request = input(worker);
     const read = loadIqReport(request);
-    const refresh = loadIqReport({ ...request, restart: true });
+    const refresh = refreshIqReport(request);
     pending.reject(new Error("read failed"));
     await Promise.all([read, refresh]);
     expect(worker.loadReport).toHaveBeenCalledTimes(2);

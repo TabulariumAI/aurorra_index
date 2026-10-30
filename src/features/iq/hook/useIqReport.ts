@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { prepareIqReport, toIqError } from "../data/iqData";
 import { iqStoreApi, useIqStore } from "../store/iqStore";
 import type { IqPanelProps } from "../type/iq.types";
-import { loadIqReport } from "../data/loadIqReport";
+import { loadIqReport, refreshIqReport } from "../data/loadIqReport";
 import { createIqWorkerClient } from "../worker/iqWorkerClient";
 
 export function useIqReport({
@@ -26,13 +26,12 @@ export function useIqReport({
   useEffect(() => () => callbacksRef.current.onIqCanceled?.(), []);
 
   const loadReport = useCallback(
-    async (refresh: boolean) => {
+    async () => {
       await loadIqReport({
         apiGatewayUrl, authToken: authToken ?? "", session, retryLimit, retryIntervalMs,
-        restart: refresh, workerClient,
+        workerClient,
         onComplete(nextReport) {
           callbacksRef.current.onIqLoaded?.(nextReport);
-          if (refresh) callbacksRef.current.onIqRefresh?.(nextReport);
         },
         onError(error) { callbacksRef.current.onIqError?.(error); },
       });
@@ -40,8 +39,19 @@ export function useIqReport({
     [apiGatewayUrl, authToken, workerClient, retryIntervalMs, retryLimit, session],
   );
 
+  const refreshReport = useCallback(async () => {
+    await refreshIqReport({
+      apiGatewayUrl, authToken: authToken ?? "", session, retryLimit, retryIntervalMs, workerClient,
+      onComplete(nextReport) {
+        callbacksRef.current.onIqLoaded?.(nextReport);
+        callbacksRef.current.onIqRefresh?.(nextReport);
+      },
+      onError(error) { callbacksRef.current.onIqError?.(error); },
+    });
+  }, [apiGatewayUrl, authToken, workerClient, retryIntervalMs, retryLimit, session]);
+
   useEffect(() => {
-    void loadReport(false);
+    void loadReport();
   }, [loadReport]);
 
   const ackGate = useCallback(async (code: string) => {
@@ -61,6 +71,7 @@ export function useIqReport({
     ackingCodes: store.ackingCodes,
     error: store.error,
     loadReport,
+    refreshReport,
     report,
     retryAttempt: store.retryAttempt,
     ackGate,

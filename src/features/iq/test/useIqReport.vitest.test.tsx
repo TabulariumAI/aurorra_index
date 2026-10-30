@@ -33,7 +33,7 @@ describe("useIqReport", () => {
 
     renderHook(() => useIqReport({ apiGatewayUrl: "https://api", authToken: "token", callbacks, retryLimit: 5, retryIntervalMs: 0, session: "session-1", workerClient: client }));
 
-    await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1", null));
+    await waitFor(() => expect(client.loadReport).toHaveBeenCalledWith("token", "session-1", ""));
     expect(iqStoreApi.getState().report).toEqual(report);
     expect(callbacks.onIqLoaded).toHaveBeenCalledWith(report);
   });
@@ -45,7 +45,7 @@ describe("useIqReport", () => {
 
     await waitFor(() => expect(client.loadReport).toHaveBeenCalledTimes(1));
     await act(async () => {
-      await result.current.loadReport(true);
+      await result.current.refreshReport();
     });
 
     expect(callbacks.onIqRefresh).toHaveBeenCalledWith(report);

@@ -7,6 +7,20 @@ import { queueStoreApi } from "../../queue/store/queueStore";
 const report = { decision: "Pass", explanation: [], gates: [], iq_doc: 97, segments: [] };
 afterEach(() => { cleanup(); iqStoreApi.getState().resetIq(); queueStoreApi.getState().reset(); });
 
+it("does not compare an unavailable source ETag and resumes comparison when supplied", () => {
+  queueStoreApi.getState().setEtag("s", "one");
+  iqStoreApi.getState().setLoaded("s", report);
+  const { result } = renderHook(useIqRefresh);
+  expect(result.current).toBe(false);
+  expect(iqStoreApi.getState().report).toEqual(report);
+  act(() => queueStoreApi.getState().setEtag("s", "two"));
+  expect(result.current).toBe(false);
+  act(() => iqStoreApi.getState().setLoaded("s", report, "one"));
+  expect(result.current).toBe(true);
+  act(() => iqStoreApi.getState().setLoaded("s", report, "two"));
+  expect(result.current).toBe(false);
+});
+
 it("clears the previous report source when loading another session", () => {
   queueStoreApi.getState().setEtag("first", "one");
   iqStoreApi.getState().setLoaded("first", report, "one");
