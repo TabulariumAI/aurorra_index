@@ -3,8 +3,7 @@ import { type JSX, type ReactNode } from "react";
 import {
   Icon,
   SuccessIcon,
-  metadataPropertyCss,
-  metadataRecoveryCss,
+  metadataRowCss,
   metadataSpinnerCss,
   metadataStyles,
   rowStyles,
@@ -276,7 +275,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   return (
     <Tooltip.Provider delayDuration={250}>
       <section aria-label="Metadata" style={metadataStyles.root}>
-        <style>{metadataSpinnerCss}{metadataRecoveryCss}{metadataPropertyCss}</style>
+        <style>{metadataSpinnerCss}{metadataRowCss}</style>
         {showContext ? (
           <header data-metadata-context="true" style={metadataStyles.header}>
             <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
