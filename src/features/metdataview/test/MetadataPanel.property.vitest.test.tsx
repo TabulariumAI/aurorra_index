@@ -32,7 +32,7 @@ const props: MetadataPanelProps = {
 it("merges property rows and legal groups with one count and no duplicate descriptions", () => {
   const view = render(<MetadataPanel {...props} />);
   const trigger = screen.getByRole("button", { name: "Property Info" });
-  expect(trigger.parentElement?.querySelector(":scope > span")).toHaveTextContent("3");
+  expect(trigger.parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("3");
   expect(screen.queryByRole("button", { name: "Legal Descriptions" })).toBeNull();
   const content = trigger.parentElement!.parentElement!;
   expect(within(content).getByText("Parcel 42")).toBeVisible();
@@ -51,7 +51,7 @@ it.each([undefined, { groups: [] }, { groups: [{ elements: [] }] }, { groups: [{
   "keeps description indexes when there are no legal elements: %j", (legals) => {
     const data = { ...metadata, legals };
     render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
-    expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(":scope > span")).toHaveTextContent("3");
+    expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("3");
     expect(screen.getByText("Duplicate description one")).toBeVisible();
     expect(screen.getByText("Duplicate description two")).toBeVisible();
   },
@@ -66,9 +66,9 @@ it.each([
   render(<MetadataPanel {...props} choices={[{ service: "ExhibitIndexing", level: property }, { service: "LegalEnrichment", level: legal }]} />);
   const trigger = screen.queryByRole("button", { name: "Property Info" });
   if (count === null) {
-    expect(trigger).toBeNull();
+    expect(trigger).toBeDisabled();
   } else {
-    expect(trigger!.parentElement?.querySelector(":scope > span")).toHaveTextContent(count);
+    expect(trigger!.parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent(count);
     expect(Boolean(screen.queryByText("Parcel 42"))).toBe(Boolean(property));
     expect(Boolean(screen.queryByText("Property legal summary."))).toBe(Boolean(legal));
     expect(Boolean(screen.queryByText("Boundary description"))).toBe(Boolean(legal));
@@ -77,10 +77,10 @@ it.each([
 
 it("retains hidden-segment filters for each content source", () => {
   const view = render(<MetadataPanel {...props} sections={{ ...props.sections, hiddenSegments: new Set(["property"]) }} />);
-  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(":scope > span")).toHaveTextContent("2");
+  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("2");
   expect(screen.queryByText("Parcel 42")).toBeNull();
   view.rerender(<MetadataPanel {...props} sections={{ ...props.sections, hiddenSegments: new Set(["legal"]) }} />);
-  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(":scope > span")).toHaveTextContent("1");
+  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("1");
   expect(screen.queryByText("Property legal summary.")).toBeNull();
   view.rerender(<MetadataPanel {...props} sections={{ ...props.sections, hiddenSegments: new Set(["legal", "property"]) }} />);
   expect(screen.queryByRole("button", { name: "Property Info" })).toBeNull();
@@ -88,9 +88,25 @@ it("retains hidden-segment filters for each content source", () => {
 
 it("renders unfiltered capability content with the same merged count", () => {
   render(<MetadataPanel {...props} choices={null} sections={{ ...props.sections, filterByChoices: false }} />);
-  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(":scope > span")).toHaveTextContent("3");
+  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("3");
   expect(screen.getByText("Parcel 42")).toBeVisible();
   expect(screen.getByText("Boundary description")).toBeVisible();
+});
+
+it.each([
+  { hidden: "property", property: 1, legal: 0 },
+  { hidden: "legal", property: 0, legal: 1 },
+])("disables Property Info when its selected $hidden source is explicitly hidden", ({ hidden, property, legal }) => {
+  render(<MetadataPanel {...props}
+    choices={[{ service: "ExhibitIndexing", level: property }, { service: "LegalEnrichment", level: legal }]}
+    sections={{ ...props.sections, hiddenSegments: new Set([hidden]) }}
+    onAddIndex={vi.fn()} onReprocess={vi.fn()} />);
+
+  expect(screen.getByRole("button", { name: "Property Info" })).toBeDisabled();
+  expect(screen.queryByText("Parcel 42")).not.toBeInTheDocument();
+  expect(screen.queryByText("Property legal summary.")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Add Index" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Reprocess" })).not.toBeInTheDocument();
 });
 
 it("keeps the summary font consistent with legal element text", () => {
@@ -119,7 +135,7 @@ it("retains property locations, legal locations, explanations and every group el
     ] },
   };
   render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
-  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(":scope > span")).toHaveTextContent("5");
+  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("5");
   for (const text of ["San Antonio", "Bexar", "Texas", "CITY OF SAN ANTONIO", "BEXAR COUNTY", "TEXAS", "9", "2222", "226", "GROUP_BASIS:PLATTED identified from the legal text."]) {
     expect(screen.getByText(text, { exact: true })).toBeVisible();
   }
@@ -152,7 +168,7 @@ it("adds and reprocesses only property from the merged header", () => {
   render(<MetadataPanel {...props} openSegment="legal" onAddIndex={onAddIndex} onReprocess={onReprocess} />);
   fireEvent.click(screen.getByRole("button", { name: "Add Index" }));
   fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
-  expect(onAddIndex).toHaveBeenCalledExactlyOnceWith("property");
+  expect(onAddIndex).toHaveBeenCalledExactlyOnceWith("property", screen.getByRole("button", { name: "Add Index" }));
   expect(onReprocess).toHaveBeenCalledExactlyOnceWith("property");
 });
 
@@ -170,7 +186,7 @@ it.each([true, false])("blocks all merged content during property reprocess, bus
 it("shows one empty message and zero items when both sources have no rows", () => {
   const data = { indexes: [], legals: { summary: "Summary without elements." } };
   render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
-  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(":scope > span")).toHaveTextContent("0");
+  expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("0");
   expect(screen.getByText("Summary without elements.")).toBeVisible();
   expect(screen.getAllByText("No property info found.")).toHaveLength(1);
   expect(screen.queryByText("No legal descriptions found.")).toBeNull();

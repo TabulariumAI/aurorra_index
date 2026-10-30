@@ -1,3 +1,4 @@
+vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => null }) }));
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { indexedDB } from "fake-indexeddb";
@@ -48,7 +49,7 @@ it.each([false, true].flatMap(cached => [false, true].map(failed => ({ cached, f
   const onMetadataLoaded = vi.fn();
   const props: MetadataProps = {
     apiGatewayUrl: "https://gateway", authToken: "token", session: "source", batchCode: null,
-    callbacks: { onMetadataLoaded }, choices: null, deferredState: createDeferredState(), intervalMs: 0,
+    callbacks: { onMetadataLoaded }, deferredState: createDeferredState(), intervalMs: 0,
     onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null, retryIntervalMs: 0, retryLimit: 0,
     segments: { PAGE: "page", TITLE: "title", PARTY: "party", FEE: "fee", FUND: "fund", FEEFACTOR: "factor", LEGAL: "legal", MONETARY: "monetary", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TRANSACTION: "transaction", VITAL: "vital", ACKNOWLEDGMENT: "acknowledgment", JUDGMENT: "judgment", ENDORSEMENT: "endorsement" },
   };

@@ -1,3 +1,4 @@
+vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => null }) }));
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { createDeferredState } from "../../indexing/data/deferredState";
@@ -18,7 +19,7 @@ it("emits metadata updates after loading and refreshing through the existing Ind
   const onQueueChange = vi.fn();
   let etag: string | null = "one";
   const props: MetadataProps = {
-    apiGatewayUrl: "https://gateway", authToken: "token", batchCode: "batch", callbacks: {}, choices: [],
+    apiGatewayUrl: "https://gateway", authToken: "token", batchCode: "batch", callbacks: {},
     deferredState: createDeferredState({}), intervalMs: 0, onQueueChange, onReadyChange: vi.fn(), refresh: null,
     retryIntervalMs: 0, retryLimit: 0, session: "selected", segments: {
       ACKNOWLEDGMENT: "acknowledgment", ENDORSEMENT: "endorsement", FEE: "fee", FEEFACTOR: "factor",

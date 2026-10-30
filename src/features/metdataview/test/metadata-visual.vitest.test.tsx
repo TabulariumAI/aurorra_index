@@ -136,16 +136,16 @@ describe("metadata visual surface", () => {
       panelData: getPanelData(metadata),
     };
     const { rerender } = render(<MetadataPanel {...props} openSegment="party" />);
-    const partyHeader = screen.getByRole("button", { name: /Parties\(Party Clause\)/i }).parentElement;
+    const partyHeader = screen.getByRole("button", { name: "Parties(Party Clause)" }).parentElement;
     const endorsementHeader = screen.getByRole("button", { name: "Endorsements" }).parentElement;
 
-    expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(1);
-    expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
+    expect(partyHeader?.querySelectorAll('button[aria-label="Reprocess"]')).toHaveLength(1);
+    expect(endorsementHeader?.querySelectorAll('button[aria-label="Reprocess"]')).toHaveLength(0);
 
     rerender(<MetadataPanel {...props} openSegment="endorsement" />);
 
-    expect(partyHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
-    expect(endorsementHeader?.querySelectorAll("button[aria-label]")).toHaveLength(1);
+    expect(partyHeader?.querySelectorAll('button[aria-label="Reprocess"]')).toHaveLength(0);
+    expect(endorsementHeader?.querySelectorAll('button[aria-label="Reprocess"]')).toHaveLength(1);
   });
 
   it("renders the package metadata surface with shared armed index actions", async () => {
@@ -230,8 +230,8 @@ describe("metadata visual surface", () => {
       letterSpacing: "var(--panel-title-tracking)",
       lineHeight: "var(--panel-title-line-height)",
     });
-    const segmentButton = screen.getByRole("button", { name: /Parties\(Party Clause\)/i });
-    const collapsedButton = screen.getByRole("button", { name: /Pages/i });
+    const segmentButton = screen.getByRole("button", { name: "Parties(Party Clause)" });
+    const collapsedButton = screen.getByRole("button", { name: "Pages" });
     const segmentHeader = segmentButton.parentElement;
     const collapsedHeader = collapsedButton.parentElement;
     expect(segmentHeader).toBeTruthy();
@@ -269,7 +269,7 @@ describe("metadata visual surface", () => {
     expect(segmentCount).toBeTruthy();
     const collapsedCount = collapsedHeader?.lastElementChild as HTMLElement | null;
     expect(collapsedCount).toBeTruthy();
-    expect(collapsedHeader?.querySelectorAll("button[aria-label]")).toHaveLength(0);
+    expect(collapsedHeader?.querySelectorAll('button[aria-label="Reprocess"]')).toHaveLength(0);
     const selectedRow = container.querySelector("[data-index-code='idx-1']");
     expect(selectedRow).toHaveAttribute("data-active", "true");
     fireEvent.mouseEnter(collapsedButton);

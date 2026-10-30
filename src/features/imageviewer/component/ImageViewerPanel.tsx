@@ -21,7 +21,7 @@ function lensProgressLabel(status: string): string {
   return "Loading...";
 }
 
-export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexFocus, onLoaderChange, onReadyChange }: PanelProps): JSX.Element {
+export function ImageViewerPanel({ compact, hostInput, renderTolerance, onAddIndex, onIndexFocus, onLoaderChange, onReadyChange }: PanelProps): JSX.Element {
   useLayoutEffect(() => {
     if (hostInput) imageViewerStoreApi.getState().setHostInput(hostInput);
   }, [hostInput]);
@@ -37,6 +37,7 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexF
   const workerClient = useImageViewerStore((state) => state.workerClient);
   const viewer = useImageViewer();
   const [sizeAnchor, setSizeAnchor] = useState<HTMLButtonElement | null>(null);
+  const exportRef = useRef<HTMLButtonElement>(null);
   const reloadRef = useRef(0);
   const [matchFailure, setMatchFailure] = useState<{ session: string; version: number } | null>(null);
 
@@ -107,6 +108,7 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexF
       {viewer.sizeFailure || !viewer.isThumbs || compact ? (
         <ImageViewerTopToolbar
           scaleRef={setSizeAnchor}
+          exportRef={exportRef}
           canActualSize={viewer.canActualSize}
           canClearSearch={viewer.canClearSearch}
           canExport={viewer.canExport}
@@ -127,7 +129,10 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onIndexF
             if (action === "copy") void viewer.copySelection();
             if (action === "export") {
               void viewer.exportSelection().then((selection) => {
-                if (selection) addIndexStoreApi.getState().open(selection);
+                if (selection) {
+                  addIndexStoreApi.getState().open(selection);
+                  onAddIndex?.(exportRef.current!);
+                }
               });
             }
             if (action === "fitHeight") viewer.fitHeight();

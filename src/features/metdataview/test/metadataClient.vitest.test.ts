@@ -1,3 +1,4 @@
+vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => null }) }));
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMetadataClient } from "../data/metadataClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
@@ -323,7 +324,7 @@ describe("Pages failure isolation", () => {
     const onRefresh = vi.fn();
     const props: Parameters<typeof useMetadata>[0] = {
       apiGatewayUrl: config.apiBaseUrl, authToken: "token", batchCode: null,
-      callbacks: { onViewError, onMetadataError, onMetadataLoaded, onRefresh }, choices: [],
+      callbacks: { onViewError, onMetadataError, onMetadataLoaded, onRefresh },
       deferredState: createDeferredState({}), intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(),
       refresh: null, retryIntervalMs: 0, retryLimit: 1, session: "first", workerClient: client,
       segments: {

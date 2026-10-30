@@ -29,8 +29,11 @@ import type {
   MetadataPanelData,
   MetadataError,
   MetadataStatus,
+  PageScope,
 } from "aurora-core";
+import type { MetadataChoice } from "../type/metadataView.types";
 import { getMapGroups } from "../../legalmap/data/surveyData";
+import { PAGE_SEGMENT_CHOICES } from "../../pagesegments/data/pageSegmentsData";
 
 export type MetadataPanelActions = {
   confirm: boolean;
@@ -42,19 +45,6 @@ export type MetadataPanelSections = {
   filterByChoices: boolean;
   hiddenSegments: ReadonlySet<string>;
   showEmpty: boolean;
-};
-
-const choiceSections = {
-  acknowledgment: "AcknowledgmentIndexing",
-  endorsement: "EndorsementIndexing",
-  legal: "LegalEnrichment",
-  monetary: "MonetaryInfoIndexing",
-  party: "PartyClauseIndexing",
-  property: "ExhibitIndexing",
-  reference: "RecitalIndexing",
-  secrets: "ConfidentialIndexing",
-  transaction: "TransactionIndexing",
-  vital: "VitalIndexing",
 };
 
 const pageSegmentValues = new Set([
@@ -73,13 +63,15 @@ const pageSegmentValues = new Set([
 export type MetadataPanelProps = {
   actions: MetadataPanelActions;
   callbacks: MetadataCallbacks;
-  choices: unknown;
+  choices: readonly MetadataChoice[] | null;
+  jurisdiction?: string | null;
+  pageScope?: PageScope | null;
   children?: ReactNode;
   metadata: MetadataPayload | null;
   pageError?: MetadataError | null;
   onConfirm?: (payload: MetadataActionPayload) => Promise<void> | void;
   onDrop?: (payload: MetadataActionPayload) => Promise<void> | void;
-  onAddIndex?: (segment: string) => void;
+  onAddIndex?: (segment: string, anchor: HTMLElement) => void;
   onEditIndex?: (index: MetadataIndex, segment: string, anchor: HTMLElement) => void;
   onReprocess?: (segment: string) => Promise<void> | void;
   confirmedCodes: Set<string>;
@@ -98,24 +90,6 @@ export type MetadataPanelProps = {
   panelData: MetadataPanelData | null;
   pendingSegments?: ReadonlyMap<string, { busy: boolean; actions: ReactNode }>;
 };
-
-function getChoiceLevel(choices: MetadataPanelProps["choices"], name: string): number {
-  try {
-    let parsed: unknown = choices;
-    while (typeof parsed === "string") {
-      parsed = JSON.parse(parsed);
-    }
-    if (!Array.isArray(parsed)) return 0;
-    const match = parsed.find((choice) => choice && typeof choice === "object" && (choice as { service?: unknown }).service === name);
-    return match ? Number((match as { level?: unknown }).level) : 0;
-  } catch {
-    return 0;
-  }
-}
-
-function choiceSegmentVisible(choices: MetadataPanelProps["choices"], segment: keyof typeof choiceSections): boolean {
-  return getChoiceLevel(choices, choiceSections[segment]) > 0;
-}
 
 function titles(metadata: MetadataPayload): { explanation?: string; title: string }[] {
   const out: { explanation?: string; title: string }[] = [];
@@ -146,6 +120,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     callbacks,
     children,
     choices,
+    jurisdiction,
+    pageScope,
     confirmedCodes,
     actions,
     metadata,
@@ -171,8 +147,19 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
 
   const hidden = sections.hiddenSegments;
   const isVisible = (segment: string) => !hidden.has(segment);
-  const choiceVisible = (segment: string, choice: keyof typeof choiceSections) =>
-    isVisible(segment) && (!sections.filterByChoices || choiceSegmentVisible(choices, choice));
+  const selectedServices = new Set(choices?.filter(choice => Number(choice.level) > 0).map(choice => choice.service));
+  const choiceServices = new Map([
+    [segments.ACKNOWLEDGMENT, "AcknowledgmentIndexing"], [segments.ENDORSEMENT, "EndorsementIndexing"],
+    [segments.MONETARY, "MonetaryInfoIndexing"], [segments.PARTY, "PartyClauseIndexing"],
+    [segments.PROPERTY, "ExhibitIndexing"], [segments.LEGAL, "LegalEnrichment"], [segments.REFERENCE, "RecitalIndexing"],
+    [segments.SECRETS, "ConfidentialIndexing"], [segments.TRANSACTION, "TransactionIndexing"],
+    [segments.VITAL, "VitalIndexing"], [segments.JUDGMENT, PAGE_SEGMENT_CHOICES.judgment],
+  ]);
+  const disabledSegments = new Set(sections.filterByChoices && choices !== null
+    ? [...choiceServices].filter(([, service]) => !selectedServices.has(service)).map(([segment]) => segment)
+    : []);
+  const propertyVisible = isVisible(segments.PROPERTY) && !disabledSegments.has(segments.PROPERTY);
+  const legalVisible = isVisible(segments.LEGAL) && !disabledSegments.has(segments.LEGAL);
   const sectionShortcut = (segment: string) => shortcuts?.get(segment) ?? null;
   const currentSegment = openSegment === segments.LEGAL ? segments.PROPERTY : openSegment;
 
@@ -211,37 +198,47 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     count: number,
     content: ReactNode,
     actionSegment: string | null = segment,
-  ) => (
-    <MetadataSegment
-      collapsible={false}
-      error={segment === segments.PAGE ? pageError?.error : undefined}
-      pending={actionSegment ? pendingSegments?.get(actionSegment) : undefined}
-      progressLabel={`Reprocessing ${actionSegment}`}
-      headerAction={
-        actionSegment && currentSegment === segment ? (
-          <div style={segmentStyles.actionGroup}>
-            {onAddIndex ? (
-              <ActionButton label="Add Index" lineAligned={false} text onClick={() => onAddIndex(actionSegment)}>
-                Add Index
-              </ActionButton>
-            ) : null}
-            {actions.reprocess && onReprocess ? (
-              <ActionButton label="Reprocess" lineAligned={false} text onClick={() => void onReprocess(actionSegment)}>
-                Reprocess
-              </ActionButton>
-            ) : null}
-          </div>
-        ) : null
-      }
-      count={count}
-      onOpenChange={(open) => setSectionOpen(segment, open)}
-      open={currentSegment === segment}
-      shortcutKey={sectionShortcut(segment)}
-      title={title}
-    >
-      {content}
-    </MetadataSegment>
-  );
+  ) => {
+    const disabled = segment === segments.PROPERTY ? !propertyVisible && !legalVisible : disabledSegments.has(segment);
+    const note = sections.filterByChoices
+      ? choices === null ? "Processing choices are unavailable for this session." : sessionNotes.get(segment)
+      : undefined;
+    return (
+      <MetadataSegment
+        collapsible={false}
+        disabled={disabled}
+        disabledReason="Not selected for this session."
+        error={segment === segments.PAGE ? pageError?.error : undefined}
+        note={segment === segments.TITLE || choices === null ? undefined : note}
+        pending={actionSegment ? pendingSegments?.get(actionSegment) : undefined}
+        progressLabel={`Reprocessing ${actionSegment}`}
+        headerAction={
+          actionSegment && currentSegment === segment ? (
+            <div style={segmentStyles.actionGroup}>
+              {onAddIndex ? (
+                <ActionButton label="Add Index" lineAligned={false} text onClick={event => onAddIndex(actionSegment, event.currentTarget)}>
+                  Add Index
+                </ActionButton>
+              ) : null}
+              {actions.reprocess && onReprocess ? (
+                <ActionButton label="Reprocess" lineAligned={false} text onClick={() => void onReprocess(actionSegment)}>
+                  Reprocess
+                </ActionButton>
+              ) : null}
+            </div>
+          ) : null
+        }
+        count={count}
+        onOpenChange={(open) => setSectionOpen(segment, open)}
+        open={currentSegment === segment}
+        shortcutKey={sectionShortcut(segment)}
+        title={title}
+      >
+        {content}
+        {note && (segment === segments.TITLE || choices === null) ? <p role="note" style={metadataStyles.muted}>{note}</p> : null}
+      </MetadataSegment>
+    );
+  };
 
   if ((status === "loading" || status === "error") && !metadata) {
     return null;
@@ -266,12 +263,29 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const pageItems = pageError ? [] : pages(metadata);
   const titlePage = pageItems.find((item) => item.isTitle)?.page;
   const legalGroups = (metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || []).filter((group) => Array.isArray(group.elements) && group.elements.length > 0);
-  const propertyVisible = choiceVisible(segments.PROPERTY, "property");
-  const legalVisible = choiceVisible(segments.LEGAL, "legal");
   const propertyItems = propertyVisible ? panelData.properties.filter((item) => !legalGroups.length || item.aspect !== "legal_description") : [];
   const legalCount = legalVisible ? legalGroups.length : 0;
   const hasMap = (legalVisible && getMapGroups(metadata.legals).length > 0) || (propertyVisible && Boolean(getParcelOptions(propertyItems).property_address?.trim()));
   const secretItems = (metadata.secrets || []).filter((item) => cleanText(item.value) && !cleanText(item.value).startsWith("xxx") && !cleanText(item.value).includes("Not explicitly provided"));
+
+  let pageNote = "Processing scope is unavailable for this session.";
+  const totalPages = metadata.pages?.num_of_pages;
+  if (pageScope && totalPages !== undefined) {
+    const pageWord = totalPages === 1 ? "page" : "pages";
+    if ("all" in pageScope) pageNote = `Processing scope for this session: all ${totalPages} ${pageWord}.`;
+    else {
+      const scopeLabel = pageScope.last === 0
+        ? pageScope.first === 1 ? "first page" : `first ${pageScope.first} pages`
+        : `first ${pageScope.first} and last ${pageScope.last === 1 ? "page" : `${pageScope.last} pages`}`;
+      pageNote = `Processing scope for this session: ${scopeLabel} — ${Math.min(totalPages, pageScope.first + pageScope.last)} of ${totalPages} ${pageWord}.`;
+    }
+  }
+  const sessionNotes = new Map([
+    [segments.PAGE, pageNote],
+    [segments.TITLE, jurisdiction?.trim() ? `Jurisdiction for this session: ${jurisdiction.trim()}.` : "No jurisdiction was selected for this session."],
+    [segments.PARTY, selectedServices.has("PartyEnrichment") ? undefined : "Party enrichment was not selected for this session."],
+    [segments.PROPERTY, selectedServices.has("LegalEnrichment") ? undefined : "Legal description enrichment was not selected for this session."],
+  ]);
   return (
     <Tooltip.Provider delayDuration={250}>
       <section aria-label="Metadata" style={metadataStyles.root}>
@@ -336,7 +350,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           }) : <EmptyRow message="No recordables pages found." />,
           null,
         ) : null}
-        {choiceVisible(segments.SECRETS, "secrets") ? renderSegment(segments.SECRETS, "Confidential", secretItems.length, rows(secretItems, segments.SECRETS, "No confidential info found.", "secret")) : null}
+        {isVisible(segments.SECRETS) ? renderSegment(segments.SECRETS, "Confidential", secretItems.length, rows(secretItems, segments.SECRETS, "No confidential info found.", "secret")) : null}
         {isVisible(segments.TITLE) ? renderSegment(
           segments.TITLE,
           "Titles",
@@ -353,10 +367,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           )) : <EmptyRow message="No titles found." />,
           null,
         ) : null}
-        {choiceVisible(segments.ENDORSEMENT, "endorsement") ? renderSegment(segments.ENDORSEMENT, "Endorsements", panelData.endorsements.length, rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.")) : null}
-        {choiceVisible(segments.PARTY, "party") ? renderSegment(segments.PARTY, "Parties(Party Clause)", panelData.parties.length, rows(panelData.parties, segments.PARTY, "No parties found.")) : null}
-        {choiceVisible(segments.REFERENCE, "reference") ? renderSegment(segments.REFERENCE, "References(Recital)", panelData.references.length, rows(panelData.references, segments.REFERENCE, "No references found.")) : null}
-        {propertyVisible || legalVisible ? renderSegment(
+        {isVisible(segments.ENDORSEMENT) ? renderSegment(segments.ENDORSEMENT, "Endorsements", panelData.endorsements.length, rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.")) : null}
+        {isVisible(segments.PARTY) ? renderSegment(segments.PARTY, "Parties(Party Clause)", panelData.parties.length, rows(panelData.parties, segments.PARTY, "No parties found.")) : null}
+        {isVisible(segments.REFERENCE) ? renderSegment(segments.REFERENCE, "References(Recital)", panelData.references.length, rows(panelData.references, segments.REFERENCE, "No references found.")) : null}
+        {isVisible(segments.PROPERTY) || isVisible(segments.LEGAL) ? renderSegment(
           segments.PROPERTY,
           "Property Info",
           propertyItems.length + legalCount,
@@ -415,10 +429,11 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             {!propertyItems.length && !legalCount ? <EmptyRow message="No property info found." /> : null}
           </div>,
         ) : null}
-        {choiceVisible(segments.MONETARY, "monetary") ? renderSegment(segments.MONETARY, "Monetary", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
-        {choiceVisible(segments.ACKNOWLEDGMENT, "acknowledgment") ? renderSegment(segments.ACKNOWLEDGMENT, "Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
-        {choiceVisible(segments.TRANSACTION, "transaction") ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
-        {choiceVisible(segments.VITAL, "vital") ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}
+        {isVisible(segments.MONETARY) ? renderSegment(segments.MONETARY, "Monetary", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
+        {isVisible(segments.ACKNOWLEDGMENT) ? renderSegment(segments.ACKNOWLEDGMENT, "Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
+        {isVisible(segments.TRANSACTION) ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
+        {isVisible(segments.VITAL) ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}
+        {isVisible(segments.JUDGMENT) ? renderSegment(segments.JUDGMENT, "Judgment", panelData.judgments.filter(item => !removedCodes.has(String(item.code || ""))).length, rows(panelData.judgments, segments.JUDGMENT, "No judgment indexes found.")) : null}
         {children}
         </div>
         <footer aria-label="Metadata actions" data-metadata-footer="true" style={metadataStyles.footerEmpty} />

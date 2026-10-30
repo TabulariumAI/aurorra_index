@@ -9,6 +9,9 @@ import type { MetadataProps, MetadataRefresh, MetadataClient } from "../type/met
 import { splitMetadataJSON, type MetadataActionPayload, type MetadataPayload } from "aurora-core";
 import { auditStoreApi } from "../../audit/store/auditStore";
 
+const choicesWorker = vi.hoisted(() => ({ load: vi.fn() }));
+vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => choicesWorker }));
+
 const auditClient = vi.hoisted(() => ({ loadReport: vi.fn(async () => ({ gaps: [] })) }));
 vi.mock("../../audit/worker/auditWorkerClient", () => ({ createAuditWorkerClient: () => auditClient }));
 
@@ -71,6 +74,7 @@ const rowPayload: MetadataActionPayload = {
 
 describe("useMetadata", () => {
   beforeEach(() => {
+    choicesWorker.load.mockReset().mockResolvedValue({ items: choices, jurisdiction: null });
     auditClient.loadReport.mockReset().mockResolvedValue({ gaps: [] });
     auditStoreApi.getState().resetAudit();
     queueStoreApi.getState().reset();
@@ -86,7 +90,7 @@ describe("useMetadata", () => {
     const onMetadataLoaded = vi.fn();
     const props: MetadataProps = {
       apiGatewayUrl: "https://doc.example.com", authToken: "token", batchCode: null,
-      callbacks: { onMetadataLoaded }, choices, deferredState: createDeferredState(),
+      callbacks: { onMetadataLoaded }, deferredState: createDeferredState(),
       intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
       retryIntervalMs: 0, retryLimit: 1, segments, session: "session-1", workerClient: client,
     };
@@ -110,7 +114,7 @@ describe("useMetadata", () => {
     const onSegmentExpand = vi.fn();
     const props: MetadataProps = {
       authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
-      callbacks: { onSegmentExpand }, choices, deferredState: createDeferredState({ segment: "party" }),
+      callbacks: { onSegmentExpand }, deferredState: createDeferredState({ segment: "party" }),
       intervalMs: 0, retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
       segments, session: "session-1", workerClient: createClient(),
     };
@@ -136,7 +140,7 @@ describe("useMetadata", () => {
     const client = createClient();
     const props: MetadataProps = {
       apiGatewayUrl: "https://doc.example.com", authToken: "token", batchCode: null,
-      callbacks: {}, choices, deferredState: createDeferredState({ segment: "party" }),
+      callbacks: {}, deferredState: createDeferredState({ segment: "party" }),
       intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
       retryIntervalMs: 0, retryLimit: 1, segments, session: "session-1", workerClient: client,
     };
@@ -171,7 +175,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onActionComplete, onActionError },
-      choices,
       deferredState: createDeferredState({ segment: "legal", selectedIndex: null }),
       intervalMs: 0,
       retryLimit: 5,
@@ -212,7 +215,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: {},
-      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       retryLimit: 5,
@@ -253,7 +255,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onMetadataLoaded },
-      choices: null,
       deferredState: createDeferredState(),
       intervalMs: 0,
       retryLimit: 5,
@@ -269,7 +270,7 @@ describe("useMetadata", () => {
 
     await waitFor(() => expect(indexStoreApi.getState().status).toBe("success"));
     expect(client.indexData).not.toHaveBeenCalled();
-    expect(result.current.choices).toBeNull();
+    expect(result.current.choices).toEqual(choices);
     expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata, "session-1");
     await waitFor(() => expect(auditClient.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1"));
     await waitFor(() => expect(auditStoreApi.getState().report).toEqual({ gaps: [] }));
@@ -293,7 +294,6 @@ describe("useMetadata", () => {
         },
         onViewError,
       },
-      choices: null,
       deferredState: createDeferredState(),
       intervalMs: 0,
       retryLimit: 5,
@@ -322,7 +322,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: {},
-      choices,
       deferredState: createDeferredState(),
       intervalMs: 0,
       retryLimit: 5,
@@ -363,7 +362,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onSegmentExpand },
-      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       retryLimit: 5,
@@ -404,7 +402,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onActionComplete },
-      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       retryLimit: 5,
@@ -444,7 +441,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onActionComplete },
-      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: null }),
       intervalMs: 0,
       retryLimit: 5,
@@ -482,7 +478,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onActionComplete, onIndexFocus },
-      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       intervalMs: 0,
       retryLimit: 5,
@@ -521,7 +516,6 @@ describe("useMetadata", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: { onActionComplete, onActionError },
-      choices,
       deferredState: createDeferredState({ segment: "party", selectedIndex: { code: "idx-1", segment: "party" } }),
       intervalMs: 0,
       retryLimit: 5,
@@ -571,7 +565,7 @@ describe("segment reprocess lifecycle", () => {
     const props: MetadataProps = {
       authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
       callbacks: { onActionComplete: vi.fn(), onActionError: vi.fn() },
-      choices, deferredState: createDeferredState({ segment: "party" }), intervalMs: 0,
+      deferredState: createDeferredState({ segment: "party" }), intervalMs: 0,
       retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(),
       refresh: null, segments, session: "session-1", workerClient: client,
     };

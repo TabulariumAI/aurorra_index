@@ -9,6 +9,7 @@ import type {
   MetadataPayload,
   MetadataStatus,
   MetadataError,
+  PageScope,
 } from "aurora-core";
 
 export type MetadataChoice = {
@@ -108,7 +109,7 @@ export type MetadataProps = {
   batchCode: string | null;
   headerActions?: ReactNode;
   callbacks: MetadataCallbacks;
-  choices: unknown;
+  pageScope?: PageScope | null;
   children?: ReactNode;
   deferredState: MetadataDeferredState;
   intervalMs: number;

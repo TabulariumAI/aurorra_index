@@ -13,6 +13,7 @@ import type { MetadataProps } from "../type/metadataView.types";
 import { createMetadataClient } from "../data/metadataClient";
 import { loadAuditReport } from "../../audit/data/loadAuditReport";
 import { createAuditWorkerClient } from "../../audit/worker/auditWorkerClient";
+import { loadChoices } from "../../choices/data/loadChoices";
 
 function toWorkerError(error: unknown): MetadataError {
   const candidate = error as { code?: string; details?: unknown; error?: unknown; message?: string; status?: number };
@@ -30,7 +31,6 @@ export function useMetadata({
   batchCode,
   apiGatewayUrl,
   callbacks,
-  choices,
   deferredState,
   intervalMs,
   onQueueChange,
@@ -69,6 +69,7 @@ export function useMetadata({
   const loadMetadata = useCallback(
     async (refresh: boolean) => {
       if (indexStoreApi.getState().activeSession !== session) indexStoreApi.getState().setLoading(session);
+      void loadChoices({ apiGatewayUrl, authToken: authToken ?? "", session }).catch(() => undefined);
       const cached = refresh ? null : composeMetadataJSON(storeApi.getState().getJSON(session));
       if (cached) {
         publishMetadata(cached);
@@ -155,7 +156,8 @@ export function useMetadata({
   }, [onQueueChange, authToken, batchCode, client, intervalMs, session]);
 
   return {
-    choices,
+    choices: store.choices?.items ?? null,
+    jurisdiction: store.choices?.jurisdiction,
     loadMetadata,
     metadata,
     onConfirm,

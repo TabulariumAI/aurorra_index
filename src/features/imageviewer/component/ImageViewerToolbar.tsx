@@ -10,6 +10,7 @@ type FooterAction = "first" | "last" | "next" | "previous" | "thumbs";
 
 type TopProps = {
   scaleRef?: Ref<HTMLButtonElement>;
+  exportRef?: Ref<HTMLButtonElement>;
   canActualSize: boolean;
   canClearSearch: boolean;
   canExport: boolean;
@@ -117,6 +118,7 @@ export function ImageViewerTopToolbar({
   onSearchText,
   searchText,
   scaleRef,
+  exportRef,
   zoom,
 }: TopProps): JSX.Element {
   const [scaleOpen, setScaleOpen] = useState(false);
@@ -203,7 +205,10 @@ export function ImageViewerTopToolbar({
               Scale options
             </Tooltip.Content></Tooltip.Portal></Tooltip.Root>
             <Popover.Portal>
-              <Popover.Content aria-label="Scale options" id="image-viewer-scale-options" role="group" side="bottom" align="start" sideOffset={6} style={imageViewerStyles.menuPopover}>
+              <Popover.Content aria-label="Scale options" id="image-viewer-scale-options" role="group" side="bottom" align="start" sideOffset={6} style={imageViewerStyles.menuPopover} onCloseAutoFocus={(event) => {
+                if (openingExportRef.current) event.preventDefault();
+                openingExportRef.current = false;
+              }}>
                 <ConfButton disabled={!canFitPage} label="Fit page" onConfirm={() => {
                   setScaleOpen(false);
                   console.info("imageviewer toolbar action", { action: "fitPage" });
@@ -266,7 +271,7 @@ export function ImageViewerTopToolbar({
           <Popover.Root onOpenChange={setMoreOpen} open={moreOpen}>
             <Tooltip.Root><Tooltip.Trigger asChild>
             <Popover.Trigger asChild>
-              <button aria-controls="image-viewer-more-options" aria-expanded={moreOpen} aria-haspopup="dialog" aria-label="More" disabled={!canExport} style={{ ...imageViewerStyles.menuButton, ...(compact ? imageViewerStyles.compactButton : {}) }} type="button">
+              <button ref={exportRef} aria-controls="image-viewer-more-options" aria-expanded={moreOpen} aria-haspopup="dialog" aria-label="More" disabled={!canExport} style={{ ...imageViewerStyles.menuButton, ...(compact ? imageViewerStyles.compactButton : {}) }} type="button">
                 <ViewerIcon name="more" />
               </button>
             </Popover.Trigger>

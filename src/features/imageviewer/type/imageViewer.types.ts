@@ -47,6 +47,7 @@ export type HostInput = {
 export type ToleranceRenderer = (props: { anchor: HTMLElement; children: ReactNode; onClose(): void }) => ReactNode;
 
 export type PanelProps = {
+  onAddIndex?(anchor: HTMLElement): void;
   renderTolerance: ToleranceRenderer;
   compact: boolean;
   hostInput?: HostInput;

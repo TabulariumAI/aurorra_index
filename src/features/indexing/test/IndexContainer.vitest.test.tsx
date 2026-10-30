@@ -1,3 +1,4 @@
+vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => ({ items: choices, jurisdiction: null }) }) }));
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
@@ -75,6 +76,7 @@ function renderMetadata() {
   const onPageClick = vi.fn();
   const onActionComplete = vi.fn();
   const onEditPage = vi.fn();
+  const onAddIndex = vi.fn();
   const onView = vi.fn();
   const onViewStarted = vi.fn();
   const onLoaderChange = vi.fn();
@@ -100,8 +102,7 @@ function renderMetadata() {
       authToken="token"
       apiGatewayUrl="https://doc.example.com"
       batchCode={null}
-      callbacks={{ onActionComplete, onEditPage, onMetadataLoaded, onPageClick, onView, onViewStarted }}
-      choices={choices}
+      callbacks={{ onAddIndex, onActionComplete, onEditPage, onMetadataLoaded, onPageClick, onView, onViewStarted }}
       deferredState={createDeferredState({ selectedIndex: { code: "idx-1", segment: "party" }, segment: "party" })}
       intervalMs={0}
       retryLimit={5}
@@ -115,7 +116,7 @@ function renderMetadata() {
     />,
   );
 
-  return { view, workerClient, pending, onMetadataLoaded, onPageClick, onActionComplete, onEditPage, onView, onViewStarted, onLoaderChange, onReadyChange };
+  return { onAddIndex, view, workerClient, pending, onMetadataLoaded, onPageClick, onActionComplete, onEditPage, onView, onViewStarted, onLoaderChange, onReadyChange };
 }
 
 describe("IndexContainer", () => {
@@ -229,12 +230,12 @@ describe("IndexContainer", () => {
     expect(onMetadataLoaded).toHaveBeenCalledWith(metadata, "session-1");
     expect(screen.getByText("Deed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Endorsements/i })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Parties\(Party Clause\)/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Parties(Party Clause)" })).toBeVisible();
     expect(screen.getByRole("button", { name: /References\(Recital\)/i })).toBeVisible();
     expect(screen.getByRole("button", { name: "Property Info" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Acknowledgment/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Transactional/i })).toBeVisible();
-    expect(screen.queryByRole("button", { name: /Monetary/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Monetary" })).toBeDisabled();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
     expect(screen.getByText("Indexes").parentElement).toHaveTextContent("2");
@@ -284,7 +285,7 @@ describe("IndexContainer", () => {
     expect(onEditPage).not.toHaveBeenCalled();
     editIndexStoreApi.getState().close();
 
-    fireEvent.click(screen.getByRole("button", { name: /Pages/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Pages" }));
     const editButton = await screen.findByRole("button", { name: "Edit index" });
     const footer = view.container.querySelector<HTMLElement>("[data-metadata-footer]");
     expect(footer).toBeTruthy();
@@ -313,11 +314,11 @@ describe("IndexContainer", () => {
   });
 
   it("adds and reprocesses the open segment while preserving header actions", async () => {
-    const { view, workerClient, pending, onActionComplete } = renderMetadata();
+    const { onAddIndex, view, workerClient, pending, onActionComplete } = renderMetadata();
     await screen.findByText("Alice");
     const footer = view.container.querySelector<HTMLElement>("[data-metadata-footer]");
     expect(footer).not.toBeNull();
-    const partyTrigger = screen.getByRole("button", { name: /Parties\(Party Clause\)/i });
+    const partyTrigger = screen.getByRole("button", { name: "Parties(Party Clause)" });
     const partyHeader = partyTrigger.parentElement;
     if (!partyHeader) throw new Error("Party header is missing.");
     const partyActions = within(partyHeader);
@@ -327,6 +328,7 @@ describe("IndexContainer", () => {
     expect(partyTrigger).not.toContainElement(addIndex);
     fireEvent.click(addIndex);
     expect(addIndexStoreApi.getState().request).toEqual({ segment: "party" });
+    expect(onAddIndex).toHaveBeenCalledExactlyOnceWith(addIndex);
     expect(partyTrigger).toHaveAttribute("aria-expanded", "true");
     expect(workerClient.reprocessSegment).not.toHaveBeenCalled();
     addIndexStoreApi.getState().close();
@@ -380,7 +382,6 @@ describe("IndexContainer", () => {
         apiGatewayUrl="https://doc.example.com"
         batchCode={null}
         callbacks={{ onMetadataError, onViewError }}
-        choices={choices}
         deferredState={createDeferredState()}
         intervalMs={0}
         retryLimit={5}
@@ -436,7 +437,6 @@ describe("IndexContainer", () => {
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
       callbacks: {},
-      choices,
       deferredState: createDeferredState(),
       intervalMs: 0,
       retryLimit: 5,
@@ -475,7 +475,6 @@ describe("IndexContainer", () => {
         apiGatewayUrl="https://doc.example.com"
         batchCode={null}
         callbacks={{ onViewCanceled }}
-        choices={choices}
         deferredState={createDeferredState()}
         intervalMs={0}
         retryLimit={5}

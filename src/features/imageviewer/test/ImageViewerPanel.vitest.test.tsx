@@ -233,7 +233,8 @@ describe("ImageViewerPanel", () => {
       session: "session-1",
     });
 
-    render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onReadyChange={onReadyChange} />);
+    const onAddIndex = vi.fn();
+    render(<ImageViewerPanel renderTolerance={({ children }) => children} compact={false} onAddIndex={onAddIndex} onReadyChange={onReadyChange} />);
 
     fireEvent.click(screen.getByRole("button", { name: /^Select$/ }));
     fireEvent.click(screen.getByRole("button", { name: "More" }));
@@ -241,6 +242,7 @@ describe("ImageViewerPanel", () => {
 
     expect(select).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(exportSelection).toHaveBeenCalledTimes(1));
+    expect(onAddIndex).toHaveBeenCalledExactlyOnceWith(screen.getByRole("button", { name: "More" }));
     expect(addIndexStoreApi.getState().request).toEqual({
       groups: [
         { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },

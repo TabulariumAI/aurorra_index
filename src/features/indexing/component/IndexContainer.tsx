@@ -56,7 +56,10 @@ export function IndexContainer(props: MetadataProps): JSX.Element {
   return (
     <div style={metadataStyles.rootShell}>
       <MetadataPanel
-        onAddIndex={(segment) => addIndexStoreApi.getState().open({ segment })}
+        onAddIndex={(segment, anchor) => {
+          addIndexStoreApi.getState().open({ segment });
+          callbacks.onAddIndex?.(anchor);
+        }}
         onEditIndex={(index, segment, anchor) => {
           editIndexStoreApi.getState().open({ index, segment, session });
           callbacks.onEditIndex?.(index, segment, anchor);
@@ -79,6 +82,7 @@ export function IndexContainer(props: MetadataProps): JSX.Element {
           showEmpty: false,
         }}
         showContext
+        pageScope={props.pageScope}
         segments={segments}
         session={session}
         shortcuts={null}
