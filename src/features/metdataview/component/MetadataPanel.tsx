@@ -293,17 +293,19 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {showContext ? (
           <header data-metadata-context="true" style={metadataStyles.header}>
             <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
-            <dl style={metadataStyles.statistics}>
-              <div style={metadataStyles.statistic}>
-                <dt title="Indexes" style={metadataStyles.statisticLabel}>Indexes</dt>
-                <dd style={metadataStyles.statisticValue}>{countedIndexes.length}</dd>
-              </div>
-              <div style={metadataStyles.statistic}>
-                <dt title="Ambiguous indexes" style={metadataStyles.statisticLabel}>Unclear</dt>
-                <dd style={metadataStyles.statisticValue}>{unclearCount}</dd>
-              </div>
-            </dl>
-            {props.headerActions}
+            <div style={metadataStyles.statistics}>
+              {props.headerActions}
+              <dl style={{ ...metadataStyles.statistics, margin: 0 }}>
+                <div style={metadataStyles.statistic}>
+                  <dt title="Indexes" style={metadataStyles.statisticLabel}>Indexes</dt>
+                  <dd style={metadataStyles.statisticValue}>{countedIndexes.length}</dd>
+                </div>
+                <div style={metadataStyles.statistic}>
+                  <dt title="Ambiguous indexes" style={metadataStyles.statisticLabel}>Unclear</dt>
+                  <dd style={metadataStyles.statisticValue}>{unclearCount}</dd>
+                </div>
+              </dl>
+            </div>
           </header>
         ) : null}
         <div aria-label="Metadata accordion" data-panel-scroll="true" role="region" style={metadataStyles.accordion}>
