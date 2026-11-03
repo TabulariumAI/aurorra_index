@@ -7,6 +7,7 @@ import { lotFixture } from "../../src/features/legalmap/test/aspectFixture";
 
 import { metesFixture } from "../../src/features/legalmap/test/metesFixture";
 import { streetFixture } from "../../src/features/legalmap/test/streetFixture";
+import { matrixAmbiguous, matrixFixture, matrixGap, matrixOffset, matrixRetry } from "../../src/features/legalmap/test/matrixFixture";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
@@ -37,7 +38,7 @@ createRoot(main).render(
         onReadyChange={() => undefined}
       />,
     }] : undefined}
-    legal={params.has("street") ? { ...streetFixture, groups: streetFixture.groups.map(group => params.get("street") === "unsupported" ? {
+    legal={params.has("matrix") ? { parcels_num: 1, summary: "One parcel described by bearings and distances.", groups: [params.get("matrix") === "offset" ? matrixOffset : params.get("matrix") === "gap" ? matrixGap : params.get("matrix") === "ambiguous" ? matrixAmbiguous : params.get("matrix") === "retry" ? matrixRetry : matrixFixture] } : params.has("street") ? { ...streetFixture, groups: streetFixture.groups.map(group => params.get("street") === "unsupported" ? {
       ...group, elements: [group.elements[0], { ...group.elements[1], value: "16 ft FRONTAGE" }],
     } : group) } : params.has("metes") ? { ...metesFixture, parcels_num: Number(params.get("metes")) } : scope ? { ...lotFixture, groups: lotFixture.groups!.map(group => ({ ...group, elements: [
       ...group.elements!, { aspect: scope, value: "EASTERLY 40 FEET OF THE WESTERLY 80 FEET" },

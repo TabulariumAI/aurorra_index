@@ -1,4 +1,4 @@
-import { formStyles } from "aurora-core";
+import { CreditValue, formatCredits, formStyles } from "aurora-core";
 import * as Checkbox from "@radix-ui/react-checkbox";
 import * as Popover from "@radix-ui/react-popover";
 import { useId, useMemo, useState } from "react";
@@ -68,8 +68,8 @@ export function UsagePanel({ records }: { records: readonly UsageRecord[] }) {
         const step = 600 / points.length;
         return <section aria-label={`${label} usage`} key={label} style={styles.card}>
           <div style={styles.chart}>
-            <svg role="img" aria-label={`${label} ${filters.period} cost chart`} viewBox="0 0 680 210" style={styles.svg}>
-              <text x="0" y="14" fill="#64748b" fontSize="12">${max.toFixed(4)}</text>
+            <svg role="img" aria-label={`${label} ${filters.period} credits chart`} viewBox="0 0 680 210" style={styles.svg}>
+              <text x="0" y="14" fill="#64748b" fontSize="12">{`${formatCredits(max).slice(0, -3)} `}<tspan fontSize="smaller">CR</tspan></text>
               <line x1="60" x2="660" y1="24" y2="24" stroke="#e2e8f0" />
               <line x1="60" x2="660" y1="178" y2="178" stroke="#cbd5e1" />
               {points.map((point, index) => <g key={point.date}>
@@ -77,39 +77,39 @@ export function UsagePanel({ records }: { records: readonly UsageRecord[] }) {
                   const height = max === 0 ? 0 : value.cost / max * 146;
                   const width = step * 0.7;
                   return <rect key={series[position].label} x={60 + index * step + (step - width) / 2} y={178 - height} width={width} height={height} rx="2" fill={series[position].color}>
-                    <title>{`${series[position].label} ${point.date}: $${value.cost.toFixed(4)}${value.pages === null ? "" : `, ${value.pages} pages`}`}</title>
+                    <title>{`${series[position].label} ${point.date}: ${formatCredits(value.cost)}${value.pages === null ? "" : `, ${value.pages} pages`}`}</title>
                   </rect>;
                 })}
                 {index % Math.ceil(points.length / 8) === 0 ? <text x={60 + index * step + step / 2} y="199" textAnchor="middle" fill="#64748b" fontSize="12">{point.date.slice(5)}</text> : null}
               </g>)}
-              <text x="16" y="181" fill="#64748b" fontSize="12">$0</text>
+              <text x="16" y="181" fill="#64748b" fontSize="12">{`${formatCredits(0).slice(0, -3)} `}<tspan fontSize="smaller">CR</tspan></text>
             </svg>
           </div>
           <div style={styles.summaries}>
             {combined && <section aria-label="Totals usage" style={styles.total}>
               <h3 style={styles.title}>Totals</h3>
               <dl style={styles.metrics}>
-                <div style={styles.metric}><dt style={styles.caption}>Service cost</dt><dd style={styles.value}>${group.reduce((total, summary) => total + summary.cost, 0).toFixed(4)}</dd></div>
-                <div style={styles.metric}><dt style={styles.caption}>Average page cost</dt><dd style={styles.value}>{group.every(summary => summary.average === null) ? "No pages used" : `$${group.reduce((total, summary) => summary.average === null ? total : total + summary.average, 0).toFixed(4)}`}</dd></div>
+                <div style={styles.metric}><dt style={styles.caption}>Credits</dt><dd style={styles.value}><CreditValue value={group.reduce((total, summary) => total + summary.cost, 0)} /></dd></div>
+                <div style={styles.metric}><dt style={styles.caption}>Average page credits</dt><dd style={styles.value}>{group.every(summary => summary.average === null) ? "No pages used" : <CreditValue value={group.reduce((total, summary) => summary.average === null ? total : total + summary.average, 0)} />}</dd></div>
               </dl>
             </section>}
             {group.map(summary => <section aria-label={combined ? `${usageNames[summary.name]} usage` : undefined} key={summary.name} style={styles.serviceSummary}>
               <h3 style={styles.title}><span aria-hidden="true" style={{ ...styles.swatch, background: usageColors[summary.name] }} />{usageNames[summary.name]}</h3>
               <dl style={styles.metrics}>
-                <div style={styles.metric}><dt style={styles.caption}>Service cost</dt><dd style={styles.value}>${summary.cost.toFixed(4)}</dd></div>
+                <div style={styles.metric}><dt style={styles.caption}>Credits</dt><dd style={styles.value}><CreditValue value={summary.cost} /></dd></div>
                 {summary.name !== "model_generation" && <>
                   <div style={styles.metric}><dt style={styles.caption}>Sessions</dt><dd style={styles.value}>{summary.sessions}</dd></div>
                   <div style={styles.metric}><dt style={styles.caption}>Pages used</dt><dd style={styles.value}>{summary.pages}</dd></div>
-                  <div style={styles.metric}><dt style={styles.caption}>Average page cost</dt><dd style={styles.value}>{summary.average === null ? "No pages used" : `$${summary.average.toFixed(4)}`}</dd></div>
+                  <div style={styles.metric}><dt style={styles.caption}>Average page credits</dt><dd style={styles.value}>{summary.average === null ? "No pages used" : <CreditValue value={summary.average} />}</dd></div>
                 </>}
               </dl>
             </section>)}
           </div>
         </section>;
       })}
-      <section aria-label="Total Service Costs" style={{ ...styles.metrics, alignItems: "baseline" }}>
-        <h3 style={{ ...styles.title, margin: 0 }}>Total Service Costs</h3>
-        <p style={styles.value}>${summaries.reduce((total, summary) => total + summary.cost, 0).toFixed(4)}</p>
+      <section aria-label="Total Credits" style={{ ...styles.metrics, alignItems: "baseline" }}>
+        <h3 style={{ ...styles.title, margin: 0 }}>Total Credits</h3>
+        <p style={styles.value}><CreditValue value={summaries.reduce((total, summary) => total + summary.cost, 0)} /></p>
       </section>
     </div>
   );

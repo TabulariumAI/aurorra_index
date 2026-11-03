@@ -73,17 +73,17 @@ test("Audit panel keeps controls in their row at narrow width", async ({ page })
   await expect(page).toHaveScreenshot("audit-narrow-close-row.png", { fullPage: true });
 });
 
-test("Audit report body scrolls", async ({ page }) => {
+test("Audit & Usage body scrolls", async ({ page }) => {
   await page.setViewportSize({ width: 440, height: 480 });
   await page.goto("/?scenario=audit");
 
-  const body = page.getByRole("region", { name: "Audit report body" });
+  const body = page.getByRole("region", { name: "Audit & Usage body" });
   await expect(body).toBeVisible();
   await expect.poll(() => body.evaluate((node) => node.scrollHeight > node.clientHeight)).toBe(true);
 
   const bodyBox = await body.boundingBox();
   expect(bodyBox).toBeTruthy();
-  if (!bodyBox) throw new Error("Expected audit report body in view.");
+  if (!bodyBox) throw new Error("Expected Audit & Usage body in view.");
 
   await body.evaluate((node) => { node.scrollTop = node.scrollHeight; });
   await expect.poll(() => body.evaluate((node) => node.scrollTop > 0)).toBe(true);

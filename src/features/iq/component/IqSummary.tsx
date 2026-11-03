@@ -8,7 +8,8 @@ const metricFg = {
   red: "#991b1b",
 } satisfies Record<IqBucket, string>;
 
-export function IqSummary({ iq }: { iq: IqReportView["iq"] }): JSX.Element {
+export function IqSummary({ view }: { view: Pick<IqReportView, "iq"> }): JSX.Element {
+  const { iq } = view;
   return (
     <div style={iqStyles.summaryCard}>
       <div>

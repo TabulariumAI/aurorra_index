@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MetadataPanel } from "../component/MetadataPanel";
-import { getPanelData, type MetadataCallbacks, type MetadataPayload, type MetadataSegments } from "aurora-core";
+import { getPanelData, metadataStyles, type MetadataCallbacks, type MetadataPayload, type MetadataSegments } from "aurora-core";
 
 const segments: MetadataSegments = {
   ACKNOWLEDGMENT: "acknowledgment", ENDORSEMENT: "endorsement", FEE: "fee", FEEFACTOR: "factor",
@@ -55,15 +55,15 @@ describe("metadata page and title previews", () => {
 
   it.each(["Title", "TITLE", "deed"])("opens main and secondary titles on the page with class %s", pageClass => {
     const onPageClick = vi.fn();
-    panel({ heading: { class: "deed", title: "Warranty Deed", secondary_titles: ["Additional Title"], explanation: "Heading explanation" },
+    panel({ heading: { class: "deed", title: "Warranty Deed", secondary_titles: ["Additional Title"], summary: "Heading explanation" },
       pages: { recordables: [{ name: "1", code: "cover", class: "instrument" },
         { name: "Exhibit-A", code: "title-page", class: pageClass }] } }, "title", { onPageClick });
     for (const title of ["Warranty Deed", "Additional Title"]) {
       fireEvent.click(screen.getByRole("link", { name: title }));
-      expect(onPageClick).toHaveBeenLastCalledWith({ code: "title-page", page: "Exhibit-A", segment: "page", session: "session-1", type: "title", value: title });
+      expect(onPageClick).toHaveBeenLastCalledWith({ code: "title-page", page: "Exhibit-A", segment: "title", session: "session-1", type: "title", value: title });
     }
     expect(onPageClick).toHaveBeenCalledTimes(2);
-    expect(screen.getAllByText("Heading explanation")).toHaveLength(2);
+    expect(screen.getAllByText("Heading explanation")).toHaveLength(1);
   });
 
   it("uses the matching attachment page name", () => {
@@ -73,7 +73,7 @@ describe("metadata page and title previews", () => {
       nonrecordables: [{ name: "01", code: "attachment", class: "TITLE" }],
     } }, "title", { onPageClick });
     fireEvent.click(screen.getByRole("link", { name: "Warranty Deed" }));
-    expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({ code: "attachment", page: "01", value: "Warranty Deed" }));
+    expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({ code: "attachment", page: "01", segment: "title", value: "Warranty Deed" }));
   });
 
   it.each(["page", "callback"])("retains plain title text without a %s", missing => {
@@ -83,4 +83,36 @@ describe("metadata page and title previews", () => {
     expect(screen.getByText("Warranty Deed")).toBeVisible();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
+});
+
+
+it.each([undefined, ["Release of Lien"]])("renders the document summary with secondary titles %s", secondary_titles => {
+  const summary = `This document is a Mortgage Satisfaction${secondary_titles ? " with a Release of Lien" : ""} extinguishing the recorded mortgage.`;
+  const onPageClick = vi.fn();
+  panel({ heading: { class: "mortgage", title: "Mortgage Satisfaction", secondary_titles, summary },
+    pages: { recordables: [{ name: "2", code: "title-page", class: "Title" }] } }, "title", { onPageClick });
+  expect(screen.getAllByText(summary)).toHaveLength(1);
+  const paragraph = screen.getByText(summary);
+  expect(paragraph.tagName).toBe("P");
+  expect(paragraph).toHaveStyle(metadataStyles.segmentSummary);
+  expect(paragraph.closest("article")).toBeNull();
+  expect(paragraph.compareDocumentPosition(screen.getAllByRole("article")[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getAllByRole("article")).toHaveLength(secondary_titles ? 2 : 1);
+  expect(screen.getByRole("button", { name: "Titles" }).parentElement?.lastElementChild).toHaveTextContent(secondary_titles ? "2" : "1");
+  fireEvent.click(screen.getByRole("link", { name: "Mortgage Satisfaction" }));
+  expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({ page: "2", value: "Mortgage Satisfaction" }));
+  expect(screen.queryByText("undefined")).not.toBeInTheDocument();
+});
+
+it.each([undefined, ""])("omits an absent heading summary %j while retaining titles", summary => {
+  panel({ heading: { title: "Deed", summary } }, "title");
+  expect(screen.getByText("Deed")).toBeVisible();
+  expect(screen.getByRole("article").parentElement?.querySelector("p")).toBeNull();
+});
+
+it("renders a heading summary before the empty title state", () => {
+  panel({ heading: { summary: "Document overview." } }, "title");
+  expect(screen.getByText("Document overview.")).toBeVisible();
+  expect(screen.getByText("No titles found.")).toBeVisible();
+  expect(screen.queryByRole("article")).toBeNull();
 });

@@ -104,3 +104,30 @@ it.each(["daily", "weekly"] as const)("filters multiple services before %s aggre
   expect(selected[1]).toMatchObject({ cost: 5.5, pages: 2, sessions: 1, average: 2.75 });
   expect(summarizeUsage(records).map(row => row.name)).toEqual(["extraction", "iq_refinement", "refinement"]);
 });
+
+it("keeps unsorted repeated dates separate by service, without mutating source records", () => {
+  const input: UsageRecord[] = [
+    { ...records[0], code: "late-a", cost: 0.125, page_num: 1, timestamp: "2026-10-06T00:00:00Z" },
+    { ...records[0], code: "early", cost: 0.25, page_num: 2, timestamp: "2026-10-04T23:00:00-01:00" },
+    { ...records[0], code: "late-b", session: "two", cost: 0.375, page_num: 3, timestamp: "2026-10-06T12:00:00Z" },
+    { ...records[2], code: "iq", cost: 0.0625, page_num: 1, timestamp: "2026-10-06T12:00:00Z" },
+  ];
+  const snapshot = structuredClone(input);
+  const summaries = summarizeUsage(input);
+  expect(summaries[0]).toMatchObject({ cost: 0.75, pages: 6, sessions: 2, average: 0.125, points: [
+    { date: "2026-10-05", cost: 0.25, pages: 2 }, { date: "2026-10-06", cost: 0.5, pages: 4 },
+  ] });
+  expect(summaries[1]).toMatchObject({ cost: 0.0625, points: [{ date: "2026-10-06", cost: 0.0625, pages: 1 }] });
+  expect(input).toEqual(snapshot);
+});
+
+it("retains every daily bucket and exact totals across a full audit history", () => {
+  const input: UsageRecord[] = Array.from({ length: 365 }, (_, index) => ({ ...records[0],
+    code: `day-${index}`, cost: 0.125, page_num: 1, timestamp: new Date(Date.UTC(2025, 0, 365 - index)).toISOString(),
+  }));
+  const summary = summarizeUsage([...input, ...input.map(row => ({ ...row, code: `repeat-${row.code}`, session: "two" }))])[0];
+  expect(summary.points).toHaveLength(365);
+  expect(summary.points[0]).toEqual({ date: "2025-01-01", cost: 0.25, pages: 2 });
+  expect(summary.points[364]).toEqual({ date: "2025-12-31", cost: 0.25, pages: 2 });
+  expect(summary).toMatchObject({ cost: 91.25, pages: 730, sessions: 2, average: 0.125 });
+});

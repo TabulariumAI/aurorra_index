@@ -9,7 +9,11 @@ it("background IQ generation uses the same GET without metadata etag or panel mu
   const commands: unknown[] = [];
   class WorkerMock {
     onmessage: ((event: MessageEvent) => void) | null = null;
-    postMessage(command: unknown) { commands.push(command); this.onmessage?.({ data: { ok: true, data: { report: { iq_doc: 98 }, metadataEtag: "" } } } as MessageEvent); }
+    postMessage(command: unknown) {
+      commands.push(command);
+      this.onmessage?.({ data: { type: "iqDownload" } } as MessageEvent);
+      this.onmessage?.({ data: { ok: true, data: { report: { iq_doc: 98 }, metadataEtag: "" } } } as MessageEvent);
+    }
     terminate() {}
   }
   vi.stubGlobal("Worker", WorkerMock);

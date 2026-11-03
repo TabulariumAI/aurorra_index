@@ -1,20 +1,24 @@
 import type { JSX } from "react";
-import { LoadPlaceholder } from "aurora-core";
+import { ErrorBadge, LoadPlaceholder } from "aurora-core";
 import { auditStyles } from "../style/auditStyles";
+import { prepareAuditReport } from "../data/auditData";
+import type { AuditFilters, AuditReport } from "../type/audit.types";
 
 type AuditSummaryProps = {
-  filtered: number | null;
-  total: number | null;
+  report: AuditReport | null;
+  filters: AuditFilters;
+  error?: string;
 };
 
-export function AuditSummary({ filtered, total }: AuditSummaryProps): JSX.Element {
+export function AuditSummary({ report, filters, error }: AuditSummaryProps): JSX.Element {
+  const view = !error && report ? prepareAuditReport(report, filters, []) : null;
   return (
     <div style={auditStyles.summary}>
       <div style={auditStyles.summaryRow}>
         <div style={auditStyles.summaryBadge}>
-          {filtered === null || total === null ? <LoadPlaceholder compact label="Loading audit summary" /> : <>
-            <span style={auditStyles.summaryBadgeCount}>{filtered}</span>
-            <span style={auditStyles.summaryBadgeLabel}>Out of {total}</span>
+          {error ? <ErrorBadge label="Audit summary" error={error} /> : view === null ? <LoadPlaceholder compact label="Loading audit summary" /> : <>
+            <span style={auditStyles.summaryBadgeCount}>{view.filtered}</span>
+            <span style={auditStyles.summaryBadgeLabel}>Out of {view.total}</span>
           </>}
         </div>
       </div>

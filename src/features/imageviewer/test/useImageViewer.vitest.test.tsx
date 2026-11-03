@@ -444,7 +444,7 @@ describe("useImageViewer", () => {
     expect(lens.search).not.toHaveBeenCalled();
     expect(lens.highlightIndex).not.toHaveBeenCalled();
     for (const value of ["Warranty Deed", "Additional Title"]) {
-      await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, index: "title", value }));
+      await act(async () => imageViewerStoreApi.getState().setRequest({ ...request, index: "title", segment: "title", value }));
       expect(lens.search).toHaveBeenLastCalledWith(value, { additive: false, context: null });
     }
     vi.mocked(lens.clearSelection).mockClear();

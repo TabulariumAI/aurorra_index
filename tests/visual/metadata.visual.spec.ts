@@ -338,30 +338,19 @@ test("metadata values remain left-aligned when row actions differ", async ({ pag
   }
 });
 
-test("address rows place Show map below the address in the value column", async ({ page }, testInfo) => {
+test("address rows omit Show map while preserving the address and image preview", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1312, height: 900 });
   await page.goto("/?scenario=metadata-address-row");
 
   const row = page.locator('article[data-index-segment="transaction"]').first();
   const value = row.getByRole("link", { name: "4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC" });
-  const map = row.getByRole("button", { name: "Open address 4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC" });
-  const valueColumn = value.locator("../..");
-
-  await expect(valueColumn).toHaveCSS("align-items", "flex-start");
-  await expect(valueColumn).toHaveCSS("flex-direction", "column");
-  expect(await valueColumn.locator(":scope > *").evaluateAll(elements => elements.map(element => element.textContent))).toEqual([
-    "4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC",
-    "Show map",
-  ]);
-  const [valueBox, mapBox] = await Promise.all([value.boundingBox(), map.boundingBox()]);
-  expect(valueBox).not.toBeNull();
-  expect(mapBox).not.toBeNull();
-  expect(Math.abs(mapBox!.x - valueBox!.x)).toBeLessThanOrEqual(1);
-  expect(mapBox!.y).toBeGreaterThanOrEqual(valueBox!.y + valueBox!.height);
+  await expect(value).toBeVisible();
+  await expect(row.getByRole("button", { name: /^Open address/ })).toHaveCount(0);
+  await expect(row.getByText("Show map", { exact: true })).toHaveCount(0);
   expect(await row.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 
-  await map.click();
-  await expect(page.locator("#visual-stage")).toHaveAttribute("data-address", "4819 Williams Drive, Georgetown, 78633, Georgetown Mortgage Street, LLC");
+  await value.click();
+  await expect(page.locator("#visual-stage")).toHaveAttribute("data-title-page", "1");
   await page.screenshot({ path: testInfo.outputPath("metadata-address-row.png") });
 });
 
@@ -465,3 +454,33 @@ test("metadata segment text actions remain within workspace viewports", async ({
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
 });
+
+
+for (const width of [375, 1440]) {
+  for (const secondary of [false, true]) {
+    test(`document summary remains visible and title preview works at ${width}px, secondary ${secondary}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`/?scenario=metadata-summary${secondary ? "&secondary=1" : ""}`);
+      const summary = `This document is a Mortgage Satisfaction${secondary ? " with a Release of Lien" : ""} extinguishing the recorded mortgage and releasing the lender's lien on the property.`;
+      const summaries = page.getByText(summary, { exact: true });
+      await expect(summaries).toHaveCount(1);
+      expect(await summaries.evaluate(node => node.tagName)).toBe("P");
+      expect(await summaries.evaluate(node => node.closest("article"))).toBeNull();
+      const summaryBox = await summaries.boundingBox();
+      const titleBox = await page.getByRole("article").first().boundingBox();
+      expect(summaryBox!.y + summaryBox!.height).toBeLessThan(titleBox!.y);
+      expect(summaryBox!.x).toBeCloseTo(titleBox!.x, 0);
+      for (const item of await summaries.all()) {
+        await expect(item).toBeVisible();
+        const box = await item.boundingBox();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+      }
+      await page.getByRole("link", { name: "Mortgage Satisfaction", exact: true }).click();
+      await expect(page.locator("#visual-stage")).toHaveAttribute("data-title-page", "2");
+      await expect(page.getByRole("link", { name: "Release of Lien", exact: true })).toHaveCount(secondary ? 1 : 0);
+      expect(await page.locator("body").evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`document-summary-${width}-${secondary}.png`), fullPage: true });
+    });
+  }
+}

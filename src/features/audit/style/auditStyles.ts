@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import type { AuditGapView } from "../type/audit.types";
 
 const gapMetaPalette: Record<string, string> = {
   header: "var(--title-ink)",
@@ -7,7 +6,40 @@ const gapMetaPalette: Record<string, string> = {
   muted: "var(--slate-500)",
 };
 
+export const auditCss = `
+.audit-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.audit-panel [role="tabpanel"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+`;
+
 export const auditStyles = {
+  tabs: {
+    borderBottom: "1px solid var(--border-card)",
+    display: "flex",
+    flex: "0 0 auto",
+    margin: "0 var(--panel-content-padding) 0.45rem",
+    minWidth: 0,
+  } as CSSProperties,
+  tab(active: boolean): CSSProperties {
+    return {
+      appearance: "none",
+      background: "transparent",
+      border: 0,
+      borderBottom: `3px solid ${active ? "var(--primary)" : "transparent"}`,
+      borderRadius: 0,
+      boxShadow: "none",
+      color: active ? "var(--primary-dark)" : "var(--body-ink)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: "0.9rem",
+      fontWeight: 500,
+      minHeight: "2.75rem",
+      padding: "0.5rem 1rem",
+      textAlign: "center",
+      transform: "none",
+      transition: "none",
+      width: "8rem",
+    };
+  },
   root: {
     alignItems: "stretch",
     boxSizing: "border-box",
@@ -40,6 +72,7 @@ export const auditStyles = {
     flexDirection: "column",
     marginLeft: 0,
     minWidth: "3.5rem",
+    gridColumn: "2",
   } as CSSProperties,
   summaryRow: {
     display: "flex",
@@ -104,6 +137,10 @@ export const auditStyles = {
     gridTemplateColumns: "minmax(0, 1fr) auto",
     minWidth: 0,
     width: "100%",
+  } as CSSProperties,
+  filterFailure: {
+    gridColumn: "1 / -1",
+    minWidth: 0,
   } as CSSProperties,
   filters: {
     display: "flex",
@@ -237,4 +274,4 @@ export const auditStyles = {
     cursor: "pointer",
     textDecoration: "underline",
   } as CSSProperties,
-} satisfies Record<string, CSSProperties | ((...args: AuditGapView[]) => CSSProperties)>;
+} satisfies Record<string, CSSProperties | ((active: boolean) => CSSProperties)>;

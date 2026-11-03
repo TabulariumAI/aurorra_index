@@ -1,6 +1,7 @@
 import { formatLabel, type LegalElement, type LegalGroup, type LegalPayload } from "aurora-core";
 import { displayLots, getElements, getPresentLayers, resolveGroups, toPlatJSON, type LegalMapView } from "./legalData";
 import { legalMapConstants } from "../style/legalMapStyles";
+import { solveMatrix, type BoundaryCourse, type MatrixCourse } from "./boundaryMatrix";
 
 type SurveyPoint = { x: number; y: number };
 export type SurveyItem =
@@ -73,6 +74,7 @@ const bearingPattern = new RegExp(
   "(?<![\\w'’])(?:NORTH|SOUTH|N|S)\\.?\\s*\\d+(?:\\.\\d+)?(?:\\s+\\d+\\s*\\/\\s*\\d+)?\\s*(?:DEGREES?|DEG\\.?|[°º˚])?(?:\\s*\\d+(?:\\.\\d+)?\\s*(?:MINUTES?|MIN\\.?|['′’:]))?(?:\\s*\\d+(?:\\.\\d+)?\\s*(?:SECONDS?|SEC\\.?|[\"″”]|''))?\\s*,?\\s*(?:EAST|WEST|E|W)\\b"
   + "|(?<![\\w'’])(?:NORTH|SOUTH|EAST|WEST|[NSEW])(?=\\s+-?" + number + "(?![\\d.]|\\s*/)(?!\\s*(?:DEGREES?|DEG\\.?|[°º˚])))", "gi",
 );
+const angularStart = /^\s*(?:NORTH|SOUTH|[NS])\s*\d/i;
 
 export function parseDistance(source: string): number | null {
   if (!lengthPattern.test(source.trim())) return null;
@@ -80,8 +82,6 @@ export function parseDistance(source: string): number | null {
     .reduce((sum, match) => sum + Number(match[1].replaceAll(",", "")) * units[match[2].toLowerCase().replace(/\.$/, "")], 0);
   return Number.isFinite(length) ? length : null;
 }
-
-type BoundaryCourse = { kind: "bearing" | "curve"; bearing: string; distance?: string; clause: string; detail: string };
 
 function readCourse(value: string): BoundaryCourse {
   const bearing = [...value.matchAll(bearingPattern)][0];
@@ -119,20 +119,24 @@ function readList(values: string[], distances: boolean): string[] {
   return entries;
 }
 
-export function parseMetesAndBounds(group: LegalGroup): BoundaryCourse[] {
+function readSource(group: LegalGroup, pattern = bearingPattern): BoundaryCourse[] {
   const source = group.source ?? "";
   const records = [...source.matchAll(/\([^)]*\)/g)];
   const events = [
-    ...[...source.matchAll(bearingPattern)].map(match => ({ kind: "bearing" as const, match })),
+    ...[...source.matchAll(pattern)].map(match => ({ kind: "bearing" as const, match })),
     ...[...source.matchAll(/\b(?:THENCE\s+)?(?:CONTINUING\s+ALONG|ALONG)\s+(?:SAID|A)\s+CURVE\b/gi)].map(match => ({ kind: "curve" as const, match })),
   ].filter(event => !records.some(record => event.match.index! > record.index! && event.match.index! < record.index! + record[0].length))
     .sort((left, right) => left.match.index! - right.match.index!);
-  const courses: BoundaryCourse[] = events.map((event, index) => {
+  return events.map((event, index) => {
     const end = events[index + 1]?.match.index ?? source.length;
     const clause = source.slice(event.match.index! + event.match[0].length, end);
     const distance = clause.split(/[;\n]/)[0].match(distancePattern)?.[0];
     return { kind: event.kind, bearing: event.match[0], distance, clause, detail: source.slice(event.match.index, end) };
   });
+}
+
+export function parseMetesAndBounds(group: LegalGroup): BoundaryCourse[] {
+  const courses = readSource(group);
   const elements = getElements(group);
   const bearings = readList(elements.filter(element => element.aspect === "bearings" && element.value?.trim()).map(element => element.value!), false);
   const distances = readList(elements.filter(element => element.aspect === "distances" && element.value?.trim()).map(element => element.value!), true);
@@ -188,10 +192,14 @@ export function parseStreetRelativeBoundary(group: LegalGroup): BoundaryCourse[]
 }
 
 export function buildBoundary(group: LegalGroup, title: string): SurveyScene {
-  const scene: SurveyScene = { title, items: [], notes: getNotes(getElements(group).filter(element => element.value?.trim())), courses: [] };
   const parsed = parseMetesAndBounds(group);
   const courses = parsed.length ? parsed : parseStreetRelativeBoundary(group) ?? [];
   const schematic = !parsed.length && courses.length > 0;
+  return drawBoundary(group, title, courses, schematic);
+}
+
+function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[], schematic: boolean): SurveyScene {
+  const scene: SurveyScene = { title, items: [], notes: getNotes(getElements(group).filter(element => element.value?.trim())), courses: [] };
   if (schematic) {
     scene.schematic = true;
     scene.issue = "Unconfirmed boundary: street-relative schematic requires review.";
@@ -216,9 +224,9 @@ export function buildBoundary(group: LegalGroup, title: string): SurveyScene {
   }
   for (const [index, course] of courses.entries()) {
     const { clause } = course;
-    const metres = course.distance ? parseDistance(course.distance) : null;
-    const angle = course.kind === "bearing" ? parseBearing(course.bearing) : null;
-    let issue = schematic ? scene.issue : positionIssue ? "Position depends on an earlier unconfirmed course: " + positionIssue : undefined;
+    const metres = course.metres !== undefined ? course.metres : course.distance ? parseDistance(course.distance) : null;
+    const angle = course.angle !== undefined ? course.angle : course.kind === "bearing" ? parseBearing(course.bearing) : null;
+    let issue = course.issue ?? (schematic ? scene.issue : positionIssue ? "Position depends on an earlier unconfirmed course: " + positionIssue : undefined);
     let to: SurveyPoint | undefined;
     let arc: Extract<SurveyItem, { kind: "line" }>["arc"];
     if (course.kind === "curve") {
@@ -300,6 +308,114 @@ export function buildBoundary(group: LegalGroup, title: string): SurveyScene {
   }
   if (!courses.length) scene.issue = "Sorry, this parcel’s boundary couldn’t be drawn from the available details.";
   return scene;
+}
+
+function matrixAngle(value: string): number | null {
+  return parseBearing(value.replace(/\b(?:SUBSTANTIALLY|DUE)\b/gi, "").replace(/\s+/g, " ").trim());
+}
+
+function matrixEntry(value: string): MatrixCourse {
+  const angular = value.match(/\b(?:NORTH|SOUTH|[NS])\s*\d[^;]*?\b(?:EAST|WEST|[EW])\b/i);
+  const distance = [...value.matchAll(new RegExp(distancePattern.source, "gi"))].find(match => !angular
+    || match.index! < angular.index! || match.index! >= angular.index! + angular[0].length);
+  const bearing = distance ? (value.slice(0, distance.index).trim() + " " + value.slice(distance.index! + distance[0].length).trim()).trim() : value.trim();
+  const label = bearing.replace(/^APPROXIMATELY\s*$/i, "").trim();
+  const angle = matrixAngle(label);
+  const rawDistance = distance?.[0] ?? (angle === null && /^\s*-?(?:\d|\.\d)/.test(value) ? value.trim() : undefined);
+  const metres = rawDistance === undefined ? null : parseDistance(rawDistance);
+  return {
+    kind: "bearing", bearing: rawDistance === value.trim() ? "" : label, distance: rawDistance, clause: "", detail: value,
+    angle, metres,
+    paired: angle !== null && rawDistance !== undefined,
+    missingBearing: label === "" && metres !== null, missingDistance: rawDistance === undefined && angle !== null,
+  };
+}
+
+function matrixCourses(group: LegalGroup): MatrixCourse[] {
+  const elements = getElements(group);
+  const fields = ["bearings", "distances"].map(aspect => readList(elements.filter(element => element.aspect === aspect && element.value?.trim()).map(element => element.value!), aspect === "distances")
+    .map(matrixEntry)).map(field => field.some(course => course.angle !== null || course.distance !== undefined || angularStart.test(course.bearing)) ? field : []);
+  const source = readSource(group);
+  if (fields.every(field => field.length === 0) || source.some(course => course.kind === "curve")
+    || (source.length > 0 && fields.every(field => field.every(course => !course.paired))
+      && (source.length > Math.max(...fields.map(field => field.length)) || fields[0].length !== fields[1].length)
+      && source.every(course => course.distance !== undefined && parseDistance(course.distance) !== null))) {
+    return source.map(course => ({ ...course, angle: course.kind === "curve" ? null : parseBearing(course.bearing),
+      metres: course.distance === undefined ? null : parseDistance(course.distance), paired: true, missingBearing: false, missingDistance: false }));
+  }
+  if (fields.every(field => field.every(course => course.angle === null && !angularStart.test(course.bearing)))) return [];
+  const rows: { course: MatrixCourse; order: number }[] = [];
+  const separate = fields.findIndex(field => field.length > 0 && field.every(course => course.angle !== null && course.distance === undefined));
+  const used = new Set<MatrixCourse>();
+  // An explicit source association can identify a gap in unequal measurement lists.
+  const associations = readSource(group, new RegExp(bearingPattern.source + "|(?<![\\w'’])(?:NORTH|SOUTH|EAST|WEST)(?![\\w'’])", "gi"));
+  for (const [fieldIndex, field] of fields.entries()) {
+    for (const [index, course] of field.entries()) {
+      if (used.has(course)) continue;
+      const other = fields[1 - fieldIndex];
+      let match: MatrixCourse | undefined;
+      if (course.angle !== null && course.distance === undefined) {
+        const verified = associations.filter(item => matrixAngle(item.bearing) === course.angle && item.distance !== undefined)
+          .flatMap(item => other.filter(candidate => !used.has(candidate) && candidate.metres !== null && candidate.metres === parseDistance(item.distance!)
+            && (candidate.bearing === "" || candidate.angle === course.angle)));
+        if (new Set(verified).size === 1) match = verified[0];
+      }
+      const same = other[index];
+      if (!match && same && !used.has(same)
+        && (course.bearing === "" || same.bearing === "" || course.angle !== null && course.angle === same.angle)
+        && (course.distance === undefined || same.distance === undefined || course.metres !== null && course.metres === same.metres)) match = same;
+      if (!match && course.distance === undefined && course.angle !== null) match = other.find(candidate => !used.has(candidate) && candidate.bearing === "" && candidate.distance !== undefined);
+      if (!match && course.bearing === "" && course.distance !== undefined) match = other.find(candidate => !used.has(candidate) && candidate.angle !== null && candidate.distance === undefined);
+      used.add(course);
+      const order = separate < 0 ? (fieldIndex === 0 ? index : fields[0].length + index)
+        : fieldIndex === separate && match ? other.indexOf(match) : index;
+      if (match) {
+        used.add(match);
+        const bearing = course.bearing === "" ? match : course;
+        const distance = course.distance === undefined ? match : course;
+        const association = associations.find(item => matrixAngle(item.bearing) === bearing.angle && item.distance !== undefined && parseDistance(item.distance) === distance.metres);
+        rows.push({ order, course: { ...bearing, distance: distance.distance, metres: distance.metres,
+          paired: bearing.paired || distance.paired || association !== undefined,
+          missingBearing: bearing.bearing === "", missingDistance: distance.distance === undefined,
+          detail: `${course.detail} · ${match.detail}`,
+          clause: association?.clause ?? "" } });
+      } else rows.push({ order, course: { ...course } });
+    }
+  }
+  return rows.sort((left, right) => left.order - right.order).map(row => row.course);
+}
+
+export function buildMatrix(group: LegalGroup, title: string): SurveyScene {
+  const courses = matrixCourses(group);
+  const street = courses.length === 0 ? parseStreetRelativeBoundary(group) : null;
+  if (street) return drawBoundary(group, title, street, true);
+  const scene = drawBoundary(group, title, courses, false);
+  const offset = scene.courses!.length - courses.length;
+  const beginning = scene.beginning !== undefined ? scene.beginning - offset : 0;
+  const ending = scene.closed ? scene.ending! - offset : courses.length;
+  const resolved = solveMatrix(courses.slice(beginning, ending), legalMapConstants.closureRatio,
+    scene.courses!.slice(0, beginning + offset).reduce((sum, course) => sum + parseDistance(course.distance!)!, 0));
+  const result = resolved.courses.every((course, index) => course === courses[beginning + index]) ? scene
+    : drawBoundary(group, title, [...courses.slice(0, beginning), ...resolved.courses, ...courses.slice(ending)], false);
+  if (resolved.closed) {
+    result.closed = true;
+    result.beginning = beginning + offset;
+    result.ending = ending + offset;
+    result.courses![ending + offset - 1].target = beginning + offset + 1;
+    if (resolved.courses.some(course => course.issue)) {
+      result.schematic = true;
+      result.issue = resolved.courses.some(course => course.issue && course.paired)
+        ? "Boundary includes rearranged bearing-distance pairs; affected borders are Unconfirmed."
+        : "Boundary includes calculated geometry; calculated borders are Unconfirmed.";
+    }
+  } else if (scene.closed) {
+    result.closed = false;
+    result.beginning = undefined;
+    result.ending = undefined;
+    for (const course of result.courses!) delete course.target;
+  }
+  if (resolved.issue) result.issue = resolved.issue;
+  return result;
 }
 
 function aliquotText(source: string): string {
@@ -397,7 +513,7 @@ export function getMapGroups(legal: LegalPayload | null | undefined): { view: Le
     const elements = getElements(group).filter(element => element.value?.trim());
     if (elements.length === 0 && !group.source?.trim()) return [];
     const view = views[type];
-    const scene = view === "PLSS" ? buildPlss(group, view, plssCount === 1 ? legal?.summary : undefined) : view === "Metes & Bounds" ? buildBoundary(group, view) : undefined;
+    const scene = view === "PLSS" ? buildPlss(group, view, plssCount === 1 ? legal?.summary : undefined) : view === "Metes & Bounds" ? buildMatrix(group, view) : undefined;
     let aspects: LegalElement[] = [];
     let issue: string | undefined;
     if (view === "Lot & block") {

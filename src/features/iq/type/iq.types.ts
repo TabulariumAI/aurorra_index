@@ -75,12 +75,15 @@ export type IqWorkerError = {
 
 export type IqWorkerResult<T> = { ok: true; data: T } | ({ ok: false } & IqWorkerError);
 
+export type IqWorkerEvent = { type: "iqDownload" };
+
 export type IqWorkerCommand =
   | { apiBaseUrl: string; session: string; token: string; type: "iqData"; etag: string | null }
   | { apiBaseUrl: string; session: string; code: string; token: string; type: "iqAck" };
 
 export type IqWorkerConfig = {
   apiBaseUrl: string;
+  onDownload?(): void;
   onRetry?(attempt: number): void;
   retryIntervalMs: number;
   retryLimit: number;
@@ -131,14 +134,15 @@ export type IqPanelProps = {
 export type IqStoreState = {
   metadataEtag: string | null | undefined;
   generation: number;
+  ackGeneration: number;
   activeSession: string | null;
   ackingCodes: ReadonlySet<string>;
   error: IqWorkerError | null;
   report: IqReport | null;
   retryAttempt: number;
   status: IqStatus;
-  ackStart(code: string): void;
-  ackSuccess(code: string): void;
+  ackStart(session: string, code: string): number | null;
+  ackFinish(session: string, generation: number, code: string, error: IqWorkerError | null): boolean;
   resetIq(): void;
   setError(error: IqWorkerError): void;
   setLoaded(session: string, report: IqReport, metadataEtag?: string): void;

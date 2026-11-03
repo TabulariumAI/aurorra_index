@@ -85,7 +85,7 @@ Response parsing:
 - Preserve object payloads as `details`.
 
 Audit data success:
-- Parse the JSON body as the audit report.
+- Parse the JSON body as the Audit & Usage.
 - Normalize the report before returning it.
 - Return `{ ok: true, data: report }` after `normalizeAuditReport` completes.
 
@@ -323,7 +323,7 @@ Audit panel rules:
 - `AuditPanel` must not import, create, or close the host dialog.
 
 Summary rules:
-- `AuditSummary` renders the `Audit report` title.
+- `AuditSummary` renders the `Audit & Usage` title.
 - `AuditPanel` renders service usage below the gaps and omits standalone total-cost text.
 - `AuditSummary` renders the filtered count and the `Out of {total}` badge text.
 
@@ -362,7 +362,7 @@ Visual harness:
   - third raw gap: `{ aspect: "CORRECTION", changeType: "CORRECTION", date: "2026-01-02T12:00:00Z", message: "<long message over 200 characters>", page: 2, process: "enrichment" }`
   - one usage block with service records
 - Browser test must verify:
-  - `Audit report` is visible.
+  - `Audit & Usage` is visible.
   - The standalone total-cost text is absent.
   - The badge count and `Out of` text are visible.
   - The change type and process filters are visible.
@@ -403,8 +403,8 @@ Production edits:
 - `AuditHost` uses `createPortal` from `react-dom`.
 - When `layout_mode === PARAMS.layout_mode.values.STUDIOMODE`, portal `<AuditPanel {...props} />` into `document.getElementById("preview-container")`.
 - When the preview target element is missing, return `null`.
-- When `layout_mode === PARAMS.layout_mode.values.TABLETMODE`, render the same `Dialog` structure used by `document_web\src\features\iq\component\IqHost.tsx`, with title text `Audit report`, `onClose={() => resetParam("layout_type")}`, and child `<AuditPanel key={auditRevision} {...props} />`.
-- When `layout_mode === PARAMS.layout_mode.values.KIOSKMODE`, render the same `Dialog` structure used by `document_web\src\features\iq\component\IqHost.tsx`, with title text `Audit report`, `onClose={() => resetParam("layout_type")}`, and child `<AuditPanel key={auditRevision} {...props} />`.
+- When `layout_mode === PARAMS.layout_mode.values.TABLETMODE`, render the same `Dialog` structure used by `document_web\src\features\iq\component\IqHost.tsx`, with title text `Audit & Usage`, `onClose={() => resetParam("layout_type")}`, and child `<AuditPanel key={auditRevision} {...props} />`.
+- When `layout_mode === PARAMS.layout_mode.values.KIOSKMODE`, render the same `Dialog` structure used by `document_web\src\features\iq\component\IqHost.tsx`, with title text `Audit & Usage`, `onClose={() => resetParam("layout_type")}`, and child `<AuditPanel key={auditRevision} {...props} />`.
 - In dialog placement, `AuditHost` must not imperatively mutate `#dialog-container`.
 - To preserve the existing audit refresh behavior on `refineSegmentComplete`, `AuditHost` must own `const [auditRevision, setAuditRevision] = useState(0)`.
 - `AuditHost` must subscribe with `EventBus.listen(EVENTS.refineSegmentComplete, handler)` in `useEffect`.
@@ -499,8 +499,8 @@ Run from `document_web`:
 2. `npm run typecheck`
 3. `npm run build`
 4. `npm run test:visual`
-5. Browser verification for audit preview placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `STUDIOMODE`; verify `Audit report`, service usage below gaps, filters, gaps, and refresh after `refineSegmentComplete`.
-6. Browser verification for audit dialog placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `TABLETMODE`; verify `Audit report`, service usage below gaps, filters, gaps, close behavior, and refresh after `refineSegmentComplete`.
+5. Browser verification for audit preview placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `STUDIOMODE`; verify `Audit & Usage`, service usage below gaps, filters, gaps, and refresh after `refineSegmentComplete`.
+6. Browser verification for audit dialog placement using a local document_web run with `layout_type` set to `AUDITREPORT` and `layout_mode` set to `TABLETMODE`; verify `Audit & Usage`, service usage below gaps, filters, gaps, close behavior, and refresh after `refineSegmentComplete`.
 
 Grep gates:
 1. `rg -n "globalThis|\\bUI\\b|EventBus|\\bEVENTS\\b|\\bENV\\b|\\bAPI\\b|WorkerHelper|AlertHelper|ALERT_MESSAGES|document_web|AuditController|AuditView|AuditAdapter|AuditViewer|document\\.createElement|appendChild|innerHTML" aurorra_index/src/features/audit`

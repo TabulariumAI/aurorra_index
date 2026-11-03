@@ -56,7 +56,10 @@ it.each(["", "other"])("marks a mismatched or absent generated source: %s", sour
   iqStoreApi.getState().setLoaded("s", report, source);
   const { result } = renderHook(useIqRefresh);
   expect(result.current).toBe(true);
-  act(() => iqStoreApi.getState().ackSuccess("gate"));
+  act(() => {
+    const generation = iqStoreApi.getState().ackStart("s", "gate")!;
+    iqStoreApi.getState().ackFinish("s", generation, "gate", null);
+  });
   expect(result.current).toBe(true);
 });
 

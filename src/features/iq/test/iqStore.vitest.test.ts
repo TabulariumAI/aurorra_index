@@ -37,17 +37,17 @@ describe("iqStore", () => {
 
   it("tracks acking gates and removes acknowledged gates", () => {
     iqStoreApi.getState().setLoaded("session-1", report, "");
-    iqStoreApi.getState().ackStart("gate-1");
+    const generation = iqStoreApi.getState().ackStart("session-1", "gate-1")!;
     expect(iqStoreApi.getState().ackingCodes.has("gate-1")).toBe(true);
 
-    iqStoreApi.getState().ackSuccess("gate-1");
+    iqStoreApi.getState().ackFinish("session-1", generation, "gate-1", null);
     expect(iqStoreApi.getState().ackingCodes.has("gate-1")).toBe(false);
     expect(iqStoreApi.getState().report?.gates.map((gate) => gate.code)).toEqual(["gate-2"]);
   });
 
   it("resets to initial state", () => {
     iqStoreApi.getState().setLoaded("session-1", report, "");
-    iqStoreApi.getState().ackStart("gate-1");
+    iqStoreApi.getState().ackStart("session-1", "gate-1");
     const generation = iqStoreApi.getState().generation;
     iqStoreApi.getState().resetIq();
     expect(iqStoreApi.getState().generation).toBe(generation + 1);

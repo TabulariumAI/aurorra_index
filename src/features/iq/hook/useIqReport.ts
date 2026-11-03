@@ -55,15 +55,15 @@ export function useIqReport({
   }, [loadReport]);
 
   const ackGate = useCallback(async (code: string) => {
-    iqStoreApi.getState().ackStart(code);
+    const generation = iqStoreApi.getState().ackStart(session, code);
+    if (generation === null) return;
+    const callbacks = callbacksRef.current;
     try {
       await ackClient.ackGate(authToken ?? "", session, code);
-      iqStoreApi.getState().ackSuccess(code);
-      callbacksRef.current.onIqAck?.(code);
+      if (iqStoreApi.getState().ackFinish(session, generation, code, null)) callbacks.onIqAck?.(code);
     } catch (error) {
       const workerError = toIqError(error);
-      iqStoreApi.getState().setError(workerError);
-      callbacksRef.current.onIqError?.(workerError);
+      if (iqStoreApi.getState().ackFinish(session, generation, code, workerError)) callbacks.onIqError?.(workerError);
     }
   }, [authToken, ackClient, session]);
 

@@ -65,7 +65,7 @@ export function resolveSelectedIndex(
   selectedIndex: MetadataSelected | null,
 ): { ambiguous: string; label: string; pageNumber: string | number; source: string; value: string } | null {
   if (!metadata || !selectedIndex?.code) return null;
-  const groups = [metadata.indexes, metadata.parties, metadata.secrets];
+  const groups = [metadata.indexes, metadata.parties?.indexes, metadata.secrets];
   for (const group of groups) {
     const row = group?.find((item) => String(item.code) === selectedIndex.code);
     const resolved = resolveRow(row);

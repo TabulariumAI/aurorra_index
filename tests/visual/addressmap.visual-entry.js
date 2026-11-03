@@ -12,7 +12,7 @@ if (scenario === "pages") {
   await import("./audit.visual.tsx");
 } else if (scenario === "iq") {
   await import("./iq.visual.tsx");
-} else if (scenario === "metadata") {
+} else if (scenario === "metadata" || scenario === "metadata-summary" || scenario === "metadata-groups") {
   await import("./metadata.visual.tsx");
 } else if (scenario === "metadata-reprocess") {
   await import("./metadata.visual.tsx");

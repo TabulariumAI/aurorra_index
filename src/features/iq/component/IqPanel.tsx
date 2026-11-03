@@ -1,15 +1,21 @@
+import { ErrorBoundary } from "aurora-core";
 import type { JSX } from "react";
 import { useIqReport } from "../hook/useIqReport";
 import { iqStyles } from "../style/iqStyles";
-import type { IqPanelProps } from "../type/iq.types";
+import type { IqPanelProps, IqReportView } from "../type/iq.types";
 import { IqGates } from "./IqGates";
 import { IqSegments } from "./IqSegments";
 import { IqSummary } from "./IqSummary";
 import { IqPlaceholder } from "./IqPlaceholder";
+import { IqProgress } from "./IqProgress";
 
 export function IqPanel(props: IqPanelProps): JSX.Element | null {
-  const { ackGate, ackingCodes, report, status, view } = useIqReport(props);
-  const loading = status === "idle" || status === "loading" || status === "refreshing";
+  const { ackGate, ackingCodes, report, retryAttempt, status, view } = useIqReport(props);
+  const loading = status === "idle" || status === "loading";
+
+  if (status === "refreshing") {
+    return <IqProgress key={`${props.session}-${retryAttempt}`} intervalMs={props.retryIntervalMs} />;
+  }
 
   if (status === "error" && report === null) {
     return null;
@@ -23,26 +29,24 @@ export function IqPanel(props: IqPanelProps): JSX.Element | null {
         ) : (
           <>
             <div style={iqStyles.panelHeader}>
-              <IqSummary iq={view.iq} />
+              <ErrorBoundary title="IQ summary" resetKey={report}><IqSummary view={view} /></ErrorBoundary>
             </div>
             <div style={iqStyles.divider} />
-            <div style={iqStyles.sectionTitle}>Indexing Segments ({view.segments.length})</div>
-            <IqSegments segments={view.segments} />
-            <IqGates ackingCodes={ackingCodes} gates={view.gates} onAck={ackGate} />
-            {view.explanations.length > 0 ? (
-              <>
-                <div style={{ ...iqStyles.divider, margin: "0.75rem 0 0.5rem" }} />
-                <div style={iqStyles.notesTitle}>Notes</div>
-                <ul style={iqStyles.notesList}>
-                  {view.explanations.map((explanation, index) => (
-                    <li key={index}>{explanation}</li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
+            <ErrorBoundary title="Indexing segments" resetKey={report}><IqSegments view={view} /></ErrorBoundary>
+            <ErrorBoundary title="Compliance gates" resetKey={report}><IqGates ackingCodes={ackingCodes} view={view} onAck={ackGate} /></ErrorBoundary>
+            <ErrorBoundary title="IQ notes" resetKey={report}><IqNotes view={view} /></ErrorBoundary>
           </>
         )}
       </div>
     </section>
   );
+}
+
+function IqNotes({ view }: { view: Pick<IqReportView, "explanations"> }) {
+  const { explanations } = view;
+  return explanations.length > 0 ? <>
+    <div style={{ ...iqStyles.divider, margin: "0.75rem 0 0.5rem" }} />
+    <div style={iqStyles.notesTitle}>Notes</div>
+    <ul style={iqStyles.notesList}>{explanations.map((explanation, index) => <li key={index}>{explanation}</li>)}</ul>
+  </> : null;
 }

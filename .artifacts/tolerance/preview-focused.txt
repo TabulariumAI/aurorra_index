@@ -1,3 +1,0 @@
-
- RUN  v4.1.9 C:/GitHub/Tabularium/aurorra_index
-

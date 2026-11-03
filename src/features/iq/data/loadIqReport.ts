@@ -9,8 +9,14 @@ let activeLoad: { session: string; generation: number; load: Promise<IqReport | 
 async function runIqReport(input: LoadIqInput, generation: number, refresh: boolean): Promise<IqReport | IqWorkerError | undefined> {
   const client = input.workerClient || createIqWorkerClient({
     apiBaseUrl: input.apiGatewayUrl, retryIntervalMs: input.retryIntervalMs, retryLimit: input.retryLimit,
+    onDownload: () => {
+      if (iqStoreApi.getState().generation === generation && iqStoreApi.getState().activeSession === input.session) {
+        iqStoreApi.setState({ status: "loading" });
+      }
+    },
     onRetry: attempt => {
       if (iqStoreApi.getState().generation === generation && iqStoreApi.getState().activeSession === input.session) {
+        iqStoreApi.setState({ status: refresh ? "refreshing" : "loading" });
         iqStoreApi.getState().setRetryAttempt(attempt);
       }
     },

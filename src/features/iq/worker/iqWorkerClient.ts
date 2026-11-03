@@ -1,4 +1,4 @@
-import type { IqReport, IqResource, IqWorkerClient, IqWorkerConfig } from "../type/iq.types";
+import type { IqReport, IqResource, IqWorkerClient, IqWorkerConfig, IqWorkerEvent } from "../type/iq.types";
 import type { GenerationInput } from "../../../shared/type/generation.types";
 import { retryWorker } from "../../../shared/worker/retryWorker";
 
@@ -19,17 +19,21 @@ function resolveError(message: string, payload: unknown): WorkerError {
   return error;
 }
 
-async function runWorkerOnce<T>(command: unknown): Promise<T> {
+async function runWorkerOnce<T>(command: unknown, onDownload?: () => void): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const worker = new Worker(new URL("./IqWorker.ts", import.meta.url), { type: "module" });
     let settled = false;
 
     worker.onmessage = (event) => {
       if (settled) return;
+      const payload = event?.data as IqWorkerEvent | { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number };
+      if (payload && "type" in payload) {
+        onDownload?.();
+        return;
+      }
       settled = true;
       worker.terminate();
 
-      const payload = event?.data as { code?: string; data?: T; details?: unknown; error?: string; ok?: boolean; status?: number };
       if (payload && payload.ok === true) {
         resolve(payload.data as T);
         return;
@@ -53,13 +57,13 @@ export async function generateIqReport(input: GenerationInput): Promise<IqReport
 }
 
 export function createIqWorkerClient(config: IqWorkerConfig): IqWorkerClient {
-  const { apiBaseUrl, onRetry, retryIntervalMs, retryLimit } = config;
+  const { apiBaseUrl, onDownload, onRetry, retryIntervalMs, retryLimit } = config;
   return {
     ackGate(token, session, code) {
       return runWorkerOnce({ apiBaseUrl, code, session, token, type: "iqAck" });
     },
     loadReport(token, session, etag) {
-      return retryWorker(() => runWorkerOnce<IqResource>({ apiBaseUrl, session, token, type: "iqData", etag }), retryIntervalMs, retryLimit, onRetry);
+      return retryWorker(() => runWorkerOnce<IqResource>({ apiBaseUrl, session, token, type: "iqData", etag }, onDownload), retryIntervalMs, retryLimit, onRetry);
     },
   };
 }

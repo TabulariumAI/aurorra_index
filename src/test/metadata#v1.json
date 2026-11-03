@@ -20,7 +20,7 @@
       "value": "Synthetic value"
     }
   ],
-  "parties": [],
+  "parties": { "summary": null, "indexes": [] },
   "legals": {
     "summary": "Synthetic legal summary"
   },

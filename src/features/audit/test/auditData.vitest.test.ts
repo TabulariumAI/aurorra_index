@@ -27,6 +27,13 @@ const rawReport = {
   usage: { costs: ["$1.50", 2] as const },
 } as const;
 
+it("prepares gap counts without reading the independent service-usage section", () => {
+  const report = { gaps: [auditGap], get usage(): never { throw new Error("Usage failed"); } };
+  const view = prepareAuditReport(report, { changeType: "", process: "", segment: "" }, []);
+  expect(view.total).toBe(1);
+  expect(view.gaps).toHaveLength(1);
+});
+
 describe("auditData", () => {
   it.each(["add", "update", "remove", "confirm"])("preserves %s patch details through normalization and view mapping", (solution) => {
     const patch = { ...auditPatch, solution, code: "index-1", field: "value",

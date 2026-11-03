@@ -9,6 +9,20 @@ import { metesFixture } from "../../legalmap/test/metesFixture";
 const index = { code: "index", segment: "party", value: "Alice" };
 const request = { action: "reprocess" as const, session: "session", batch: "batch", segment: "party" };
 
+it("retries acknowledgment reprocessing through the standard choices-owned request", async () => {
+  const config = runtime();
+  vi.mocked(config.client.reprocessSegment).mockRejectedValueOnce(new Error("Retry request"));
+  await queueStoreApi.getState().enqueue({ ...request, segment: "acknowledgment" }, config);
+  await waitFor(() => expect(queueStoreApi.getState().tasks[0]?.status).toBe("failed"));
+  const task = queueStoreApi.getState().tasks[0];
+  expect(task.changes[0]).toEqual({ action: "reprocess", segment: "acknowledgment" });
+  await queueStoreApi.getState().retry(task.id);
+  await waitFor(() => expect(config.client.reprocessSegment).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(config.client.reprocessSegment).mock.calls).toEqual([
+    ["token", "session", "acknowledgment"], ["token", "session", "acknowledgment"],
+  ]);
+});
+
 function runtime(): QueueRuntime {
   return { authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
     reprocessSegment: vi.fn(async () => ({ status: "completed" as const, data: "" })),

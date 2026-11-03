@@ -91,7 +91,7 @@ it.each(["processing", "completed"] as const)("restores a %s addition with its o
   vi.mocked(config.client.patchIndex).mockResolvedValue({ status, data: "", version: 7 });
   vi.mocked(config.client.indexData).mockReturnValue(new Promise(() => {}));
   first.queueStoreApi.getState().restore("owner", config);
-  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [], parties: [] }));
+  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [], parties: { summary: null, indexes: [] } }));
   await first.queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "party", data: JSON.stringify([{
     action: "add", explanation: "Source", new_index_label: "Grantor", new_index_aspect: "grantor", new_index_value: "Bob",
     new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
@@ -109,7 +109,7 @@ it.each(["processing", "completed"] as const)("restores a %s addition with its o
   expect(getPanelData(composeMetadataJSON(restored.storeApi.getState().getJSON("session"))!).parties).toEqual([change.index]);
   await waitFor(() => expect(next.client.indexData).toHaveBeenCalledOnce());
   const server = { ...change.index, code: "server" };
-  refresh({ indexes: [], parties: [server] });
+  refresh({ indexes: [], parties: { summary: null, indexes: [server] } });
   await waitFor(() => expect(restored.queueStoreApi.getState().tasks).toHaveLength(0));
   expect(getPanelData(composeMetadataJSON(restored.storeApi.getState().getJSON("session"))!).parties).toEqual([server]);
   expect(next.client.patchIndex).not.toHaveBeenCalled();

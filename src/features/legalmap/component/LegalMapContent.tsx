@@ -1,11 +1,10 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
-import { formatLabel } from "aurora-core";
+import { ErrorBoundary, formatLabel, useTabs } from "aurora-core";
 import { blockKinds, displayLots, divisionKinds, isBlank, labelValue, legalMapViews, lotKinds, lotLabels, mergeLotBlocks, normalizeLegalData, subdivisionKinds, type DisplayLot, type LegalMapPayload, type PlatBlock, type PlatDivision } from "../data/legalData";
 import { getMapGroups } from "../data/surveyData";
 import { SurveyCourses, SurveyMap } from "./SurveyMap";
 import { MapIssue, MapSurface } from "./MapSurface";
 import { surveyStyles } from "../style/surveyStyles";
-import { useMapTabs } from "../hook/useMapTabs";
 import { useMapResize } from "../hook/useMapResize";
 import { usePlatFit } from "../hook/usePlatFit";
 import {
@@ -184,15 +183,44 @@ function PlatMap({ view, issues, title }: {
   </>;
 }
 
-export function LegalMapContent({ legal, addressMaps, onReadyChange }: {
+type LegalMapProps = {
   legal: LegalMapPayload | null | undefined;
   addressMaps?: { address: string; content: ReactNode }[];
   onReadyChange?(ready: boolean): void;
-}): JSX.Element {
-  const view = normalizeLegalData(legal);
+};
+
+export function LegalMapContent({ legal, addressMaps, onReadyChange }: LegalMapProps): JSX.Element {
+  useEffect(() => {
+    onReadyChange?.(true);
+  }, [legal, onReadyChange]);
+
+  return <>
+    <style>{legalMapCss}</style>
+    <div className="legal-map" style={legalMapStyles.shell}>
+      <ErrorBoundary title="Legal summary" resetKey={legal} fallback={error => <MapIssue title="Legal summary" issue={error.message} />}>
+        <LegalSummary legal={legal} />
+      </ErrorBoundary>
+      <ErrorBoundary title="Map views" resetKey={legal} fallback={error => <MapIssue title="Map views" issue={error.message} />}>
+        <LegalMapViews legal={legal} addressMaps={addressMaps} />
+      </ErrorBoundary>
+    </div>
+  </>;
+}
+
+function LegalSummary({ legal }: Pick<LegalMapProps, "legal">) {
+  const { summary } = normalizeLegalData({ summary: legal?.summary });
+  return summary ? <section className="legal-map-summary" style={legalMapStyles.infoSection}>
+    <div style={legalMapStyles.infoCard}>{summary}</div>
+  </section> : null;
+}
+
+function LegalMapViews({ legal, addressMaps }: Pick<LegalMapProps, "legal" | "addressMaps">) {
   const mapGroups = getMapGroups(legal);
   const tabs: string[] = legalMapViews.filter(view => view === "Address" ? Boolean(addressMaps?.length) : mapGroups.some(entry => entry.view === view));
-  const { active, controls, panel } = useMapTabs(tabs, "Map views", "view");
+  const { active, controls, panel } = useTabs(tabs, "Map views", {
+    className: "legal-map-tabs legal-map-view-tabs", style: legalMapStyles.tabs,
+    tabStyle: selected => ({ ...legalMapStyles.tabButton, color: selected ? "var(--primary-dark)" : "var(--body-ink)" }), hideSingle: false,
+  });
 
   const groups = mapGroups.filter(entry => entry.view === active);
   const parcelCount = active === "Lot & block" && legal?.parcels_num && legal.parcels_num > 0 ? legal.parcels_num : undefined;
@@ -210,7 +238,10 @@ export function LegalMapContent({ legal, addressMaps, onReadyChange }: {
   const detailTabs = active === "Metes & Bounds" ? ["Boundary Calls", "Acreage", "Easement"].filter(tab =>
     tab === "Boundary Calls" ? surveys.some(scene => scene.courses?.length || scene.notes.some(note => note.label === "Bearings" || note.label === "Distances")) : entries.some(entry => entry.notes.some(note => note.label === tab)))
     : (active === "PLSS" || active === "Lot & block") && entries.some(entry => entry.notes.length > 0) ? ["Details"] : [];
-  const details = useMapTabs(detailTabs, "Map details", "detail");
+  const details = useTabs(detailTabs, "Map details", {
+    className: "legal-map-tabs legal-map-detail-tabs", style: legalMapStyles.detailTabs,
+    tabStyle: legalMapStyles.detailTab, hideSingle: true,
+  });
 
   const maps = active === "Address" ? addressMaps!.map(entry => ({
     title: entry.address, drawable: true, content: <MapSurface showNorth={false}>{entry.content}</MapSurface>,
@@ -233,88 +264,78 @@ export function LegalMapContent({ legal, addressMaps, onReadyChange }: {
   const hasDrawing = maps.some(map => map.drawable);
   const resize = useMapResize(details.active && hasDrawing ? active : undefined);
 
-  useEffect(() => {
-    onReadyChange?.(true);
-  }, [legal, onReadyChange]);
-
   return (
     <>
-      <style>{legalMapCss}</style>
-      <div className="legal-map" style={legalMapStyles.shell}>
-        {view.summary ? <section className="legal-map-summary" style={legalMapStyles.infoSection}>
-          <div style={legalMapStyles.infoCard}>{view.summary}</div>
-        </section> : null}
-        {tabs.length > 0 ? <div className="legal-map-toolbar" style={legalMapStyles.toolbar}>{controls}</div> : null}
-        <div {...(tabs.length > 0 ? panel : {})} ref={resize.bodyRef} className="legal-map-content" style={legalMapStyles.content}>
-          {maps.length > 0 && (hasDrawing || !details.active) ? <div className="legal-map-column" style={legalMapStyles.mapColumn}>
-            <div data-map-scroll="true" className="legal-map-surveys" style={legalMapStyles.parcelList}>
-              {maps.map((map, index) => <section key={`${active}-${index}`} className="survey-layout" aria-label={map.title}
-                style={map.drawable ? legalMapStyles.parcelLayout : legalMapStyles.issueLayout}>
-                {active !== "Address" && showParcels ? <h4 style={legalMapStyles.parcelTitle}>{map.title}</h4> : null}
-                {map.content}
-              </section>)}
-            </div>
+      {tabs.length > 0 ? <div className="legal-map-toolbar" style={legalMapStyles.toolbar}>{controls}</div> : null}
+      <div {...(tabs.length > 0 ? panel : {})} ref={resize.bodyRef} className="legal-map-content" style={legalMapStyles.content}>
+        {maps.length > 0 && (hasDrawing || !details.active) ? <div className="legal-map-column" style={legalMapStyles.mapColumn}>
+          <div data-map-scroll="true" className="legal-map-surveys" style={legalMapStyles.parcelList}>
+            {maps.map((map, index) => <section key={`${active}-${index}`} className="survey-layout" aria-label={map.title}
+              style={map.drawable ? legalMapStyles.parcelLayout : legalMapStyles.issueLayout}>
+              {active !== "Address" && showParcels ? <h4 style={legalMapStyles.parcelTitle}>{map.title}</h4> : null}
+              <ErrorBoundary title={map.title} resetKey={legal} fallback={error => <MapIssue title={map.title} issue={error.message} />}>{map.content}</ErrorBoundary>
+            </section>)}
+          </div>
+        </div> : null}
+        {details.active ? <>
+          {hasDrawing ? <div {...resize.separator} aria-controls={`${panel.id} ${details.panel.id}`} className="legal-map-divider" style={legalMapStyles.divider}>
+            <span aria-hidden="true" style={legalMapStyles.dividerGrip} />
           </div> : null}
-          {details.active ? <>
-            {hasDrawing ? <div {...resize.separator} aria-controls={`${panel.id} ${details.panel.id}`} className="legal-map-divider" style={legalMapStyles.divider}>
-              <span aria-hidden="true" style={legalMapStyles.dividerGrip} />
-            </div> : null}
-            <aside ref={resize.infoRef} className="legal-map-info" data-legal-map-info="true" style={{ ...legalMapStyles.infoColumn, ...(!hasDrawing ? { flex: "1 1 0", minHeight: 0 } : {}) }}>
-              {details.controls}
-              <div {...details.panel} ref={resize.panelRef} style={{ ...legalMapStyles.infoPanel, height: hasDrawing ? resize.height : "auto", ...(!hasDrawing ? { flex: "1 1 0" } : {}) }}>
-                {details.active === "Details" ? entries.map((entry, index) => {
-                  const issue = entry.scene?.issue ?? entry.issue;
-                  return <Fragment key={index}>
-                    {!hasDrawing && showParcels ? <h4 style={legalMapStyles.infoTitle}>{entry.title}</h4> : null}
-                    {!hasDrawing && issue ? <MapIssue title={entry.title} issue={issue} /> : null}
-                    <table className="legal-map-table" aria-label={showParcels ? `${entry.title} details` : "Details"} style={surveyStyles.notes}>
-                      {hasDrawing && showParcels ? <caption style={legalMapStyles.infoTitle}>{entry.title}</caption> : null}
-                      <colgroup><col style={{ width: "7rem" }} /><col /></colgroup>
-                      <tbody>{entry.notes.map((note, noteIndex) => <tr key={noteIndex}>
-                        <th scope="row" style={surveyStyles.cell}>{note.label}</th>
-                        <td style={surveyStyles.cell}>{note.value}</td>
-                      </tr>)}</tbody>
-                    </table>
-                  </Fragment>;
-                }) : null}
-                {details.active === "Boundary Calls" ? surveys.map((scene, index) => <SurveyCourses key={index} scene={scene} showTitle={showParcels} showIssue={!hasDrawing} />) : null}
-                {details.active === "Acreage" ? <section className="legal-map-acreage" style={legalMapStyles.infoSection}>
-                  {surveys.map((scene, index) => {
-                    const acreage = scene.notes.find(note => note.label === "Acreage")?.value;
-                    return acreage ? <div key={index} aria-label={showParcels ? `${scene.title} acreage` : "Reported acreage"} style={legalMapStyles.infoCard}>
-                      {showParcels ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
-                      {!hasDrawing && scene.issue ? <MapIssue title={scene.title} issue={scene.issue} /> : null}
-                      <ul style={legalMapStyles.acreageList}>
-                        {acreage.split(";").map((entry, index) => <li key={index}>
-                          {index === 0 ? <strong style={legalMapStyles.acreageFirst}>
-                            <svg data-survey-swatch="true" aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={legalMapStyles.acreageSwatch}>
-                              <rect x="0.5" y="0.5" width="11" height="11" fill={legalMapColors.parcelFill} fillOpacity="0.25" stroke={legalMapColors.parcelLine} />
-                            </svg>
-                            {entry.trim()}
-                          </strong> : entry.trim()}
-                        </li>)}
-                      </ul>
-                    </div> : null;
-                  })}
-                </section> : null}
-                {details.active === "Easement" ? <section className="legal-map-easement" style={legalMapStyles.infoSection}>
-                  {surveys.map((scene, index) => {
-                    const easements = scene.notes.filter(note => note.label === "Easement");
-                    return easements.length > 0 ? <div key={index} aria-label={showParcels ? `${scene.title} easement details` : "Easement details"} style={{ ...legalMapStyles.infoCard, ...legalMapStyles.infoSection }}>
-                      {showParcels ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
-                      {!hasDrawing && scene.issue ? <MapIssue title={scene.title} issue={scene.issue} /> : null}
-                      {easements.map((note, index) => <div key={index}>
-                        <div>{note.value}</div>
-                        {note.explanation ? <p style={legalMapStyles.infoNote}>{note.explanation}</p> : null}
-                      </div>)}
-                      <p style={legalMapStyles.infoNote}>Location not specified in this clause — not plotted.</p>
-                    </div> : null;
-                  })}
-                </section> : null}
-              </div>
-            </aside>
-          </> : null}
-        </div>
+          <aside ref={resize.infoRef} className="legal-map-info" data-legal-map-info="true" style={{ ...legalMapStyles.infoColumn, ...(!hasDrawing ? { flex: "1 1 0", minHeight: 0 } : {}) }}>
+            {details.controls}
+            <div {...details.panel} ref={resize.panelRef} style={{ ...legalMapStyles.infoPanel, height: hasDrawing ? resize.height : "auto", ...(!hasDrawing ? { flex: "1 1 0" } : {}) }}>
+              {details.active === "Details" ? entries.map((entry, index) => {
+                const issue = entry.scene?.issue ?? entry.issue;
+                return <Fragment key={index}>
+                  {!hasDrawing && showParcels ? <h4 style={legalMapStyles.infoTitle}>{entry.title}</h4> : null}
+                  {!hasDrawing && issue ? <MapIssue title={entry.title} issue={issue} /> : null}
+                  <table className="legal-map-table" aria-label={showParcels ? `${entry.title} details` : "Details"} style={surveyStyles.notes}>
+                    {hasDrawing && showParcels ? <caption style={legalMapStyles.infoTitle}>{entry.title}</caption> : null}
+                    <colgroup><col style={{ width: "7rem" }} /><col /></colgroup>
+                    <tbody>{entry.notes.map((note, noteIndex) => <tr key={noteIndex}>
+                      <th scope="row" style={surveyStyles.cell}>{note.label}</th>
+                      <td style={surveyStyles.cell}>{note.value}</td>
+                    </tr>)}</tbody>
+                  </table>
+                </Fragment>;
+              }) : null}
+              {details.active === "Boundary Calls" ? surveys.map((scene, index) => <SurveyCourses key={index} scene={scene} showTitle={showParcels} showIssue={!hasDrawing} />) : null}
+              {details.active === "Acreage" ? <section className="legal-map-acreage" style={legalMapStyles.infoSection}>
+                {surveys.map((scene, index) => {
+                  const acreage = scene.notes.find(note => note.label === "Acreage")?.value;
+                  return acreage ? <div key={index} aria-label={showParcels ? `${scene.title} acreage` : "Reported acreage"} style={legalMapStyles.infoCard}>
+                    {showParcels ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
+                    {!hasDrawing && scene.issue ? <MapIssue title={scene.title} issue={scene.issue} /> : null}
+                    <ul style={legalMapStyles.acreageList}>
+                      {acreage.split(";").map((entry, index) => <li key={index}>
+                        {index === 0 ? <strong style={legalMapStyles.acreageFirst}>
+                          <svg data-survey-swatch="true" aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={legalMapStyles.acreageSwatch}>
+                            <rect x="0.5" y="0.5" width="11" height="11" fill={legalMapColors.parcelFill} fillOpacity="0.25" stroke={legalMapColors.parcelLine} />
+                          </svg>
+                          {entry.trim()}
+                        </strong> : entry.trim()}
+                      </li>)}
+                    </ul>
+                  </div> : null;
+                })}
+              </section> : null}
+              {details.active === "Easement" ? <section className="legal-map-easement" style={legalMapStyles.infoSection}>
+                {surveys.map((scene, index) => {
+                  const easements = scene.notes.filter(note => note.label === "Easement");
+                  return easements.length > 0 ? <div key={index} aria-label={showParcels ? `${scene.title} easement details` : "Easement details"} style={{ ...legalMapStyles.infoCard, ...legalMapStyles.infoSection }}>
+                    {showParcels ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
+                    {!hasDrawing && scene.issue ? <MapIssue title={scene.title} issue={scene.issue} /> : null}
+                    {easements.map((note, index) => <div key={index}>
+                      <div>{note.value}</div>
+                      {note.explanation ? <p style={legalMapStyles.infoNote}>{note.explanation}</p> : null}
+                    </div>)}
+                    <p style={legalMapStyles.infoNote}>Location not specified in this clause — not plotted.</p>
+                  </div> : null;
+                })}
+              </section> : null}
+            </div>
+          </aside>
+        </> : null}
       </div>
     </>
   );

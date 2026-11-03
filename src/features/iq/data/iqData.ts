@@ -92,80 +92,77 @@ function computeGatesDecision(gates: IqReportView["gates"]["items"]): IqDecision
 
 export function normalizeIqReport(raw: unknown): IqReport {
   const source = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
-  const gates = Array.isArray(source.gates)
-    ? source.gates.map((entry) => {
-      const gate = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
-      return {
-        code: text(gate.code),
-        status: text(gate.status),
-        description: typeof gate.description === "string" ? gate.description : "Detailed values are unavailable for this saved result.",
-      } satisfies IqGate;
-    })
-    : [];
-  const segments = Array.isArray(source.segments)
-    ? source.segments.map((entry) => {
-      const segment = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
-      return {
-        segment_name: text(segment.segment_name),
-        expected_weight: num(segment.expected_weight),
-        actual_weight: num(segment.actual_weight),
-        iq: num(segment.iq),
-        explanations: Array.isArray(segment.explanations) ? segment.explanations.map(text) : [],
-      } satisfies IqSegment;
-    })
-    : [];
-
   return {
-    iq_doc: num(source.iq_doc),
-    decision: isDecision(source.decision) ? source.decision : "Review",
-    gates,
-    segments,
-    explanation: Array.isArray(source.explanation) ? source.explanation.map(text) : [],
+    get iq_doc() { return num(source.iq_doc); },
+    get decision() { return isDecision(source.decision) ? source.decision : "Review"; },
+    get gates() {
+      return Array.isArray(source.gates) ? source.gates.map(entry => {
+        const gate = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+        return {
+          code: text(gate.code),
+          status: text(gate.status),
+          description: typeof gate.description === "string" ? gate.description : "Detailed values are unavailable for this saved result.",
+        } satisfies IqGate;
+      }) : [];
+    },
+    get segments() {
+      return Array.isArray(source.segments) ? source.segments.map(entry => {
+        const segment = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+        return {
+          segment_name: text(segment.segment_name),
+          expected_weight: num(segment.expected_weight),
+          actual_weight: num(segment.actual_weight),
+          iq: num(segment.iq),
+          explanations: Array.isArray(segment.explanations) ? segment.explanations.map(text) : [],
+        } satisfies IqSegment;
+      }) : [];
+    },
+    get explanation() { return Array.isArray(source.explanation) ? source.explanation.map(text) : []; },
   };
 }
 
 export function prepareIqReport(raw: unknown): IqReportView {
   const report = normalizeIqReport(raw);
-  const iqValue = clampPercent(report.iq_doc);
-  const gateItems = report.gates
-    .filter((gate): gate is IqGate & { status: IqGateStatus } => isKnownGateStatus(gate.status))
-    .map((gate) => ({
-      code: gate.code,
-      status: gateStatus(gate.status),
-      description: gate.description,
-      isFailure: gate.status === GATE_FAIL,
-    }));
-  const gateSuccess = gateItems.filter((gate) => gate.isFailure === false).length;
-  const gateRatio = gateItems.length > 0 ? (gateSuccess / gateItems.length) * 100 : 0;
-  const gatePercent = clampPercent(gateRatio);
-
   return {
-    iq: {
-      value: iqValue,
-      displayInt: Math.round(iqValue),
-      bucket: bucketForScore(iqValue),
-      decision: isDecision(report.decision) ? report.decision : "Review",
+    get iq() {
+      const value = clampPercent(report.iq_doc);
+      return {
+        value,
+        displayInt: Math.round(value),
+        bucket: bucketForScore(value),
+        decision: isDecision(report.decision) ? report.decision : "Review",
+      };
     },
-    gates: {
-      items: gateItems,
-      total: gateItems.length,
-      success: gateSuccess,
-      ratio: gateRatio,
-      displayPercent: Math.round(gatePercent),
-      bucket: bucketForScore(gatePercent),
-      decision: computeGatesDecision(gateItems),
+    get gates() {
+      const items = report.gates
+        .filter((gate): gate is IqGate & { status: IqGateStatus } => isKnownGateStatus(gate.status))
+        .map(gate => ({ code: gate.code, status: gateStatus(gate.status), description: gate.description, isFailure: gate.status === GATE_FAIL }));
+      const success = items.filter(gate => gate.isFailure === false).length;
+      const ratio = items.length > 0 ? (success / items.length) * 100 : 0;
+      const percent = clampPercent(ratio);
+      return {
+        items,
+        total: items.length,
+        success,
+        ratio,
+        displayPercent: Math.round(percent),
+        bucket: bucketForScore(percent),
+        decision: computeGatesDecision(items),
+      };
     },
-    segments: report.segments.map((segment) => ({
-      id: segment.segment_name,
-      displayId: prettyId(segment.segment_name),
-      expectedWeight: segment.expected_weight,
-      expectedDisplay: formatNumber(segment.expected_weight),
-      actualWeight: segment.actual_weight,
-      actualDisplay: formatNumber(segment.actual_weight),
-      iq: segment.iq,
-      iqDisplay: formatNumber(segment.iq),
-      explanations: segment.explanations.map(text),
-    })),
-    explanations: report.explanation.map(text),
+    get segments() {
+      return report.segments.map(segment => ({
+        id: segment.segment_name,
+        displayId: prettyId(segment.segment_name),
+        expectedWeight: segment.expected_weight,
+        expectedDisplay: formatNumber(segment.expected_weight),
+        actualWeight: segment.actual_weight,
+        actualDisplay: formatNumber(segment.actual_weight),
+        iq: segment.iq,
+        iqDisplay: formatNumber(segment.iq),
+        explanations: segment.explanations.map(text),
+      }));
+    },
+    get explanations() { return report.explanation.map(text); },
   };
 }

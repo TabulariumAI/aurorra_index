@@ -3,7 +3,7 @@ import { expect, it, vi } from "vitest";
 import { getPanelData, metadataRowCss, metadataSpinnerCss, type MetadataPayload } from "aurora-core";
 import { MetadataPanel, type MetadataPanelProps } from "../component/MetadataPanel";
 
-it("renders the Core public API styles for property rows and responsive recovery", () => {
+it("renders the Core public styles for property rows and responsive recovery", () => {
   const metadata: MetadataPayload = { indexes: [] };
   const props: MetadataPanelProps = {
     actions: { confirm: false, drop: false, reprocess: false },

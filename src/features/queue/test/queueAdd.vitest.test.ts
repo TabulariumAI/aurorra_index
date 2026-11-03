@@ -6,7 +6,7 @@ import { queueStoreApi } from "../store/queueStore";
 import type { IndexChange, QueueRuntime } from "../type/queue.types";
 
 const existing = { code: "existing", segment: "party", aspect: "grantor", label: "Grantor", value: "Alice" };
-const base = { indexes: [existing], parties: [existing], secrets: [] };
+const base = { indexes: [existing], parties: { summary: null, indexes: [existing] }, secrets: [] };
 const addition: IndexChange = {
   action: "add", explanation: "Index created by user.", new_index_page: "1", new_index_source: "Source", new_index_label: "Grantor", new_index_aspect: "grantor", new_index_value: "Bob",
   new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
@@ -74,7 +74,7 @@ it.each(["mutation", "status", "refresh"] as const)("retains additions after %s 
   const completed = { status: "completed" as const, data: "", version: 7 };
   vi.mocked(config.client.patchIndex).mockResolvedValue(failure === "status" ? { ...completed, status: "processing" } : completed);
   vi.mocked(config.client.patchStatus).mockResolvedValue(completed);
-  const remote = { ...base, parties: [{ ...existing, code: "server", value: "Bob" }, existing] };
+  const remote = { ...base, parties: { summary: null, indexes: [{ ...existing, code: "server", value: "Bob" }, existing] } };
   vi.mocked(config.client.indexData).mockResolvedValue(remote);
   if (failure === "mutation") vi.mocked(config.client.patchIndex).mockRejectedValueOnce(new Error("Failed"));
   if (failure === "status") vi.mocked(config.client.patchStatus).mockRejectedValueOnce(new Error("Failed"));
@@ -88,7 +88,7 @@ it.each(["mutation", "status", "refresh"] as const)("retains additions after %s 
   expect(getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session"))!).parties).toEqual([change.index, existing]);
   await queueStoreApi.getState().retry(task.id);
   await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
-  expect(getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session"))!).parties).toEqual(remote.parties);
+  expect(getPanelData(composeMetadataJSON(storeApi.getState().getJSON("session"))!).parties).toEqual(remote.parties.indexes);
   expect(config.client.patchIndex).toHaveBeenCalledTimes(failure === "mutation" ? 2 : 1);
 });
 

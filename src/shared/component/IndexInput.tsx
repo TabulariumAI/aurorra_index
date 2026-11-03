@@ -14,7 +14,7 @@ export function IndexInput({ value, aspects, segment, selected, onChange, onSele
   onEnrichmentChange(checked: boolean): void;
 }) {
   const id = useId();
-  const eligible = ["party", "property"].includes(segment.toLowerCase());
+  const eligible = ["party", "property", "acknowledgment", "execution"].includes(segment.toLowerCase());
   useEffect(() => {
     if (!eligible) onEnrichmentChange(false);
   }, [eligible, onEnrichmentChange]);

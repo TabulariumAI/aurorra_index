@@ -14,7 +14,7 @@ for (const width of [1440, 390]) {
           await route.fulfill({ json: { status: "completed", data: "", version: 1 } });
         });
         await page.route("https://gateway.example.test/v1/metadata/session/data", route => route.fulfill({ json: { status: "completed", data: "https://storage.example.test/metadata.json" } }));
-        await page.route("https://storage.example.test/metadata.json", route => route.fulfill({ json: { indexes: [], parties: [], heading: {}, secrets: [], fees: [], funds: [] } }));
+        await page.route("https://storage.example.test/metadata.json", route => route.fulfill({ json: { indexes: [], parties: { summary: null, indexes: [] }, heading: {}, secrets: [], fees: [], funds: [] } }));
         await page.setViewportSize({ width, height: 900 });
         await page.goto(`/enhancement.html?mode=${mode}&segment=${segment}`);
         const checkbox = page.getByRole("checkbox", { name: "Enhancement" });

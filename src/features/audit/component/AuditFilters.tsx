@@ -85,7 +85,7 @@ export function AuditFilters({ filters, onFiltersChange, report: data, session, 
         <label style={{ ...auditStyles.filterLabel, ...auditStyles.filterSelectGroup }}>
           <span>Segment</span>
           {!resourceReady ? <LoadPlaceholder label="Loading segment options" /> : error ? (
-            <span role="alert" style={auditStyles.filterError}>Segment options could not be loaded. Refresh the audit report to try again.</span>
+            <span role="alert" style={auditStyles.filterError}>Segment options could not be loaded. Refresh the Audit & Usage to try again.</span>
           ) : ready ? <select
             aria-label="Segment"
             onChange={(event) => onFiltersChange({ ...filters, segment: event.target.value })}

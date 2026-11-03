@@ -1,5 +1,113 @@
 import { expect, test } from "@playwright/test";
 
+for (const width of [1440, 390]) {
+  test(`matrix boundary retains three confirmed measurements at ${width}px`, async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 1100 });
+    await page.goto("/?scenario=legal-map&matrix=true");
+    const table = page.getByRole("table", { name: "Boundary Calls" });
+    await expect(table.getByRole("row")).toHaveCount(5);
+    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(3);
+    const status = table.getByRole("button", { name: "Unconfirmed" });
+    await expect(status).toHaveCount(1);
+    await expect(page.locator("[data-survey-line]")).toHaveCount(4);
+    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(1);
+    await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
+    await expect(table.getByRole("row").filter({ hasText: "Unconfirmed" })).toContainText(/S 32°18′21.79″ E/);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await status.hover();
+    await expect(page.getByRole("tooltip")).toContainText(/calculated.*400/i);
+    await page.mouse.move(0, 0);
+    await status.focus();
+    await expect(page.getByRole("tooltip")).toContainText(/calculated.*400/i);
+    await page.keyboard.press("Escape");
+    const divider = page.getByRole("separator", { name: "Resize map and details" });
+    await divider.focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(page.getByRole("img", { name: /schematic/ })).toBeVisible();
+    const geometry = await page.locator("[data-survey-line]").evaluateAll(nodes => nodes.map(node => {
+      const line = node.getBoundingClientRect();
+      const svg = node.closest("svg")!.getBoundingClientRect();
+      return Math.hypot(line.width, line.height) > 0 && line.left >= svg.left - 1 && line.right <= svg.right + 1
+        && line.top >= svg.top - 1 && line.bottom <= svg.bottom + 1;
+    }));
+    expect(geometry.every(Boolean)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    expect(errors).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`matrix-boundary-${width}.png`), fullPage: true });
+  });
+}
+
+for (const width of [1440, 390]) {
+  test(`matrix rearrangement closes supplied pairs at ${width}px`, async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 1100 });
+    await page.goto("/?scenario=legal-map&matrix=retry");
+    const table = page.getByRole("table", { name: "Boundary Calls" });
+    await expect(table.getByRole("row")).toHaveCount(4);
+    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(1);
+    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(2);
+    await expect(table.getByRole("row").nth(1)).toContainText("30 ft");
+    await expect(table.getByRole("row").nth(2)).toContainText("40 ft");
+    await expect(page.locator("[data-survey-line]")).toHaveCount(3);
+    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(2);
+    await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
+    await expect(page.getByRole("note")).toContainText(/rearranged/i);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    await table.getByRole("button", { name: "Unconfirmed" }).first().hover();
+    await expect(page.getByRole("tooltip")).toContainText(/original distance: 40 FEET/i);
+    await page.mouse.move(0, 0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    expect(errors).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`matrix-rearranged-${width}.png`), fullPage: true });
+  });
+
+  test(`matrix ambiguity remains unconfirmed with trailing curves at ${width}px`, async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 1100 });
+    await page.goto("/?scenario=legal-map&matrix=ambiguous");
+    const table = page.getByRole("table", { name: "Boundary Calls" });
+    await expect(table.getByRole("row")).toHaveCount(8);
+    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(0);
+    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(7);
+    await expect(table.getByRole("row").last()).toContainText("25 ft");
+    await expect(page.locator("[data-boundary-fill]")).toHaveCount(0);
+    await expect(page.getByRole("note")).toContainText(/multiple.*shape/i);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    expect(errors).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`matrix-ambiguous-${width}.png`), fullPage: true });
+  });
+
+  for (const scenario of ["gap", "offset"]) {
+    test(`matrix ${scenario} preserves measured rows and outline at ${width}px`, async ({ page }, testInfo) => {
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.setViewportSize({ width, height: 1100 });
+      await page.goto(`/?scenario=legal-map&matrix=${scenario}`);
+      const table = page.getByRole("table", { name: "Boundary Calls" });
+      await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(scenario === "gap" ? 3 : 4);
+      await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(1);
+      await expect(page.locator("[data-survey-line]")).toHaveCount(scenario === "gap" ? 4 : 5);
+      await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
+      await expect(page.getByRole("alert")).toHaveCount(0);
+      if (scenario === "offset") {
+        await expect(page.locator('[data-survey-tie="true"]')).toHaveCount(1);
+        await expect(table.getByRole("row").last()).toContainText("5 → 2");
+      } else {
+        await expect(table.getByRole("row").nth(2)).toContainText("50 ft");
+        await expect(table.getByRole("row").nth(3)).toContainText("S");
+      }
+      await expect(page.getByRole("img", { name: /schematic/ })).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+      expect(errors).toEqual([]);
+      await page.screenshot({ path: testInfo.outputPath(`matrix-${scenario}-${width}.png`), fullPage: true });
+    });
+  }
+}
+
 for (const width of [1440, 900, 390, 320]) {
   test(`street-relative fallback and final failure at ${width}px`, async ({ page }, testInfo) => {
     const errors: string[] = [];

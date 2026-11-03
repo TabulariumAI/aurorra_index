@@ -25,8 +25,8 @@ export function matchSelection(selection: AddIndexSelection, metadata: MetadataP
   let best = -1;
   let secondary = -1;
   let pageMatch = false;
-  const indexes = Array.isArray(metadata.parties) ? metadata.indexes?.filter((row) => row.segment !== "party") : metadata.indexes;
-  for (const [rows, displaySegment] of [[indexes ?? [], null], [metadata.parties ?? [], "party"], [metadata.secrets ?? [], "secrets"]] as const) {
+  const indexes = metadata.parties ? metadata.indexes?.filter((row) => row.segment !== "party") : metadata.indexes;
+  for (const [rows, displaySegment] of [[indexes ?? [], null], [metadata.parties?.indexes ?? [], "party"], [metadata.secrets ?? [], "secrets"]] as const) {
     for (const row of rows) {
       const segment = displaySegment ?? (row.segment === "loan" ? "monetary" : row.segment);
       if (!row.code || !segment) continue;

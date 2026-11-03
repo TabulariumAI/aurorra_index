@@ -32,7 +32,7 @@ describe("Pages export failure isolation", () => {
     expect(badge.parentElement).not.toHaveTextContent("0");
     fireEvent.focus(badge);
     expect(await screen.findByRole("tooltip")).toHaveTextContent(pageError.error);
-    expect(screen.queryByText("No recordables pages found.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No recordable pages found.")).not.toBeInTheDocument();
   });
 
   it("removes stale page rows on failure while preserving other metadata", () => {

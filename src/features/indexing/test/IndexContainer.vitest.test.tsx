@@ -71,7 +71,7 @@ const metadata: MetadataPayload = {
   secrets: [],
 };
 
-function renderMetadata() {
+function renderMetadata(data = metadata) {
   const onMetadataLoaded = vi.fn();
   const onPageClick = vi.fn();
   const onActionComplete = vi.fn();
@@ -81,7 +81,7 @@ function renderMetadata() {
   const onViewStarted = vi.fn();
   const onLoaderChange = vi.fn();
   const onReadyChange = vi.fn();
-  let remote = structuredClone(metadata);
+  let remote = structuredClone(data);
   const pending: { drop?: () => void; reprocess?: () => void } = {};
   const workerClient = {
     pagesData: vi.fn(), updatePageSegments: vi.fn(),
@@ -146,16 +146,23 @@ describe("IndexContainer", () => {
   });
 
   it("hands page and title clicks to the host and viewer with distinct search data", async () => {
-    const { onPageClick } = renderMetadata();
+    const { onPageClick } = renderMetadata({ ...metadata, heading: { ...metadata.heading, secondary_titles: ["Additional Title"] } });
     await screen.findByText("Alice");
     fireEvent.click(screen.getByRole("button", { name: "Pages" }));
     fireEvent.click(await screen.findByRole("link", { name: "1 : Title page" }));
     expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "page", segment: "page", metadataIndex: null, quote: "", value: "" });
     expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", type: "page", metadataIndex: null, quote: "", value: "", highlightOptions: { scroll: false } }));
     fireEvent.click(screen.getByRole("button", { name: "Titles" }));
-    fireEvent.click(await screen.findByRole("link", { name: "Warranty Deed" }));
-    expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "title", segment: "page", metadataIndex: null, quote: "", value: "Warranty Deed" });
-    expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", type: "title", value: "Warranty Deed", highlightOptions: { scroll: false } }));
+    for (const value of ["Warranty Deed", "Additional Title"]) {
+      fireEvent.click(await screen.findByRole("link", { name: value }));
+      expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "title", segment: "title", metadataIndex: null, quote: "", value });
+      expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", segment: "title", type: "title", value, highlightOptions: { scroll: false } }));
+      expect(screen.getByRole("button", { name: "Titles" })).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getByRole("button", { name: "Pages" })).toHaveAttribute("aria-expanded", "false");
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Pages" }));
+    fireEvent.click(await screen.findByRole("link", { name: "1 : Title page" }));
+    expect(imageViewerStoreApi.getState().request).toMatchObject({ index: "page", segment: "page", value: "" });
   });
   afterEach(() => {
     addIndexStoreApi.getState().close();
@@ -185,7 +192,7 @@ describe("IndexContainer", () => {
     expect(row).toHaveAttribute("aria-disabled", "true");
     expect(within(row).getByRole("progressbar", { name: "Processing change" })).toBeVisible();
     expect(within(row).getByRole("button", { name: "Edit index" })).toBeDisabled();
-    expect(screen.getByText("Alice")).toBeVisible();
+    expect(screen.getAllByText("Alice")).toHaveLength(allow_enrichment ? 1 : 2);
     act(() => complete({ status: "error", data: "Add failed", version: 1 }));
     expect(await within(row).findByRole("alert")).toHaveTextContent("Add failed");
     expect(within(row).queryByRole("progressbar")).toBeNull();
@@ -197,7 +204,7 @@ describe("IndexContainer", () => {
     await waitFor(() => expect(workerClient.indexData).toHaveBeenCalledTimes(2));
     expect(row).toHaveAttribute("data-index-code", code);
     expect(within(row).getByRole("progressbar")).toBeVisible();
-    act(() => refresh({ ...metadata, parties: [{ code: "server-party", label: "Grantor", aspect: "grantor", value: "New party" }, metadata.indexes![0]] }));
+    act(() => refresh({ ...metadata, parties: { summary: null, indexes: [{ code: "server-party", label: "Grantor", aspect: "grantor", value: "New party" }, metadata.indexes![0]] } }));
     await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
     const serverRow = view.container.querySelector("[data-index-code='server-party']")!;
     expect(serverRow).toBeVisible();
@@ -233,7 +240,7 @@ describe("IndexContainer", () => {
     expect(screen.getByRole("button", { name: "Parties(Party Clause)" })).toBeVisible();
     expect(screen.getByRole("button", { name: /References\(Recital\)/i })).toBeVisible();
     expect(screen.getByRole("button", { name: "Property Info" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Acknowledgment/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Acknowledgment" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Transactional/i })).toBeVisible();
     expect(screen.getByRole("button", { name: "Monetary" })).toBeDisabled();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");

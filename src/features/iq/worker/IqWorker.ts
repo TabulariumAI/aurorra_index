@@ -1,4 +1,4 @@
-import type { IqAckResult, IqReport, IqResource, IqWorkerCommand, IqWorkerResult } from "../type/iq.types";
+import type { IqAckResult, IqReport, IqResource, IqWorkerCommand, IqWorkerEvent, IqWorkerResult } from "../type/iq.types";
 import { fetchJson } from "../../../shared/worker/fetchJson";
 
 type ParsedResponse = {
@@ -18,11 +18,12 @@ function validateReport(value: unknown): IqWorkerResult<IqReport> {
   return { ok: true, data: value as IqReport };
 }
 
-async function reportFromPayload(payload: unknown): Promise<IqWorkerResult<IqResource>> {
+async function reportFromPayload(payload: unknown, onDownload?: () => void): Promise<IqWorkerResult<IqResource>> {
   if (isObject(payload) && payload.status === "error") {
     return { ok: false, code: "iq_error", details: payload, error: String(payload.data || payload.error || "error") };
   }
   if (isObject(payload) && payload.status === "completed" && typeof payload.data === "string") {
+    onDownload?.();
     const result = await fetchJson(payload.data);
     if (!result.ok) return result;
     const report = validateReport(result.data);
@@ -91,7 +92,7 @@ export class IqWorker {
     return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag !== null ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
   }
 
-  async run(command: IqWorkerCommand): Promise<IqWorkerResult<IqResource | IqAckResult>> {
+  async run(command: IqWorkerCommand, onDownload?: () => void): Promise<IqWorkerResult<IqResource | IqAckResult>> {
     if (!command?.token) {
       return { ok: false, code: "missing_auth_token", error: "Missing auth token" };
     }
@@ -128,12 +129,12 @@ export class IqWorker {
     if (!parsed.ok) return parsed;
     if (!response.ok) return httpError(parsed.data);
     if (command.type === "iqAck") return { ok: true, data: ackFromPayload(parsed.data.payload) };
-    return reportFromPayload(parsed.data.payload);
+    return reportFromPayload(parsed.data.payload, onDownload);
   }
 }
 
 self.onmessage = async (event: MessageEvent<IqWorkerCommand>) => {
   const worker = new IqWorker();
-  const result = await worker.run(event.data);
+  const result = await worker.run(event.data, () => self.postMessage({ type: "iqDownload" } satisfies IqWorkerEvent));
   self.postMessage(result);
 };

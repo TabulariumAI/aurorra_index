@@ -49,4 +49,13 @@ The report store retains that source until a replacement report loads and clears
 it on a session change. The package compares it with the current session metadata;
 the host receives only the resulting refresh presentation state.
 
+Gate acknowledgements claim each gate once within the displayed report's
+`ackGeneration`. Loading or replacing a report and resetting the store advance
+that generation and clear its pending gates. Completion applies only to the
+originating session and generation. Failure releases the gate without removing
+it; retry remains available through the existing error flow. The separate load
+`generation` continues to invalidate report downloads on owner reset.
+
 Open and Restore use the current session metadata ETag when present and an explicit empty parameter when absent. Missing ETags do not block loading. The host displays a dismissible informational dialog without blocking metadata or waiting for recovery. IQ renders content-shaped placeholders for the score card, segment table, and compliance gates using its existing layout styles and Core loading semantics and skeleton styling, without host loading/readiness callbacks. Unknown scores, counts, and statuses remain neutral shapes hidden from assistive technology; section labels and table headers remain readable. Header Refresh and background generation still omit the ETag. A running gateway build is awaited and reused, including its failure result.
+
+Explicit IQ Refresh renders Core ProgressView with the decorative sequence “Checking segment quality…”, “Checking compliance gates…”, and “Generating IQ report…”. The existing retry interval advances the sequence; the final step remains active. A request retry restarts the sequence. The worker sends an `iqDownload` notification before fetching the report blob, switching the package to its existing placeholders. Normal data requests retain placeholders throughout. Background generation ignores the notification without changing panel state. The Core renderer is shared with Intake, Analysis, Capabilities, and Submit; the IQ timer and request state remain Index-owned.

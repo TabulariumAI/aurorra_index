@@ -157,8 +157,37 @@ const propertyMetadata: MetadataPayload = {
     ] }],
   },
 };
-const activeMetadata = scenario === "metadata-property-alignment" ? propertyMetadata : scenario === "metadata-pages" ? pageMetadata : scenario === "metadata-address-row" ? addressRowMetadata : scenario === "metadata-party-rows" ? partyRowMetadata : scenario === "metadata-row" ? rowMetadata : scenario === "metadata-short" ? shortMetadata : metadata;
-const activePanelData = scenario === "metadata-property-alignment" ? getPanelData(propertyMetadata) : scenario === "metadata-pages" ? pagePanelData : scenario === "metadata-address-row" ? addressRowPanelData : scenario === "metadata-party-rows" ? partyRowPanelData : scenario === "metadata-row" ? rowPanelData : scenario === "metadata-short" ? shortPanelData : panelData;
+const summaryMetadata: MetadataPayload = {
+  ...shortMetadata,
+  heading: { class: "mortgage", title: "Mortgage Satisfaction",
+    secondary_titles: new URLSearchParams(window.location.search).has("secondary") ? ["Release of Lien"] : undefined,
+    summary: `This document is a Mortgage Satisfaction${new URLSearchParams(window.location.search).has("secondary") ? " with a Release of Lien" : ""} extinguishing the recorded mortgage and releasing the lender's lien on the property.` },
+  pages: { recordables: [{ name: "2", code: "summary-page", class: "Title" }], num_of_pages: 2 },
+};
+const activeMetadata = scenario === "metadata-summary" ? summaryMetadata : scenario === "metadata-property-alignment" ? propertyMetadata : scenario === "metadata-pages" ? pageMetadata : scenario === "metadata-address-row" ? addressRowMetadata : scenario === "metadata-party-rows" ? partyRowMetadata : scenario === "metadata-row" ? rowMetadata : scenario === "metadata-short" ? shortMetadata : metadata;
+const activePanelData = scenario === "metadata-summary" ? getPanelData(summaryMetadata) : scenario === "metadata-property-alignment" ? getPanelData(propertyMetadata) : scenario === "metadata-pages" ? pagePanelData : scenario === "metadata-address-row" ? addressRowPanelData : scenario === "metadata-party-rows" ? partyRowPanelData : scenario === "metadata-row" ? rowPanelData : scenario === "metadata-short" ? shortPanelData : panelData;
+
+const groupMetadata: MetadataPayload = {
+  heading: { class: "deed", title: "Warranty Deed", summary: "Title overview." },
+  pages: { recordables: [{ name: "1", code: "page-1", class: "Title" }, { name: "2", code: "page-2", class: "execution" }] },
+  indexes: [
+    { code: "endorsement-1", segment: "endorsement", page: "1", aspect: "recording_number", label: "Recording Number", value: "2026-001" },
+    { code: "endorsement-2", segment: "endorsement", page: "2", aspect: "recording_date", label: "Recording Date", value: "November 2, 2026" },
+    { code: "endorsement-3", segment: "endorsement", page: "1", aspect: "recording_office", label: "Recording Office", value: "County Recorder" },
+    { code: "raw-1", segment: "party", page: "1", aspect: "person", label: "Grantor", value: "John Smith" },
+    { code: "raw-2", segment: "party", page: "Exhibit-A", aspect: "person", label: "Grantee", value: "Jane Smith" },
+    { code: "property-1", segment: "property", page: "1", aspect: "property_id", label: "Parcel", value: "Parcel 42" },
+    { code: "notary-1", segment: "acknowledgment", page: "2", aspect: "notary_name", label: "Notary", value: "Jane Doe" },
+  ],
+  parties: { summary: "Party overview.", indexes: [
+    { code: "side-1", segment: "party", page: "1", aspect: "person, Direct", label: "Grantor", value: "John Smith" },
+    { code: "side-2", segment: "party", aspect: "person, Indirect", label: "Grantee", value: "Jane Smith" },
+  ] },
+  legals: { summary: "Legal overview.", groups: [{ code: "legal-1", page: "Exhibit-A", type: "lot_block", elements: [{ aspect: "lot", value: "12" }, { aspect: "block", value: "4" }] }] },
+  execution: { summary: "Execution overview.", indexes: [
+    { code: "seal-1", segment: "execution", page: "2", aspect: "notary_seal", label: "Notary seal", value: "Yes" },
+  ] },
+};
 
 stage.style.display = "flex";
 stage.style.flexDirection = "column";
@@ -168,21 +197,21 @@ stage.style.boxSizing = "border-box";
 stage.innerHTML = "";
 
 function MetadataPreview() {
-  const [openSegment, setOpenSegment] = useState<string | null>(scenario === "metadata-property-alignment" ? segments.PROPERTY : scenario === "metadata-pages" ? segments.PAGE : scenario === "metadata-row" ? segments.ENDORSEMENT : scenario === "metadata-address-row" ? segments.TRANSACTION : segments.PARTY);
+  const [openSegment, setOpenSegment] = useState<string | null>(scenario === "metadata-summary" ? segments.TITLE : scenario === "metadata-property-alignment" ? segments.PROPERTY : scenario === "metadata-pages" ? segments.PAGE : scenario === "metadata-row" ? segments.ENDORSEMENT : scenario === "metadata-address-row" ? segments.TRANSACTION : segments.PARTY);
   return (
   <MetadataPanel
     actions={{ confirm: true, drop: true, reprocess: true }}
-    callbacks={{ onAddressClick: (value) => stage!.setAttribute("data-address", value), onEditPage: noOp, onPageClick: noOp }}
+    callbacks={{ onAddressClick: (value) => stage!.setAttribute("data-address", value), onEditPage: noOp, onPageClick: value => stage!.setAttribute("data-title-page", String(value.page)) }}
     choices={[{ level: 1, service: "PartyClauseIndexing" }]}
     confirmedCodes={new Set()}
-    metadata={activeMetadata}
+    metadata={scenario === "metadata-groups" ? groupMetadata : activeMetadata}
     onConfirm={noOp}
     onDrop={noOp}
     onAddIndex={(segment) => stage!.setAttribute("data-add-segment", segment)}
     onEditIndex={(item) => stage.setAttribute("data-edit-code", String(item.code))}
     onReprocess={noOp}
     openSegment={openSegment}
-    panelData={activePanelData}
+    panelData={scenario === "metadata-groups" ? getPanelData(groupMetadata) : activePanelData}
     reprocessingSegments={new Set(scenario === "metadata-reprocess" ? [segments.PARTY] : [])}
     removedCodes={new Set()}
     sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}

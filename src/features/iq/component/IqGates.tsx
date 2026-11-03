@@ -17,13 +17,14 @@ function statusLabel(status: IqUiStatus): string {
 
 export function IqGates({
   ackingCodes,
-  gates,
+  view,
   onAck,
 }: {
   ackingCodes: ReadonlySet<string>;
-  gates: IqReportView["gates"];
+  view: Pick<IqReportView, "gates">;
   onAck: (code: string) => void;
 }): JSX.Element {
+  const { gates } = view;
   return (
     <Tooltip.Provider delayDuration={250}>
       <div style={{ ...iqStyles.summaryCard, margin: "1rem 0 0.25rem" }}>

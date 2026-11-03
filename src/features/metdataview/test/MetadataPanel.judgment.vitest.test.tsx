@@ -19,7 +19,7 @@ it("renders Judgment indexes and routes add, reprocess, edit, confirm and remove
   expect(screen.getByRole("button", { name: "Judgment" })).toBeEnabled();
   expect(screen.getByText("CV-2026-101")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Add Index" }));
-  expect(add).toHaveBeenCalledExactlyOnceWith("judgment");
+  expect(add).toHaveBeenCalledExactlyOnceWith("judgment", screen.getByRole("button", { name: "Add Index" }));
   fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
   expect(reprocess).toHaveBeenCalledExactlyOnceWith("judgment");
   fireEvent.click(screen.getByRole("button", { name: "Edit index" }));

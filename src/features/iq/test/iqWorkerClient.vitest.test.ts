@@ -3,6 +3,35 @@ import { createIqWorkerClient } from "../worker/iqWorkerClient";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("iqWorkerClient", () => {
+  it.each([true, false])("keeps the worker alive through download until its final result, success=%s", async success => {
+    let worker!: WorkerMock;
+    class WorkerMock {
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      terminate = vi.fn();
+      constructor() { worker = this; }
+      postMessage() {}
+    }
+    vi.stubGlobal("Worker", WorkerMock);
+    const onDownload = vi.fn();
+    const client = createIqWorkerClient({ apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 5, onDownload });
+    let settled = false;
+    const load = client.loadReport("token", "s", null).then(
+      value => { settled = true; return value; },
+      error => { settled = true; throw error; },
+    );
+    worker.onmessage!({ data: { type: "iqDownload" } } as MessageEvent);
+    await Promise.resolve();
+    expect(onDownload).toHaveBeenCalledOnce();
+    expect(settled).toBe(false);
+    expect(worker.terminate).not.toHaveBeenCalled();
+    worker.onmessage!({ data: success
+      ? { ok: true, data: { report: {}, metadataEtag: "source" } }
+      : { ok: false, code: "download_failed", error: "Report unavailable", status: 500 } } as MessageEvent);
+    if (success) await expect(load).resolves.toEqual({ report: {}, metadataEtag: "source" });
+    else await expect(load).rejects.toMatchObject({ code: "download_failed", message: "Report unavailable", status: 500 });
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
+
   it("forwards explicitly supplied metadata ETags and permits an unversioned request", async () => {
     const commands: unknown[] = [];
     class WorkerMock {

@@ -16,6 +16,19 @@ import {
 const metadataFixturePath = join(process.cwd(), "src", "test", "metadata#v1.json");
 
 describe("metadata data normalization", () => {
+  it("preserves Execution as its own metadata node through splitting and composition", () => {
+    const execution = { summary: "John and Mary signed; Alice's signature is missing.", indexes: [
+      { code: "john", aspect: "signatory_signature", label: "John Smith Signature", value: "Yes", source: "J. Smith", explanation: "Visible signature", page: "2", segment: "execution" },
+      { code: "mary", aspect: "signatory_signature", label: "Mary Smith Signature", value: "Yes", source: "M. Smith", explanation: "Visible signature", page: "2", segment: "execution" },
+      { code: "alice", aspect: "signatory_signature", label: "Alice Brown Signature", value: "No", source: "", explanation: "Blank line", page: "2", segment: "execution" },
+    ] };
+    const payload = { indexes: [], execution };
+    const parts = splitMetadataJSON(payload);
+    expect(parts.indexJSON.execution).toEqual(execution);
+    expect(composeMetadataJSON(parts)).toEqual(payload);
+    expect(getPanelData(payload).execution).toEqual(execution);
+    expect(getPanelData(payload).indexes).toEqual([]);
+  });
   it("does not store audit usage in metadata parts or recomposed metadata", () => {
     const payload = { heading: { title: "NOTICE" }, usage: { services: [] } };
     const parts = splitMetadataJSON(payload);
@@ -42,7 +55,7 @@ describe("metadata data normalization", () => {
       ],
       legals: { summary: "summary" },
       pages: { num_of_pages: 2 },
-      parties: [
+      parties: { summary: null, indexes: [
         {
           code: "pt1",
           page: "1",
@@ -51,7 +64,7 @@ describe("metadata data normalization", () => {
           segment: "party",
           value: "Bob",
         },
-      ],
+      ] },
       secrets: [{ code: "s1", page: "1", page_number: "1", label: "secret", segment: "secrets", value: "classified" }],
       tags: ["a", "b"],
     } as unknown as MetadataPayload;
@@ -93,7 +106,7 @@ describe("metadata data normalization", () => {
       indexes: [],
       legals: { summary: "summary" },
       pages: { num_of_pages: 2 },
-      parties: [],
+      parties: { summary: null, indexes: [] },
       secrets: [],
       tags: ["a"],
     } as unknown as MetadataPayload);
@@ -109,7 +122,7 @@ describe("metadata data normalization", () => {
       indexes: [],
       legals: { summary: "summary" },
       pages: { num_of_pages: 2 },
-      parties: [],
+      parties: { summary: null, indexes: [] },
       secrets: [],
       tags: ["a"],
     });

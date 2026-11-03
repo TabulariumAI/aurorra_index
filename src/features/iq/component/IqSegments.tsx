@@ -1,13 +1,15 @@
+import { ErrorBoundary, ErrorBadge } from "aurora-core";
 import type { JSX } from "react";
 import { iqStyles } from "../style/iqStyles";
-import type { IqSegmentView } from "../type/iq.types";
+import type { IqReportView, IqSegmentView } from "../type/iq.types";
 
-export function IqSegments({ segments }: { segments: IqSegmentView[] }): JSX.Element {
+export function IqSegments({ view }: { view: Pick<IqReportView, "segments"> }): JSX.Element {
+  const { segments } = view;
   const orderedSegments = [...segments].sort((left, right) => right.expectedWeight - left.expectedWeight);
-  const segmentsWithExplanations = orderedSegments.filter((segment) => segment.explanations.length > 0);
 
   return (
     <>
+      <div style={iqStyles.sectionTitle}>Indexing Segments ({segments.length})</div>
       <table style={iqStyles.segmentTable}>
         <thead>
           <tr>
@@ -19,25 +21,36 @@ export function IqSegments({ segments }: { segments: IqSegmentView[] }): JSX.Ele
         </thead>
         <tbody>
           {orderedSegments.map((segment) => (
-            <tr key={segment.id}>
-              <td style={iqStyles.segmentCell("left")}>{segment.displayId}</td>
-              <td style={iqStyles.segmentCell("right")}>{segment.expectedDisplay}</td>
-              <td style={iqStyles.segmentCell("right")}>{segment.actualDisplay}</td>
-              <td style={iqStyles.segmentCell("right", true)}>{segment.iqDisplay}</td>
-            </tr>
+            <ErrorBoundary key={segment.id} title={segment.displayId} resetKey={segment}
+              fallback={error => <tr><td colSpan={4} style={iqStyles.segmentCell("left")}><ErrorBadge label={segment.displayId} error={error.message} /></td></tr>}>
+              <SegmentRow segment={segment} />
+            </ErrorBoundary>
           ))}
         </tbody>
       </table>
-      {segmentsWithExplanations.map((segment) => (
-        <div key={`${segment.id}-explanations`} style={iqStyles.explanationBlock}>
-          <div style={iqStyles.explanationTitle}>Segment: {segment.displayId}</div>
-          <ul style={iqStyles.explanationList}>
-            {segment.explanations.map((explanation, index) => (
-              <li key={`${segment.id}-${index}`}>{explanation}</li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {orderedSegments.map(segment => <ErrorBoundary key={`${segment.id}-explanations`} title={segment.displayId} resetKey={segment}
+        fallback={error => <ErrorBadge label={segment.displayId} error={error.message} />}>
+        <SegmentExplanations segment={segment} />
+      </ErrorBoundary>)}
     </>
   );
+}
+
+function SegmentRow({ segment }: { segment: IqSegmentView }) {
+  return <tr>
+    <td style={iqStyles.segmentCell("left")}>{segment.displayId}</td>
+    <td style={iqStyles.segmentCell("right")}>{segment.expectedDisplay}</td>
+    <td style={iqStyles.segmentCell("right")}>{segment.actualDisplay}</td>
+    <td style={iqStyles.segmentCell("right", true)}>{segment.iqDisplay}</td>
+  </tr>;
+}
+
+function SegmentExplanations({ segment }: { segment: IqSegmentView }) {
+  if (!segment.explanations.length) return null;
+  return <div style={iqStyles.explanationBlock}>
+    <div style={iqStyles.explanationTitle}>Segment: {segment.displayId}</div>
+    <ul style={iqStyles.explanationList}>
+      {segment.explanations.map((explanation, index) => <li key={`${segment.id}-${index}`}>{explanation}</li>)}
+    </ul>
+  </div>;
 }

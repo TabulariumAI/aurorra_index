@@ -30,7 +30,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
     json: { status: "completed", data: "https://storage.example.test/metadata.json" },
   }));
   await page.route("https://storage.example.test/metadata.json", (route) => route.fulfill({
-    json: { heading: {}, secrets: [], indexes: [], parties: [{ code: "added", segment: "party", label: "Party", aspect: "Party", value: "Edited Index" }], pages: { num_of_pages: 4 }, fees: [], funds: [] },
+    json: { heading: {}, secrets: [], indexes: [], parties: { summary: null, indexes: [{ code: "added", segment: "party", label: "Party", aspect: "Party", value: "Edited Index" }] }, pages: { num_of_pages: 4 }, fees: [], funds: [] },
   }));
   await page.setViewportSize({ width: 1880, height: 1334 });
   await page.goto("/?scenario=imageviewer");
@@ -151,7 +151,7 @@ test("Add Index renders and confirms the exported Image Viewer selection", async
     json: { status: "completed", data: "https://storage.example.test/added.json" },
   }));
   await page.route("https://storage.example.test/added.json", route => route.fulfill({
-    json: { heading: {}, indexes: [], parties: [{ code: "added", segment: "party", label: "Party label", aspect: "grantor", value: "Edited Index", page: "7", source: "Edited source", explanation: "Index created by user." }], pages: { num_of_pages: 7 }, secrets: [], fees: [], funds: [] },
+    json: { heading: {}, indexes: [], parties: { summary: null, indexes: [{ code: "added", segment: "party", label: "Party label", aspect: "grantor", value: "Edited Index", page: "7", source: "Edited source", explanation: "Index created by user." }] }, pages: { num_of_pages: 7 }, secrets: [], fees: [], funds: [] },
   }));
   await page.route("https://gateway.example.test/v1/content/session/pages", route => route.fulfill({
     json: { status: "completed", data: "https://storage.example.test/pages.json", etag: "pages-etag" },

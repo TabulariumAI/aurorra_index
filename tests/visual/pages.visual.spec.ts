@@ -39,7 +39,7 @@ for (const width of [1440, 390]) {
     await expect(page.getByLabel("Metadata state")).toHaveText("success");
     await expect(badge).toBeVisible();
     await expect(count).toHaveText("");
-    await expect(page.getByText("No recordables pages found.")).toHaveCount(0);
+    await expect(page.getByText("No recordable pages found.")).toHaveCount(0);
     await expect.poll(() => auditSessions).toContain("first");
     await expect(page.locator("body")).not.toHaveAttribute("data-view-error");
     await badge.hover();

@@ -127,7 +127,7 @@ describe("AuditWorker", () => {
     });
   });
 
-  it("rejects a raw audit report response", async () => {
+  it("rejects a raw Audit & Usage response", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({
       gaps: [
         { solution: "ADD", explanation: "alpha", page: "2", owner: "verification", timestamp: "2026-01-03T12:00:00Z", segment: "reference" },

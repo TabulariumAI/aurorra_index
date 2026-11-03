@@ -1,6 +1,7 @@
 import { useState, type JSX } from "react";
 import { LoadPlaceholder } from "aurora-core";
-import type { AuditGapView } from "../type/audit.types";
+import type { AuditFilters, AuditGapView, AuditReport } from "../type/audit.types";
+import { prepareAuditReport } from "../data/auditData";
 import { auditStyles } from "../style/auditStyles";
 
 type CollapseState = Record<string, boolean>;
@@ -8,7 +9,8 @@ type CollapseState = Record<string, boolean>;
 const PREVIEW_LENGTH = 200;
 
 type AuditGapsProps = {
-  gaps: AuditGapView[] | null;
+  report: AuditReport | null;
+  filters: AuditFilters;
 };
 
 function buildKey(gap: AuditGapView, index: number): string {
@@ -42,8 +44,9 @@ function MessageText({ isOpen, message, onToggle }: {
   );
 }
 
-export function AuditGaps({ gaps }: AuditGapsProps): JSX.Element {
+export function AuditGaps({ report, filters }: AuditGapsProps): JSX.Element {
   const [expanded, setExpanded] = useState<CollapseState>({});
+  const gaps = report ? prepareAuditReport(report, filters, []).gaps : null;
 
   function toggle(messageKey: string): void {
     setExpanded((state) => ({ ...state, [messageKey]: !state[messageKey] }));

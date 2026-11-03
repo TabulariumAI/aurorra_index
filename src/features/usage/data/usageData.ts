@@ -11,29 +11,37 @@ export function usageRange(now: number): { from: string; to: string } {
 }
 
 export function summarizeUsage(records: readonly UsageRecord[], filters?: UsageFilters): UsageSummary[] {
-  const summaries = new Map<UsageRecord["name"], Omit<UsageSummary, "sessions"> & { sessions: Set<string> }>();
+  const summaries = new Map<
+    UsageRecord["name"],
+    Omit<UsageSummary, "sessions" | "points"> & {
+      sessions: Set<string>;
+      points: Map<string, UsageSummary["points"][number]>;
+    }
+  >();
   for (const record of records) {
     const date = new Date(record.timestamp);
-    const day = date.toISOString().slice(0, 10);
-    if (filters && (day < filters.from || day > filters.to || !filters.services.includes(record.name))) continue;
-    if (filters?.period === "weekly") date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
-    const key = date.toISOString().slice(0, 10);
+    let key = date.toISOString().slice(0, 10);
+    if (filters && (key < filters.from || key > filters.to || !filters.services.includes(record.name))) continue;
+    if (filters?.period === "weekly") {
+      date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
+      key = date.toISOString().slice(0, 10);
+    }
     let summary = summaries.get(record.name);
     if (!summary) {
-      summary = { name: record.name, cost: 0, time: null, pages: 0, sessions: new Set<string>(), average: null, points: [] };
+      summary = { name: record.name, cost: 0, time: null, pages: 0, sessions: new Set<string>(), average: null, points: new Map() };
       summaries.set(record.name, summary);
     }
     summary.cost += record.cost;
     if (record.time !== undefined) summary.time = summary.time === null ? record.time : summary.time + record.time;
     summary.pages += record.page_num;
     summary.sessions.add(record.session);
-    const point = summary.points.find(item => item.date === key);
+    const point = summary.points.get(key);
     if (point) { point.cost += record.cost; point.pages += record.page_num; }
-    else summary.points.push({ date: key, cost: record.cost, pages: record.page_num });
+    else summary.points.set(key, { date: key, cost: record.cost, pages: record.page_num });
   }
   return [...summaries.values()].map(summary => ({ ...summary,
     sessions: summary.sessions.size,
     average: summary.pages === 0 ? null : summary.cost / summary.pages,
-    points: summary.points.sort((a, b) => a.date.localeCompare(b.date)),
+    points: [...summary.points.values()].sort((a, b) => a.date.localeCompare(b.date)),
   })).sort((a, b) => Object.keys(usageNames).indexOf(a.name) - Object.keys(usageNames).indexOf(b.name));
 }

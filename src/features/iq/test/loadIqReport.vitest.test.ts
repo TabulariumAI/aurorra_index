@@ -23,6 +23,75 @@ function deferred() {
 describe("loadIqReport", () => {
   beforeEach(() => { iqStoreApi.getState().resetIq(); queueStoreApi.getState().reset(); });
   afterEach(() => vi.restoreAllMocks());
+  it.each([false, true])("uses the placeholder during download and completes with the source ETag, refresh=%s", async refresh => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(worker);
+    const request = { ...input(worker), workerClient: undefined };
+    const load = refresh ? refreshIqReport(request) : loadIqReport(request);
+    await vi.waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
+    expect(iqStoreApi.getState().status).toBe(refresh ? "refreshing" : "loading");
+    factory.mock.calls[0][0].onDownload!();
+    expect(iqStoreApi.getState().status).toBe("loading");
+    expect(request.onComplete).not.toHaveBeenCalled();
+    pending.resolve(report);
+    await load;
+    expect(iqStoreApi.getState()).toMatchObject({ status: "success", metadataEtag: "", report });
+    expect(request.onComplete).toHaveBeenCalledExactlyOnceWith(report);
+  });
+
+  it("restores regeneration progress when a failed download retries the forced request", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(worker);
+    const request = { ...input(worker), workerClient: undefined };
+    const load = refreshIqReport(request);
+    const config = factory.mock.calls[0][0];
+    config.onDownload!();
+    expect(iqStoreApi.getState().status).toBe("loading");
+    config.onRetry!(2);
+    expect(iqStoreApi.getState()).toMatchObject({ status: "refreshing", retryAttempt: 2 });
+    config.onDownload!();
+    expect(iqStoreApi.getState()).toMatchObject({ status: "loading", retryAttempt: 2 });
+    pending.resolve(report);
+    await load;
+  });
+
+  it.each(["session-1", "session-2"])("ignores late download notifications after resetting and opening %s", async session => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(worker);
+    const request = { ...input(worker), workerClient: undefined };
+    const load = refreshIqReport(request);
+    const onDownload = factory.mock.calls[0][0].onDownload!;
+    iqStoreApi.getState().resetIq();
+    iqStoreApi.getState().setLoaded(session, report, "new-source");
+    const current = iqStoreApi.getState();
+    onDownload();
+    expect(iqStoreApi.getState()).toBe(current);
+    pending.resolve(report);
+    await load;
+    expect(request.onComplete).not.toHaveBeenCalled();
+  });
+
+  it("reports a download failure without leaving loading or regeneration active", async () => {
+    const worker = client();
+    const pending = deferred();
+    vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
+    const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(worker);
+    const request = { ...input(worker), workerClient: undefined };
+    const load = refreshIqReport(request);
+    factory.mock.calls[0][0].onDownload!();
+    pending.reject(new Error("Report download failed"));
+    await load;
+    expect(iqStoreApi.getState()).toMatchObject({ status: "error", error: { error: "Report download failed" } });
+    expect(request.onError).toHaveBeenCalledOnce();
+    expect(request.onComplete).not.toHaveBeenCalled();
+  });
+
   it("opens with an explicit empty ETag after reset and uses a separate Refresh facade", async () => {
     const worker = client();
     const request = input(worker);

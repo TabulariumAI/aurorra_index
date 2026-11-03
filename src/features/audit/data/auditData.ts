@@ -197,7 +197,7 @@ export function normalizeAuditReport(raw: unknown): AuditReport {
 }
 
 export function prepareAuditReport(raw: unknown, filters: AuditFilters, segments: string[]): AuditReportView {
-  const report = normalizeAuditReport(raw);
+  const gaps = normalizeIncoming(raw);
   const selectedChangeType = filters.changeType ? normalizeChangeType(filters.changeType) : "";
   const selectedProcess = filters.process ? normalizeProcess(filters.process) : "";
   const hasChangeFilter = selectedChangeType.length > 0;
@@ -220,7 +220,7 @@ export function prepareAuditReport(raw: unknown, filters: AuditFilters, segments
   const segmentCounts = Object.fromEntries(segments.map(segment => [segment, 0]));
   let segmentTotal = 0;
 
-  const filtered = report.gaps.filter((entry) => {
+  const filtered = gaps.filter((entry) => {
     const passProcess = !hasProcessFilter || entry.owner === selectedProcess;
     const passChange = !hasChangeFilter || entry.solution === selectedChangeType;
 
@@ -250,6 +250,6 @@ export function prepareAuditReport(raw: unknown, filters: AuditFilters, segments
     processCounts,
     segmentCounts,
     segmentTotal,
-    total: report.gaps.length,
+    total: gaps.length,
   };
 }

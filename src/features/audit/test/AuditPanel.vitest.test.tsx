@@ -50,7 +50,7 @@ describe("AuditPanel", () => {
     resource.mockClear();
   });
 
-  it("shows all four service groups below audit gaps", async () => {
+  it("shows all four service groups in Usage independently of change filters", async () => {
     const service = { code: "one", cost: 11, time: 2, page_num: 2, timestamp: "2025-01-01T00:00:00Z" };
     const grouped: AuditReport = { ...report, usage: { ...report.usage, services: [
       { ...service, name: "extraction" },
@@ -60,17 +60,20 @@ describe("AuditPanel", () => {
       { ...service, code: "model", name: "model_generation", cost: 5.5, page_num: 0 },
     ] } };
     render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => grouped))} />);
-    const table = await screen.findByRole("table", { name: "Audit service usage" });
-    const usage = screen.getByRole("region", { name: "Audit usage" });
-    expect(screen.getByRole("region", { name: "Audit report body" }).lastElementChild).toBe(usage);
-    expect(screen.getByRole("region", { name: "Audit gaps" }).nextElementSibling).toBe(usage);
-    expect(within(table).getAllByRole("columnheader").map(header => header.textContent)).toEqual(["Service", "Cost", "Time", "Pages"]);
-    expect(within(table).getAllByRole("row")).toHaveLength(5);
-    const extraction = within(table).getByRole("row", { name: "Index Extraction $33.0000 5.00 s 5" });
-    expect(extraction).toBeInTheDocument();
-    expect(within(table).getByRole("row", { name: "Model Generation $5.5000 2.00 s 0" })).toBeInTheDocument();
-    expect(within(table).getByRole("row", { name: "User Refinement $11.0000 2" }).children[2]).toHaveTextContent("");
+    await screen.findByText("Newest addition message");
     fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "ADD" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
+    const table = screen.getByRole("table", { name: "Audit service usage" });
+    expect(screen.queryByRole("region", { name: "Audit gaps" })).not.toBeInTheDocument();
+    expect(within(table).getAllByRole("columnheader").map(header => header.textContent)).toEqual(["Service", "Credits", "Time", "Pages"]);
+    expect(within(table).getAllByRole("row")).toHaveLength(5);
+    const extraction = within(table).getByRole("row", { name: "Index Extraction 33.00 credits 5.00 s 5" });
+    expect(extraction).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "Model Generation 5.50 credits 2.00 s 0" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "User Refinement 11.00 credits 2" }).children[2]).toHaveTextContent("");
+    fireEvent.click(screen.getByRole("tab", { name: "Changes" }));
+    fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "REMOVE" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(within(table).getAllByRole("row")).toHaveLength(5);
     expect(extraction).toBeInTheDocument();
   });
@@ -78,6 +81,7 @@ describe("AuditPanel", () => {
   it("does not add service rows when the audit contains no service usage", async () => {
     render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
     await screen.findByText("Newest addition message");
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(screen.queryByRole("table", { name: "Audit service usage" })).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Audit usage" })).not.toBeInTheDocument();
   });
@@ -89,10 +93,11 @@ describe("AuditPanel", () => {
     })) };
     const props = { onResource: resource, apiGatewayUrl: "https://api", authToken: "token", callbacks: {}, retryLimit: 5, retryIntervalMs: 0, workerClient };
     const { rerender } = render(<AuditPanel {...props} session="first" />);
-    expect(await screen.findByRole("row", { name: "Index Extraction $0.3750 0.00 s 2" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
+    expect(await screen.findByRole("row", { name: "Index Extraction 0.38 credits 0.00 s 2" })).toBeInTheDocument();
     rerender(<AuditPanel {...props} session="other" />);
-    expect(await screen.findByRole("row", { name: "Index Extraction $2.0000 0.00 s 1" })).toBeInTheDocument();
-    expect(screen.queryByText("$0.3750")).not.toBeInTheDocument();
+    expect(await screen.findByRole("row", { name: "Index Extraction 2.00 credits 0.00 s 1" })).toBeInTheDocument();
+    expect(screen.queryByText("0.38 CR")).not.toBeInTheDocument();
     expect(within(screen.getByRole("table", { name: "Audit service usage" })).getAllByRole("row")).toHaveLength(2);
   });
 
@@ -117,7 +122,7 @@ describe("AuditPanel", () => {
     expect(screen.getByText("Change type")).toBeInTheDocument();
     expect(screen.getByText("Process")).toBeInTheDocument();
     expect(screen.queryByText("Audit gaps", { exact: true })).not.toBeInTheDocument();
-    const body = screen.getByRole("region", { name: "Audit report body" });
+    const body = screen.getByRole("region", { name: "Audit & Usage body" });
     expect(body).toHaveStyle({
       flex: "1 1 auto",
       minHeight: "0",
@@ -246,14 +251,14 @@ describe("AuditPanel", () => {
     render(<AuditPanel apiGatewayUrl="https://api" authToken="token" callbacks={{ onAuditError }}
       onResource={request => { callback = request.callback; }} retryLimit={5} retryIntervalMs={0}
       session="session-1" workerClient={client()} />);
-    expect(screen.getByRole("region", { name: "Audit report body" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Audit & Usage body" })).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Loading audit gaps" })).toBeInTheDocument();
     expect(await screen.findByText("Newest addition message")).toBeVisible();
     expect(screen.getByLabelText("Change type")).toBeEnabled();
     expect(screen.getByRole("status", { name: "Loading segment options" })).toBeVisible();
     if (state === "failed") {
       await act(async () => callback({ ok: false, error: "Catalog unavailable", code: "catalog_failed", status: 503 }));
-      expect(screen.getByRole("alert")).toHaveTextContent("Segment options could not be loaded. Refresh the audit report to try again.");
+      expect(screen.getByRole("alert")).toHaveTextContent("Segment options could not be loaded. Refresh the Audit & Usage to try again.");
       expect(screen.getByRole("alert")).toHaveStyle({ color: "var(--error-text-color-light)", background: "#FEF2F2" });
       expect(screen.getByText("Newest addition message")).toBeVisible();
       expect(onAuditError).not.toHaveBeenCalled();
@@ -267,8 +272,11 @@ describe("AuditPanel", () => {
     const onResource = vi.fn((request: ResourceRequest) => { callback = request.callback; });
     render(<AuditPanel onResource={onResource} apiGatewayUrl="https://api" authToken="token" callbacks={{}}
       retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(loadReport)} />);
-    for (const name of ["Loading audit filters", "Loading audit summary", "Loading audit gaps", "Loading service usage"])
+    for (const name of ["Loading audit filters", "Loading audit summary", "Loading audit gaps"])
       expect(screen.getByRole("status", { name })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
+    expect(screen.getByRole("status", { name: "Loading service usage" })).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "Changes" }));
     expect(loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1");
     expect(onResource).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ resource: "aspects", session: "session-1", callback: expect.any(Function) }));
     await act(async () => callback({ ok: true, data: { aspects: { party: ["grantor"] } } }));

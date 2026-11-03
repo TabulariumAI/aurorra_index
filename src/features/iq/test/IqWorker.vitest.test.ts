@@ -14,6 +14,42 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}) {
 }
 
 describe("IqWorker", () => {
+  it.each([null, "source-version"])("signals download after the envelope and before fetching the report, etag=%s", async etag => {
+    const onDownload = vi.fn();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" }))
+      .mockImplementationOnce(async () => {
+        expect(onDownload).toHaveBeenCalledOnce();
+        return jsonResponse({ iq_doc: 98 });
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag }, onDownload);
+    expect(result).toEqual({ ok: true, data: { report: { iq_doc: 98 } } });
+    expect(onDownload).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { status: "error", data: "Generation failed" },
+    { status: "completed" },
+  ])("does not signal download for an unsuccessful envelope: %j", async payload => {
+    const onDownload = vi.fn();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(payload)));
+    expect((await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null }, onDownload)).ok).toBe(false);
+    expect(onDownload).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("posts the download notification before the final worker result", async () => {
+    const postMessage = vi.spyOn(self, "postMessage").mockImplementation(() => {});
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" }))
+      .mockResolvedValueOnce(jsonResponse({ iq_doc: 98 })));
+    await self.onmessage!({ data: { apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null } } as MessageEvent);
+    expect(postMessage.mock.calls.map(([message]) => message)).toEqual([
+      { type: "iqDownload" }, { ok: true, data: { report: { iq_doc: 98 } } },
+    ]);
+  });
+
   it.each(["client-version", null])("loads a report without a response ETag, request ETag=%s", async etag => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" }))

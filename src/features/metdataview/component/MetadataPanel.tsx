@@ -1,6 +1,9 @@
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { type JSX, type ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import {
+  indexSegments,
+  ErrorBoundary,
+  ErrorBadge,
   Icon,
   SuccessIcon,
   metadataRowCss,
@@ -13,10 +16,12 @@ import {
   IndexValue,
   MetadataRow,
   MetadataList,
+  MetadataGroups,
   MetadataSegment,
   cleanText,
   formatLabel,
   getParcelOptions,
+  getSegmentItems,
   isAmbiguous,
 } from "aurora-core";
 import type {
@@ -91,13 +96,13 @@ export type MetadataPanelProps = {
   pendingSegments?: ReadonlyMap<string, { busy: boolean; actions: ReactNode }>;
 };
 
-function titles(metadata: MetadataPayload): { explanation?: string; title: string }[] {
-  const out: { explanation?: string; title: string }[] = [];
+function titles(metadata: MetadataPayload): { title: string }[] {
+  const out: { title: string }[] = [];
   const main = metadata.heading?.title?.trim();
-  if (main) out.push({ explanation: metadata.heading?.explanation, title: main });
+  if (main) out.push({ title: main });
   const secondary = Array.isArray(metadata.heading?.secondary_titles) ? metadata.heading.secondary_titles : [];
   for (const title of secondary) {
-    if (title?.trim()) out.push({ explanation: metadata.heading?.explanation, title });
+    if (title?.trim()) out.push({ title });
   }
   return out;
 }
@@ -163,10 +168,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const sectionShortcut = (segment: string) => shortcuts?.get(segment) ?? null;
   const currentSegment = openSegment === segments.LEGAL ? segments.PROPERTY : openSegment;
 
-  const rows = (items: MetadataIndex[], segment: string, emptyMessage: string, type = "index") => {
+  const rows = (items: MetadataIndex[], segment: string, emptyMessage: string | undefined, type = "index", title?: string, scope = segment) => {
     const visibleItems = items.filter((item) => !removedCodes.has(String(item.code || "")));
     const occurrences = new Map<string, number>();
-    return <MetadataList key={`${session}-${segment}`} empty={emptyMessage} rows={visibleItems.map((item) => {
+    return <MetadataList key={`${session}-${scope}`} title={title} hidePages={segment === indexSegments.EXECUTION} ungrouped={segment === segments.ENDORSEMENT} empty={emptyMessage} rows={visibleItems.map((item) => {
       const code = String(item.code || "");
       const occurrence = occurrences.get(code) ?? 0;
       occurrences.set(code, occurrence + 1);
@@ -182,7 +187,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           onConfirm={actions.confirm ? onConfirm : undefined}
           onDrop={actions.drop ? onDrop : undefined}
           onEdit={onEditIndex}
-          onAddressClick={item.aspect === "property_address" ? undefined : callbacks.onAddressClick}
           selected={Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segment))}
           segment={segment}
           session={session}
@@ -195,8 +199,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const renderSegment = (
     segment: string,
     title: string,
-    count: number,
-    content: ReactNode,
+    render: () => { count: number; children: ReactNode },
     actionSegment: string | null = segment,
   ) => {
     const disabled = segment === segments.PROPERTY ? !propertyVisible && !legalVisible : disabledSegments.has(segment);
@@ -228,14 +231,17 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             </div>
           ) : null
         }
-        count={count}
+        resetKey={metadata}
+        render={() => {
+          const content = render();
+          return { ...content, children: <>{content.children}{note && (segment === segments.TITLE || choices === null) ? <p role="note" style={metadataStyles.muted}>{note}</p> : null}</> };
+        }}
         onOpenChange={(open) => setSectionOpen(segment, open)}
         open={currentSegment === segment}
         shortcutKey={sectionShortcut(segment)}
         title={title}
       >
-        {content}
-        {note && (segment === segments.TITLE || choices === null) ? <p role="note" style={metadataStyles.muted}>{note}</p> : null}
+        {null}
       </MetadataSegment>
     );
   };
@@ -252,21 +258,18 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
     );
   }
 
-  const indexes = Array.isArray(metadata.parties)
-    ? [...(metadata.indexes ?? []).filter((index) => index.segment !== segments.PARTY), ...panelData.parties]
-    : metadata.indexes ?? [];
-  const countedIndexes = indexes.filter((index) => !removedCodes.has(String(index.code || "")));
-  const unclearCount = countedIndexes.filter((index) =>
-    !confirmedCodes.has(String(index.code || "")) && isAmbiguous(index.ambiguous),
-  ).length;
-  const titleItems = titles(metadata);
-  const pageItems = pageError ? [] : pages(metadata);
-  const titlePage = pageItems.find((item) => item.isTitle)?.page;
-  const legalGroups = (metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || []).filter((group) => Array.isArray(group.elements) && group.elements.length > 0);
-  const propertyItems = propertyVisible ? panelData.properties.filter((item) => !legalGroups.length || item.aspect !== "legal_description") : [];
-  const legalCount = legalVisible ? legalGroups.length : 0;
-  const hasMap = (legalVisible && getMapGroups(metadata.legals).length > 0) || (propertyVisible && Boolean(getParcelOptions(propertyItems).property_address?.trim()));
-  const secretItems = (metadata.secrets || []).filter((item) => cleanText(item.value) && !cleanText(item.value).startsWith("xxx") && !cleanText(item.value).includes("Not explicitly provided"));
+  const view = {
+    get sideItems() { return metadata.parties ? panelData.parties : []; },
+    get partyItems() { return getSegmentItems(metadata.indexes, [segments.PARTY]); },
+    get executionIndexes() { return panelData.execution?.indexes ?? []; },
+    get titleItems() { return titles(metadata); },
+    get pageItems() { return pageError ? [] : pages(metadata); },
+    get legalGroups() { return (metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || []).filter((group) => Array.isArray(group.elements) && group.elements.length > 0); },
+    get propertyItems() { return propertyVisible ? panelData.properties.filter((item) => !view.legalGroups.length || item.aspect !== "legal_description") : []; },
+    get legalCount() { return legalVisible ? view.legalGroups.length : 0; },
+    get hasMap() { return (legalVisible && getMapGroups(metadata.legals).length > 0) || (propertyVisible && Boolean(getParcelOptions(view.propertyItems).property_address?.trim())); },
+    get secretItems() { return (metadata.secrets || []).filter((item) => cleanText(item.value) && !cleanText(item.value).startsWith("xxx") && !cleanText(item.value).includes("Not explicitly provided")); },
+  };
 
   let pageNote = "Processing scope is unavailable for this session.";
   const totalPages = metadata.pages?.num_of_pages;
@@ -283,6 +286,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const sessionNotes = new Map([
     [segments.PAGE, pageNote],
     [segments.TITLE, jurisdiction?.trim() ? `Jurisdiction for this session: ${jurisdiction.trim()}.` : "No jurisdiction was selected for this session."],
+    [segments.ACKNOWLEDGMENT, selectedServices.has("ExecutionEnrichment") ? undefined : "Acknowledgment verification was not selected for this session."],
     [segments.PARTY, selectedServices.has("PartyEnrichment") ? undefined : "Party enrichment was not selected for this session."],
     [segments.PROPERTY, selectedServices.has("LegalEnrichment") ? undefined : "Legal description enrichment was not selected for this session."],
   ]);
@@ -295,16 +299,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
             <div style={metadataStyles.statistics}>
               {props.headerActions}
-              <dl style={{ ...metadataStyles.statistics, margin: 0 }}>
-                <div style={metadataStyles.statistic}>
-                  <dt title="Indexes" style={metadataStyles.statisticLabel}>Indexes</dt>
-                  <dd style={metadataStyles.statisticValue}>{countedIndexes.length}</dd>
-                </div>
-                <div style={metadataStyles.statistic}>
-                  <dt title="Ambiguous indexes" style={metadataStyles.statisticLabel}>Unclear</dt>
-                  <dd style={metadataStyles.statisticValue}>{unclearCount}</dd>
-                </div>
-              </dl>
+              <ErrorBoundary title="Metadata statistics" resetKey={metadata}
+                fallback={error => <MetadataStatistics {...props} metadata={metadata} panelData={panelData} error={error.message} />}>
+                <MetadataStatistics {...props} metadata={metadata} panelData={panelData} />
+              </ErrorBoundary>
             </div>
           </header>
         ) : null}
@@ -312,8 +310,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {isVisible(segments.PAGE) ? renderSegment(
           segments.PAGE,
           "Pages",
-          pageItems.length,
-          pageError ? null : pageItems.length ? pageItems.map(({ page, recordable, isTitle }, index) => {
+          () => ({ count: view.pageItems.length, children: pageError ? null : view.pageItems.length ? view.pageItems.map(({ page, recordable, isTitle }, index) => {
             const pageNum = String(page.name || "");
             const code = String(page.code ?? pageNum);
             const pageClass = String(page.class || "").trim().toLowerCase();
@@ -336,7 +333,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 key={`${code}-${index}`}
                 onConfirm={actions.confirm ? onConfirm : undefined}
                 onDrop={actions.drop ? onDrop : undefined}
-                onAddressClick={callbacks.onAddressClick}
                 pageClass={pageClass}
                 pageSegments={validSegments}
                 details={validSegments.length ? [{ label: "Segments", value: item.source }] : undefined}
@@ -349,37 +345,44 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 type="page"
               />
             );
-          }) : <EmptyRow message="No recordables pages found." />,
+          }) : <EmptyRow message="No recordable pages found." /> }),
           null,
         ) : null}
-        {isVisible(segments.SECRETS) ? renderSegment(segments.SECRETS, "Confidential", secretItems.length, rows(secretItems, segments.SECRETS, "No confidential info found.", "secret")) : null}
+        {isVisible(segments.SECRETS) ? renderSegment(segments.SECRETS, "Confidential", () => ({ count: view.secretItems.length, children: rows(view.secretItems, segments.SECRETS, "No confidential info found.", "secret") })) : null}
         {isVisible(segments.TITLE) ? renderSegment(
           segments.TITLE,
           "Titles",
-          titleItems.length,
-          titleItems.length ? titleItems.map((item, index) => (
-            <article key={`${item.title}-${index}`} style={metadataStyles.article}>
-              <div style={metadataStyles.okHeading}><span aria-label="OK" role="img" title="OK"><SuccessIcon /></span>
-                <IndexValue value={item.title} onClick={titlePage?.code && titlePage.name && callbacks.onPageClick
-                  ? () => callbacks.onPageClick?.({ code: titlePage.code!, page: titlePage.name!, segment: segments.PAGE, session, type: "title", value: item.title })
-                  : undefined} />
-              </div>
-              {item.explanation ? <div style={metadataStyles.muted}>{item.explanation}</div> : null}
-            </article>
-          )) : <EmptyRow message="No titles found." />,
+          () => {
+            const titleRows = view.titleItems.map((item, index) => (
+              <article key={`${item.title}-${index}`} style={metadataStyles.article}>
+                <div style={metadataStyles.okHeading}><span aria-label="OK" role="img" title="OK"><SuccessIcon /></span>
+                  <ErrorBoundary title="Title page" resetKey={metadata} fallback={() => <IndexValue value={item.title} />}>
+                    <TitleValue title={item.title} metadata={metadata} pageError={pageError} callbacks={callbacks} session={session} segment={segments.TITLE} />
+                  </ErrorBoundary>
+                </div>
+              </article>
+            ));
+            return { count: titleRows.length, children: <>
+              {metadata.heading?.summary ? <p style={metadataStyles.segmentSummary}>{metadata.heading.summary}</p> : null}
+              {titleRows.length ? titleRows : <EmptyRow message="No titles found." />}
+            </> };
+          },
           null,
         ) : null}
-        {isVisible(segments.ENDORSEMENT) ? renderSegment(segments.ENDORSEMENT, "Endorsements", panelData.endorsements.length, rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.")) : null}
-        {isVisible(segments.PARTY) ? renderSegment(segments.PARTY, "Parties(Party Clause)", panelData.parties.length, rows(panelData.parties, segments.PARTY, "No parties found.")) : null}
-        {isVisible(segments.REFERENCE) ? renderSegment(segments.REFERENCE, "References(Recital)", panelData.references.length, rows(panelData.references, segments.REFERENCE, "No references found.")) : null}
+        {isVisible(segments.ENDORSEMENT) ? renderSegment(segments.ENDORSEMENT, "Endorsements", () => ({ count: panelData.endorsements.length, children: rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.") })) : null}
+        {isVisible(segments.PARTY) ? renderSegment(segments.PARTY, "Parties(Party Clause)", () => ({ count: view.sideItems.length + view.partyItems.length, children: <>
+          {metadata.parties?.summary ? <p style={metadataStyles.segmentSummary}>{metadata.parties.summary}</p> : null}
+          {metadata.parties ? rows(view.sideItems, segments.PARTY, view.partyItems.length ? undefined : "No parties found.", "index", view.partyItems.length ? "Sides" : undefined, "sides") : null}
+          {rows(view.partyItems, segments.PARTY, metadata.parties ? undefined : "No parties found.", "index", view.sideItems.length ? "Parties" : undefined)}
+        </> })) : null}
+        {isVisible(segments.REFERENCE) ? renderSegment(segments.REFERENCE, "References(Recital)", () => ({ count: panelData.references.length, children: rows(panelData.references, segments.REFERENCE, "No references found.") })) : null}
         {isVisible(segments.PROPERTY) || isVisible(segments.LEGAL) ? renderSegment(
           segments.PROPERTY,
           "Property Info",
-          propertyItems.length + legalCount,
-          <div className="metadata-property">
-            {hasMap || (legalVisible && metadata.legals?.summary) ? (
-              <p style={metadataStyles.legalSummary}>
-                {hasMap ? (
+          () => ({ count: view.propertyItems.length + view.legalCount, children: <div className="metadata-property">
+            {view.hasMap || (legalVisible && metadata.legals?.summary) ? (
+              <p style={metadataStyles.segmentSummary}>
+                {view.hasMap ? (
                   <ActionButton label="Open legal view" lineAligned text onClick={() => callbacks.onLegalView?.()}>
                     <Icon name="address" />
                     Show Map
@@ -388,10 +391,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                 {legalVisible ? metadata.legals?.summary : null}
               </p>
             ) : null}
-            {propertyItems.length ? rows(propertyItems, segments.PROPERTY, "No property info found.") : null}
-            {legalCount > 0 ? (
-              <div style={metadataStyles.legalGroupList}>
-                {legalGroups.map((group, index) => {
+            {view.propertyItems.length ? rows(view.propertyItems, segments.PROPERTY, "No property info found.") : null}
+            {view.legalCount > 0 ? (
+              <MetadataGroups items={view.legalGroups} page={group => group.page} hidePages>
+                {(group, index) => {
                   const code = String(group.code || "");
                   const page = group.page || 0;
                   const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
@@ -425,21 +428,51 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                       {props.pendingChanges?.get(code)?.actions ? <div aria-disabled="false" style={rowStyles.recovery}>{props.pendingChanges.get(code)?.actions}</div> : null}
                     </article>
                   );
-                })}
-              </div>
+                }}
+              </MetadataGroups>
             ) : null}
-            {!propertyItems.length && !legalCount ? <EmptyRow message="No property info found." /> : null}
-          </div>,
+            {!view.propertyItems.length && !view.legalCount ? <EmptyRow message="No property info found." /> : null}
+          </div> }),
         ) : null}
-        {isVisible(segments.MONETARY) ? renderSegment(segments.MONETARY, "Monetary", panelData.monetarys.length, rows(panelData.monetarys, segments.MONETARY, "No monetary info found.")) : null}
-        {isVisible(segments.ACKNOWLEDGMENT) ? renderSegment(segments.ACKNOWLEDGMENT, "Acknowledgment", panelData.notary.length, rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary Info found.")) : null}
-        {isVisible(segments.TRANSACTION) ? renderSegment(segments.TRANSACTION, "Transactional", panelData.transactions.length, rows(panelData.transactions, segments.TRANSACTION, "No Transaction indexes found.")) : null}
-        {isVisible(segments.VITAL) ? renderSegment(segments.VITAL, "Vital", panelData.vitals.length, rows(panelData.vitals, segments.VITAL, "Vital information not found.")) : null}
-        {isVisible(segments.JUDGMENT) ? renderSegment(segments.JUDGMENT, "Judgment", panelData.judgments.filter(item => !removedCodes.has(String(item.code || ""))).length, rows(panelData.judgments, segments.JUDGMENT, "No judgment indexes found.")) : null}
+        {isVisible(segments.MONETARY) ? renderSegment(segments.MONETARY, "Monetary", () => ({ count: panelData.monetarys.length, children: rows(panelData.monetarys, segments.MONETARY, "No monetary info found.") })) : null}
+        {isVisible(segments.ACKNOWLEDGMENT) ? renderSegment(segments.ACKNOWLEDGMENT, "Acknowledgment", () => ({ count: panelData.notary.length + view.executionIndexes.length, children: <>
+          {panelData.execution?.summary ? <p style={metadataStyles.segmentSummary}>{panelData.execution.summary}</p> : null}
+          {view.executionIndexes.length ? rows(view.executionIndexes, indexSegments.EXECUTION, "No execution results found.") : null}
+          {panelData.notary.length || !view.executionIndexes.length ? rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary info found.") : null}
+        </> })) : null}
+        {isVisible(segments.TRANSACTION) ? renderSegment(segments.TRANSACTION, "Transactional", () => ({ count: panelData.transactions.length, children: rows(panelData.transactions, segments.TRANSACTION, "No transaction indexes found.") })) : null}
+        {isVisible(segments.VITAL) ? renderSegment(segments.VITAL, "Vital", () => ({ count: panelData.vitals.length, children: rows(panelData.vitals, segments.VITAL, "Vital information not found.") })) : null}
+        {isVisible(segments.JUDGMENT) ? renderSegment(segments.JUDGMENT, "Judgment", () => ({ count: panelData.judgments.filter(item => !removedCodes.has(String(item.code || ""))).length, children: rows(panelData.judgments, segments.JUDGMENT, "No judgment indexes found.") })) : null}
         {children}
         </div>
         <footer aria-label="Metadata actions" data-metadata-footer="true" style={metadataStyles.footerEmpty} />
       </section>
     </Tooltip.Provider>
   );
+}
+
+function MetadataStatistics({ metadata, panelData, removedCodes, confirmedCodes, error }: Pick<MetadataPanelProps, "removedCodes" | "confirmedCodes"> & { metadata: MetadataPayload; panelData: MetadataPanelData; error?: string }) {
+  let values: number[] | undefined;
+  if (!error) {
+    const indexes = [...(metadata.indexes ?? []), ...(metadata.parties ? panelData.parties : [])];
+    const executionIndexes = panelData.execution?.indexes ?? [];
+    const countedIndexes = [...indexes, ...executionIndexes].filter((index) => !removedCodes.has(String(index.code || "")));
+    const unclearCount = countedIndexes.filter((index) =>
+      !confirmedCodes.has(String(index.code || "")) && isAmbiguous(index.ambiguous),
+    ).length;
+    values = [countedIndexes.length, unclearCount];
+  }
+  return <dl style={{ ...metadataStyles.statistics, margin: 0 }}>
+    {["Indexes", "Unclear"].map((label, index) => <div key={label} style={metadataStyles.statistic}>
+      <dt title={label === "Indexes" ? label : "Ambiguous indexes"} style={metadataStyles.statisticLabel}>{label}</dt>
+      <dd style={metadataStyles.statisticValue}>{error ? <ErrorBadge label={label} error={error} /> : values![index]}</dd>
+    </div>)}
+  </dl>;
+}
+
+function TitleValue({ title, metadata, pageError, callbacks, session, segment }: { title: string; metadata: MetadataPayload; pageError: MetadataPanelProps["pageError"]; callbacks: MetadataCallbacks; session: string; segment: string }) {
+  const page = pageError ? undefined : pages(metadata).find(item => item.isTitle)?.page;
+  return <IndexValue value={title} onClick={page?.code && page.name && callbacks.onPageClick
+    ? () => callbacks.onPageClick?.({ code: page.code!, page: page.name!, segment, session, type: "title", value: title })
+    : undefined} />;
 }

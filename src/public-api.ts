@@ -1,8 +1,6 @@
 import { lazy } from "react";
 export { UsagePanel, useUsage } from "./features/usage";
 export type { UsageRecord } from "./features/usage";
-export { QueueExitPanel } from "./features/queueexit/component/QueueExitPanel";
-export { useQueueExitStore } from "./features/queueexit/store/queueExitStore";
 
 export const ImageViewerPanel = lazy(async () => {
   const module = await import("./features/imageviewer/component/ImageViewerPanel");
@@ -169,3 +167,5 @@ export type { QueueTransition, IndexChange } from "./features/queue/type/queue.t
 
 export { loadChoices } from "./features/choices/data/loadChoices";
 export type { SessionChoices } from "./features/choices/type/choices.types";
+
+export { getBlockers } from "./features/queue/data/queueBlockers";

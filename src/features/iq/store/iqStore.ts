@@ -11,21 +11,27 @@ const initialState = {
   status: "idle",
 } satisfies Pick<IqStoreState, "metadataEtag" | "activeSession" | "ackingCodes" | "error" | "report" | "retryAttempt" | "status">;
 
-export const useIqStore = create<IqStoreState>()((set) => ({
+export const useIqStore = create<IqStoreState>()((set, get) => ({
   ...initialState,
   generation: 0,
-  ackStart(code) {
-    set((state) => ({
-      ackingCodes: new Set([...state.ackingCodes, code]),
-    }));
+  ackGeneration: 0,
+  ackStart(session, code) {
+    const state = get();
+    if (state.activeSession !== session || state.ackingCodes.has(code)) return null;
+    set({ ackingCodes: new Set([...state.ackingCodes, code]) });
+    return state.ackGeneration;
   },
-  ackSuccess(code) {
+  ackFinish(session, generation, code, error) {
+    const current = get();
+    if (current.activeSession !== session || current.ackGeneration !== generation || !current.ackingCodes.has(code)) return false;
     set((state) => {
       const ackingCodes = new Set(state.ackingCodes);
       ackingCodes.delete(code);
       return {
         ackingCodes,
-        report: state.report
+        error,
+        status: error ? "error" : "success",
+        report: !error && state.report
           ? {
             ...state.report,
             gates: state.report.gates.filter((gate) => gate.code !== code),
@@ -33,22 +39,26 @@ export const useIqStore = create<IqStoreState>()((set) => ({
           : state.report,
       };
     });
+    return true;
   },
   resetIq() {
     set(state => ({
       ...initialState,
       ackingCodes: new Set<string>(),
       generation: state.generation + 1,
+      ackGeneration: state.ackGeneration + 1,
     }));
   },
   setError(error) {
     set({ error, retryAttempt: 0, status: "error" });
   },
   setLoaded(session, report, metadataEtag) {
-    set({ activeSession: session, error: null, report, metadataEtag, retryAttempt: 0, status: "success" });
+    set(state => ({ activeSession: session, error: null, report, metadataEtag, retryAttempt: 0, status: "success",
+      ackGeneration: state.ackGeneration + 1, ackingCodes: new Set<string>() }));
   },
   setLoading(session, refresh) {
     set(state => ({ activeSession: session, error: null, retryAttempt: 1,
+      ackGeneration: state.ackGeneration + 1, ackingCodes: new Set<string>(),
       metadataEtag: state.activeSession === session ? state.metadataEtag : null,
       status: refresh ? "refreshing" : "loading" }));
   },

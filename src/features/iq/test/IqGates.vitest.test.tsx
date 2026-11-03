@@ -26,7 +26,7 @@ const gates: IqReportView["gates"] = {
 describe("IqGates", () => {
   afterEach(() => vi.useRealTimers());
   it("uses colored dots while retaining gate labels and actions", () => {
-    render(<IqGates ackingCodes={new Set()} gates={gates} onAck={vi.fn()} />);
+    render(<IqGates ackingCodes={new Set()} view={{ gates }} onAck={vi.fn()} />);
     const pass = document.querySelector('[data-gate-code="pass"]')!;
     expect(pass.querySelector('svg[data-status-icon="success"] circle')).toHaveAttribute("r", "12");
     expect(pass.querySelector("svg")).toHaveStyle({ color: "#15803d" });
@@ -42,7 +42,7 @@ describe("IqGates", () => {
   });
 
   it("renders metric and clear actions", () => {
-    render(<IqGates ackingCodes={new Set()} gates={gates} onAck={vi.fn()} />);
+    render(<IqGates ackingCodes={new Set()} view={{ gates }} onAck={vi.fn()} />);
 
     expect(screen.getByText("50%")).toBeInTheDocument();
     expect(screen.getByText("out of 2 gates")).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe("IqGates", () => {
 
   it.each(["fail", "warning"])("confirms only the selected %s gate", (code) => {
     const onAck = vi.fn();
-    render(<IqGates ackingCodes={new Set()} gates={gates} onAck={onAck} />);
+    render(<IqGates ackingCodes={new Set()} view={{ gates }} onAck={onAck} />);
 
     const clear = within(document.querySelector(`[data-gate-code='${code}']`) as HTMLElement).getByRole("button", { name: "Clear gate" });
     fireEvent.click(clear);
@@ -86,7 +86,7 @@ describe("IqGates", () => {
   it("expires confirmation after four seconds without clearing a gate", () => {
     vi.useFakeTimers();
     const onAck = vi.fn();
-    render(<IqGates ackingCodes={new Set()} gates={gates} onAck={onAck} />);
+    render(<IqGates ackingCodes={new Set()} view={{ gates }} onAck={onAck} />);
     const clear = screen.getAllByRole("button", { name: "Clear gate" })[0];
     fireEvent.click(clear);
     act(() => vi.advanceTimersByTime(4000));
@@ -100,7 +100,7 @@ describe("IqGates", () => {
 
   it("disables acking clear action and renders empty gates", () => {
     const onAck = vi.fn();
-    const { rerender } = render(<IqGates ackingCodes={new Set(["fail"])} gates={gates} onAck={onAck} />);
+    const { rerender } = render(<IqGates ackingCodes={new Set(["fail"])} view={{ gates }} onAck={onAck} />);
 
     expect(screen.getAllByRole("button", { name: "Clear gate" })[0]).toBeDisabled();
     fireEvent.click(screen.getAllByRole("button", { name: "Clear gate" })[0]);
@@ -108,7 +108,7 @@ describe("IqGates", () => {
     expect(onAck).not.toHaveBeenCalled();
     expect(screen.getAllByRole("button", { name: "Clear gate" })[1]).toBeEnabled();
 
-    rerender(<IqGates ackingCodes={new Set()} gates={{ ...gates, items: [], total: 0, success: 0, ratio: 0, displayPercent: 0, decision: "Review" }} onAck={vi.fn()} />);
+    rerender(<IqGates ackingCodes={new Set()} view={{ gates: { ...gates, items: [], total: 0, success: 0, ratio: 0, displayPercent: 0, decision: "Review" } }} onAck={vi.fn()} />);
     expect(screen.getByText("None")).toBeInTheDocument();
   });
 });

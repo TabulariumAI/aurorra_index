@@ -8,7 +8,7 @@ import { storeApi } from "../../src/store/state/store";
 const params = new URLSearchParams(location.search);
 const segment = params.get("segment") ?? "party";
 const index = { code: "index-1", segment, label: "Index", aspect: segment === "party" ? "person" : "property_id", value: "Original" };
-storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: segment === "party" ? [] : [index], parties: segment === "party" ? [index] : [] }));
+storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: segment === "party" ? [] : [index], parties: { summary: null, indexes: segment === "party" ? [index] : [] } }));
 const props = {
   apiGatewayUrl: "https://gateway.example.test", authToken: "token", batchCode: null,
   intervalMs: 1, retryIntervalMs: 0, retryLimit: 0,

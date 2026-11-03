@@ -78,30 +78,30 @@ describe("MetadataPanel status contract", () => {
 
   it.each([undefined, []])("counts separate party records when indexes are absent or empty", (indexes) => {
     const parties = [{ ...metadata.indexes![0], ambiguous: "YES" }];
-    const { container } = renderPanel("success", { ...metadata, indexes, parties });
+    const { container } = renderPanel("success", { ...metadata, indexes, parties: { summary: null, indexes: parties } });
     expect(container.querySelector('[data-index-code="idx-1"]')).toHaveAttribute("data-status", "warning");
     expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "1"]);
   });
 
-  it("uses the displayed parties instead of stale duplicate party indexes", () => {
+  it("counts both enriched sides and extracted parties", () => {
     const party = { ...metadata.indexes![0], ambiguous: "YES" };
     const reference = { ...party, code: "ref-1", segment: "reference", ambiguous: "NO" };
     const { container } = renderPanel("success", {
       ...metadata,
       indexes: [{ ...party, ambiguous: "NO" }, reference],
-      parties: [party],
+      parties: { summary: null, indexes: [party] },
     });
-    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["2", "1"]);
+    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["3", "1"]);
   });
 
-  it("does not count stale party indexes when the displayed party collection is empty", () => {
-    const { container } = renderPanel("success", { ...metadata, parties: [] });
-    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["0", "0"]);
+  it("counts extracted parties when the enriched collection is empty", () => {
+    const { container } = renderPanel("success", { ...metadata, parties: { summary: null, indexes: [] } });
+    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "0"]);
   });
 
   it.each(["confirmed", "removed", "refreshed"])("updates separate-party counts when %s", (state) => {
     const parties = [{ ...metadata.indexes![0], ambiguous: state === "refreshed" ? "NO" : "YES" }];
-    const { container } = renderPanel("success", { ...metadata, indexes: [], parties },
+    const { container } = renderPanel("success", { ...metadata, indexes: [], parties: { summary: null, indexes: parties } },
       new Set(state === "confirmed" ? ["idx-1"] : []), new Set(state === "removed" ? ["idx-1"] : []));
     expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent))
       .toEqual([state === "removed" ? "0" : "1", "0"]);

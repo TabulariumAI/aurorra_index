@@ -16,9 +16,9 @@ describe("matchSelection", () => {
   });
 
   it("matches the selected source when the value differs", () => {
-    const metadata = { parties: [
+    const metadata = { parties: { summary: null, indexes: [
       { code: "source", segment: "party", page: "Exhibit-A", value: "unrelated", source: "The alpha bravo charlie delta echo paragraph" },
-    ] };
+    ] } };
     expect(matchSelection(selection, metadata)).toEqual({ code: "source", segment: "party" });
   });
 
@@ -61,7 +61,7 @@ describe("matchSelection", () => {
   });
 
   it("returns the rendered segment for party, confidential, and loan rows", () => {
-    expect(matchSelection(selection, { parties: [{ code: "party", value: "alpha bravo charlie delta echo" }] })).toEqual({ code: "party", segment: "party" });
+    expect(matchSelection(selection, { parties: { summary: null, indexes: [{ code: "party", value: "alpha bravo charlie delta echo" }] } })).toEqual({ code: "party", segment: "party" });
     expect(matchSelection(selection, { secrets: [{ code: "secret", value: "alpha bravo charlie delta echo" }] })).toEqual({ code: "secret", segment: "secrets" });
     expect(matchSelection(selection, { indexes: [{ code: "loan", segment: "loan", value: "alpha bravo charlie delta echo" }] })).toEqual({ code: "loan", segment: "monetary" });
   });
@@ -69,7 +69,7 @@ describe("matchSelection", () => {
   it("does not focus a party index hidden by the separate parties collection", () => {
     const metadata = {
       indexes: [{ code: "hidden", segment: "party", value: "alpha bravo charlie delta echo" }],
-      parties: [{ code: "visible", segment: "party", value: "alpha bravo charlie delta echo" }],
+      parties: { summary: null, indexes: [{ code: "visible", segment: "party", value: "alpha bravo charlie delta echo" }] },
     };
     expect(matchSelection(selection, metadata)).toEqual({ code: "visible", segment: "party" });
   });
