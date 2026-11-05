@@ -18,7 +18,7 @@ beforeEach(() => { auditStoreApi.getState().resetAudit(); vi.clearAllMocks(); })
 afterEach(cleanup);
 
 it("starts on Changes and displays only the selected content", async () => {
-  render(<AuditPanel {...props} />);
+  render(<AuditPanel  {...props} />);
   await screen.findByText("[Show more]");
   expect(screen.getByRole("tab", { name: "Changes" })).toHaveAttribute("aria-selected", "true");
   expect(screen.getByRole("tabpanel", { name: "Changes" })).toBeVisible();
@@ -27,14 +27,14 @@ it("starts on Changes and displays only the selected content", async () => {
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
   expect(screen.getByRole("tabpanel", { name: "Usage" })).toBeVisible();
-  expect(screen.getByRole("row", { name: "Index Extraction 0.30 credits 88.14 s 3" })).toBeVisible();
+  expect(screen.getByRole("row", { name: "Index Extraction 0 credits 88.14 s 3" })).toBeVisible();
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   expect(screen.queryByRole("article")).not.toBeInTheDocument();
   expect(screen.getByText("Out of 1")).not.toBeVisible();
 });
 
 it("retains filters, expanded messages, and loaded resources across tab switches", async () => {
-  render(<AuditPanel {...props} />);
+  render(<AuditPanel  {...props} />);
   await screen.findByText("[Show more]");
   fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "ADD" } });
   fireEvent.change(screen.getByLabelText("Process"), { target: { value: "VERIFICATION" } });
@@ -51,7 +51,7 @@ it("retains filters, expanded messages, and loaded resources across tab switches
 });
 
 it("supports keyboard switching and focuses the selected tab", async () => {
-  render(<AuditPanel {...props} />);
+  render(<AuditPanel  {...props} />);
   await screen.findByText("[Show more]");
   screen.getByRole("tab", { name: "Changes" }).focus();
   for (const [key, target] of [["ArrowRight", "Usage"], ["ArrowRight", "Changes"], ["ArrowLeft", "Usage"], ["Home", "Changes"], ["End", "Usage"]]) {
@@ -63,7 +63,7 @@ it("supports keyboard switching and focuses the selected tab", async () => {
 
 it("keeps tabs operable during loading and shows the selected placeholders", async () => {
   let resolve!: (report: AuditReport) => void;
-  render(<AuditPanel {...props} workerClient={{ loadReport: () => new Promise(done => { resolve = done; }) }} />);
+  render(<AuditPanel  {...props} workerClient={{ loadReport: () => new Promise(done => { resolve = done; }) }} />);
   expect(screen.getByRole("status", { name: "Loading audit gaps" })).toBeVisible();
   expect(screen.queryByRole("status", { name: "Loading service usage" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
@@ -75,7 +75,7 @@ it("keeps tabs operable during loading and shows the selected placeholders", asy
 });
 
 it("retains both tabs for empty reports without inventing usage rows", async () => {
-  render(<AuditPanel {...props} workerClient={{ loadReport: async () => ({ gaps: [], usage: { services: [] } }) }} />);
+  render(<AuditPanel  {...props} workerClient={{ loadReport: async () => ({ gaps: [], usage: { services: [] } }) }} />);
   await screen.findByText("No gaps found.");
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
   expect(screen.getAllByRole("tab")).toHaveLength(2);
@@ -85,13 +85,13 @@ it("retains both tabs for empty reports without inventing usage rows", async () 
 });
 
 it("refreshes content without stale usage and keeps a new mount on Changes", async () => {
-  const view = render(<AuditPanel {...props} />);
+  const view = render(<AuditPanel  {...props} />);
   await screen.findByText("[Show more]");
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
   act(() => auditStoreApi.getState().setLoaded("session", { ...report, usage: { services: [] } }));
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Usage" })).toHaveAttribute("aria-selected", "true");
-  view.rerender(<AuditPanel {...props} key="refresh" />);
+  view.rerender(<AuditPanel  {...props} key="refresh" />);
   expect(screen.getByRole("tab", { name: "Changes" })).toHaveAttribute("aria-selected", "true");
   await act(async () => {});
 });

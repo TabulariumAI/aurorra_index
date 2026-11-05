@@ -4,7 +4,7 @@ import { requestResource } from "../../metdataview/data/metadataResource";
 import { indexStoreApi } from "../../metdataview/store/metadataStore";
 
 const worker = vi.hoisted(() => ({ load: vi.fn() }));
-vi.mock("../worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => worker }));
+vi.mock("../worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => worker }));
 const input = { session: "selected", authToken: "token", apiGatewayUrl: "https://gateway" };
 const backend = { items: [{ service: "Recognition", level: 2 }, { service: "PartyClauseIndexing", level: 0 }], jurisdiction: "Texas, Harris County" };
 beforeEach(() => { indexStoreApi.getState().resetMetadata(); worker.load.mockReset(); });
@@ -39,7 +39,7 @@ it("reads another session for submission without replacing the selected session"
   indexStoreApi.getState().selectSession("selected");
   indexStoreApi.setState({ choices: backend });
   worker.load.mockResolvedValue({ items: [], jurisdiction: "California, Los Angeles County" });
-  expect(await loadChoices({ ...input, session: "other" })).toEqual({ items: [], jurisdiction: "California, Los Angeles County" });
+  expect(await loadChoices({  ...input, session: "other" })).toEqual({ items: [], jurisdiction: "California, Los Angeles County" });
   expect(indexStoreApi.getState().choices).toEqual(backend);
 });
 

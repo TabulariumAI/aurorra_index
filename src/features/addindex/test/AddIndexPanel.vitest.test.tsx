@@ -30,7 +30,7 @@ beforeEach(() => {
 
 describe("AddIndexPanel", () => {
   it.each(["party", "property", "transaction"])("defaults Enhancement off for %s", async (segment) => {
-    render(<AddIndexPanel {...props({ segment })} />);
+    render(<AddIndexPanel  {...props({ segment })} />);
     const checkbox = screen.getByRole("checkbox", { name: "Enhancement" });
     expect(checkbox).not.toBeChecked();
     if (segment === "transaction") expect(checkbox).toBeDisabled();
@@ -39,7 +39,7 @@ describe("AddIndexPanel", () => {
 
   it.each([false, true])("queues the Enhancement choice %s with every selected type", async (checked) => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.click(screen.getByRole("option", { name: "Property Id" }));
@@ -56,7 +56,7 @@ describe("AddIndexPanel", () => {
 
   it("keeps the image page and source separate in the request and displayed index", async () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
@@ -72,16 +72,16 @@ describe("AddIndexPanel", () => {
 
   it("clears Enhancement when another request opens", () => {
     const config = props();
-    const { rerender } = render(<AddIndexPanel {...config} />);
+    const { rerender } = render(<AddIndexPanel  {...config} />);
     fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
-    rerender(<AddIndexPanel {...config} segment="transaction" request={{ segment: "transaction" }} />);
+    rerender(<AddIndexPanel  {...config} segment="transaction" request={{ segment: "transaction" }} />);
     expect(screen.getByRole("checkbox", { name: "Enhancement" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Enhancement" })).toBeDisabled();
   });
 
   it("keeps its centered shared Add control and field conventions", async () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     await waitFor(() => expect(config.onReadyChange).toHaveBeenLastCalledWith(true));
     const add = screen.getByRole("button", { name: "Add" });
     expect(add).toHaveAttribute("data-variant", "primary");
@@ -95,7 +95,7 @@ describe("AddIndexPanel", () => {
 
   it("keeps the draft without a Cancel action or submission", async () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
@@ -110,7 +110,7 @@ describe("AddIndexPanel", () => {
   });
   it.each(["party", "property"])("opens blank with %s context and queues the entered index", async (segment) => {
     const config = props({ segment, request: { segment } });
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue("");
     expect(screen.getByRole("combobox", { name: "Type (required)" })).toHaveValue("");
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
@@ -134,21 +134,21 @@ describe("AddIndexPanel", () => {
 
   it("clears image fields and selected types when opening without an image, then restores image prefilling", async () => {
     const config = props();
-    const { rerender } = render(<AddIndexPanel {...config} />);
+    const { rerender } = render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.click(screen.getByRole("button", { name: "Additional details" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Label" }), { target: { value: "Previous label" } });
-    rerender(<AddIndexPanel {...config} request={{ segment: "property" }} segment="property" />);
+    rerender(<AddIndexPanel  {...config} request={{ segment: "property" }} segment="property" />);
     for (const name of ["Index (required)", "Label", "Page Number", "Source"]) {
       expect(screen.getByRole("textbox", { name })).toHaveValue("");
     }
     expect(screen.queryByRole("button", { name: "Remove Grantor (Party)" })).toBeNull();
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Unsaved" } });
-    rerender(<AddIndexPanel {...config} request={{ segment: "property" }} segment="property" />);
+    rerender(<AddIndexPanel  {...config} request={{ segment: "property" }} segment="property" />);
     expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue("");
-    rerender(<AddIndexPanel {...config} />);
+    rerender(<AddIndexPanel  {...config} />);
     expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue("Selected value");
     expect(screen.getByRole("textbox", { name: "Page Number" })).toHaveValue("Exhibit-A");
     expect(screen.getByRole("textbox", { name: "Source" })).toHaveValue("Selected source");
@@ -156,7 +156,7 @@ describe("AddIndexPanel", () => {
   });
 
   it("keeps suggestions closed until focus and supports keyboard selection and Escape", async () => {
-    render(<AddIndexPanel {...props()} />);
+    render(<AddIndexPanel  {...props()} />);
     const input = screen.getByRole("combobox", { name: "Type (required)" });
     expect(input).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("listbox")).toBeNull();
@@ -179,7 +179,7 @@ describe("AddIndexPanel", () => {
   });
 
   it("keeps query text when removing a chip and does not remove chips with nonempty Backspace", async () => {
-    render(<AddIndexPanel {...props()} />);
+    render(<AddIndexPanel  {...props()} />);
     const input = screen.getByRole("combobox", { name: "Type (required)" });
     fireEvent.focus(input);
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
@@ -192,7 +192,7 @@ describe("AddIndexPanel", () => {
 
   it("shows human names and searches all types without a Segment field", async () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     await screen.findByRole("option", { name: "Property Id" });
     expect(config.onResource).toHaveBeenCalledWith(expect.objectContaining({ resource: "aspects", session: "session-1", callback: expect.any(Function) }));
@@ -206,18 +206,18 @@ describe("AddIndexPanel", () => {
 
   it("prioritizes context without hiding choices for page context", async () => {
     const config = props({ segment: "property" });
-    const { rerender } = render(<AddIndexPanel {...config} />);
+    const { rerender } = render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     await screen.findByRole("option", { name: "Property Id" });
     expect(within(screen.getByRole("listbox", { name: "Type suggestions" })).getAllByRole("group")[0]).toHaveAccessibleName("Property");
-    rerender(<AddIndexPanel {...config} segment="page" />);
+    rerender(<AddIndexPanel  {...config} segment="page" />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     expect(screen.getAllByRole("option")).toHaveLength(3);
     expect(config.onError).not.toHaveBeenCalled();
   });
 
   it("finds a type among 80 choices and reports no matches", async () => {
-    render(<AddIndexPanel {...props({ onResource: vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: Array.from({ length: 80 }, (_, i) => `aspect_${i + 1}`) } } })) })} />);
+    render(<AddIndexPanel  {...props({ onResource: vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: Array.from({ length: 80 }, (_, i) => `aspect_${i + 1}`) } } })) })} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     await screen.findByRole("option", { name: "Aspect 80" });
     fireEvent.change(screen.getByRole("combobox", { name: "Type (required)" }), { target: { value: "aspect_80" } });
@@ -227,7 +227,7 @@ describe("AddIndexPanel", () => {
   });
 
   it("retains selections through search and removes them individually", async () => {
-    render(<AddIndexPanel {...props()} />);
+    render(<AddIndexPanel  {...props()} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.change(screen.getByRole("combobox", { name: "Type (required)" }), { target: { value: "property" } });
@@ -241,7 +241,7 @@ describe("AddIndexPanel", () => {
   });
 
   it("removes the last selection with Backspace from empty search", async () => {
-    render(<AddIndexPanel {...props()} />);
+    render(<AddIndexPanel  {...props()} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.click(screen.getByRole("option", { name: "Property Id" }));
@@ -254,7 +254,7 @@ describe("AddIndexPanel", () => {
 
   it("queues multiple raw aspects across groups with the same edited fields", async () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.click(screen.getByRole("option", { name: "Grantee" }));
@@ -277,7 +277,7 @@ describe("AddIndexPanel", () => {
 
   it("distinguishes identical types across groups and keeps Label optional", async () => {
     const config = props({ onResource: vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: ["name"], property: ["name"] } } })) });
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     await screen.findAllByRole("option", { name: "Name" });
     fireEvent.click(within(screen.getByRole("group", { name: "Property" })).getByRole("option"));
@@ -289,7 +289,7 @@ describe("AddIndexPanel", () => {
 
   it.each(["", "   "])("uses human Type labels for empty Label %j without changing raw aspects or values", async (label) => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Property Id" }));
     fireEvent.click(screen.getByRole("option", { name: "Grantor" }));
@@ -310,7 +310,7 @@ describe("AddIndexPanel", () => {
 
   it("expands compact Additional details fields without losing selection", async () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     const details = screen.getByRole("button", { name: "Additional details" });
@@ -334,7 +334,7 @@ describe("AddIndexPanel", () => {
 
   it("reports resource errors and prevents submission", async () => {
     const config = props({ onResource: vi.fn((request: ResourceRequest) => request.callback({ ok: false, error: "Aspects unavailable" })) });
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     await waitFor(() => expect(config.onError).toHaveBeenCalledWith(expect.objectContaining({ error: "Aspects unavailable" })));
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
@@ -343,7 +343,7 @@ describe("AddIndexPanel", () => {
   it("keeps service failures in the queue after closing", async () => {
     const config = props();
     vi.mocked(config.workerClient!.patchIndex).mockRejectedValueOnce(new Error("Index already exists"));
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     fireEvent.click(await screen.findByRole("option", { name: "Grantor" }));
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
@@ -355,7 +355,7 @@ describe("AddIndexPanel", () => {
 
   it("has no Cancel action and does not queue on open", () => {
     const config = props();
-    render(<AddIndexPanel {...config} />);
+    render(<AddIndexPanel  {...config} />);
     fireEvent.focus(screen.getByRole("combobox", { name: "Type (required)" }));
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
     expect(config.onClose).not.toHaveBeenCalled();
@@ -364,7 +364,7 @@ describe("AddIndexPanel", () => {
 });
 
 it("identifies required fields without making additional details mandatory", async () => {
-  render(<AddIndexPanel {...props({ request: { segment: "party" } })} />);
+  render(<AddIndexPanel  {...props({ request: { segment: "party" } })} />);
   const input = screen.getByRole("textbox", { name: "Index (required)" });
   const type = screen.getByRole("combobox", { name: "Type (required)" });
   const add = screen.getByRole("button", { name: "Add" });

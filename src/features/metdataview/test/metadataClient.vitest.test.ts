@@ -1,4 +1,4 @@
-vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => null }) }));
+vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => ({ load: async () => null }) }));
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMetadataClient } from "../data/metadataClient";
 import { queueStoreApi } from "../../queue/store/queueStore";
@@ -12,10 +12,10 @@ import { createDeferredState } from "../../indexing/data/deferredState";
 import { composeMetadataJSON } from "aurora-core";
 import { storeApi } from "../../../store/state/store";
 const auditClient = vi.hoisted(() => ({ loadReport: vi.fn(async () => ({ gaps: [] })) }));
-vi.mock("../../audit/worker/auditWorkerClient", () => ({ createAuditWorkerClient: () => auditClient }));
+vi.mock("../../audit/worker/auditWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../audit/worker/auditWorkerClient")>(), createAuditWorkerClient: () => auditClient }));
 
 const pagesClient = vi.hoisted(() => ({ pagesData: vi.fn(async () => ({ data: { num_of_pages: 0 }, path: "https://blob/pages.json?sig=test", etag: "pages-etag" })), updatePageSegments: vi.fn() }));
-vi.mock("../../pagesegments/worker/pageSegmentsWorkerClient", () => ({ createPageSegmentsWorkerClient: () => pagesClient }));
+vi.mock("../../pagesegments/worker/pageSegmentsWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../pagesegments/worker/pageSegmentsWorkerClient")>(), createPageSegmentsWorkerClient: () => pagesClient }));
 afterEach(() => vi.unstubAllGlobals());
 function stubMetadata(data: MetadataPayload) {
   class WorkerMock {

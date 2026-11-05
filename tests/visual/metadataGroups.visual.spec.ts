@@ -33,7 +33,7 @@ for (const width of [390, 1440]) {
     await page.goto("/?scenario=metadata-groups");
     expect(await page.evaluate(() => navigator.userAgent)).toContain("Edg/");
     for (const [section, headings, summary] of [
-      ["Parties(Party Clause)", ["Sides", "Parties"], "Party overview."],
+      ["Parties(Party Clause)", [], "Party overview."],
       ["Property Info", [], "Legal overview."],
       ["Acknowledgment", [], "Execution overview."],
     ] as const) {
@@ -68,6 +68,9 @@ for (const width of [390, 1440]) {
     await page.getByRole("button", { name: "Parties(Party Clause)", exact: true }).click();
     const rows = page.getByRole("article");
     await expect(rows).toHaveCount(4);
+    await expect(page.getByRole("heading", { level: 3 })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 4 })).toHaveText(["Page 1", "Page not specified", "Page 1", "Page Exhibit-A"]);
+    expect(await rows.evaluateAll(items => items.map(row => row.getAttribute("data-index-code")))).toEqual(["side-1", "side-2", "raw-1", "raw-2"]);
     await rows.first().getByRole("button", { name: "Edit index", exact: true }).click();
     await expect(page.locator("#visual-stage")).toHaveAttribute("data-edit-code", "side-1");
     await page.getByRole("button", { name: "Add Index", exact: true }).click();

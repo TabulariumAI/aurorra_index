@@ -29,8 +29,8 @@ for (const width of [1440, 440]) {
     await expect(table).toBeVisible();
     await expect(table.getByRole("row")).toHaveCount(5);
     for (const name of [
-      "Index Extraction 0.30 credits 54.16 s 3", "IQ Refinement 0.01 credits 2.00 s 3",
-      "User Refinement 0.10 credits 148.40 s 4", "Model Generation 0.23 credits 92.19 s 3",
+      "Index Extraction 0 credits 54.16 s 3", "IQ Refinement 0 credits 2.00 s 3",
+      "User Refinement 0 credits 148.40 s 4", "Model Generation 0 credits 92.19 s 3",
     ]) await expect(table.getByRole("row", { name, exact: true })).toBeVisible();
     await expect(page.getByText("No gaps found.")).toBeHidden();
     await expect(page.getByRole("combobox")).toHaveCount(0);

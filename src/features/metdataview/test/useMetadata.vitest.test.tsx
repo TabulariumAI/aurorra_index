@@ -10,10 +10,10 @@ import { splitMetadataJSON, type MetadataActionPayload, type MetadataPayload } f
 import { auditStoreApi } from "../../audit/store/auditStore";
 
 const choicesWorker = vi.hoisted(() => ({ load: vi.fn() }));
-vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => choicesWorker }));
+vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => choicesWorker }));
 
 const auditClient = vi.hoisted(() => ({ loadReport: vi.fn(async () => ({ gaps: [] })) }));
-vi.mock("../../audit/worker/auditWorkerClient", () => ({ createAuditWorkerClient: () => auditClient }));
+vi.mock("../../audit/worker/auditWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../audit/worker/auditWorkerClient")>(), createAuditWorkerClient: () => auditClient }));
 
 const segments = {
   ACKNOWLEDGMENT: "acknowledgment",

@@ -35,7 +35,7 @@ describe("IQ loading phases", () => {
   });
 
   it("restarts the decorative steps on a request retry and stops their timer when downloading", async () => {
-    render(<IqPanel {...request} callbacks={{}} />);
+    render(<IqPanel  {...request} callbacks={{}} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
     await act(async () => finish({ report, metadataEtag: "source" }));
     vi.useFakeTimers();
@@ -56,7 +56,7 @@ describe("IQ loading phases", () => {
 
   it("shows ProgressView only for explicit regeneration, then placeholders until the report is downloaded", async () => {
     const props: IqPanelProps = { ...request, callbacks: {} };
-    render(<IqPanel {...props} />);
+    render(<IqPanel  {...props} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
     expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
     expect(screen.queryByTestId("progress-view")).not.toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("IQ loading phases", () => {
   });
 
   it.each([false, true])("ends the active UI and reports failure, downloading=%s", async downloading => {
-    render(<IqPanel {...request} callbacks={{}} />);
+    render(<IqPanel  {...request} callbacks={{}} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
     await act(async () => finish({ report, metadataEtag: "source" }));
     let refresh!: Promise<void>;
@@ -96,14 +96,14 @@ describe("IQ loading phases", () => {
   });
 
   it("clears regeneration on a session change and ignores the previous download notification", async () => {
-    const { rerender } = render(<IqPanel {...request} callbacks={{}} />);
+    const { rerender } = render(<IqPanel  {...request} callbacks={{}} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
     await act(async () => finish({ report, metadataEtag: "source" }));
     let refresh!: Promise<void>;
     act(() => { refresh = refreshIqReport(request); });
     const oldDownload = config.onDownload!;
     const oldFinish = finish;
-    rerender(<IqPanel {...request} session="session-2" callbacks={{}} />);
+    rerender(<IqPanel  {...request} session="session-2" callbacks={{}} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledTimes(3));
     expect(screen.queryByTestId("progress-view")).not.toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();

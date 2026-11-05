@@ -7,7 +7,7 @@ import { createDeferredState } from "../../indexing/data/deferredState";
 import type { MetadataClient, MetadataProps } from "../type/metadataView.types";
 
 const worker = vi.hoisted(() => ({ load: vi.fn() }));
-vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => worker }));
+vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => worker }));
 const choices = { items: [{ service: "PartyClauseIndexing", level: 1 }], jurisdiction: "Texas, Harris County" };
 const data: MetadataPayload = { heading: { title: "Grant Deed" }, indexes: [], pages: { num_of_pages: 1 } };
 const segments = { ACKNOWLEDGMENT: "acknowledgment", JUDGMENT: "judgment", ENDORSEMENT: "endorsement", FEE: "fee", FEEFACTOR: "factor", FUND: "fund", LEGAL: "legal", MONETARY: "monetary", PAGE: "page", PARTY: "party", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TITLE: "title", TRANSACTION: "transaction", VITAL: "vital" };

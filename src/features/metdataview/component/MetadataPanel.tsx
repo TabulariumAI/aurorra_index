@@ -168,10 +168,10 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const sectionShortcut = (segment: string) => shortcuts?.get(segment) ?? null;
   const currentSegment = openSegment === segments.LEGAL ? segments.PROPERTY : openSegment;
 
-  const rows = (items: MetadataIndex[], segment: string, emptyMessage: string | undefined, type = "index", title?: string, scope = segment) => {
+  const rows = (items: MetadataIndex[], segment: string, emptyMessage: string | undefined, type = "index", scope = segment) => {
     const visibleItems = items.filter((item) => !removedCodes.has(String(item.code || "")));
     const occurrences = new Map<string, number>();
-    return <MetadataList key={`${session}-${scope}`} title={title} hidePages={segment === indexSegments.EXECUTION} ungrouped={segment === segments.ENDORSEMENT} empty={emptyMessage} rows={visibleItems.map((item) => {
+    return <MetadataList key={`${session}-${scope}`} hidePages={segment === indexSegments.EXECUTION} ungrouped={segment === segments.ENDORSEMENT} empty={emptyMessage} rows={visibleItems.map((item) => {
       const code = String(item.code || "");
       const occurrence = occurrences.get(code) ?? 0;
       occurrences.set(code, occurrence + 1);
@@ -372,8 +372,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
         {isVisible(segments.ENDORSEMENT) ? renderSegment(segments.ENDORSEMENT, "Endorsements", () => ({ count: panelData.endorsements.length, children: rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.") })) : null}
         {isVisible(segments.PARTY) ? renderSegment(segments.PARTY, "Parties(Party Clause)", () => ({ count: view.sideItems.length + view.partyItems.length, children: <>
           {metadata.parties?.summary ? <p style={metadataStyles.segmentSummary}>{metadata.parties.summary}</p> : null}
-          {metadata.parties ? rows(view.sideItems, segments.PARTY, view.partyItems.length ? undefined : "No parties found.", "index", view.partyItems.length ? "Sides" : undefined, "sides") : null}
-          {rows(view.partyItems, segments.PARTY, metadata.parties ? undefined : "No parties found.", "index", view.sideItems.length ? "Parties" : undefined)}
+          {metadata.parties ? rows(view.sideItems, segments.PARTY, view.partyItems.length ? undefined : "No parties found.", "index", "sides") : null}
+          {rows(view.partyItems, segments.PARTY, metadata.parties ? undefined : "No parties found.")}
         </> })) : null}
         {isVisible(segments.REFERENCE) ? renderSegment(segments.REFERENCE, "References(Recital)", () => ({ count: panelData.references.length, children: rows(panelData.references, segments.REFERENCE, "No references found.") })) : null}
         {isVisible(segments.PROPERTY) || isVisible(segments.LEGAL) ? renderSegment(

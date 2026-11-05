@@ -58,6 +58,7 @@ export const useIqStore = create<IqStoreState>()((set, get) => ({
   },
   setLoading(session, refresh) {
     set(state => ({ activeSession: session, error: null, retryAttempt: 1,
+      report: state.activeSession === session ? state.report : null,
       ackGeneration: state.ackGeneration + 1, ackingCodes: new Set<string>(),
       metadataEtag: state.activeSession === session ? state.metadataEtag : null,
       status: refresh ? "refreshing" : "loading" }));

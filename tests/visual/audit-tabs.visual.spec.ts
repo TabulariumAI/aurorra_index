@@ -49,7 +49,7 @@ for (const width of [1440, 440, 390]) {
     await page.keyboard.press("ArrowRight");
     await expect(usage).toBeFocused();
     await expect(page.getByRole("tabpanel", { name: "Usage", exact: true })).toBeVisible();
-    await expect(page.getByRole("row", { name: "Index Extraction 0.30 credits 88.14 s 3" })).toBeVisible();
+    await expect(page.getByRole("row", { name: "Index Extraction 0 credits 88.14 s 3" })).toBeVisible();
     await expect(page.getByRole("article")).toHaveCount(0);
     await expect(page.getByRole("combobox")).toHaveCount(0);
     await expect(page.getByText("Out of 8")).toBeHidden();

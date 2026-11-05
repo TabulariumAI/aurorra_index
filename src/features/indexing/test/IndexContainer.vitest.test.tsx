@@ -1,4 +1,4 @@
-vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => ({ items: choices, jurisdiction: null }) }) }));
+vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => ({ load: async () => ({ items: choices, jurisdiction: null }) }) }));
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
@@ -453,10 +453,10 @@ describe("IndexContainer", () => {
       session: "session-1",
       workerClient,
     };
-    const view = render(<IndexContainer onQueueChange={vi.fn()} {...props} refresh={null} />);
+    const view = render(<IndexContainer  onQueueChange={vi.fn()} {...props} refresh={null} />);
 
     await screen.findByRole("heading", { name: "Deed" });
-    view.rerender(<IndexContainer onQueueChange={vi.fn()} {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
+    view.rerender(<IndexContainer  onQueueChange={vi.fn()} {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
 
     await waitFor(() => expect(workerClient.indexData).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("heading", { name: "Deed" })).toBeVisible();

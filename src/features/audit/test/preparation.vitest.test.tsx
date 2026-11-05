@@ -21,7 +21,7 @@ it.each(["prepare", "gaps", "summary"])("contains %s processing and recovers wit
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   state.failure = failure;
   const props = { apiGatewayUrl: "url", authToken: "token", session: "session", callbacks: {}, retryLimit: 1, retryIntervalMs: 0, onResource: vi.fn() };
-  const view = render(<AuditPanel {...props} />);
+  const view = render(<AuditPanel  {...props} />);
   if (failure === "summary") expect(screen.getByRole("button", { name: "Audit summary error" })).toBeVisible();
   else expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
   if (failure !== "prepare") expect(screen.getByRole("combobox", { name: "Change type" })).toBeEnabled();
@@ -32,7 +32,7 @@ it.each(["prepare", "gaps", "summary"])("contains %s processing and recovers wit
   fireEvent.click(screen.getByRole("tab", { name: "Changes" }));
   state.failure = "";
   state.report = { ...state.report };
-  view.rerender(<AuditPanel {...props} />);
+  view.rerender(<AuditPanel  {...props} />);
   expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByText("No gaps found.")).toBeVisible();
 });

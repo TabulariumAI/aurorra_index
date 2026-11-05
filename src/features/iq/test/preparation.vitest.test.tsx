@@ -14,14 +14,14 @@ it.each(["iq_doc", "gates", "segments", "explanation"])("contains %s projection 
   state.report = { ...report };
   Object.defineProperty(state.report, field, { get() { throw new Error(`${field} preparation failed`); } });
   const props = { apiGatewayUrl: "url", authToken: "token", session: "session", callbacks: {}, retryLimit: 1, retryIntervalMs: 0 };
-  const view = render(<IqPanel {...props} />);
+  const view = render(<IqPanel  {...props} />);
   expect(screen.getByRole("alert")).toHaveTextContent(`${field} preparation failed`);
   if (field !== "iq_doc") expect(screen.getByText("90%")).toBeVisible();
   if (field !== "gates") expect(screen.getByText("Compliance Gates (0)")).toBeVisible();
   if (field !== "segments") expect(screen.getByText("Indexing Segments (0)")).toBeVisible();
   if (field !== "explanation") expect(screen.getByText("Healthy notes")).toBeVisible();
   state.report = { ...report };
-  view.rerender(<IqPanel {...props} />);
+  view.rerender(<IqPanel  {...props} />);
   expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByText("Healthy notes")).toBeVisible();
 });

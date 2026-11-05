@@ -304,7 +304,7 @@ describe("loadIqReport", () => {
     vi.mocked(worker.loadReport).mockReturnValueOnce(pending.promise);
     const factory = vi.spyOn(iqWorker, "createIqWorkerClient").mockReturnValue(worker);
     const request = input(worker);
-    const oldLoad = loadIqReport({ ...request, workerClient: undefined });
+    const oldLoad = loadIqReport({  ...request, workerClient: undefined });
     const retry = factory.mock.calls[0][0].onRetry!;
     retry(2);
     expect(iqStoreApi.getState().retryAttempt).toBe(2);

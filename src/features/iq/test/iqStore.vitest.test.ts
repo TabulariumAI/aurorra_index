@@ -20,11 +20,13 @@ describe("iqStore", () => {
 
   it("sets loading and refreshing while preserving report", () => {
     iqStoreApi.getState().setLoaded("session-1", report, "");
-    iqStoreApi.getState().setLoading("session-2", false);
-    expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-2", error: null, report, status: "loading" });
+    iqStoreApi.getState().setLoading("session-1", false);
+    expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", error: null, report, status: "loading" });
 
-    iqStoreApi.getState().setLoading("session-3", true);
-    expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-3", error: null, report, status: "refreshing" });
+    iqStoreApi.getState().setLoading("session-1", true);
+    expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-1", error: null, report, status: "refreshing" });
+    iqStoreApi.getState().setLoading("session-2", false);
+    expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-2", report: null, metadataEtag: null });
   });
 
   it("sets loaded and error states", () => {

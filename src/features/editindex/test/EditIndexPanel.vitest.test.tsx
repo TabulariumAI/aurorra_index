@@ -26,7 +26,7 @@ beforeEach(() => {
 describe("EditIndexPanel", () => {
   it.each([1, 2, 3, 4, 5, 6, 7])("submits only changed fields for combination %s", async (mask) => {
     const config = props();
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Additional details" }));
     if (mask & 1) fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Updated" } });
@@ -46,7 +46,7 @@ describe("EditIndexPanel", () => {
 
   it("requires a data change and preserves edited explanation context", async () => {
     const config = props();
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Additional details" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Page Number" }), { target: { value: "5" } });
@@ -67,7 +67,7 @@ describe("EditIndexPanel", () => {
   it.each(["party", "property", "transaction"])("defaults Enhancement off for %s", async (segment) => {
     const config = props();
     config.request = { ...config.request, segment };
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await waitFor(() => expect(config.onReadyChange).toHaveBeenCalledWith(true));
     const checkbox = screen.getByRole("checkbox", { name: "Enhancement" });
     expect(checkbox).not.toBeChecked();
@@ -78,7 +78,7 @@ describe("EditIndexPanel", () => {
 
   it.each([false, true])("submits Enhancement %s with the edited value", async (checked) => {
     const config = props();
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     if (checked) fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Updated" } });
@@ -91,9 +91,9 @@ describe("EditIndexPanel", () => {
 
   it("resets Enhancement when another index opens", () => {
     const config = props();
-    const { rerender } = render(<EditIndexPanel {...config} />);
+    const { rerender } = render(<EditIndexPanel  {...config} />);
     fireEvent.click(screen.getByRole("checkbox", { name: "Enhancement" }));
-    rerender(<EditIndexPanel {...config} request={{ ...config.request, segment: "transaction" }} />);
+    rerender(<EditIndexPanel  {...config} request={{ ...config.request, segment: "transaction" }} />);
     expect(screen.getByRole("checkbox", { name: "Enhancement" })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Enhancement" })).toBeDisabled();
   });
@@ -101,7 +101,7 @@ describe("EditIndexPanel", () => {
   it("treats reordered aspects as unchanged but detects replacing an aspect with a duplicate", async () => {
     const config = props();
     config.onResource = vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: ["grantor", "grantee"], property: ["grantor"] } } }));
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Remove Grantor (Party)" }));
     fireEvent.click(screen.getAllByRole("option", { name: "Grantor" })[0]);
@@ -114,7 +114,7 @@ describe("EditIndexPanel", () => {
   });
   it("disables unchanged actions and disables manually reverted values without closing", async () => {
     const config = props();
-    const { container } = render(<EditIndexPanel {...config} />);
+    const { container } = render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     const footer = container.querySelector('section[aria-label="Edit index form"]')!.lastElementChild;
     expect(footer).toContainElement(screen.getByRole("button", { name: "Update" }));
@@ -139,7 +139,7 @@ describe("EditIndexPanel", () => {
   });
   it("prefills raw values and comma-separated Types and sends one update with unchanged original selectors", async () => {
     const config = props();
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue(index.value);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     expect(screen.getByRole("button", { name: "Remove Grantee (Party)" })).toBeVisible();
@@ -167,7 +167,7 @@ describe("EditIndexPanel", () => {
   it("preserves an existing Type missing from current resources and optional original fields", async () => {
     const config = props();
     config.request = { segment: "party", session: "session", index: { value: "Original", aspect: "custom_type" } };
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Custom Type (Party)" });
     fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Edited" } });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
@@ -180,10 +180,10 @@ describe("EditIndexPanel", () => {
 
   it("resets the draft when another index opens and cancels without a request", async () => {
     const config = props();
-    const { rerender } = render(<EditIndexPanel {...config} />);
+    const { rerender } = render(<EditIndexPanel  {...config} />);
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Unsaved" } });
-    rerender(<EditIndexPanel {...config} request={{ session: "session", segment: "property", index: { value: "Parcel", aspect: "property_id" } }} />);
+    rerender(<EditIndexPanel  {...config} request={{ session: "session", segment: "property", index: { value: "Parcel", aspect: "property_id" } }} />);
     expect(screen.getByRole("textbox", { name: "Index (required)" })).toHaveValue("Parcel");
     await screen.findByRole("button", { name: "Remove Property Id (Property)" });
     expect(screen.queryByRole("button", { name: "Remove Grantor (Party)" })).toBeNull();
@@ -198,7 +198,7 @@ describe("EditIndexPanel", () => {
   it("reports resource failure and disables confirmation", async () => {
     const config = props();
     vi.mocked(config.onResource).mockImplementationOnce(request => request.callback({ ok: false, error: "Aspects unavailable" }));
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     await waitFor(() => expect(config.onError).toHaveBeenCalledWith(expect.objectContaining({ error: "Aspects unavailable" })));
     fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Draft" } });
     expect(screen.getByRole("button", { name: "Update" })).toBeDisabled();
@@ -207,7 +207,7 @@ describe("EditIndexPanel", () => {
   it("retains a failed update for retry and cancel through the existing queue", async () => {
     const config = props();
     vi.mocked(config.workerClient!.patchIndex).mockRejectedValueOnce(new Error("Update failed"));
-    render(<EditIndexPanel {...config} />);
+    render(<EditIndexPanel  {...config} />);
     fireEvent.change(screen.getByRole("textbox", { name: "Index (required)" }), { target: { value: "Edited" } });
     await screen.findByRole("button", { name: "Remove Grantor (Party)" });
     fireEvent.click(screen.getByRole("button", { name: "Update" }));
@@ -219,7 +219,7 @@ describe("EditIndexPanel", () => {
 });
 
 it("identifies required fields while preserving Edit validation and selection", async () => {
-  render(<EditIndexPanel {...props()} />);
+  render(<EditIndexPanel  {...props()} />);
   const input = screen.getByRole("textbox", { name: "Index (required)" });
   const type = screen.getByRole("combobox", { name: "Type (required)" });
   const update = screen.getByRole("button", { name: "Update" });

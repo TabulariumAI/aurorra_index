@@ -51,7 +51,7 @@ describe("MetadataWorker", () => {
 
   it("builds and sends the Add Index request with bearer auth", async () => {
     const worker = new MetadataWorker();
-    expect(worker.buildRequest(command({
+    expect(worker.buildRequest(command({ 
       apiBaseUrl: "https://gateway.example.com/",
       session: "session/1",
     }))).toEqual({
@@ -186,7 +186,7 @@ describe("MetadataWorker", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(worker.run(command({ token: "" }))).resolves.toMatchObject({ code: "missing_auth_token", ok: false });
-    await expect(worker.run(command({ apiBaseUrl: "" }))).resolves.toMatchObject({ code: "missing_api_base_url", ok: false });
+    await expect(worker.run(command({  apiBaseUrl: "" }))).resolves.toMatchObject({ code: "missing_api_base_url", ok: false });
     await expect(worker.run(command({ session: "" }))).resolves.toMatchObject({ code: "invalid_session", ok: false });
     await expect(worker.run(command({ value: "" }))).resolves.toMatchObject({ code: "invalid_value", ok: false });
     await expect(worker.run(command({ explanation: null as unknown as string }))).resolves.toMatchObject({ code: "invalid_explanation", ok: false });

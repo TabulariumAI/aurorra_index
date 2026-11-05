@@ -28,10 +28,10 @@ it("renders smaller credit units on every chart axis and summary", () => {
     for (const unit of units) {
       expect(unit).toHaveTextContent("CR");
       expect(unit).toHaveAttribute("font-size", "smaller");
-      expect(unit.parentElement?.textContent).toMatch(/^\d+\.\d{2} CR$/);
+      expect(unit.parentElement?.textContent).toMatch(/^\d+ CR$/);
     }
   }
-  for (const value of screen.getAllByLabelText(/^[\d.]+ credits$/)) {
+  for (const value of screen.getAllByLabelText(/^\d+ credits$/)) {
     expect(value.querySelector("span")).toHaveTextContent("CR");
     expect(value.querySelector("span")).toHaveStyle({ fontSize: "smaller" });
   }
@@ -57,8 +57,8 @@ it("combines only Index Extraction and IQ Refinement, with separate User Refinem
   const group = screen.getByRole("region", { name: "Index Extraction and IQ Refinement usage" });
   const chart = within(group).getByRole("img", { name: "Index Extraction and IQ Refinement daily credits chart" });
   const totals = within(group).getByRole("region", { name: "Totals usage" });
-  expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("38.50 CR");
-  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent("5.75 CR");
+  expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("39 CR");
+  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent("6 CR");
   expect(within(totals).queryByText("Sessions")).not.toBeInTheDocument();
   expect(within(totals).queryByText("Pages used")).not.toBeInTheDocument();
   const extractionSummary = within(group).getByRole("region", { name: "Index Extraction usage" });
@@ -73,10 +73,10 @@ it("combines only Index Extraction and IQ Refinement, with separate User Refinem
   expect(within(group).queryByRole("region", { name: "User Refinement usage" })).not.toBeInTheDocument();
   expect(chart.querySelectorAll("rect")).toHaveLength(6);
   expect(new Set([...chart.querySelectorAll("rect")].map(bar => bar.getAttribute("fill"))).size).toBe(3);
-  expect(within(chart).getByText("Total 2026-10-05: 27.50 CR").parentElement).toHaveAttribute("fill", "#dc2626");
-  expect(within(chart).getByText("IQ Refinement 2026-10-04: 0.00 CR, 0 pages").parentElement).toHaveAttribute("height", "0");
-  const extraction = within(chart).getByText("Index Extraction 2026-10-05: 22.00 CR, 10 pages").parentElement!;
-  const iq = within(chart).getByText("IQ Refinement 2026-10-05: 5.50 CR, 2 pages").parentElement!;
+  expect(within(chart).getByText("Total 2026-10-05: 28 CR").parentElement).toHaveAttribute("fill", "#dc2626");
+  expect(within(chart).getByText("IQ Refinement 2026-10-04: 0 CR, 0 pages").parentElement).toHaveAttribute("height", "0");
+  const extraction = within(chart).getByText("Index Extraction 2026-10-05: 22 CR, 10 pages").parentElement!;
+  const iq = within(chart).getByText("IQ Refinement 2026-10-05: 6 CR, 2 pages").parentElement!;
   expect(extraction).toHaveAttribute("fill", "var(--primary)");
   expect(iq).toHaveAttribute("fill", "var(--primary-light)");
   expect(within(group).getByRole("heading", { name: "Index Extraction" }).firstElementChild).toHaveStyle({ background: "var(--primary)" });
@@ -105,10 +105,10 @@ it("combines only Index Extraction and IQ Refinement, with separate User Refinem
 });
 
 it.each([
-  [["extraction"], "33.00 CR", 1],
-  [["iq_refinement"], "5.50 CR", 1],
-  [["extraction", "model_generation"], "33.00 CR", 2],
-  [["iq_refinement", "refinement"], "5.50 CR", 2],
+  [["extraction"], "33 CR", 1],
+  [["iq_refinement"], "6 CR", 1],
+  [["extraction", "model_generation"], "33 CR", 2],
+  [["iq_refinement", "refinement"], "6 CR", 2],
   [["refinement", "model_generation"], null, 2],
 ] as const)("filters %s while excluding unrelated services from the combined Total", (selected, total, charts) => {
   showUsage();
@@ -121,7 +121,7 @@ it.each([
   else {
     const totals = screen.getByRole("region", { name: "Totals usage" });
     expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent(total);
-    const average = selected.some(name => name === "extraction") ? "3.00 CR" : "2.75 CR";
+    const average = selected.some(name => name === "extraction") ? "3 CR" : "3 CR";
     expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent(average);
   }
 });
@@ -131,28 +131,28 @@ it("preserves distinct sessions, pages, weighted averages, UTC date limits and w
   const extraction = screen.getByRole("region", { name: "Index Extraction usage" });
   expect(within(extraction).getByText("Sessions").nextElementSibling).toHaveTextContent("2");
   expect(within(extraction).getByText("Pages used").nextElementSibling).toHaveTextContent("11");
-  expect(within(extraction).getByLabelText("3.00 credits")).toHaveTextContent("3.00 CR");
+  expect(within(extraction).getByLabelText("3 credits")).toHaveTextContent("3 CR");
   expect(screen.getByLabelText("From")).toHaveAttribute("min", "2026-09-01");
   expect(screen.getByLabelText("To")).toHaveAttribute("max", "2026-10-31");
   fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-05" } });
   expect(within(extraction).getByText("Sessions").nextElementSibling).toHaveTextContent("1");
-  expect(within(extraction).getByText("Credits").nextElementSibling).toHaveTextContent("22.00 CR");
-  expect(within(extraction).getByLabelText("2.20 credits")).toHaveTextContent("2.20 CR");
-  expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("27.50 CR");
+  expect(within(extraction).getByText("Credits").nextElementSibling).toHaveTextContent("22 CR");
+  expect(within(extraction).getByLabelText("2 credits")).toHaveTextContent("2 CR");
+  expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("28 CR");
   fireEvent.change(screen.getByLabelText("Period"), { target: { value: "weekly" } });
   expect(screen.getByRole("img", { name: "Index Extraction and IQ Refinement weekly credits chart" })).toBeInTheDocument();
-  expect(screen.getByText("Total 2026-10-05: 27.50 CR")).toBeInTheDocument();
+  expect(screen.getByText("Total 2026-10-05: 28 CR")).toBeInTheDocument();
   expect(screen.getByRole("img", { name: "Model Generation weekly credits chart" })).toBeInTheDocument();
 });
 
 it("merges weekly costs from different days and keeps service colors stable when filtering", () => {
   showUsage(records.map(row => row.name === "iq_refinement" ? { ...row, timestamp: "2026-10-06T00:30:00Z" } : row));
-  const color = screen.getByText("IQ Refinement 2026-10-06: 5.50 CR, 2 pages").parentElement!.getAttribute("fill");
+  const color = screen.getByText("IQ Refinement 2026-10-06: 6 CR, 2 pages").parentElement!.getAttribute("fill");
   fireEvent.change(screen.getByLabelText("Period"), { target: { value: "weekly" } });
-  expect(screen.getByText("Total 2026-10-05: 27.50 CR")).toBeInTheDocument();
+  expect(screen.getByText("Total 2026-10-05: 28 CR")).toBeInTheDocument();
   selectServices(["iq_refinement", "model_generation"]);
-  expect(screen.getByText("IQ Refinement 2026-10-05: 5.50 CR, 2 pages").parentElement).toHaveAttribute("fill", color!);
-  expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("5.50 CR");
+  expect(screen.getByText("IQ Refinement 2026-10-05: 6 CR, 2 pages").parentElement).toHaveAttribute("fill", color!);
+  expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("6 CR");
   fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-05" } });
   expect(screen.queryByRole("region", { name: "Index Extraction and IQ Refinement usage" })).not.toBeInTheDocument();
   expect(screen.getByRole("img", { name: "Model Generation weekly credits chart" })).toBeInTheDocument();
@@ -161,7 +161,7 @@ it("merges weekly costs from different days and keeps service colors stable when
 it("renders finite zero-cost bars and keeps no-page metrics for page services", () => {
   showUsage(records.map(row => ({ ...row, cost: 0, page_num: 0 })));
   expect(screen.getAllByText("No pages used")).toHaveLength(4);
-  expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("0.00 CR");
+  expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("0 CR");
   for (const chart of screen.getAllByRole("img")) for (const bar of chart.querySelectorAll("rect")) {
     expect(bar).toHaveAttribute("height", "0");
     expect(Number.isFinite(Number(bar.getAttribute("x")))).toBe(true);
@@ -208,7 +208,7 @@ it("preserves equal widths and the overlay order when IQ cost exceeds Index Extr
   showUsage(records.filter(row => row.code === "b" || row.code === "c").map(row => row.name === "iq_refinement" ? { ...row, cost: 44 } : row));
   const bars = [...screen.getByRole("img").querySelectorAll("rect")];
   expect(bars.map(bar => bar.querySelector("title")!.textContent)).toEqual([
-    "Total 2026-10-05: 66.00 CR", "Index Extraction 2026-10-05: 22.00 CR, 10 pages", "IQ Refinement 2026-10-05: 44.00 CR, 2 pages",
+    "Total 2026-10-05: 66 CR", "Index Extraction 2026-10-05: 22 CR, 10 pages", "IQ Refinement 2026-10-05: 44 CR, 2 pages",
   ]);
   expect(new Set(bars.map(bar => bar.getAttribute("width"))).size).toBe(1);
   expect(new Set(bars.map(bar => bar.getAttribute("x"))).size).toBe(1);
@@ -221,15 +221,15 @@ it("shows the approved Totals values from Index Extraction and IQ Refinement", (
     { ...records[2], cost: 0.075, page_num: 5 },
   ]);
   const totals = screen.getByRole("region", { name: "Totals usage" });
-  expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("4.03 CR");
-  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent("0.07 CR");
+  expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("4 CR");
+  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent("0 CR");
 });
 
 it.each(["extraction", "iq_refinement"] as const)("sums only available averages when %s has no pages", name => {
   showUsage(records.map(row => row.name === name ? { ...row, page_num: 0 } : row));
   const totals = screen.getByRole("region", { name: "Totals usage" });
-  expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("38.50 CR");
-  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent(name === "extraction" ? "2.75 CR" : "3.00 CR");
+  expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("39 CR");
+  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent(name === "extraction" ? "3 CR" : "3 CR");
 });
 
 it("places every summary row beneath its chart while preserving summary styles", () => {
@@ -247,7 +247,7 @@ it("places every summary row beneath its chart while preserving summary styles",
 it.each([0, 3])("shows only Credits in the Model Generation summary with %s pages", pages => {
   showUsage(records.map(row => row.name === "model_generation" ? { ...row, page_num: pages } : row));
   const models = screen.getByRole("region", { name: "Model Generation usage" });
-  expect(within(models).getByText("Credits").nextElementSibling).toHaveTextContent("3.00 CR");
+  expect(within(models).getByText("Credits").nextElementSibling).toHaveTextContent("3 CR");
   expect(models.querySelectorAll("dt")).toHaveLength(1);
   for (const label of ["Sessions", "Pages used", "Average page credits", "No pages used"]) {
     expect(within(models).queryByText(label)).not.toBeInTheDocument();
@@ -257,7 +257,7 @@ it.each([0, 3])("shows only Credits in the Model Generation summary with %s page
 it("ends with Total Credits for all services regardless of service selection", () => {
   showUsage();
   const total = screen.getByRole("region", { name: "Total Credits" });
-  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("43.50 CR");
+  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("44 CR");
   expect(total.parentElement!.lastElementChild).toBe(total);
   const heading = within(total).getByRole("heading", { name: "Total Credits" });
   const extraction = screen.getByRole("region", { name: "Index Extraction usage" });
@@ -267,11 +267,11 @@ it("ends with Total Credits for all services regardless of service selection", (
   expect(total.querySelectorAll("dt")).toHaveLength(0);
   for (const name of Object.keys(names) as UsageRecord["name"][]) {
     selectServices([name]);
-    expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("43.50 CR");
+    expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("44 CR");
     expect(total.parentElement!.lastElementChild).toBe(total);
   }
   fireEvent.change(screen.getByLabelText("Period"), { target: { value: "weekly" } });
-  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("43.50 CR");
+  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("44 CR");
 });
 
 it("restricts Total Credits to the selected UTC dates even when charts are filtered out", () => {
@@ -281,27 +281,27 @@ it("restricts Total Credits to the selected UTC dates even when charts are filte
     { ...records[0], code: "after", cost: 200, timestamp: "2026-11-01T00:00:00Z" },
   ]);
   const total = screen.getByRole("region", { name: "Total Credits" });
-  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("43.50 CR");
+  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("44 CR");
   fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-05" } });
-  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("32.50 CR");
+  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("33 CR");
   selectServices(["model_generation"]);
   fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-04" } });
   fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-04" } });
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
   expect(screen.getByText("No usage in the selected period.")).toBeInTheDocument();
-  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("11.00 CR");
+  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("11 CR");
 });
 
 it("shows zero Total Credits when the selected dates have no usage", () => {
   showUsage([]);
   expect(screen.getByText("No usage in the selected period.")).toBeInTheDocument();
   const total = screen.getByRole("region", { name: "Total Credits" });
-  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("0.00 CR");
+  expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("0 CR");
 });
 
 it("rounds only display values and exposes credit labels", () => {
-  showUsage([{ ...records[0], cost: 0.125 }, { ...records[1], cost: 0.125 }]);
+  showUsage([{ ...records[0], cost: 0.375 }, { ...records[1], cost: 0.375 }]);
   const total = screen.getByRole("region", { name: "Total Credits" });
-  expect(within(total).getByLabelText("0.25 credits")).toHaveTextContent("0.25 CR");
+  expect(within(total).getByLabelText("1 credits")).toHaveTextContent("1 CR");
   expect(document.body.textContent).not.toContain("$");
 });

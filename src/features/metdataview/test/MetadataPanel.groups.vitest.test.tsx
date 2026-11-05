@@ -27,18 +27,19 @@ it.each(["reference", "property", "monetary", "transaction", "vital", "judgment"
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
 });
 
-it("shows Sides before extracted Parties, even when their codes match, and counts both", () => {
+it("keeps sides before extracted parties without subgroup titles, even when their codes match, and counts both", () => {
   const raw = { ...index("shared", "party", "1"), ambiguous: "YES" };
   const side = { ...raw, value: "Enriched name", aspect: "person, Direct", ambiguous: "NO" };
   const onEditIndex = vi.fn();
   const onPageClick = vi.fn();
   const { container } = panel({ indexes: [raw], parties: { summary: "Party overview", indexes: [side] } }, "party", { onEditIndex, callbacks: { onPageClick } });
-  expect(screen.getAllByRole("heading", { level: 3 }).map(node => node.textContent)).toEqual(["Sides", "Parties"]);
+  expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
+  expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Page 1", "Page 1"]);
   const rows = screen.getAllByRole("article");
   expect(rows).toHaveLength(2);
   expect(rows[0]).toHaveTextContent(side.value);
   expect(rows[1]).toHaveTextContent(raw.value!);
-  expect(screen.getByText("Party overview").compareDocumentPosition(screen.getByRole("heading", { name: "Sides" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByText("Party overview").compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["2", "1"]);
   expect(screen.getByRole("button", { name: "Parties(Party Clause)" }).parentElement?.lastElementChild).toHaveTextContent("2");
   for (const [position, item] of [side, raw].entries()) {
@@ -47,6 +48,28 @@ it("shows Sides before extracted Parties, even when their codes match, and count
     fireEvent.click(within(rows[position]).getByRole("link", { name: item.value! }));
     expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: item.code, segment: "party", page: "1", value: item.value }));
   }
+});
+
+it.each(["sides", "parties", "both", "empty"])("retains party grouping and empty behavior without subgroup titles for %s", collection => {
+  const side = index("side", "party", "2");
+  const raw = index("raw", "party", "Exhibit-A");
+  const metadata: MetadataPayload = {
+    indexes: collection === "parties" || collection === "both" ? [raw] : [],
+    parties: { summary: null, indexes: collection === "sides" || collection === "both" ? [side] : [] },
+  };
+  const view = panel(metadata, "party");
+  expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
+  expect(screen.queryAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(
+    collection === "both" ? ["Page 2", "Page Exhibit-A"] : collection === "sides" ? ["Page 2"] : collection === "parties" ? ["Page Exhibit-A"] : [],
+  );
+  expect(screen.queryAllByRole("article").map(node => node.dataset.indexCode)).toEqual(
+    collection === "both" ? ["side", "raw"] : collection === "sides" ? ["side"] : collection === "parties" ? ["raw"] : [],
+  );
+  expect(screen.queryAllByText("No parties found.")).toHaveLength(collection === "empty" ? 1 : 0);
+  const refreshed = { indexes: [raw], parties: { summary: null, indexes: [side] } };
+  view.rerender(<MetadataPanel {...view.props} metadata={refreshed} panelData={getPanelData(refreshed)} />);
+  expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
+  expect(screen.getAllByRole("article").map(node => node.dataset.indexCode)).toEqual(["side", "raw"]);
 });
 
 it("retains extracted parties when the enriched collection is empty", () => {

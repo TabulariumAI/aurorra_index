@@ -1,4 +1,4 @@
-vi.mock("../../choices/worker/choicesWorkerClient", () => ({ createSessionDataWorkerClient: () => ({ load: async () => null }) }));
+vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => ({ load: async () => null }) }));
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { indexedDB } from "fake-indexeddb";
@@ -16,8 +16,8 @@ import type { UsageCommand } from "../../usage/type/usage.types";
 import type { MetadataProps, MetadataWorkerCommand } from "../type/metadataView.types";
 
 const auditClient = vi.hoisted(() => ({ loadReport: vi.fn<AuditWorkerClient["loadReport"]>() }));
-vi.mock("../../audit/worker/auditWorkerClient", () => ({ createAuditWorkerClient: () => auditClient }));
-vi.mock("../../pagesegments/worker/pageSegmentsWorkerClient", () => ({ createPageSegmentsWorkerClient: () => ({ pagesData: async () => ({ data: { num_of_pages: 1 }, path: "pages" }) }) }));
+vi.mock("../../audit/worker/auditWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../audit/worker/auditWorkerClient")>(), createAuditWorkerClient: () => auditClient }));
+vi.mock("../../pagesegments/worker/pageSegmentsWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../pagesegments/worker/pageSegmentsWorkerClient")>(), createPageSegmentsWorkerClient: () => ({ pagesData: async () => ({ data: { num_of_pages: 1 }, path: "pages" }) }) }));
 
 const metadata = { tags: ["auto_class:deed", "parcel:123"], heading: { title: "Deed" } };
 
