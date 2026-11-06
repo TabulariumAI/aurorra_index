@@ -34,6 +34,7 @@ export function useMetadata({
   deferredState,
   intervalMs,
   onQueueChange,
+  formatError,
   refresh,
   retryIntervalMs,
   retryLimit,
@@ -138,22 +139,22 @@ export function useMetadata({
 
   const onDrop = useCallback(async (payload: MetadataActionPayload) => {
     await queueStoreApi.getState().enqueue({ action: "drop", code: payload.code, session, segment: payload.segment!, batch: batchCode },
-      { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
+      { authToken: authToken!, client, intervalMs, formatError, onChange: onQueueChange });
     if (selectedIndex?.code === payload.code) {
       setSelectedIndex(null);
       callbacks.onIndexFocus?.(null);
     }
-  }, [onQueueChange, authToken, batchCode, callbacks, client, intervalMs, selectedIndex?.code, session]);
+  }, [onQueueChange, formatError, authToken, batchCode, callbacks, client, intervalMs, selectedIndex?.code, session]);
 
   const onConfirm = useCallback(async (payload: MetadataActionPayload) => {
     await queueStoreApi.getState().enqueue({ action: "confirm", code: payload.code, session, segment: payload.segment!, batch: batchCode },
-      { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
-  }, [onQueueChange, authToken, batchCode, client, intervalMs, session]);
+      { authToken: authToken!, client, intervalMs, formatError, onChange: onQueueChange });
+  }, [onQueueChange, formatError, authToken, batchCode, client, intervalMs, session]);
 
   const onReprocess = useCallback(async (segment: string) => {
     await queueStoreApi.getState().enqueue({ action: "reprocess", session, segment, batch: batchCode },
-      { authToken: authToken!, client, intervalMs, onChange: onQueueChange });
-  }, [onQueueChange, authToken, batchCode, client, intervalMs, session]);
+      { authToken: authToken!, client, intervalMs, formatError, onChange: onQueueChange });
+  }, [onQueueChange, formatError, authToken, batchCode, client, intervalMs, session]);
 
   return {
     choices: store.choices?.items ?? null,

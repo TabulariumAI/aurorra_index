@@ -19,7 +19,7 @@ function pendingResponse() {
   return { promise, resolve };
 }
 function runtime(): QueueRuntime {
-  return {
+  return { formatError: (error: unknown) => (error as Error).message,
     onChange: vi.fn(), authToken: "token", intervalMs: 0,
     client: {
       pagesData: vi.fn(), updatePageSegments: vi.fn(async () => undefined),
@@ -38,6 +38,19 @@ function enqueue(changes: IndexChange[], config: QueueRuntime, session = "sessio
 }
 
 describe("index mutation queue", () => {
+  it("passes the original worker event to the host formatter and retains its readable result", async () => {
+    const config = runtime();
+    const event = new ErrorEvent("error", { message: "Worker startup failed", error: new Error("Module import failed") });
+    const formatError = vi.fn(() => "The metadata worker could not be loaded.");
+    Object.assign(config, { formatError });
+    vi.mocked(config.client.reprocessSegment).mockRejectedValueOnce(event);
+    await queueStoreApi.getState().enqueue({ action: "reprocess", session: "session-1", batch: "batch-1", segment: "party" }, config);
+    await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
+    expect(formatError).toHaveBeenCalledExactlyOnceWith(event);
+    expect(queueStoreApi.getState().tasks[0].error).toBe("The metadata worker could not be loaded.");
+    expect(config.onChange).toHaveBeenLastCalledWith(expect.objectContaining({ status: "failed", error: "The metadata worker could not be loaded." }));
+  });
+
   it.each(["add", "update", "remove"] as const)("keeps %s pending until refreshed metadata is applied", async (action) => {
     const config = runtime();
     let refresh!: (data: { indexes: typeof index[] }) => void;

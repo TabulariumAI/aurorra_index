@@ -24,7 +24,7 @@ it("retries acknowledgment reprocessing through the standard choices-owned reque
 });
 
 function runtime(): QueueRuntime {
-  return { authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
+  return { formatError: (error: unknown) => (error as Error).message, authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
     reprocessSegment: vi.fn(async () => ({ status: "completed" as const, data: "" })),
     indexData: vi.fn(async () => ({ indexes: [index] })),
     patchIndex: vi.fn(), patchStatus: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(),

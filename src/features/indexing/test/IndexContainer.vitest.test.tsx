@@ -79,8 +79,6 @@ function renderMetadata(data = metadata) {
   const onAddIndex = vi.fn();
   const onView = vi.fn();
   const onViewStarted = vi.fn();
-  const onLoaderChange = vi.fn();
-  const onReadyChange = vi.fn();
   let remote = structuredClone(data);
   const pending: { drop?: () => void; reprocess?: () => void } = {};
   const workerClient = {
@@ -98,7 +96,7 @@ function renderMetadata(data = metadata) {
   };
 
   const view = render(
-    <IndexContainer onQueueChange={vi.fn()}
+    <IndexContainer formatError={(error: unknown) => (error as Error).message} onQueueChange={vi.fn()}
       authToken="token"
       apiGatewayUrl="https://doc.example.com"
       batchCode={null}
@@ -107,8 +105,6 @@ function renderMetadata(data = metadata) {
       intervalMs={0}
       retryLimit={5}
       retryIntervalMs={0}
-      onLoaderChange={onLoaderChange}
-      onReadyChange={onReadyChange}
       refresh={null}
       segments={segments}
       session="session-1"
@@ -116,7 +112,7 @@ function renderMetadata(data = metadata) {
     />,
   );
 
-  return { onAddIndex, view, workerClient, pending, onMetadataLoaded, onPageClick, onActionComplete, onEditPage, onView, onViewStarted, onLoaderChange, onReadyChange };
+  return { onAddIndex, view, workerClient, pending, onMetadataLoaded, onPageClick, onActionComplete, onEditPage, onView, onViewStarted };
 }
 
 describe("IndexContainer", () => {
@@ -185,14 +181,14 @@ describe("IndexContainer", () => {
       await queueStoreApi.getState().enqueue({ batch: null, session: "session-1", segment: "party", data: JSON.stringify([{
         action: "add", allow_enrichment, explanation: "P 1 Source", new_index_label: "Grantor", new_index_aspect: "grantor", new_index_value: "New party",
         new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
-      }]) }, { authToken: "token", client: workerClient, intervalMs: 0, onChange: vi.fn() });
+      }]) }, { formatError: (error: unknown) => (error as Error).message, authToken: "token", client: workerClient, intervalMs: 0, onChange: vi.fn() });
     });
     const row = screen.getByText("New party").closest("article")!;
     const code = row.getAttribute("data-index-code");
     expect(row).toHaveAttribute("aria-disabled", "true");
     expect(within(row).getByRole("progressbar", { name: "Processing change" })).toBeVisible();
     expect(within(row).getByRole("button", { name: "Edit index" })).toBeDisabled();
-    expect(screen.getAllByText("Alice")).toHaveLength(allow_enrichment ? 1 : 2);
+    expect(screen.getAllByText("Alice")).toHaveLength(1);
     act(() => complete({ status: "error", data: "Add failed", version: 1 }));
     expect(await within(row).findByRole("alert")).toHaveTextContent("Add failed");
     expect(within(row).queryByRole("progressbar")).toBeNull();
@@ -215,7 +211,7 @@ describe("IndexContainer", () => {
   });
 
   it("fetches metadata, renders visible sections, and emits lifecycle callbacks", async () => {
-    const { view, onMetadataLoaded, onView, onViewStarted, onLoaderChange, onReadyChange } = renderMetadata();
+    const { view, onMetadataLoaded, onView, onViewStarted } = renderMetadata();
     const shell = view.container.firstElementChild;
     expect(shell).not.toBeNull();
     if (shell) {
@@ -228,10 +224,9 @@ describe("IndexContainer", () => {
     }
 
     expect(screen.queryByRole("progressbar", { name: "Metadata progress" })).not.toBeInTheDocument();
-    expect(onLoaderChange).toHaveBeenLastCalledWith(["Retrieving metadata...", "Attempt 1 of 5"]);
+    expect(screen.queryByRole("status", { name: "Loading metadata" })).toBeNull();
     await waitFor(() => expect(screen.getByText("Alice")).toBeInTheDocument());
-    expect(onReadyChange).toHaveBeenCalledWith(false);
-    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+    expect(screen.queryByRole("status", { name: "Loading metadata" })).toBeNull();
     expect(onViewStarted).toHaveBeenCalledTimes(1);
     expect(onView).toHaveBeenCalledWith(metadata);
     expect(onMetadataLoaded).toHaveBeenCalledWith(metadata, "session-1");
@@ -384,7 +379,7 @@ describe("IndexContainer", () => {
     const onViewError = vi.fn();
 
     render(
-      <IndexContainer onQueueChange={vi.fn()}
+      <IndexContainer formatError={(error: unknown) => (error as Error).message} onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batchCode={null}
@@ -393,7 +388,6 @@ describe("IndexContainer", () => {
         intervalMs={0}
         retryLimit={5}
         retryIntervalMs={0}
-        onReadyChange={vi.fn()}
         refresh={null}
         segments={segments}
         session="session-1"
@@ -448,15 +442,14 @@ describe("IndexContainer", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onReadyChange: vi.fn(),
       segments,
       session: "session-1",
       workerClient,
     };
-    const view = render(<IndexContainer  onQueueChange={vi.fn()} {...props} refresh={null} />);
+    const view = render(<IndexContainer formatError={(error: unknown) => (error as Error).message} onQueueChange={vi.fn()} {...props} refresh={null} />);
 
     await screen.findByRole("heading", { name: "Deed" });
-    view.rerender(<IndexContainer  onQueueChange={vi.fn()} {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
+    view.rerender(<IndexContainer formatError={(error: unknown) => (error as Error).message} onQueueChange={vi.fn()} {...props} refresh={{ id: 1, segment: "party", session: "session-1" }} />);
 
     await waitFor(() => expect(workerClient.indexData).toHaveBeenCalledTimes(2));
     expect(screen.getByRole("heading", { name: "Deed" })).toBeVisible();
@@ -477,7 +470,7 @@ describe("IndexContainer", () => {
       reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
     const view = render(
-      <IndexContainer onQueueChange={vi.fn()}
+      <IndexContainer formatError={(error: unknown) => (error as Error).message} onQueueChange={vi.fn()}
         authToken="token"
         apiGatewayUrl="https://doc.example.com"
         batchCode={null}
@@ -486,7 +479,6 @@ describe("IndexContainer", () => {
         intervalMs={0}
         retryLimit={5}
         retryIntervalMs={0}
-        onReadyChange={vi.fn()}
         refresh={null}
         segments={segments}
         session="session-1"

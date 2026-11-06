@@ -42,6 +42,7 @@ export type PageSegmentsFailure = {
 };
 
 export type PageSegmentsPanelProps = {
+  formatError(error: unknown): string;
   onQueueChange(event: QueueTransition): void;
   batchCode: string | null;
   intervalMs: number;

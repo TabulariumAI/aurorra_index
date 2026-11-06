@@ -6,8 +6,26 @@ import { indexStoreApi } from "../../metdataview/store/metadataStore";
 const worker = vi.hoisted(() => ({ load: vi.fn() }));
 vi.mock("../worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => worker }));
 const input = { session: "selected", authToken: "token", apiGatewayUrl: "https://gateway" };
-const backend = { items: [{ service: "Recognition", level: 2 }, { service: "PartyClauseIndexing", level: 0 }], jurisdiction: "Texas, Harris County" };
+const backend = { source: "https://storage.test/sub/source.pdf", items: [{ service: "Recognition", level: 2 }, { service: "PartyClauseIndexing", level: 0 }], jurisdiction: "Texas, Harris County" };
 beforeEach(() => { indexStoreApi.getState().resetMetadata(); worker.load.mockReset(); });
+
+it.each([undefined, null])("preserves choices and jurisdiction with source %s through the selected resource", async source => {
+  const saved = JSON.parse(JSON.stringify({ ...backend, source }));
+  indexStoreApi.getState().selectSession("selected");
+  worker.load.mockResolvedValue(saved);
+  expect(await loadChoices(input)).toEqual(saved);
+  expect(indexStoreApi.getState().choices).toEqual(saved);
+  expect(await requestResource({ resource: "session_choices" }, "selected")).toEqual(saved);
+});
+
+it("preserves the stored source URL when reading choices for a failed session", async () => {
+  indexStoreApi.getState().selectSession("selected");
+  worker.load.mockResolvedValue({ ...backend, source: "https://storage.test/sub/source.tif" });
+  const selected = indexStoreApi.getState().activeSession;
+  expect(await loadChoices({ ...input, session: "failed" })).toEqual({ ...backend, source: "https://storage.test/sub/source.tif" });
+  expect(indexStoreApi.getState().activeSession).toBe(selected);
+  expect(indexStoreApi.getState().choices).toBeNull();
+});
 
 it("stores and serves the selected backend choices without applying settings defaults", async () => {
   indexStoreApi.getState().selectSession("selected");
@@ -38,8 +56,8 @@ it.each(["switch", "reset"])("does not retain a response after %s", async action
 it("reads another session for submission without replacing the selected session", async () => {
   indexStoreApi.getState().selectSession("selected");
   indexStoreApi.setState({ choices: backend });
-  worker.load.mockResolvedValue({ items: [], jurisdiction: "California, Los Angeles County" });
-  expect(await loadChoices({  ...input, session: "other" })).toEqual({ items: [], jurisdiction: "California, Los Angeles County" });
+  worker.load.mockResolvedValue({ source: "https://storage.test/sub/source.pdf", items: [], jurisdiction: "California, Los Angeles County" });
+  expect(await loadChoices({  ...input, session: "other" })).toEqual({ source: "https://storage.test/sub/source.pdf", items: [], jurisdiction: "California, Los Angeles County" });
   expect(indexStoreApi.getState().choices).toEqual(backend);
 });
 

@@ -12,8 +12,8 @@ const choices = { items: [{ service: "PartyClauseIndexing", level: 1 }], jurisdi
 const data: MetadataPayload = { heading: { title: "Grant Deed" }, indexes: [], pages: { num_of_pages: 1 } };
 const segments = { ACKNOWLEDGMENT: "acknowledgment", JUDGMENT: "judgment", ENDORSEMENT: "endorsement", FEE: "fee", FEEFACTOR: "factor", FUND: "fund", LEGAL: "legal", MONETARY: "monetary", PAGE: "page", PARTY: "party", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TITLE: "title", TRANSACTION: "transaction", VITAL: "vital" };
 function input(indexData: MetadataClient["indexData"]): MetadataProps {
-  return { apiGatewayUrl: "https://api", authToken: "token", batchCode: null, callbacks: {}, deferredState: createDeferredState(),
-    intervalMs: 0, retryIntervalMs: 0, retryLimit: 1, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null, segments, session: "s",
+  return { formatError: (error: unknown) => (error as Error).message, apiGatewayUrl: "https://api", authToken: "token", batchCode: null, callbacks: {}, deferredState: createDeferredState(),
+    intervalMs: 0, retryIntervalMs: 0, retryLimit: 1, onQueueChange: vi.fn(), refresh: null, segments, session: "s",
     workerClient: { indexData, pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn() } };
 }
 beforeEach(() => { indexStoreApi.getState().resetMetadata(); worker.load.mockReset(); });

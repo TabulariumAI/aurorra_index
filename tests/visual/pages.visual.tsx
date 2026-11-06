@@ -31,7 +31,7 @@ function PagesScenario() {
     </div>
     <IndexContainer key={revision} apiGatewayUrl="https://doc.example.com" authToken="token" batchCode={null}
       callbacks={callbacks} choices={choices} deferredState={deferredState} intervalMs={0}
-      onQueueChange={() => undefined} onReadyChange={() => undefined} refresh={refresh}
+      onQueueChange={() => undefined} refresh={refresh}
       retryIntervalMs={0} retryLimit={1} segments={segments} session={session} />
   </>;
 }

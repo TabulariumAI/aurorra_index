@@ -73,10 +73,10 @@ export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
     get().selectSession(session);
     set({ activeSession: session, error: null, retryAttempt: 1, status: "loading" });
   },
-  selectSession(session) {
+  selectSession(session, etag) {
     if ([get().activeSession, queueStoreApi.getState().session, storeApi.getState().session]
       .some(owner => owner !== null && owner !== session)) get().resetMetadata();
-    queueStoreApi.setState(state => state.session === session ? state : { session });
+    queueStoreApi.getState().setEtag(session, etag);
     storeApi.setState(state => state.session === session ? state : { session, json: null });
   },
   setRetryAttempt(retryAttempt) {
@@ -87,6 +87,5 @@ export const useIndexStore = create<MetadataStoreState>()((set, get) => ({
 export const indexStoreApi = useIndexStore;
 
 export function selectSession(input: Pick<MetadataUpdate, "session" | "etag">): void {
-  indexStoreApi.getState().selectSession(input.session);
-  queueStoreApi.getState().setEtag(input.session, input.etag ?? null);
+  indexStoreApi.getState().selectSession(input.session, input.etag ?? null);
 }

@@ -22,8 +22,8 @@ export function IqPlaceholder(): JSX.Element {
     <>
       <LoadPlaceholder label="Loading IQ summary">
         <div style={iqStyles.panelHeader}><SummaryPlaceholder margin={iqStyles.summaryCard.margin} title="Indexing Quality (IQ)" /></div>
+        <div style={iqStyles.divider} />
       </LoadPlaceholder>
-      <div style={iqStyles.divider} />
       <LoadPlaceholder label="Loading indexing segments">
         <div style={iqStyles.sectionTitle}>Indexing Segments</div>
         <table style={iqStyles.segmentTable}>

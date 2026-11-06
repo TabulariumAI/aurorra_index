@@ -9,6 +9,7 @@ export type EditIndexStoreState = {
   close(): void;
 };
 export type EditIndexPanelProps = {
+  formatError(error: unknown): string;
   onQueueChange(event: QueueTransition): void;
   apiGatewayUrl: string;
   authToken: string;

@@ -9,7 +9,7 @@ import { queueStoreApi } from "../../queue/store/queueStore";
 import type { IndexChange } from "../../queue/type/queue.types";
 import type { EditIndexPanelProps } from "../type/editIndex.types";
 
-export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs, onQueueChange, retryIntervalMs, retryLimit, request, onClose, onError, onReadyChange, onResource, workerClient }: EditIndexPanelProps) {
+export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs, onQueueChange, formatError, retryIntervalMs, retryLimit, request, onClose, onError, onReadyChange, onResource, workerClient }: EditIndexPanelProps) {
   const [fields, setFields] = useState<IndexFields>({ index: "", label: "", page: "", source: "" });
   const [selected, setSelected] = useState<string[]>([]);
   const [allowEnrichment, setAllowEnrichment] = useState(false);
@@ -57,7 +57,7 @@ export function EditIndexPanel({ apiGatewayUrl, authToken, batchCode, intervalMs
     pending.current = true;
     setSubmitting(true);
     try {
-      await queueStoreApi.getState().enqueue({ batch: batchCode, session: request.session, segment: request.segment, data: JSON.stringify([change]) }, { authToken, client, intervalMs, onChange: onQueueChange });
+      await queueStoreApi.getState().enqueue({ batch: batchCode, session: request.session, segment: request.segment, data: JSON.stringify([change]) }, { authToken, client, intervalMs, formatError, onChange: onQueueChange });
       onClose();
     } catch (submitError) {
       const failure = submitError as Error & { code?: string; details?: unknown; status?: number };

@@ -124,7 +124,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
         } catch (error) {
           if (started !== generation) return;
           task.status = "failed";
-          task.error = error instanceof Error ? error.message : String(error);
+          task.error = task.runtime.formatError(error);
           reportChange(task, "failed", task.changes.slice(task.cursor, task.cursor + 1));
           notify();
         }
@@ -222,7 +222,8 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
     },
     setEtag(session, etag) {
       if (get().session !== null && get().session !== session) return;
-      set({ session, etag });
+      if (get().session === session && etag === undefined) return;
+      set({ session, ...(etag === undefined ? {} : { etag }) });
       notify();
     },
     setMetadata(session, metadata) {

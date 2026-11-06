@@ -41,6 +41,11 @@ import { IndexContainer, ImageViewerPanel } from "aurorra-index";
 
 See the exported prop types in [`src/public-api.ts`](src/public-api.ts). The host must supply valid credentials and compatible gateway endpoints.
 
+Metadata, Add Index, Edit Index, Page Segments, and `QueueRuntime` require the
+host's `formatError` callback. Queue failures pass the original exception or
+worker event to it before storing and publishing error text. Formatting and
+sanitization remain host-owned; queue recovery remains package-owned.
+
 ## Development
 
 ```sh

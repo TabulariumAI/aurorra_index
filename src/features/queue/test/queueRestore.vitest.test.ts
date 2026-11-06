@@ -4,7 +4,7 @@ import { composeMetadataJSON, getPanelData, splitMetadataJSON, type MetadataPayl
 import type { QueueRuntime } from "../type/queue.types";
 
 function runtime(): QueueRuntime {
-  return { onChange: vi.fn(), authToken: "private-token", intervalMs: 0, client: {
+  return { formatError: (error: unknown) => (error as Error).message, onChange: vi.fn(), authToken: "private-token", intervalMs: 0, client: {
     patchIndex: vi.fn(() => new Promise<never>(() => {})),
     patchStatus: vi.fn(() => new Promise<never>(() => {})),
     indexData: vi.fn(async () => ({ indexes: [] })),

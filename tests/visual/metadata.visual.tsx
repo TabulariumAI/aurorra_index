@@ -189,6 +189,18 @@ const groupMetadata: MetadataPayload = {
   ] },
 };
 
+const duplicateMetadata: MetadataPayload = {
+  heading: { class: "affidavit", title: "Affidavit" },
+  indexes: [
+    { code: "owner", segment: "party", page: "1", aspect: "person", label: "Owner", value: "Extracted owner", ambiguous: "YES" },
+    { code: "agency", segment: "party", page: "1", aspect: "government", label: "Agency", value: "TEXAS COMM ON ENVIRONMENTAL QUALITY REGION 12" },
+  ],
+  parties: { summary: "Oscar Corona is the homeowner and owner of record.", indexes: [
+    { code: "owner", segment: "party", page: "1", aspect: "person, Direct", label: "Owner", value: "CORONA OSCAR", explanation: longExplanation, source: "Oscar Corona, homeowner and owner of record.", ambiguous: "NO" },
+    { code: "owner", segment: "party", page: "1", aspect: "person, Direct", label: "Owner", value: "Duplicate owner" },
+  ] },
+};
+
 stage.style.display = "flex";
 stage.style.flexDirection = "column";
 stage.style.overflow = "hidden";
@@ -204,14 +216,14 @@ function MetadataPreview() {
     callbacks={{ onAddressClick: (value) => stage!.setAttribute("data-address", value), onEditPage: noOp, onPageClick: value => stage!.setAttribute("data-title-page", String(value.page)) }}
     choices={[{ level: 1, service: "PartyClauseIndexing" }]}
     confirmedCodes={new Set()}
-    metadata={scenario === "metadata-groups" ? groupMetadata : activeMetadata}
+    metadata={scenario === "metadata-duplicates" ? duplicateMetadata : scenario === "metadata-groups" ? groupMetadata : activeMetadata}
     onConfirm={noOp}
     onDrop={noOp}
     onAddIndex={(segment) => stage!.setAttribute("data-add-segment", segment)}
     onEditIndex={(item) => stage.setAttribute("data-edit-code", String(item.code))}
     onReprocess={noOp}
     openSegment={openSegment}
-    panelData={scenario === "metadata-groups" ? getPanelData(groupMetadata) : activePanelData}
+    panelData={scenario === "metadata-duplicates" ? getPanelData(duplicateMetadata) : scenario === "metadata-groups" ? getPanelData(groupMetadata) : activePanelData}
     reprocessingSegments={new Set(scenario === "metadata-reprocess" ? [segments.PARTY] : [])}
     removedCodes={new Set()}
     sections={{ filterByChoices: false, hiddenSegments: new Set(), showEmpty: false }}

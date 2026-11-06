@@ -252,10 +252,10 @@ describe("AuditPanel", () => {
       onResource={request => { callback = request.callback; }} retryLimit={5} retryIntervalMs={0}
       session="session-1" workerClient={client()} />);
     expect(screen.getByRole("region", { name: "Audit & Usage body" })).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Loading audit gaps" })).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading audit gaps" })).toBeNull();
     expect(await screen.findByText("Newest addition message")).toBeVisible();
     expect(screen.getByLabelText("Change type")).toBeEnabled();
-    expect(screen.getByRole("status", { name: "Loading segment options" })).toBeVisible();
+    expect(await screen.findByRole("status", { name: "Loading segment options" })).toBeVisible();
     if (state === "failed") {
       await act(async () => callback({ ok: false, error: "Catalog unavailable", code: "catalog_failed", status: 503 }));
       expect(screen.getByRole("alert")).toHaveTextContent("Segment options could not be loaded. Refresh the Audit & Usage to try again.");
@@ -265,13 +265,15 @@ describe("AuditPanel", () => {
     }
   });
 
-  it("mounts independent placeholders and starts report and aspects concurrently", async () => {
+  it("delays independent placeholders and starts report and aspects concurrently", async () => {
     let callback!: ResourceRequest["callback"];
     let resolve!: (value: AuditReport) => void;
     const loadReport = vi.fn(() => new Promise<AuditReport>(done => { resolve = done; }));
     const onResource = vi.fn((request: ResourceRequest) => { callback = request.callback; });
     render(<AuditPanel onResource={onResource} apiGatewayUrl="https://api" authToken="token" callbacks={{}}
       retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(loadReport)} />);
+    expect(screen.queryByRole("status", { name: /^Loading/ })).toBeNull();
+    await screen.findByRole("status", { name: "Loading audit gaps" });
     for (const name of ["Loading audit filters", "Loading audit summary", "Loading audit gaps"])
       expect(screen.getByRole("status", { name })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Usage" }));

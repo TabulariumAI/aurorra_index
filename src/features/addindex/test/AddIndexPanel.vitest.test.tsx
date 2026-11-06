@@ -8,7 +8,7 @@ import { AddIndexPanel } from "../component/AddIndexPanel";
 import type { AddIndexPanelProps } from "../type/addIndex.types";
 
 function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps {
-  return {
+  return { formatError: (error: unknown) => (error as Error).message,
     apiGatewayUrl: "https://gateway.example.com", authToken: "token-1", intervalMs: 0,
     batchCode: "batch-1", retryIntervalMs: 0, retryLimit: 0, segment: "party", session: "session-1",
     request: { groups: [{ value: { context: ["Selected source"], kind: ["BODY"], token: ["Selected value"] } }], pageName: "Exhibit-A" },

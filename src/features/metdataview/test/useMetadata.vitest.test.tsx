@@ -88,10 +88,10 @@ describe("useMetadata", () => {
     let fail!: (error: Error) => void;
     vi.mocked(client.indexData).mockImplementationOnce(() => new Promise((resolve, reject) => { finish = resolve; fail = reject; }));
     const onMetadataLoaded = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       apiGatewayUrl: "https://doc.example.com", authToken: "token", batchCode: null,
       callbacks: { onMetadataLoaded }, deferredState: createDeferredState(),
-      intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
+      intervalMs: 0, onQueueChange: vi.fn(), refresh: null,
       retryIntervalMs: 0, retryLimit: 1, segments, session: "session-1", workerClient: client,
     };
     const view = renderHook(() => useMetadata(props));
@@ -112,10 +112,10 @@ describe("useMetadata", () => {
 
   it("exposes the current segment, opens Pages on request, and resets between sessions", async () => {
     const onSegmentExpand = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
       callbacks: { onSegmentExpand }, deferredState: createDeferredState({ segment: "party" }),
-      intervalMs: 0, retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
+      intervalMs: 0, retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), refresh: null,
       segments, session: "session-1", workerClient: createClient(),
     };
     const view = renderHook((value) => useMetadata(value), { initialProps: props });
@@ -138,10 +138,10 @@ describe("useMetadata", () => {
 
   it.each([false, true])("does not restore a refreshed segment after session cleanup, switching=%s", async switching => {
     const client = createClient();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       apiGatewayUrl: "https://doc.example.com", authToken: "token", batchCode: null,
       callbacks: {}, deferredState: createDeferredState({ segment: "party" }),
-      intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null,
+      intervalMs: 0, onQueueChange: vi.fn(), refresh: null,
       retryIntervalMs: 0, retryLimit: 1, segments, session: "session-1", workerClient: client,
     };
     const view = renderHook(value => useMetadata(value), { initialProps: props });
@@ -170,7 +170,7 @@ describe("useMetadata", () => {
       .mockResolvedValueOnce(baseMetadata)
       .mockResolvedValueOnce({ ...baseMetadata, heading: { title: "Reprocessed" } });
 
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -179,7 +179,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -210,7 +210,7 @@ describe("useMetadata", () => {
     vi.mocked(client.reprocessSegment).mockImplementationOnce(() => new Promise<{ data: string; status: "completed" }>((resolve) => {
       complete = () => resolve({ data: "", status: "completed" });
     }));
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -219,7 +219,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -250,7 +250,7 @@ describe("useMetadata", () => {
       secretsJSON: { secrets: [] },
     });
     const onMetadataLoaded = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -259,7 +259,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -283,7 +283,7 @@ describe("useMetadata", () => {
     const failure = kind === "runtime" ? new ErrorEvent("error", {
       message: "Required choices are missing.", error: new Error("Required choices are missing.", { cause: new Error("Worker import failed") }),
     }) : new Error("Required choices are missing.");
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -298,7 +298,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -317,7 +317,7 @@ describe("useMetadata", () => {
   it("cancels the previous queue and reloads replacement metadata when switching", async () => {
     const client = createClient();
     vi.mocked(client.confirmIndex).mockReturnValue(new Promise(() => undefined));
-    const props: Omit<MetadataProps, "session"> = {
+    const props: Omit<MetadataProps, "session"> = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -326,7 +326,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       workerClient: client,
@@ -357,7 +357,7 @@ describe("useMetadata", () => {
   it("reloads metadata once for each matching host refresh event", async () => {
     const client = createClient();
     const onSegmentExpand = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -366,7 +366,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -397,7 +397,7 @@ describe("useMetadata", () => {
   it("marks confirm code state without emitting the old completion callback", async () => {
     const client = createClient();
     const onActionComplete = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -406,7 +406,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -436,7 +436,7 @@ describe("useMetadata", () => {
       }))
       .mockResolvedValueOnce({ data: "", status: "completed", version: 4 });
     const onActionComplete = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -445,7 +445,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -473,7 +473,7 @@ describe("useMetadata", () => {
     const client = createClient();
     const onActionComplete = vi.fn();
     const onIndexFocus = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -482,7 +482,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -511,7 +511,7 @@ describe("useMetadata", () => {
 
     const onActionComplete = vi.fn();
     const onActionError = vi.fn();
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token",
       apiGatewayUrl: "https://doc.example.com",
       batchCode: null,
@@ -520,7 +520,7 @@ describe("useMetadata", () => {
       intervalMs: 0,
       retryLimit: 5,
       retryIntervalMs: 0,
-      onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      onQueueChange: vi.fn(),
       refresh: null,
       segments,
       session: "session-1",
@@ -562,11 +562,11 @@ describe("segment reprocess lifecycle", () => {
     vi.mocked(client.reprocessSegment).mockImplementation(() => new Promise(resolve => {
       finish = () => resolve({ status: "completed", data: "" });
     }));
-    const props: MetadataProps = {
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
       authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
       callbacks: { onActionComplete: vi.fn(), onActionError: vi.fn() },
       deferredState: createDeferredState({ segment: "party" }), intervalMs: 0,
-      retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(),
       refresh: null, segments, session: "session-1", workerClient: client,
     };
     const view = renderHook(value => useMetadata(value), { initialProps: props });

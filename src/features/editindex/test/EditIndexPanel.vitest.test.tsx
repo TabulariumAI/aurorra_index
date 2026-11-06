@@ -9,7 +9,7 @@ import type { EditIndexPanelProps } from "../type/editIndex.types";
 
 const index = { code: "idx-1", segment: "party", label: "Raw Label", aspect: "grantor,grantee", value: " Original  Value ", source: "Original source", page: "3" };
 function props(): EditIndexPanelProps {
-  return {
+  return { formatError: (error: unknown) => (error as Error).message,
     apiGatewayUrl: "https://gateway.test", authToken: "token", intervalMs: 0, batchCode: "batch",
     retryIntervalMs: 0, retryLimit: 0, request: { index, segment: "party", session: "session" },
     onQueueChange: vi.fn(), onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),

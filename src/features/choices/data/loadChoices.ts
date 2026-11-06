@@ -8,6 +8,7 @@ export async function loadChoices(input: GenerationInput): Promise<SessionChoice
   const generation = queueStoreApi.getState().generation;
   const result = await createSessionDataWorkerClient({ apiBaseUrl: input.apiGatewayUrl }).load(input.authToken, input.session);
   const choices = result === null ? null : {
+    source: result.source,
     items: result.items,
     jurisdiction: result.jurisdiction ?? null,
   };

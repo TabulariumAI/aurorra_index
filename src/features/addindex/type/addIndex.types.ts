@@ -17,6 +17,7 @@ export type AddIndexStoreState = {
 };
 
 export type AddIndexPanelProps = {
+  formatError(error: unknown): string;
   onQueueChange(event: QueueTransition): void;
   apiGatewayUrl: string;
   authToken: string;

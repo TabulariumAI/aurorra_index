@@ -1,6 +1,6 @@
 import { QueueActions } from "../../queue/component/QueueActions";
 import { useQueueStore } from "../../queue/store/queueStore";
-import { useEffect, type JSX } from "react";
+import type { JSX } from "react";
 import { useMetadata } from "../../metdataview/hook/useMetadata";
 import { type MetadataActionPayload, metadataStyles } from "aurora-core";
 import { MetadataPanel } from "../../metdataview/component/MetadataPanel";
@@ -8,12 +8,9 @@ import type { MetadataProps } from "../../metdataview/type/metadataView.types";
 import { imageViewerStoreApi } from "../../imageviewer/store/imageViewerStore";
 import { addIndexStoreApi } from "../../addindex";
 import { editIndexStoreApi } from "../../editindex";
+import { IndexPlaceholder } from "./IndexPlaceholder";
 
 const emptyCodes = new Set<string>();
-
-function loadingLabel(attempt: number, retryLimit: number): readonly string[] {
-  return ["Retrieving metadata...", `Attempt ${attempt} of ${retryLimit}`];
-}
 
 export function IndexContainer(props: MetadataProps): JSX.Element {
   const { callbacks, children, segments, session } = props;
@@ -22,16 +19,6 @@ export function IndexContainer(props: MetadataProps): JSX.Element {
   const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.filter(change => change.action !== "reprocess").map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
   const pendingSegments = new Map(tasks.filter(task => task.session === session && task.changes.some(change => change.action === "reprocess"))
     .map(task => [task.segment, { busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} /> : null }] as const));
-  const ready = metadata.store.status === "success" || metadata.store.status === "error";
-  const loading = metadata.store.status === "loading";
-
-  useEffect(() => {
-    props.onReadyChange(ready);
-  }, [props.onReadyChange, ready]);
-
-  useEffect(() => {
-    props.onLoaderChange?.(loading ? loadingLabel(metadata.retryAttempt, props.retryLimit) : null);
-  }, [loading, metadata.retryAttempt, props.onLoaderChange, props.retryLimit]);
   const panelCallbacks = {
     ...callbacks,
     onPageClick: callbacks.onPageClick
@@ -55,7 +42,9 @@ export function IndexContainer(props: MetadataProps): JSX.Element {
 
   return (
     <div style={metadataStyles.rootShell}>
-      <MetadataPanel
+      {!metadata.metadata && (metadata.store.status === "idle" || metadata.store.status === "loading") ? (
+        <IndexPlaceholder key={session} attempt={metadata.retryAttempt} retryLimit={props.retryLimit} />
+      ) : <MetadataPanel
         onAddIndex={(segment, anchor) => {
           addIndexStoreApi.getState().open({ segment });
           callbacks.onAddIndex?.(anchor);
@@ -88,7 +77,7 @@ export function IndexContainer(props: MetadataProps): JSX.Element {
         shortcuts={null}
         status={metadata.store.status}
         {...metadata}
-      />
+      />}
     </div>
   );
 }

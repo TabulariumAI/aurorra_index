@@ -26,15 +26,15 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
           <div data-audit-controls style={auditStyles.controlsRow}>
             <ErrorBoundary title="Audit filters" resetKey={report} fallback={(error, retry) => <div style={auditStyles.filterFailure}><LoadError title="Audit filters" detail={error.message} onRetry={retry} /></div>}><AuditFilters key={props.session} filters={filters} onFiltersChange={setFilters} report={report}
               session={props.session} onResource={props.onResource} /></ErrorBoundary>
-            <ErrorBoundary title="Audit summary" resetKey={report} fallback={error => <AuditSummary report={report} filters={filters} error={error.message} />}><AuditSummary report={report} filters={filters} /></ErrorBoundary>
+            <ErrorBoundary title="Audit summary" resetKey={report} fallback={error => <AuditSummary key={props.session} report={report} filters={filters} error={error.message} />}><AuditSummary key={props.session} report={report} filters={filters} /></ErrorBoundary>
           </div>
         </div>
         {error && report === null ? null : <>
           <div hidden={active !== "Changes"}>
-            <ErrorBoundary title="Audit gaps" resetKey={report}><AuditGaps report={report} filters={filters} /></ErrorBoundary>
+            <ErrorBoundary title="Audit gaps" resetKey={report}><AuditGaps key={props.session} report={report} filters={filters} /></ErrorBoundary>
           </div>
           <div hidden={active !== "Usage"}>
-            <ErrorBoundary title="Audit usage" resetKey={report}><AuditUsage report={report} session={props.session} /></ErrorBoundary>
+            <ErrorBoundary title="Audit usage" resetKey={report}><AuditUsage key={props.session} report={report} session={props.session} /></ErrorBoundary>
           </div>
         </>}
       </div>

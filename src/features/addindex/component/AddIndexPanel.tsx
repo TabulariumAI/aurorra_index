@@ -13,6 +13,7 @@ export function AddIndexPanel({
   authToken,
   intervalMs,
   onQueueChange,
+  formatError,
   batchCode,
   retryIntervalMs,
   retryLimit,
@@ -71,7 +72,7 @@ export function AddIndexPanel({
           new_index_page: fields.page.trim(), new_index_source: fields.source,
           new_index_label: fields.label.trim() || formatLabel(type), new_index_aspect: type, new_index_value: fields.index,
           new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
-        }))) }, { authToken, client, intervalMs, onChange: onQueueChange });
+        }))) }, { authToken, client, intervalMs, formatError, onChange: onQueueChange });
       }
       onClose();
     } catch (submitError) {

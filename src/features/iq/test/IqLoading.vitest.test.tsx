@@ -1,3 +1,4 @@
+import { loaderDelayMs } from "aurora-core";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IqPanel, iqStoreApi, refreshIqReport } from "../../../public-api";
@@ -49,6 +50,8 @@ describe("IQ loading phases", () => {
     expect(screen.queryByText("Generating IQ report…")).not.toBeInTheDocument();
     expect(vi.getTimerCount()).toBe(1);
     act(() => config.onDownload!());
+    expect(screen.queryByRole("status", { name: "Loading IQ summary" })).toBeNull();
+    act(() => vi.advanceTimersByTime(loaderDelayMs));
     expect(vi.getTimerCount()).toBe(0);
     expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
     await act(async () => { finish({ report, metadataEtag: "source" }); await refresh; });
@@ -58,7 +61,7 @@ describe("IQ loading phases", () => {
     const props: IqPanelProps = { ...request, callbacks: {} };
     render(<IqPanel  {...props} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
-    expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
+    expect(await screen.findByRole("status", { name: "Loading IQ summary" })).toBeVisible();
     expect(screen.queryByTestId("progress-view")).not.toBeInTheDocument();
     await act(async () => finish({ report, metadataEtag: "source" }));
     expect(screen.getByText("98%")).toBeVisible();
@@ -73,7 +76,7 @@ describe("IQ loading phases", () => {
     act(() => config.onDownload!());
     expect(screen.queryByTestId("progress-view")).not.toBeInTheDocument();
     for (const name of ["Loading IQ summary", "Loading indexing segments", "Loading IQ gates"]) {
-      expect(screen.getByRole("status", { name })).toBeVisible();
+      expect(await screen.findByRole("status", { name })).toBeVisible();
     }
     await act(async () => { finish({ report: { ...report, iq_doc: 100 }, metadataEtag: "next-source" }); await refresh; });
     expect(screen.getByText("100%")).toBeVisible();
@@ -106,10 +109,36 @@ describe("IQ loading phases", () => {
     rerender(<IqPanel  {...request} session="session-2" callbacks={{}} />);
     await waitFor(() => expect(worker.loadReport).toHaveBeenCalledTimes(3));
     expect(screen.queryByTestId("progress-view")).not.toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
+    expect(await screen.findByRole("status", { name: "Loading IQ summary" })).toBeVisible();
     await act(async () => { oldDownload(); oldFinish({ report, metadataEtag: "source" }); await refresh; });
     expect(iqStoreApi.getState()).toMatchObject({ activeSession: "session-2", status: "loading" });
     await act(async () => finish({ report, metadataEtag: "next-source" }));
     expect(screen.getByText("98%")).toBeVisible();
+  });
+
+  it("renders a fast IQ report without a loading status", async () => {
+    vi.useFakeTimers();
+    const workerClient = { ackGate: vi.fn(), loadReport: vi.fn(async () => ({ report, metadataEtag: "source" })) };
+    render(<IqPanel {...request} workerClient={workerClient} callbacks={{}} />);
+    expect(screen.queryByRole("status", { name: /^Loading/ })).toBeNull();
+    await act(async () => {});
+    expect(screen.getByText("98%")).toBeVisible();
+    act(() => vi.advanceTimersByTime(loaderDelayMs));
+    expect(screen.queryByRole("status", { name: /^Loading/ })).toBeNull();
+  });
+
+  it("restarts IQ placeholders for a new pending session", async () => {
+    vi.useFakeTimers();
+    const workerClient: IqWorkerClient = { ackGate: vi.fn(), loadReport: vi.fn(() => new Promise<IqResource>(() => {})) };
+    const view = render(<IqPanel {...request} workerClient={workerClient} callbacks={{}} />);
+    await act(async () => {});
+    act(() => vi.advanceTimersByTime(loaderDelayMs));
+    expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
+    view.rerender(<IqPanel {...request} session="second" workerClient={workerClient} callbacks={{}} />);
+    expect(screen.queryAllByRole("status", { name: /^Loading/ })).toHaveLength(0);
+    act(() => vi.advanceTimersByTime(loaderDelayMs - 1));
+    expect(screen.queryAllByRole("status", { name: /^Loading/ })).toHaveLength(0);
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
   });
 });

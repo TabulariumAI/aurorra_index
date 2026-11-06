@@ -1,9 +1,11 @@
 export type SessionChoices = {
+  source?: string | null;
   items: { service: string; level: number }[];
   jurisdiction: string | null;
 };
 
 export type ChoicesBackendData = {
+  source?: string | null;
   items: SessionChoices["items"];
   jurisdiction?: string | null;
 } | null;

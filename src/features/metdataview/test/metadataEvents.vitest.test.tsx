@@ -15,12 +15,26 @@ it.each([undefined, null, '"selected-version"'])("accepts the selected session's
   expect(queueStoreApi.getState()).toMatchObject({ session: "selected", etag: etag === undefined ? null : etag });
 });
 
+it("never exposes a selected session without its supplied ETag", () => {
+  const changes: { session: string | null; etag: string | null }[] = [];
+  const unsubscribe = queueStoreApi.subscribe(({ session, etag }) => changes.push({ session, etag }));
+  try {
+    for (const session of ["first", "second", "first"]) {
+      selectSession({ session, etag: session + "-version" });
+      indexStoreApi.getState().setLoading(session);
+      indexStoreApi.getState().setLoaded(session);
+    }
+    expect(changes.filter(change => change.session !== null).length).toBeGreaterThanOrEqual(3);
+    for (const change of changes) if (change.session !== null) expect(change.etag).toBe(change.session + "-version");
+  } finally { unsubscribe(); }
+});
+
 it("emits metadata updates after loading and refreshing through the existing Index event callback", async () => {
   const onQueueChange = vi.fn();
   let etag: string | null = "one";
-  const props: MetadataProps = {
+  const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
     apiGatewayUrl: "https://gateway", authToken: "token", batchCode: "batch", callbacks: {},
-    deferredState: createDeferredState({}), intervalMs: 0, onQueueChange, onReadyChange: vi.fn(), refresh: null,
+    deferredState: createDeferredState({}), intervalMs: 0, onQueueChange, refresh: null,
     retryIntervalMs: 0, retryLimit: 0, session: "selected", segments: {
       ACKNOWLEDGMENT: "acknowledgment", ENDORSEMENT: "endorsement", FEE: "fee", FEEFACTOR: "factor",
       FUND: "fund", JUDGMENT: "judgment", LEGAL: "legal", MONETARY: "monetary", PAGE: "page",

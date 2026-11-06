@@ -47,10 +47,10 @@ it.each([false, true].flatMap(cached => [false, true].map(failed => ({ cached, f
   let reject!: (error: Error) => void;
   auditClient.loadReport.mockImplementationOnce(() => new Promise((resolve, fail) => { finish = resolve; reject = fail; }));
   const onMetadataLoaded = vi.fn();
-  const props: MetadataProps = {
+  const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
     apiGatewayUrl: "https://gateway", authToken: "token", session: "source", batchCode: null,
     callbacks: { onMetadataLoaded }, deferredState: createDeferredState(), intervalMs: 0,
-    onQueueChange: vi.fn(), onReadyChange: vi.fn(), refresh: null, retryIntervalMs: 0, retryLimit: 0,
+    onQueueChange: vi.fn(), refresh: null, retryIntervalMs: 0, retryLimit: 0,
     segments: { PAGE: "page", TITLE: "title", PARTY: "party", FEE: "fee", FUND: "fund", FEEFACTOR: "factor", LEGAL: "legal", MONETARY: "monetary", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TRANSACTION: "transaction", VITAL: "vital", ACKNOWLEDGMENT: "acknowledgment", JUDGMENT: "judgment", ENDORSEMENT: "endorsement" },
   };
   const { result } = renderHook(() => ({ metadata: useMetadata(props), usage: useUsage(owner) }));

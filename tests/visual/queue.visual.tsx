@@ -21,7 +21,7 @@ createRoot(document.getElementById("root")!).render(
     <IndexContainer apiGatewayUrl="https://gateway.example.test" authToken="token" batchCode={null}
       callbacks={{}} choices={[{ level: 1, service: "PartyClauseIndexing" }]}
       deferredState={createDeferredState({ segment: "party", selectedIndex: null })}
-      intervalMs={1} onQueueChange={onQueueChange} onReadyChange={() => {}} refresh={null}
+      intervalMs={1} onQueueChange={onQueueChange} refresh={null}
       retryIntervalMs={0} retryLimit={0} segments={segments} session="session" workerClient={client} />
   </main>,
 );

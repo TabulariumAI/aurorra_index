@@ -33,17 +33,20 @@ describe("IqPanel", () => {
     iqStoreApi.getState().resetIq();
   });
 
-  it("shows placeholders immediately instead of another session's report", () => {
+  it("delays placeholders instead of another session's report", async () => {
     iqStoreApi.getState().setLoaded("old-session", report, "");
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="new-session" workerClient={client(vi.fn(() => new Promise<IqResource>(() => undefined)))} />);
-    expect(screen.getByRole("status", { name: "Loading IQ summary" })).toBeVisible();
+    expect(screen.queryByRole("status", { name: "Loading IQ summary" })).toBeNull();
+    expect(await screen.findByRole("status", { name: "Loading IQ summary" })).toBeVisible();
     expect(screen.queryByText("90%")).not.toBeInTheDocument();
   });
 
-  it("renders named placeholders immediately while the report is pending", async () => {
+  it("renders named placeholders after the shared delay while the report is pending", async () => {
     let finish!: (value: IqReport) => void;
     const pending = new Promise<IqResource>(resolve => { finish = report => resolve({ report, metadataEtag: "" }); });
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(() => pending))} />);
+    expect(screen.queryByRole("status")).toBeNull();
+    await screen.findByRole("status", { name: "Loading IQ summary" });
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     for (const label of ["Loading IQ summary", "Loading indexing segments", "Loading IQ gates"]) {
       expect(screen.getByRole("status", { name: label })).toHaveAttribute("aria-busy", "true");
@@ -87,6 +90,23 @@ describe("IqPanel", () => {
 
     await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
     expect(screen.queryByText("Notes")).not.toBeInTheDocument();
+  });
+
+  it("renders service text-comparison descriptions and statuses without interpreting literals", async () => {
+    const description = 'Notary Seal must be equal to "Available && Ready" (case-insensitive). This requirement is satisfied. Notary Seal: "AVAILABLE && READY".';
+    const textReport: IqReport = { ...report, gates: [
+      { code: "seal", status: "PASS", description },
+      { code: "signature", status: "FAIL", description: 'Notary Signature must be equal to "Yes" (case-insensitive). The available values do not satisfy this requirement. Notary Signature: "No".' },
+    ] };
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="text-session" workerClient={client(vi.fn(async () => ({ report: textReport, metadataEtag: "" })))} />);
+    await waitFor(() => expect(screen.getByText(description)).toBeInTheDocument());
+    const seal = screen.getByText(description).closest("li")!;
+    expect(within(seal).getByText("PASS")).toBeInTheDocument();
+    expect(within(seal).queryByRole("button", { name: "Clear gate" })).not.toBeInTheDocument();
+    const signature = screen.getByText(textReport.gates[1].description).closest("li")!;
+    expect(within(signature).getByText("FAIL")).toBeInTheDocument();
+    expect(within(signature).getByRole("button", { name: "Clear gate" })).toBeEnabled();
+    expect(screen.queryByText("Yes is unavailable.")).not.toBeInTheDocument();
   });
 
   it("orders indexing segments by expected weight descending and retains report order for ties", async () => {

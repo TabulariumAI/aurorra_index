@@ -83,7 +83,7 @@ describe("MetadataPanel status contract", () => {
     expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "1"]);
   });
 
-  it("counts both enriched sides and extracted parties", () => {
+  it("counts a shared code once using the enriched party ambiguity", () => {
     const party = { ...metadata.indexes![0], ambiguous: "YES" };
     const reference = { ...party, code: "ref-1", segment: "reference", ambiguous: "NO" };
     const { container } = renderPanel("success", {
@@ -91,7 +91,17 @@ describe("MetadataPanel status contract", () => {
       indexes: [{ ...party, ambiguous: "NO" }, reference],
       parties: { summary: null, indexes: [party] },
     });
-    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["3", "1"]);
+    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["2", "1"]);
+  });
+
+  it.each(["confirmed", "removed"])("applies %s codes to duplicate parties once", state => {
+    const party = { ...metadata.indexes![0], ambiguous: "YES" };
+    const data = { ...metadata, indexes: [party, party], parties: { summary: null, indexes: [party, party] } };
+    const { container } = renderPanel("success", data,
+      new Set(state === "confirmed" ? ["idx-1"] : []), new Set(state === "removed" ? ["idx-1"] : []));
+    expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent))
+      .toEqual([state === "removed" ? "0" : "1", "0"]);
+    expect(container.querySelectorAll('[data-index-code="idx-1"]')).toHaveLength(state === "removed" ? 0 : 1);
   });
 
   it("counts extracted parties when the enriched collection is empty", () => {

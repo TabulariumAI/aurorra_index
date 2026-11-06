@@ -62,16 +62,15 @@ export class ChoicesWorker {
       if (!isObject(payload) || typeof payload.status !== "string" || typeof payload.data !== "string") {
         return { ok: false, code: "validation_error", error: "Invalid choices response envelope." };
       }
-      if (payload.status === "error") return { ok: false, code: "choices_error", error: payload.data, details: payload };
       if (payload.status === "pending" || payload.status === "processing") return { ok: true, data: null };
-      if (payload.status !== "completed") return { ok: false, code: "validation_error", error: "Invalid choices response status." };
+      if (payload.status !== "completed" && payload.status !== "error") return { ok: false, code: "validation_error", error: "Invalid choices response status." };
       let choices: unknown;
       try {
         choices = JSON.parse(payload.data);
       } catch {
         return { ok: false, code: "invalid_json", error: "Choices JSON could not be parsed.", status: response.status };
       }
-      if (!isObject(choices) || !Array.isArray(choices.items) || choices.items.some(item =>
+      if (!isObject(choices) || (choices.source !== undefined && choices.source !== null && (typeof choices.source !== "string" || !choices.source)) || !Array.isArray(choices.items) || choices.items.some(item =>
         !isObject(item) || typeof item.service !== "string" || typeof item.level !== "number" || !Number.isInteger(item.level) || item.level < 0,
       ) || (choices.jurisdiction !== undefined && choices.jurisdiction !== null && typeof choices.jurisdiction !== "string")) {
         return { ok: false, code: "validation_error", error: "Invalid choices data." };

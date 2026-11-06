@@ -322,10 +322,10 @@ describe("Pages failure isolation", () => {
     const onMetadataError = vi.fn();
     const onMetadataLoaded = vi.fn();
     const onRefresh = vi.fn();
-    const props: Parameters<typeof useMetadata>[0] = {
+    const props: Parameters<typeof useMetadata>[0] = { formatError: (error: unknown) => (error as Error).message,
       apiGatewayUrl: config.apiBaseUrl, authToken: "token", batchCode: null,
       callbacks: { onViewError, onMetadataError, onMetadataLoaded, onRefresh },
-      deferredState: createDeferredState({}), intervalMs: 0, onQueueChange: vi.fn(), onReadyChange: vi.fn(),
+      deferredState: createDeferredState({}), intervalMs: 0, onQueueChange: vi.fn(),
       refresh: null, retryIntervalMs: 0, retryLimit: 1, session: "first", workerClient: client,
       segments: {
         ACKNOWLEDGMENT: "acknowledgment", ENDORSEMENT: "endorsement", FEE: "fee", FEEFACTOR: "factor",

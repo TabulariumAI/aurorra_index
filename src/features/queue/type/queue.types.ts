@@ -34,6 +34,7 @@ export type QueueTransition = {
 };
 
 export type QueueRuntime = {
+  formatError(error: unknown): string;
   onChange(event: QueueTransition): void;
   authToken: string;
   intervalMs: number;
@@ -77,6 +78,6 @@ export type QueueState = {
   setPagePath(session: string, path: string): void;
   setPageEtag(session: string, etag: string): void;
   setPath(session: string, path: string): void;
-  setEtag(session: string, etag: string | null): void;
+  setEtag(session: string, etag?: string | null): void;
   reset(): void;
 };

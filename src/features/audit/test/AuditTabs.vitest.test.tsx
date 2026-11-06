@@ -64,7 +64,8 @@ it("supports keyboard switching and focuses the selected tab", async () => {
 it("keeps tabs operable during loading and shows the selected placeholders", async () => {
   let resolve!: (report: AuditReport) => void;
   render(<AuditPanel  {...props} workerClient={{ loadReport: () => new Promise(done => { resolve = done; }) }} />);
-  expect(screen.getByRole("status", { name: "Loading audit gaps" })).toBeVisible();
+  expect(screen.queryByRole("status", { name: "Loading audit gaps" })).toBeNull();
+  expect(await screen.findByRole("status", { name: "Loading audit gaps" })).toBeVisible();
   expect(screen.queryByRole("status", { name: "Loading service usage" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
   expect(screen.getByRole("status", { name: "Loading service usage" })).toBeVisible();

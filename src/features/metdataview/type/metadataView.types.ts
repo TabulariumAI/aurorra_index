@@ -79,7 +79,7 @@ export type MetadataConfig = {
 
 export type MetadataStoreState = {
   choices: SessionChoices | null;
-  selectSession(session: string): void;
+  selectSession(session: string, etag?: string | null): void;
   openSegment: string | null;
   getSegment(pageSegment: string): string;
   activeSession: string | null;
@@ -103,6 +103,7 @@ export type MetadataStoreState = {
 };
 
 export type MetadataProps = {
+  formatError(error: unknown): string;
   onQueueChange(event: QueueTransition): void;
   authToken: string | null;
   apiGatewayUrl: string;
@@ -113,8 +114,6 @@ export type MetadataProps = {
   children?: ReactNode;
   deferredState: MetadataDeferredState;
   intervalMs: number;
-  onLoaderChange?(lines: readonly string[] | null): void;
-  onReadyChange(ready: boolean): void;
   refresh: MetadataRefresh | null;
   retryLimit: number;
   retryIntervalMs: number;

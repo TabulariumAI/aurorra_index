@@ -26,26 +26,26 @@ it.each(["pending", "processing"])("does not fabricate settings from a %s respon
   expect(result).toEqual({ ok: true, data: null });
 });
 
-it("propagates an indexing failure without treating it as missing choices", async () => {
+it("rejects failure text outside the stored choices JSON contract", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ status: "error", data: "Indexing failed" }), {
     headers: { "Content-Type": "application/json" },
   })));
   await expect(new ChoicesWorker().run({ type: "load", token: "token", session: "session", config: { apiBaseUrl: "https://gateway" } }))
-    .resolves.toMatchObject({ ok: false, code: "choices_error", error: "Indexing failed" });
+    .resolves.toMatchObject({ ok: false, code: "invalid_json" });
 });
 
 it.each([
   null,
-  { items: [] },
+  { source: "https://storage.test/sub/source.pdf", items: [] },
   { status: "completed" },
   { status: "unknown", data: "" },
   { status: "completed", data: "null" },
   { status: "completed", data: "[]" },
   { status: "completed", data: "{}" },
-  { status: "completed", data: JSON.stringify({ items: [{}] }) },
-  { status: "completed", data: JSON.stringify({ items: [{ service: "Recognition", level: "Level2" }] }) },
-  { status: "completed", data: JSON.stringify({ items: [{ service: "Recognition", level: -1 }] }) },
-  { status: "completed", data: JSON.stringify({ items: [], jurisdiction: 1 }) },
+  { status: "completed", data: JSON.stringify({ source: "https://storage.test/sub/source.pdf", items: [{}] }) },
+  { status: "completed", data: JSON.stringify({ source: "https://storage.test/sub/source.pdf", items: [{ service: "Recognition", level: "Level2" }] }) },
+  { status: "completed", data: JSON.stringify({ source: "https://storage.test/sub/source.pdf", items: [{ service: "Recognition", level: -1 }] }) },
+  { status: "completed", data: JSON.stringify({ source: "https://storage.test/sub/source.pdf", items: [], jurisdiction: 1 }) },
 ])("rejects successful responses outside the backend choices contract: %j", async payload => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(payload), {
     headers: { "Content-Type": "application/json" },
@@ -55,7 +55,7 @@ it.each([
 });
 
 it.each([null, "Texas, Harris County", undefined])("reads the documented choices object with jurisdiction %s", async jurisdiction => {
-  const choices = { items: [{ service: "Recognition", level: 2 }], jurisdiction };
+  const choices = { source: "https://storage.test/sub/source.pdf", items: [{ service: "Recognition", level: 2 }], jurisdiction };
   const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "completed", data: JSON.stringify(choices) }), {
     headers: { "Content-Type": "application/json" },
   }));

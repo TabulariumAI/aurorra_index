@@ -13,7 +13,7 @@ const addition: IndexChange = {
 };
 
 function runtime(): QueueRuntime {
-  return { authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
+  return { formatError: (error: unknown) => (error as Error).message, authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
     patchIndex: vi.fn(() => new Promise<never>(() => {})),
     patchStatus: vi.fn(() => new Promise<never>(() => {})),
     indexData: vi.fn(() => new Promise<MetadataPayload>(() => {})),

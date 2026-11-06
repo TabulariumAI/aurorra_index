@@ -120,6 +120,15 @@ function pages(metadata: MetadataPayload) {
   }));
 }
 
+function uniqueIndexes(items: MetadataIndex[]): MetadataIndex[] {
+  const codes = new Set<MetadataIndex["code"]>();
+  return items.filter(item => {
+    if (codes.has(item.code)) return false;
+    codes.add(item.code);
+    return true;
+  });
+}
+
 export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   const {
     callbacks,
@@ -170,11 +179,8 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
 
   const rows = (items: MetadataIndex[], segment: string, emptyMessage: string | undefined, type = "index", scope = segment) => {
     const visibleItems = items.filter((item) => !removedCodes.has(String(item.code || "")));
-    const occurrences = new Map<string, number>();
     return <MetadataList key={`${session}-${scope}`} hidePages={segment === indexSegments.EXECUTION} ungrouped={segment === segments.ENDORSEMENT} empty={emptyMessage} rows={visibleItems.map((item) => {
       const code = String(item.code || "");
-      const occurrence = occurrences.get(code) ?? 0;
-      occurrences.set(code, occurrence + 1);
       return (
         <MetadataRow
           callbacks={callbacks}
@@ -183,7 +189,7 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           pending={props.pendingChanges?.get(code)?.kind}
           recovery={props.pendingChanges?.get(code)?.actions}
           item={item}
-          key={`${code}-${occurrence}`}
+          key={code}
           onConfirm={actions.confirm ? onConfirm : undefined}
           onDrop={actions.drop ? onDrop : undefined}
           onEdit={onEditIndex}
@@ -259,16 +265,26 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
   }
 
   const view = {
-    get sideItems() { return metadata.parties ? panelData.parties : []; },
-    get partyItems() { return getSegmentItems(metadata.indexes, [segments.PARTY]); },
-    get executionIndexes() { return panelData.execution?.indexes ?? []; },
+    get sideItems() { return uniqueIndexes(metadata.parties ? panelData.parties : []); },
+    get partyItems() {
+      const sideItems = view.sideItems;
+      return uniqueIndexes([...sideItems, ...getSegmentItems(metadata.indexes, [segments.PARTY])]).slice(sideItems.length);
+    },
+    get executionIndexes() { return uniqueIndexes(panelData.execution?.indexes ?? []); },
+    get endorsements() { return uniqueIndexes(panelData.endorsements); },
+    get references() { return uniqueIndexes(panelData.references); },
+    get monetaryItems() { return uniqueIndexes(panelData.monetarys); },
+    get notary() { return uniqueIndexes(panelData.notary); },
+    get transactions() { return uniqueIndexes(panelData.transactions); },
+    get vitals() { return uniqueIndexes(panelData.vitals); },
+    get judgments() { return uniqueIndexes(panelData.judgments); },
     get titleItems() { return titles(metadata); },
     get pageItems() { return pageError ? [] : pages(metadata); },
     get legalGroups() { return (metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || []).filter((group) => Array.isArray(group.elements) && group.elements.length > 0); },
-    get propertyItems() { return propertyVisible ? panelData.properties.filter((item) => !view.legalGroups.length || item.aspect !== "legal_description") : []; },
+    get propertyItems() { return propertyVisible ? uniqueIndexes(panelData.properties.filter((item) => !view.legalGroups.length || item.aspect !== "legal_description")) : []; },
     get legalCount() { return legalVisible ? view.legalGroups.length : 0; },
     get hasMap() { return (legalVisible && getMapGroups(metadata.legals).length > 0) || (propertyVisible && Boolean(getParcelOptions(view.propertyItems).property_address?.trim())); },
-    get secretItems() { return (metadata.secrets || []).filter((item) => cleanText(item.value) && !cleanText(item.value).startsWith("xxx") && !cleanText(item.value).includes("Not explicitly provided")); },
+    get secretItems() { return uniqueIndexes((metadata.secrets || []).filter((item) => cleanText(item.value) && !cleanText(item.value).startsWith("xxx") && !cleanText(item.value).includes("Not explicitly provided"))); },
   };
 
   let pageNote = "Processing scope is unavailable for this session.";
@@ -369,13 +385,13 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
           },
           null,
         ) : null}
-        {isVisible(segments.ENDORSEMENT) ? renderSegment(segments.ENDORSEMENT, "Endorsements", () => ({ count: panelData.endorsements.length, children: rows(panelData.endorsements, segments.ENDORSEMENT, "No endorsements found.") })) : null}
+        {isVisible(segments.ENDORSEMENT) ? renderSegment(segments.ENDORSEMENT, "Endorsements", () => ({ count: view.endorsements.length, children: rows(view.endorsements, segments.ENDORSEMENT, "No endorsements found.") })) : null}
         {isVisible(segments.PARTY) ? renderSegment(segments.PARTY, "Parties(Party Clause)", () => ({ count: view.sideItems.length + view.partyItems.length, children: <>
           {metadata.parties?.summary ? <p style={metadataStyles.segmentSummary}>{metadata.parties.summary}</p> : null}
           {metadata.parties ? rows(view.sideItems, segments.PARTY, view.partyItems.length ? undefined : "No parties found.", "index", "sides") : null}
           {rows(view.partyItems, segments.PARTY, metadata.parties ? undefined : "No parties found.")}
         </> })) : null}
-        {isVisible(segments.REFERENCE) ? renderSegment(segments.REFERENCE, "References(Recital)", () => ({ count: panelData.references.length, children: rows(panelData.references, segments.REFERENCE, "No references found.") })) : null}
+        {isVisible(segments.REFERENCE) ? renderSegment(segments.REFERENCE, "References(Recital)", () => ({ count: view.references.length, children: rows(view.references, segments.REFERENCE, "No references found.") })) : null}
         {isVisible(segments.PROPERTY) || isVisible(segments.LEGAL) ? renderSegment(
           segments.PROPERTY,
           "Property Info",
@@ -434,15 +450,15 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             {!view.propertyItems.length && !view.legalCount ? <EmptyRow message="No property info found." /> : null}
           </div> }),
         ) : null}
-        {isVisible(segments.MONETARY) ? renderSegment(segments.MONETARY, "Monetary", () => ({ count: panelData.monetarys.length, children: rows(panelData.monetarys, segments.MONETARY, "No monetary info found.") })) : null}
-        {isVisible(segments.ACKNOWLEDGMENT) ? renderSegment(segments.ACKNOWLEDGMENT, "Acknowledgment", () => ({ count: panelData.notary.length + view.executionIndexes.length, children: <>
+        {isVisible(segments.MONETARY) ? renderSegment(segments.MONETARY, "Monetary", () => ({ count: view.monetaryItems.length, children: rows(view.monetaryItems, segments.MONETARY, "No monetary info found.") })) : null}
+        {isVisible(segments.ACKNOWLEDGMENT) ? renderSegment(segments.ACKNOWLEDGMENT, "Acknowledgment", () => ({ count: view.notary.length + view.executionIndexes.length, children: <>
           {panelData.execution?.summary ? <p style={metadataStyles.segmentSummary}>{panelData.execution.summary}</p> : null}
           {view.executionIndexes.length ? rows(view.executionIndexes, indexSegments.EXECUTION, "No execution results found.") : null}
-          {panelData.notary.length || !view.executionIndexes.length ? rows(panelData.notary, segments.ACKNOWLEDGMENT, "No notary info found.") : null}
+          {view.notary.length || !view.executionIndexes.length ? rows(view.notary, segments.ACKNOWLEDGMENT, "No notary info found.") : null}
         </> })) : null}
-        {isVisible(segments.TRANSACTION) ? renderSegment(segments.TRANSACTION, "Transactional", () => ({ count: panelData.transactions.length, children: rows(panelData.transactions, segments.TRANSACTION, "No transaction indexes found.") })) : null}
-        {isVisible(segments.VITAL) ? renderSegment(segments.VITAL, "Vital", () => ({ count: panelData.vitals.length, children: rows(panelData.vitals, segments.VITAL, "Vital information not found.") })) : null}
-        {isVisible(segments.JUDGMENT) ? renderSegment(segments.JUDGMENT, "Judgment", () => ({ count: panelData.judgments.filter(item => !removedCodes.has(String(item.code || ""))).length, children: rows(panelData.judgments, segments.JUDGMENT, "No judgment indexes found.") })) : null}
+        {isVisible(segments.TRANSACTION) ? renderSegment(segments.TRANSACTION, "Transactional", () => ({ count: view.transactions.length, children: rows(view.transactions, segments.TRANSACTION, "No transaction indexes found.") })) : null}
+        {isVisible(segments.VITAL) ? renderSegment(segments.VITAL, "Vital", () => ({ count: view.vitals.length, children: rows(view.vitals, segments.VITAL, "Vital information not found.") })) : null}
+        {isVisible(segments.JUDGMENT) ? renderSegment(segments.JUDGMENT, "Judgment", () => ({ count: view.judgments.filter(item => !removedCodes.has(String(item.code || ""))).length, children: rows(view.judgments, segments.JUDGMENT, "No judgment indexes found.") })) : null}
         {children}
         </div>
         <footer aria-label="Metadata actions" data-metadata-footer="true" style={metadataStyles.footerEmpty} />
@@ -454,9 +470,11 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
 function MetadataStatistics({ metadata, panelData, removedCodes, confirmedCodes, error }: Pick<MetadataPanelProps, "removedCodes" | "confirmedCodes"> & { metadata: MetadataPayload; panelData: MetadataPanelData; error?: string }) {
   let values: number[] | undefined;
   if (!error) {
-    const indexes = [...(metadata.indexes ?? []), ...(metadata.parties ? panelData.parties : [])];
-    const executionIndexes = panelData.execution?.indexes ?? [];
-    const countedIndexes = [...indexes, ...executionIndexes].filter((index) => !removedCodes.has(String(index.code || "")));
+    const countedIndexes = uniqueIndexes([
+      ...(metadata.parties ? panelData.parties : []),
+      ...(metadata.indexes ?? []),
+      ...(panelData.execution?.indexes ?? []),
+    ]).filter((index) => !removedCodes.has(String(index.code || "")));
     const unclearCount = countedIndexes.filter((index) =>
       !confirmedCodes.has(String(index.code || "")) && isAmbiguous(index.ambiguous),
     ).length;
