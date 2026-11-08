@@ -240,8 +240,8 @@ describe("IndexContainer", () => {
     expect(screen.getByRole("button", { name: "Monetary" })).toBeDisabled();
     const header = screen.getByRole("heading", { level: 2, name: "Deed" }).closest("header");
     expect(header).toBeTruthy();
-    expect(screen.getByText("Indexes").parentElement).toHaveTextContent("2");
-    expect(screen.getByText("Unclear").parentElement).toHaveTextContent("1");
+    expect(screen.queryByText("Indexes", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByText("Unclear", { exact: true })).not.toBeInTheDocument();
     if (header) {
       expect(header).toHaveStyle({ flex: "0 0 auto", position: "static" });
       expect(header.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0", overflowX: "hidden", overflowY: "auto" });
@@ -370,8 +370,8 @@ describe("IndexContainer", () => {
     await waitFor(() => expect(screen.getByText("Alice").closest("article")).toHaveAttribute("data-removing", "true"));
     fireEvent.animationEnd(screen.getByText("Alice").closest("article")!);
     expect(screen.queryByText("Alice")).not.toBeInTheDocument();
-    expect(screen.getByText("Indexes").parentElement).toHaveTextContent("1");
-    expect(screen.getByText("Unclear").parentElement).toHaveTextContent("0");
+    expect(screen.queryByText("Indexes", { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByText("Unclear", { exact: true })).not.toBeInTheDocument();
   });
 
   it("renders worker errors through callbacks only", async () => {

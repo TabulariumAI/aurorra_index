@@ -29,7 +29,7 @@ npm install
 
 ## Use
 
-The package exports the host-integrated `IndexContainer`, `ImageViewerPanel`, `AddIndexPanel`, `EditIndexPanel`, `PageSegmentsPanel`, `AuditPanel`, and `IqPanel` components, along with their stores, workers, and types.
+The package exports the presentational `IndexSummary` for Intake-owned metadata, Audit, and IQ resources, and the host-integrated `IndexContainer`, `ImageViewerPanel`, `AddIndexPanel`, `EditIndexPanel`, `PageSegmentsPanel`, `AuditPanel`, and `IqPanel` components, along with their stores, workers, and types.
 
 ```tsx
 import { IndexContainer, ImageViewerPanel } from "aurorra-index";

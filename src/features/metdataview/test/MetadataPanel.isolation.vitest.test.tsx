@@ -31,12 +31,12 @@ it.each([
   expect(screen.getByRole("region", { name: "Metadata accordion" })).toBeVisible();
 });
 
-it.each([[], [{ value: "Old party" }], { summary: "No indexes" }, { indexes: {} }].map(parties => [parties]))("contains incompatible Party data %j and marks shared totals as errors", parties => {
+it.each([[], [{ value: "Old party" }], { summary: "No indexes" }, { indexes: {} }].map(parties => [parties]))("contains incompatible Party data %j without restoring removed header badges", parties => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   const data = { ...metadata, parties } as unknown as MetadataPayload;
   const view = render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
   expect(screen.getByRole("button", { name: "Parties(Party Clause) error" })).toBeVisible();
-  for (const label of ["Indexes", "Unclear"]) expect(screen.getByRole("button", { name: `${label} error` })).toBeVisible();
+  for (const label of ["Indexes", "Unclear"]) expect(screen.queryByRole("button", { name: `${label} error` })).not.toBeInTheDocument();
   expect(screen.queryByText("No parties found.")).toBeNull();
   view.rerender(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} openSegment="reference" />);
   expect(screen.getByText("Book 42")).toBeVisible();
@@ -58,15 +58,15 @@ it.each([
   expect(screen.getByRole("button", { name: "Parties(Party Clause)" })).toBeEnabled();
 });
 
-it("recovers failed segment counts, rows and shared statistics after refresh", () => {
+it("recovers failed segment counts and rows after refresh", () => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   const data = { ...metadata, parties: [] } as unknown as MetadataPayload;
   const view = render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
-  expect(screen.getByRole("button", { name: "Indexes error" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Parties(Party Clause) error" })).toBeVisible();
   view.rerender(<MetadataPanel {...props} />);
   expect(screen.queryByRole("button", { name: /error$/ })).toBeNull();
   expect(screen.getByText("Alice")).toBeVisible();
-  expect(within(view.container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["2", "0"]);
+  expect(within(view.container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
 });
 
 it("keeps hidden and disabled malformed segments from breaking visible content", () => {

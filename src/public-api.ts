@@ -169,3 +169,6 @@ export { loadChoices } from "./features/choices/data/loadChoices";
 export type { SessionChoices } from "./features/choices/type/choices.types";
 
 export { getBlockers } from "./features/queue/data/queueBlockers";
+
+export { IndexSummary } from "./features/indexing/component/IndexSummary";
+export type { IndexSummaryProps } from "./features/indexing/component/IndexSummary";

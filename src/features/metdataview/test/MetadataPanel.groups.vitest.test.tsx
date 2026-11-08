@@ -4,6 +4,16 @@ import { getPanelData, indexSegments, type MetadataIndex, type MetadataPayload }
 import { MetadataPanel, type MetadataPanelProps } from "../component/MetadataPanel";
 
 const segments = { ...indexSegments, TITLE: "title", FEE: "fee", FUND: "fund", FEEFACTOR: "factor" };
+
+it("uses the donor original for legal preview without changing the displayed group", () => {
+  const onPageClick = vi.fn();
+  panel({ legals: { groups: [{ code: "legal", page: "1", type: "lot_block", original: "LOT SEVEN BLOCK TWO", source: "Recorded description", elements: [{ aspect: "lot", value: "7" }] }] } }, "property", { callbacks: { onPageClick } });
+  fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));
+  expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({
+    value: "Lot Block",
+    metadataIndex: expect.objectContaining({ value: "LOT SEVEN BLOCK TWO", source: "Recorded description" }),
+  }));
+});
 function index(code: string, segment: string, page?: string | number): MetadataIndex {
   return { code, segment, page, label: code, value: `${code} value`, ambiguous: "NO" };
 }
@@ -40,7 +50,7 @@ it("shows the enriched party once when its code matches an extracted party and c
   expect(rows[0]).toHaveTextContent(side.value);
   expect(rows[0]).not.toHaveTextContent(raw.value!);
   expect(screen.getByText("Party overview").compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "0"]);
+  expect(within(container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
   expect(screen.getByRole("button", { name: "Parties(Party Clause)" }).parentElement?.lastElementChild).toHaveTextContent("1");
   fireEvent.click(within(rows[0]).getByRole("button", { name: "Edit index" }));
   expect(onEditIndex).toHaveBeenCalledExactlyOnceWith(side, "party", expect.any(HTMLButtonElement));
@@ -62,7 +72,7 @@ it.each([
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["first", "second"]);
   expect(screen.queryByText("Duplicate")).toBeNull();
   expect(screen.getByRole("button", { name: title }).parentElement?.lastElementChild).toHaveTextContent("2");
-  expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["2", "0"]);
+  expect(within(container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
   expect(JSON.stringify(metadata)).toBe(snapshot);
 });
 
@@ -77,7 +87,7 @@ it.each(["enriched", "both"])("deduplicates repeated codes in %s party collectio
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["shared", "other", "raw"]);
   expect(screen.queryByText("Extracted name")).toBeNull();
   expect(screen.queryByText("Duplicate side")).toBeNull();
-  expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["3", "0"]);
+  expect(within(container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
 });
 
 it("deduplicates confidential and execution indexes without changing their grouping", () => {
@@ -91,7 +101,7 @@ it("deduplicates confidential and execution indexes without changing their group
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["execution"]);
   expect(screen.queryByRole("heading", { level: 4 })).toBeNull();
   expect(screen.getByRole("button", { name: "Acknowledgment" }).parentElement?.lastElementChild).toHaveTextContent("1");
-  expect(within(view.container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "0"]);
+  expect(within(view.container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
 });
 
 it("keeps the enriched row selected and pending, then updates its value and counts after refresh", () => {
@@ -112,7 +122,7 @@ it("keeps the enriched row selected and pending, then updates its value and coun
   expect(screen.getByRole("article")).toHaveTextContent("Updated name");
   fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
   expect(onEditIndex).toHaveBeenCalledExactlyOnceWith(refreshed.parties.indexes[0], "party", expect.any(HTMLButtonElement));
-  expect(within(view.container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "0"]);
+  expect(within(view.container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
 });
 
 it.each(["sides", "parties", "both", "empty"])("retains party grouping and empty behavior without subgroup titles for %s", collection => {

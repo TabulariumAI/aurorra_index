@@ -1,3 +1,4 @@
+import { uniqueIndexes } from "../data/uniqueIndexes";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import type { JSX, ReactNode } from "react";
 import {
@@ -22,7 +23,6 @@ import {
   formatLabel,
   getParcelOptions,
   getSegmentItems,
-  isAmbiguous,
 } from "aurora-core";
 import type {
   MetadataActionPayload,
@@ -118,15 +118,6 @@ function pages(metadata: MetadataPayload) {
     isTitle: item.page.class === "Title" || item.page.class === "TITLE" ||
       Boolean(item.page.class && item.page.class === metadata.heading?.class),
   }));
-}
-
-function uniqueIndexes(items: MetadataIndex[]): MetadataIndex[] {
-  const codes = new Set<MetadataIndex["code"]>();
-  return items.filter(item => {
-    if (codes.has(item.code)) return false;
-    codes.add(item.code);
-    return true;
-  });
 }
 
 export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
@@ -315,10 +306,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
             <h2 style={metadataStyles.title}>{formatLabel(metadata.heading?.class || "")}</h2>
             <div style={metadataStyles.statistics}>
               {props.headerActions}
-              <ErrorBoundary title="Metadata statistics" resetKey={metadata}
-                fallback={error => <MetadataStatistics {...props} metadata={metadata} panelData={panelData} error={error.message} />}>
-                <MetadataStatistics {...props} metadata={metadata} panelData={panelData} />
-              </ErrorBoundary>
             </div>
           </header>
         ) : null}
@@ -414,7 +401,9 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                   const code = String(group.code || "");
                   const page = group.page || 0;
                   const isLegalRowSelected = Boolean(code && selectedIndex?.code === code && (!selectedIndex.segment || selectedIndex.segment === segments.LEGAL));
-                  const payload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || "") } satisfies MetadataActionPayload;
+                  const payload = { code, page, segment: segments.LEGAL, session, type: String(group.type || "legal"), value: formatLabel(group.type || ""),
+                    ...(group.original != null ? { metadataIndex: { label: "legal", value: group.original, source: cleanText(group.source), ambiguous: "" } } : {}),
+                  } satisfies MetadataActionPayload;
                   const onPageClick = page && code ? callbacks.onPageClick : undefined;
                   return (
                     <article
@@ -465,27 +454,6 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
       </section>
     </Tooltip.Provider>
   );
-}
-
-function MetadataStatistics({ metadata, panelData, removedCodes, confirmedCodes, error }: Pick<MetadataPanelProps, "removedCodes" | "confirmedCodes"> & { metadata: MetadataPayload; panelData: MetadataPanelData; error?: string }) {
-  let values: number[] | undefined;
-  if (!error) {
-    const countedIndexes = uniqueIndexes([
-      ...(metadata.parties ? panelData.parties : []),
-      ...(metadata.indexes ?? []),
-      ...(panelData.execution?.indexes ?? []),
-    ]).filter((index) => !removedCodes.has(String(index.code || "")));
-    const unclearCount = countedIndexes.filter((index) =>
-      !confirmedCodes.has(String(index.code || "")) && isAmbiguous(index.ambiguous),
-    ).length;
-    values = [countedIndexes.length, unclearCount];
-  }
-  return <dl style={{ ...metadataStyles.statistics, margin: 0 }}>
-    {["Indexes", "Unclear"].map((label, index) => <div key={label} style={metadataStyles.statistic}>
-      <dt title={label === "Indexes" ? label : "Ambiguous indexes"} style={metadataStyles.statisticLabel}>{label}</dt>
-      <dd style={metadataStyles.statisticValue}>{error ? <ErrorBadge label={label} error={error} /> : values![index]}</dd>
-    </div>)}
-  </dl>;
 }
 
 function TitleValue({ title, metadata, pageError, callbacks, session, segment }: { title: string; metadata: MetadataPayload; pageError: MetadataPanelProps["pageError"]; callbacks: MetadataCallbacks; session: string; segment: string }) {

@@ -22,10 +22,7 @@ describe("index styles", () => {
       padding: "var(--panel-header-padding)",
     });
     expect(metadataStyles).toMatchObject({
-      statistic: { display: "flex", flexDirection: "column-reverse" },
       statistics: { display: "flex", flex: "0 0 auto", minWidth: "max-content" },
-      statisticLabel: { fontSize: "0.75rem" },
-      statisticValue: { fontWeight: 700, margin: 0 },
       title: {
         fontSize: "calc(var(--panel-title-size) * 1.15)",
         fontWeight: "var(--panel-title-weight)",

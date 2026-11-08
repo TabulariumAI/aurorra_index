@@ -7,6 +7,23 @@ const selection = {
 };
 
 describe("matchSelection", () => {
+  it("matches a legal group's donor original", () => {
+    expect(matchSelection(selection, { legals: { groups: [{ code: "legal", page: "Exhibit-A", original: "alpha bravo charlie delta echo", elements: [{ aspect: "lot", value: "7" }] }] } })).toEqual({ code: "legal", segment: "legal" });
+  });
+  it.each(["index", "party"])("matches original instead of corrected %s values", kind => {
+    const rows = [{ code: "raw", segment: "party", original: "alpha bravo charlie delta echo", value: "corrected name", source: null }];
+    const metadata = kind === "party" ? { parties: { summary: null, indexes: rows } } : { indexes: rows };
+    expect(matchSelection(selection, metadata)).toEqual({ code: "raw", segment: "party" });
+    rows[0].original = "unrelated raw text";
+    rows[0].value = "alpha bravo charlie delta echo";
+    expect(matchSelection(selection, metadata)).toBeNull();
+  });
+
+  it.each([undefined, null, ""])("uses value only for missing or null original: %s", original => {
+    const metadata = { indexes: [{ code: "raw", segment: "party", original, value: "alpha bravo charlie delta echo", source: null }] };
+    expect(matchSelection(selection, metadata)).toEqual(original === "" ? null : { code: "raw", segment: "party" });
+  });
+
   it("matches an index value at 80 percent and rejects a lower match", () => {
     const metadata = { indexes: [
       { code: "low", segment: "party", page: "Exhibit-A", value: "alpha bravo changed changed echo", source: "unrelated text" },
@@ -66,11 +83,31 @@ describe("matchSelection", () => {
     expect(matchSelection(selection, { indexes: [{ code: "loan", segment: "loan", value: "alpha bravo charlie delta echo" }] })).toEqual({ code: "loan", segment: "monetary" });
   });
 
-  it("does not focus a party index hidden by the separate parties collection", () => {
+  it.each([{ indexes: [] }, { indexes: [{ code: "enriched", original: "unrelated name", value: "Corrected name" }] }])("matches a rendered raw party alongside enriched indexes %j", ({ indexes }) => {
     const metadata = {
-      indexes: [{ code: "hidden", segment: "party", value: "alpha bravo charlie delta echo" }],
-      parties: { summary: null, indexes: [{ code: "visible", segment: "party", value: "alpha bravo charlie delta echo" }] },
+      indexes: [{ code: "raw", segment: "party", original: "alpha bravo charlie delta echo", value: "Corrected raw name" }],
+      parties: { summary: null, indexes },
     };
-    expect(matchSelection(selection, metadata)).toEqual({ code: "visible", segment: "party" });
+    expect(matchSelection(selection, metadata)).toEqual({ code: "raw", segment: "party" });
+  });
+
+  it("uses the rendered enriched party when donor codes are shared", () => {
+    const metadata = {
+      indexes: [{ code: "shared", segment: "party", original: "alpha bravo charlie delta echo", value: "Raw name" }],
+      parties: { summary: null, indexes: [{ code: "shared", original: "unrelated name", value: "Corrected name" }] },
+    };
+    expect(matchSelection(selection, metadata)).toBeNull();
+    metadata.parties.indexes[0].original = "alpha bravo charlie delta echo";
+    expect(matchSelection(selection, metadata)).toEqual({ code: "shared", segment: "party" });
+  });
+
+  it("preserves nonparty precedence when party, secret, and legal matches tie", () => {
+    const original = "alpha bravo charlie delta echo";
+    expect(matchSelection(selection, {
+      indexes: [{ code: "reference", segment: "reference", original }],
+      parties: { summary: null, indexes: [{ code: "party", original }] },
+      secrets: [{ code: "secret", value: original }],
+      legals: { groups: [{ code: "legal", original, elements: [{ aspect: "lot", value: "7" }] }] },
+    })).toEqual({ code: "reference", segment: "reference" });
   });
 });

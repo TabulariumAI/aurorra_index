@@ -1,6 +1,7 @@
-import type { MetadataPayload, MetadataSelected } from "aurora-core";
+import type { MetadataIndex, MetadataPayload, MetadataSelected } from "aurora-core";
 import type { AddIndexSelection } from "../../addindex";
 import { formatSelection } from "../../addindex/data/addIndexData";
+import { uniqueIndexes } from "../../metdataview/data/uniqueIndexes";
 
 const matchPercent = 80;
 
@@ -26,11 +27,16 @@ export function matchSelection(selection: AddIndexSelection, metadata: MetadataP
   let secondary = -1;
   let pageMatch = false;
   const indexes = metadata.parties ? metadata.indexes?.filter((row) => row.segment !== "party") : metadata.indexes;
-  for (const [rows, displaySegment] of [[indexes ?? [], null], [metadata.parties?.indexes ?? [], "party"], [metadata.secrets ?? [], "secrets"]] as const) {
+  const parties = metadata.parties ? uniqueIndexes([
+    ...metadata.parties.indexes,
+    ...(metadata.indexes?.filter(row => row.segment === "party") ?? []),
+  ]) : [];
+  const legals = metadata.legals?.groups || metadata.legals?.legalGroups || metadata.legals?.LegalGroups || metadata.legals?.items || [];
+  for (const [rows, displaySegment] of [[indexes ?? [], null], [parties, "party"], [metadata.secrets ?? [], "secrets"], [legals.filter(group => group.elements?.length).map<MetadataIndex>(group => ({ ...group, value: group.type })), "legal"]] as const) {
     for (const row of rows) {
       const segment = displaySegment ?? (row.segment === "loan" ? "monetary" : row.segment);
       if (!row.code || !segment) continue;
-      const value = score(values, row.value ?? "");
+      const value = score(values, row.original ?? row.value ?? "");
       const source = score(context, row.source ?? "");
       const primary = Math.max(value, source);
       if (primary < matchPercent) continue;

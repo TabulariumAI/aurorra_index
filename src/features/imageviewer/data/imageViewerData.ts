@@ -56,7 +56,7 @@ function resolveRow(row: MetadataIndex | undefined): { ambiguous: string; label:
     label: toStringValue(row.label),
     pageNumber: row.page_number,
     source: toStringValue(row.source),
-    value: toStringValue(row.value),
+    value: toStringValue(row.original ?? row.value),
   };
 }
 

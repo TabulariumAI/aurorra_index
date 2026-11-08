@@ -11,6 +11,11 @@ const directPackage = JSON.parse(readFileSync(path.join(packageRoot, "image-pack
 const packageMetadata = JSON.parse(readFileSync(path.join(packageRoot, "image.json"), "utf8")) as { pages: unknown[] };
 
 describe("imageViewerData", () => {
+  it.each([undefined, null, "Raw name", ""])("resolves original %s as the lens value", original => {
+    const metadata = { indexes: [{ code: "raw", label: "Grantor", page_number: 1, source: null, value: "Corrected name", original }] };
+    expect(resolveSelectedIndex(metadata, { code: "raw", segment: "party" })).toMatchObject({ value: original ?? "Corrected name", source: "" });
+  });
+
   it("accepts repeated OCR numbers and preserves the name map", () => {
     const data = { pageMap: { "26": 0, "Exhibit-A": 1 }, pages: [{ pageNumber: 1 }, { pageNumber: 1 }] };
     expect(parsePackageMetadata(data)).toEqual(data);

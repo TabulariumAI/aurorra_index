@@ -210,19 +210,15 @@ describe("metadata visual surface", () => {
       expect(context).not.toHaveStyle({ borderLeft: "0.2rem solid #06afc1" });
       expect(context.children).toHaveLength(2);
       expect(context.firstElementChild).toHaveTextContent("Deed");
-      expect(context.lastElementChild).toHaveTextContent("Indexes");
-      expect(context.lastElementChild).toHaveTextContent("Unclear");
+      expect(context.lastElementChild).not.toHaveTextContent("Indexes");
+      expect(context.lastElementChild).not.toHaveTextContent("Unclear");
       expect(context.nextElementSibling).toHaveStyle({ alignItems: "stretch", display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "0px", overflowX: "hidden", overflowY: "auto" });
       expect(context.nextElementSibling).toHaveAttribute("data-panel-scroll", "true");
     }
 
     expect(screen.queryByText("Property Intake")).not.toBeInTheDocument();
     expect(screen.queryByText("session-1")).not.toBeInTheDocument();
-    expect(screen.getByText("Unclear")).toHaveStyle({
-      fontSize: "0.75rem",
-      lineHeight: "1.35",
-      whiteSpace: "nowrap",
-    });
+    expect(screen.queryByText("Unclear")).not.toBeInTheDocument();
     const title = screen.getByText("Deed");
     expect(title).toHaveStyle({
       fontSize: "calc(var(--panel-title-size) * 1.15)",

@@ -25,7 +25,7 @@ it("renders one summary paragraph before party rows using the shared summary sty
   expect(paragraph.closest("article")).toBeNull();
   expect(paragraph.compareDocumentPosition(screen.getByRole("article")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getByRole("button", { name: "Parties(Party Clause)" }).parentElement?.lastElementChild).toHaveTextContent("1");
-  expect(within(container.querySelector("header")!).getAllByRole("definition").map(node => node.textContent)).toEqual(["1", "1"]);
+  expect(within(container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
   expect(screen.getByRole("article")).toHaveAttribute("data-index-code", party.code);
 });
 
