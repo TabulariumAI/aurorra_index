@@ -222,7 +222,7 @@ it("shows the approved Totals values from Index Extraction and IQ Refinement", (
   ]);
   const totals = screen.getByRole("region", { name: "Totals usage" });
   expect(within(totals).getByText("Credits").nextElementSibling).toHaveTextContent("4 CR");
-  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent("0 CR");
+  expect(within(totals).getByText("Average page credits").nextElementSibling).toHaveTextContent("1 CR");
 });
 
 it.each(["extraction", "iq_refinement"] as const)("sums only available averages when %s has no pages", name => {
@@ -299,9 +299,14 @@ it("shows zero Total Credits when the selected dates have no usage", () => {
   expect(within(total).getByText("Total Credits").nextElementSibling).toHaveTextContent("0 CR");
 });
 
-it("rounds only display values and exposes credit labels", () => {
-  showUsage([{ ...records[0], cost: 0.375 }, { ...records[1], cost: 0.375 }]);
+it.each([[0.005, 1], [0.1, 1], [0.375, 1], [0.75, 2]])("rounds only display values for %s credits and exposes credit labels", (cost, credits) => {
+  const usage = [{ ...records[0], cost }, { ...records[1], cost }];
+  showUsage(usage);
   const total = screen.getByRole("region", { name: "Total Credits" });
-  expect(within(total).getByLabelText("1 credits")).toHaveTextContent("1 CR");
+  expect(within(total).getByLabelText(`${credits} credits`)).toHaveTextContent(`${credits} CR`);
+  const summary = screen.getByRole("region", { name: "Index Extraction usage" });
+  expect(within(summary).getByText("Average page credits").nextElementSibling).toHaveTextContent("1 CR");
+  expect(screen.getByText(`Index Extraction 2026-10-04: 1 CR, 1 pages`)).toBeInTheDocument();
+  expect(usage.map(item => item.cost)).toEqual([cost, cost]);
   expect(document.body.textContent).not.toContain("$");
 });
