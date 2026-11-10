@@ -2,8 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ fail: true }));
-vi.mock("../data/surveyData", async original => {
-  const data = await original<typeof import("../data/surveyData")>();
+vi.mock("../data/mapGroups", async original => {
+  const data = await original<typeof import("../data/mapGroups")>();
   return { ...data, getMapGroups: (...args: Parameters<typeof data.getMapGroups>) => {
     if (state.fail) throw new Error("Parcel preparation failed");
     return data.getMapGroups(...args);

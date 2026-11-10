@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { normalizeLegalData } from "../data/legalData";
-import { buildBoundary, buildPlss } from "../data/surveyData";
+import { normalizeLegalData } from "../data/platData";
+import { buildMatrix } from "../data/metesData";
+import { buildPlss } from "../data/plssData";
 import { curveFixture, sectionFixture } from "./caseFixture";
 
 describe("reported map regressions", () => {
@@ -83,7 +84,7 @@ describe("reported map regressions", () => {
   it("retains all six Bennington distances and draws the unresolved return as unconfirmed", () => {
     const group = sectionFixture.groups!.find(group => group.type === "metes_bounds")!;
     const original = JSON.stringify(group);
-    const scene = buildBoundary(group, "Parcel");
+    const scene = buildMatrix(group, "Parcel");
     expect(scene.courses).toHaveLength(6);
     expect(scene.courses!.map(course => course.distance)).toEqual(["1181.05 feet", "627.00 feet", "617.00 feet", "648.83 feet", "217.00 feet", "350.00 feet"]);
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [group] }} />);
@@ -100,7 +101,7 @@ describe("reported map regressions", () => {
 
   it("retains every measured curve and later course in the supplied Parcel A source", () => {
     const group = curveFixture.groups!.find(group => group.type === "metes_bounds")!;
-    const scene = buildBoundary(group, "Parcel");
+    const scene = buildMatrix(group, "Parcel");
     expect(scene.courses).toHaveLength(27);
     expect(scene.courses!.map(course => course.distance)).toContain("218.96 feet");
     expect(scene.courses!.map(course => course.distance)).not.toContain("21'");
@@ -118,7 +119,7 @@ describe("reported map regressions", () => {
   });
 
   it.each(["left", "right"])("places a %s curve from its source radius and arc length", direction => {
-    const scene = buildBoundary({ type: "metes_bounds", source: `BEGINNING AT A PIN; NORTH 100 FEET TO THE P.C. OF A CURVE TO THE ${direction} HAVING A RADIUS OF 100 FEET; THENCE ALONG SAID CURVE 157.07963267949 FEET TO THE P.T.; THENCE EAST 50 FEET.` }, "Parcel");
+    const scene = buildMatrix({ type: "metes_bounds", source: `BEGINNING AT A PIN; NORTH 100 FEET TO THE P.C. OF A CURVE TO THE ${direction} HAVING A RADIUS OF 100 FEET; THENCE ALONG SAID CURVE 157.07963267949 FEET TO THE P.T.; THENCE EAST 50 FEET.` }, "Parcel");
     const lines = scene.items.filter(item => item.kind === "line");
     expect(lines).toHaveLength(3);
     expect(lines[1].to.x).toBeCloseTo(direction === "right" ? 30.48 : -30.48, 6);
@@ -128,7 +129,7 @@ describe("reported map regressions", () => {
   });
 
   it("continues a split curve through the source True Point of Beginning", () => {
-    const scene = buildBoundary({ type: "metes_bounds", source: "NORTH 100 FEET TO THE P.C. OF A CURVE TO THE RIGHT HAVING A RADIUS OF 100 FEET; THENCE ALONG SAID CURVE 78.539816339745 FEET TO THE TRUE POINT OF BEGINNING; THENCE CONTINUING ALONG SAID CURVE 78.539816339745 FEET TO THE P.T.; THENCE EAST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ type: "metes_bounds", source: "NORTH 100 FEET TO THE P.C. OF A CURVE TO THE RIGHT HAVING A RADIUS OF 100 FEET; THENCE ALONG SAID CURVE 78.539816339745 FEET TO THE TRUE POINT OF BEGINNING; THENCE CONTINUING ALONG SAID CURVE 78.539816339745 FEET TO THE P.T.; THENCE EAST 50 FEET." }, "Parcel");
     const lines = scene.items.filter(item => item.kind === "line");
     expect(lines).toHaveLength(4);
     expect(lines[2].to.x).toBeCloseTo(30.48, 6);

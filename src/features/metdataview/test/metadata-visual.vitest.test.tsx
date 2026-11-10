@@ -221,7 +221,7 @@ describe("metadata visual surface", () => {
     expect(screen.queryByText("Unclear")).not.toBeInTheDocument();
     const title = screen.getByText("Deed");
     expect(title).toHaveStyle({
-      fontSize: "calc(var(--panel-title-size) * 1.15)",
+      fontSize: "var(--panel-title-size)",
       fontWeight: "var(--panel-title-weight)",
       letterSpacing: "var(--panel-title-tracking)",
       lineHeight: "var(--panel-title-line-height)",

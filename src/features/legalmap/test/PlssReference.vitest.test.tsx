@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { getMapGroups } from "../data/surveyData";
+import { getMapGroups } from "../data/mapGroups";
 import { legalMapColors } from "../style/legalMapStyles";
 import { quarterFixture, surveyFixture } from "./surveyFixture";
 

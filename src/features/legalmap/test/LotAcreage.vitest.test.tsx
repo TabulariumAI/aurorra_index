@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { displayLots, toPlatJSON } from "../data/legalData";
+import { displayLots, toPlatJSON } from "../data/platData";
 import { acreageFixture, acreageValues } from "./acreageFixture";
 
 describe("lot acreage", () => {

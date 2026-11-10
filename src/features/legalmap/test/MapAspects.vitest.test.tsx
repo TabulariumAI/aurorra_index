@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { formatLabel, type LegalPayload } from "aurora-core";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { getMapGroups } from "../data/surveyData";
+import { getMapGroups } from "../data/mapGroups";
 import { aspectFields, aspectFixture } from "./aspectFixture";
 
 describe("unpositioned map data", () => {

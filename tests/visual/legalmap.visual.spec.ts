@@ -1,6 +1,29 @@
 import { expect, test } from "@playwright/test";
 
 for (const width of [1440, 390]) {
+  test(`condominium detail labels stay unbroken at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1100 });
+    await page.goto("/?scenario=legal-map&condominium=true");
+    const table = page.getByRole("table", { name: "Details", exact: true });
+    const label = table.getByRole("rowheader", { name: "Condominium", exact: true });
+    await expect(label).toBeVisible();
+    const layout = await label.evaluate(node => {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const value = node.nextElementSibling!;
+      return {
+        lines: range.getClientRects().length,
+        overlaps: range.getBoundingClientRect().right > value.getBoundingClientRect().left,
+        valueFits: value.scrollWidth <= value.clientWidth + 1,
+      };
+    });
+    expect(layout).toEqual({ lines: 1, overlaps: false, valueFits: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`condominium-details-${width}.png`), fullPage: true });
+  });
+}
+
+for (const width of [1440, 390]) {
   test(`matrix boundary retains three confirmed measurements at ${width}px`, async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));

@@ -37,7 +37,7 @@ import type {
   PageScope,
 } from "aurora-core";
 import type { MetadataChoice } from "../type/metadataView.types";
-import { getMapGroups } from "../../legalmap/data/surveyData";
+import { getMapGroups } from "../../legalmap/data/mapGroups";
 import { PAGE_SEGMENT_CHOICES } from "../../pagesegments/data/pageSegmentsData";
 
 export type MetadataPanelActions = {

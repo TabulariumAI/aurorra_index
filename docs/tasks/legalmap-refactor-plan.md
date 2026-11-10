@@ -35,7 +35,7 @@ The Lot & block grid retains its twelve perimeter lot positions. Source Block, T
 
 ## Tests
 - Keep and update `aurorra_index/src/features/legalmap/test/LegalMapContent.vitest.test.tsx`.
-- Keep and update `aurorra_index/src/features/legalmap/test/legalData.vitest.test.ts`.
+- Keep and update `aurorra_index/src/features/legalmap/test/platData.vitest.test.ts`.
 - Delete `aurorra_index/src/features/legalmap/test/LegalMapDialog.vitest.test.tsx`.
 - Update `aurorra_index/src/features/metdataview/test/MetadataPanel.legalmap.vitest.test.tsx` to assert the legal row calls `callbacks.onLegalView` and no dialog role renders.
 - Add or update grep assertions in tests so `aurorra_index/src/features/legalmap` contains no `Dialog` import and no `LegalMapDialog` symbol.
@@ -72,7 +72,7 @@ Single-parcel schematic headings are hidden. North and the legend share one foot
 
 ## Metes and bounds matrix
 
-`getMapGroups` uses `buildMatrix`. The original `buildBoundary` and `parseMetesAndBounds` remain available for switching back; both paths share measurement conversion and drawing. The new path collects bearings and distances from both metadata fields, irrespective of field names. It preserves complete embedded pairs, repeated entries, blank or unreadable list positions and explicit source associations. Complete metadata pairs are not replaced by differing source measurements. Separate measurements pair by sequence without discarding every row when counts differ. Unmatched measurements retain their position in the measurement list. `SUBSTANTIALLY DUE NORTH` retains its supplied text and resolves to North.
+`getMapGroups` in `data/mapGroups.ts` uses `buildMatrix` from `data/metesData.ts`. Metes & Bounds owns `MetesMap`, `MetesDetails` and `type/metes.types.ts`. PLSS owns `plssData`, `PlssMap` and `type/plss.types.ts`, retaining government-lot and fractional-section variants. Lot & block owns `platData`, `PlatMap` and `type/plat.types.ts`. Common metadata access stays in `legalData`; the map frame, shared styling and resizing remain shared. The unused previous parser path is removed; tests exercise the active matrix path. The new path collects bearings and distances from both metadata fields, irrespective of field names. It preserves complete embedded pairs, repeated entries, blank or unreadable list positions and explicit source associations. Complete metadata pairs are not replaced by differing source measurements. Separate measurements pair by sequence without discarding every row when counts differ. Unmatched measurements retain their position in the measurement list. `SUBSTANTIALLY DUE NORTH` retains its supplied text and resolves to North.
 
 The matrix first keeps its existing pairs and ordering. One missing bearing or distance can be calculated from the known courses and the next known section, including the closing anchor. A calculated border remains Unconfirmed, retains any supplied distance, uses degree/minute/second bearing notation and exposes the calculated length in its tooltip. Other supplied measurements keep their own confirmation status. Multiple unresolved courses remain Unconfirmed. Invalid or zero distances and invalid bearings are not repaired as missing measurements. Connector alignment and shape closure use the same 0.001 perimeter ratio, including the calculated connector and commencement distances.
 

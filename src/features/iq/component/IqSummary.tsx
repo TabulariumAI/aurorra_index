@@ -1,19 +1,13 @@
 import type { JSX } from "react";
-import { iqStyles } from "../style/iqStyles";
-import type { IqBucket, IqReportView } from "../type/iq.types";
-
-const metricFg = {
-  green: "#065f46",
-  amber: "#92400e",
-  red: "#991b1b",
-} satisfies Record<IqBucket, string>;
+import { iqColors, iqStyles } from "../style/iqStyles";
+import type { IqReportView } from "../type/iq.types";
 
 export function IqSummary({ view }: { view: Pick<IqReportView, "iq"> }): JSX.Element {
   const { iq } = view;
   return (
     <div style={iqStyles.summaryCard}>
       <div>
-        <div style={{ ...iqStyles.metricNumber, color: metricFg[iq.bucket] }}>
+        <div style={{ ...iqStyles.metricNumber, color: iqColors[iq.bucket].fg }}>
           {iq.displayInt}%
         </div>
         <div style={iqStyles.metricSubtext}>out of 100</div>

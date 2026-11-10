@@ -1,6 +1,6 @@
 import type { LegalPayload } from "aurora-core";
 import { describe, expect, it } from "vitest";
-import { getMapGroups } from "../data/surveyData";
+import { getMapGroups } from "../data/mapGroups";
 
 describe("legal map availability", () => {
   it.each(["plss", "government_lot", "fractional_section"])("retains %s availability without Metes data", type => {

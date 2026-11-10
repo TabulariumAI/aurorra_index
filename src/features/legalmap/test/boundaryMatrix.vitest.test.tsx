@@ -2,7 +2,7 @@ import type { LegalGroup } from "aurora-core";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { buildBoundary, buildMatrix, parseBearing, parseDistance } from "../data/surveyData";
+import { buildMatrix, parseBearing, parseDistance } from "../data/metesData";
 import { matrixAmbiguous, matrixFixture, matrixOffset, matrixRetry } from "./matrixFixture";
 import { curveFixture, sectionFixture } from "./caseFixture";
 import { metesFixture } from "./metesFixture";
@@ -117,12 +117,10 @@ describe("boundary matrix", () => {
     expect(scene.courses?.slice(1).map(course => course.bearing)).toEqual(["NORTH", "EAST", "SOUTH", "WEST"]);
     expect(scene.courses?.slice(1).every(course => course.confirmed)).toBe(true);
     expect(scene.courses?.at(-1)?.target).toBe(2);
-    expect(buildBoundary(matrixOffset, "Parcel").closed).not.toBe(true);
   });
 
   it("validates a closed straight boundary even when source curves follow it", () => {
     const scene = buildMatrix(matrixAmbiguous, "Parcel");
-    expect(buildBoundary(matrixAmbiguous, "Previous").closed).toBe(true);
     expect(scene.closed).toBe(false);
     expect(scene.issue).toMatch(/multiple.*shape/i);
     expect(scene.courses).toHaveLength(7);
@@ -258,9 +256,6 @@ describe("boundary matrix", () => {
     expect(scene.items.filter(item => item.kind === "line")).toHaveLength(4);
     expect(JSON.stringify(matrixFixture)).toBe(original);
     expect(buildMatrix(matrixFixture, "Parcel")).toEqual(scene);
-    expect(buildBoundary(matrixFixture, "Parcel").courses?.map(course => [course.bearing, course.distance, course.confirmed])).toEqual([
-      ["North", '72" 45\'', false], ["South 17º 15' West", undefined, false],
-    ]);
   });
 
   it("reorders crossing borders before changing any supplied bearing-distance pair", () => {
@@ -361,7 +356,7 @@ describe("boundary matrix", () => {
   it.each([metesFixture, { groups: [curveFixture.groups.find(group => group.type === "metes_bounds")!] }, { groups: [sectionFixture.groups.find(group => group.type === "metes_bounds")!] }])("preserves source curves, ties and explicit source course sequences", legal => {
     const group = legal.groups.find(group => group.type === "metes_bounds")!;
     const sourceOnly = { ...group, elements: group.elements?.filter(element => element.aspect !== "bearings" && element.aspect !== "distances") };
-    expect(buildMatrix(sourceOnly, "Parcel")).toEqual(buildBoundary(sourceOnly, "Parcel"));
+    expect(buildMatrix(sourceOnly, "Parcel")).toMatchSnapshot();
   });
 
   it("renders the new session path with three confirmed rows, a calculated tooltip, and one dashed border", async () => {

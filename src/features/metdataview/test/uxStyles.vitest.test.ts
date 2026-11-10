@@ -24,7 +24,7 @@ describe("index styles", () => {
     expect(metadataStyles).toMatchObject({
       statistics: { display: "flex", flex: "0 0 auto", minWidth: "max-content" },
       title: {
-        fontSize: "calc(var(--panel-title-size) * 1.15)",
+        fontSize: "var(--panel-title-size)",
         fontWeight: "var(--panel-title-weight)",
         letterSpacing: "var(--panel-title-tracking)",
         lineHeight: "var(--panel-title-line-height)",

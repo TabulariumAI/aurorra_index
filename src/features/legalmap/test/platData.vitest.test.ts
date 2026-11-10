@@ -1,6 +1,6 @@
 import type { LegalGroup } from "aurora-core";
 import { describe, expect, it } from "vitest";
-import { displayLots, normalizeLegalData, toPlatJSON } from "../data/legalData";
+import { displayLots, normalizeLegalData, toPlatJSON } from "../data/platData";
 
 function plat(values: Record<string, string>): LegalGroup {
   return { type: "lot_block", elements: Object.entries(values).map(([aspect, value]) => ({ aspect, value })) };

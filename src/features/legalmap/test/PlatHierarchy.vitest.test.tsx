@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { displayLots, normalizeLegalData } from "../data/legalData";
-import { getMapGroups } from "../data/surveyData";
+import { displayLots, normalizeLegalData } from "../data/platData";
+import { getMapGroups } from "../data/mapGroups";
 import { hierarchyFields, hierarchyFixture } from "./hierarchyFixture";
 
 describe("five-level plat hierarchy", () => {

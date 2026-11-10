@@ -11,17 +11,11 @@ export { IndexContainer, IndexContainer as IndexMetadata } from "./features/inde
 export { MetadataPanel } from "./features/metdataview/component/MetadataPanel";
 export type { MetadataPanelProps, MetadataPanelActions, MetadataPanelSections } from "./features/metdataview/component/MetadataPanel";
 
+export { getElements, getVal, isBlank } from "./features/legalmap/data/legalData";
 export {
-  formatLocation,
-  getElements,
-  getPresentLayers,
-  getVal,
-  isAllEmptyStructure,
-  isBlank,
-  normalizeLegalData,
-  toPlatJSON,
-} from "./features/legalmap/data/legalData";
-export { getMapGroups } from "./features/legalmap/data/surveyData";
+  formatLocation, getPresentLayers, isAllEmptyStructure, normalizeLegalData, toPlatJSON,
+} from "./features/legalmap/data/platData";
+export { getMapGroups } from "./features/legalmap/data/mapGroups";
 export { LegalMapContent } from "./features/legalmap/component/LegalMapContent";
 export type { LegalMapPayload } from "./features/legalmap/data/legalData";
 export { createDeferredState } from "./features/indexing/data/deferredState";

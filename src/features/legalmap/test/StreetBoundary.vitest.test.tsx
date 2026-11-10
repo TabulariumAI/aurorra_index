@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { buildBoundary, getMapGroups, parseDistance, parseMetesAndBounds, parseStreetRelativeBoundary } from "../data/surveyData";
+import { buildMatrix, parseDistance, parseStreetRelativeBoundary } from "../data/metesData";
+import { getMapGroups } from "../data/mapGroups";
 import { streetFixture } from "./streetFixture";
 
 const group = streetFixture.groups[0];
@@ -11,7 +12,6 @@ const failure = "Sorry, this parcel’s boundary couldn’t be drawn from the av
 
 describe("street-relative boundary fallback", () => {
   it("returns no Metes courses and a street-relative result for the Ruby Street description", () => {
-    expect(parseMetesAndBounds(group)).toEqual([]);
     const result = parseStreetRelativeBoundary(group);
     expect(result).not.toBeNull();
     expect(result!.map(course => course.distance)).toEqual(["16 ft", "59 ft 8 in", "16 ft", "59 ft 8 in"]);
@@ -19,7 +19,7 @@ describe("street-relative boundary fallback", () => {
 
   it("draws only frontage and depth as an unconfirmed rectangle without mutating input", () => {
     const original = JSON.stringify(group);
-    const scene = buildBoundary(group, "Parcel");
+    const scene = buildMatrix(group, "Parcel");
     const lines = scene.items.filter(item => item.kind === "line");
     expect(lines).toHaveLength(4);
     expect(lines.map(line => line.sequence)).toEqual([1, 2, 3, 4]);
@@ -40,7 +40,7 @@ describe("street-relative boundary fallback", () => {
     expect(scene.issue).toMatch(/schematic/i);
     expect(scene.notes.map(note => note.value)).toEqual([bearings, distances]);
     expect(JSON.stringify(group)).toBe(original);
-    expect(getMapGroups(streetFixture)[0].scene).toEqual(buildBoundary(group, "Metes & Bounds"));
+    expect(getMapGroups(streetFixture)[0].scene).toEqual(buildMatrix(group, "Metes & Bounds"));
   });
 
   it("reads the same supplied description from source and tolerates matching extracted fields", () => {
@@ -65,8 +65,8 @@ describe("street-relative boundary fallback", () => {
 
   it("preserves complete primary-parser results when street-relative details coexist", () => {
     const source = "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET.";
-    const scene = buildBoundary({ ...group, source }, "Parcel");
-    const original = buildBoundary({ type: "metes_bounds", source }, "Parcel");
+    const scene = buildMatrix({ ...group, source }, "Parcel");
+    const original = buildMatrix({ type: "metes_bounds", source }, "Parcel");
     expect(scene.items).toEqual(original.items);
     expect(scene.courses).toEqual(original.courses);
     expect(scene.courses!.map(course => course.distance)).toEqual(["100 FEET", "50 FEET", "100 FEET", "50 FEET"]);
@@ -76,7 +76,7 @@ describe("street-relative boundary fallback", () => {
   });
 
   it("preserves partial primary-parser results instead of replacing them with a rectangle", () => {
-    const scene = buildBoundary({ ...group, source: "NORTH 100 FEET; EAST TO A PIN." }, "Parcel");
+    const scene = buildMatrix({ ...group, source: "NORTH 100 FEET; EAST TO A PIN." }, "Parcel");
     expect(scene.courses).toHaveLength(1);
     expect(scene.courses![0].distance).toBe("100 FEET");
     expect(scene.items).toHaveLength(1);
@@ -112,7 +112,7 @@ describe("street-relative boundary fallback", () => {
     ["N", "NORTHWARD", 0, -1], ["E", "EASTWARD", 1, 0],
     ["S", "SOUTHWARD", 0, 1], ["W", "WESTWARD", -1, 0],
   ] as const)("draws the stated %s street-side depth direction without confirming orientation", (side, direction, x, y) => {
-    const scene = buildBoundary({ type: "metes_bounds", elements: [
+    const scene = buildMatrix({ type: "metes_bounds", elements: [
       { aspect: "bearings", value: `${side} SIDE OF RUBY STREET; ${direction} AT RIGHT ANGLES TO RUBY STREET` },
       group.elements[1],
     ] }, "Parcel");
@@ -138,8 +138,8 @@ describe("street-relative boundary fallback", () => {
 
   it.each(["bearings", "distances"])("preserves compound lengths in embedded %s and paired extracted lists", aspect => {
     const calls = "NORTH 16 ft; EAST 59 ft 8 in; SOUTH 16 ft; WEST 59 ft 8 in";
-    const embedded = buildBoundary({ type: "metes_bounds", elements: [{ aspect, value: calls }] }, "Parcel");
-    const paired = buildBoundary({ type: "metes_bounds", elements: [
+    const embedded = buildMatrix({ type: "metes_bounds", elements: [{ aspect, value: calls }] }, "Parcel");
+    const paired = buildMatrix({ type: "metes_bounds", elements: [
       { aspect: "bearings", value: "N; E; S; W" }, { aspect: "distances", value: "16 ft; 59 ft 8 in; 16 ft; 59 ft 8 in" },
     ] }, "Parcel");
     expect(embedded.items).toHaveLength(4);
@@ -150,7 +150,7 @@ describe("street-relative boundary fallback", () => {
 
   it("uses the predefined message after both parsers find nothing", () => {
     const input = { type: "metes_bounds", elements: [{ aspect: "bearings", value: "E SIDE OF RUBY STREET" }, { aspect: "distances", value: distances }] };
-    const scene = buildBoundary(input, "Parcel");
+    const scene = buildMatrix(input, "Parcel");
     expect(scene.items).toEqual([]);
     expect(scene.courses).toEqual([]);
     expect(scene.issue).toBe(failure);
@@ -182,7 +182,7 @@ describe("street-relative boundary fallback", () => {
 describe("compound boundary distances", () => {
   it.each(["59 ft 8 in", "59 FEET 8 INCHES", "59' 8\"", "59ft8in"])("retains both units in %s", value => {
     expect(parseDistance(value)).toBeCloseTo((59 + 8 / 12) * 0.3048);
-    const scene = buildBoundary({ type: "metes_bounds", source: `EAST ${value}; NORTH 16 ft; WEST ${value}; SOUTH 16 ft.` }, "Parcel");
+    const scene = buildMatrix({ type: "metes_bounds", source: `EAST ${value}; NORTH 16 ft; WEST ${value}; SOUTH 16 ft.` }, "Parcel");
     expect(scene.courses!.map(course => course.distance)).toEqual([value, "16 ft", value, "16 ft."]);
     expect(scene.closed).toBe(true);
     expect(scene.courses!.every(course => course.confirmed)).toBe(true);
@@ -196,7 +196,7 @@ describe("compound boundary distances", () => {
     const calls = "EAST 59 ft -8 in; NORTH 16 ft; WEST 59 ft 8 in; SOUTH 16 ft";
     const input = field === "source" ? { type: "metes_bounds", source: calls }
       : { type: "metes_bounds", elements: [{ aspect: field, value: calls }] };
-    const scene = buildBoundary(input, "Parcel");
+    const scene = buildMatrix(input, "Parcel");
     expect(scene.courses![0].distance).toBe("59 ft -8 in");
     expect(scene.courses![0].confirmed).toBe(false);
     expect(scene.closed).not.toBe(true);

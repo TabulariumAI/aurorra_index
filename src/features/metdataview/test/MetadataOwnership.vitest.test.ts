@@ -19,8 +19,8 @@ describe("index metadata ownership", () => {
 
   it("keeps legal-map eligibility in Index without duplicating it in Core", () => {
     expect(read(coreRoot, "features/metadata/data/metadataData.ts")).not.toContain("hasPlatMap");
-    expect(read(indexRoot, "features/legalmap/data/surveyData.ts")).toContain("export function getMapGroups(");
+    expect(read(indexRoot, "features/legalmap/data/mapGroups.ts")).toContain("export function getMapGroups(");
     expect(read(indexRoot, "features/legalmap/component/LegalMapContent.tsx")).not.toMatch(/import\s*\{[^}]*getMapGroups[^}]*\}\s*from\s*["']aurora-core["']/);
-    expect(read(indexRoot, "features/metdataview/component/MetadataPanel.tsx")).toContain('from "../../legalmap/data/surveyData"');
+    expect(read(indexRoot, "features/metdataview/component/MetadataPanel.tsx")).toContain('from "../../legalmap/data/mapGroups"');
   });
 });

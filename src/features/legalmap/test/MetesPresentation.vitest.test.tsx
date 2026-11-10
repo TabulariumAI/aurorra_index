@@ -1,12 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
-import { buildBoundary } from "../data/surveyData";
+import { buildMatrix } from "../data/metesData";
 import { LegalMapContent } from "../component/LegalMapContent";
 import { presentationFixture, interruptedFixture, zeroFixture, closureFixture } from "./presentationFixture";
 
 it("preserves the six extracted courses, filled parcel, commencement tie and start labels", () => {
   const original = JSON.stringify(presentationFixture);
-  const scene = buildBoundary(presentationFixture.groups[0], "Parcel 1");
+  const scene = buildMatrix(presentationFixture.groups[0], "Parcel 1");
   expect(scene.courses).toHaveLength(6);
   expect(scene.issue).toBeUndefined();
   expect(scene.beginning).toBe(1);
@@ -22,7 +22,7 @@ it("preserves the six extracted courses, filled parcel, commencement tie and sta
 });
 
 it("continues later readable calls as unconfirmed geometry after an unreadable bearing", () => {
-  const scene = buildBoundary(interruptedFixture.groups[0], "Parcel 1");
+  const scene = buildMatrix(interruptedFixture.groups[0], "Parcel 1");
   expect(scene.courses).toHaveLength(6);
   const lines = scene.items.filter(item => item.kind === "line");
   expect(lines).toHaveLength(5);
@@ -35,7 +35,7 @@ it("continues later readable calls as unconfirmed geometry after an unreadable b
 });
 
 it("does not create a spurious South course from possessive source text", () => {
-  const scene = buildBoundary({ type: "metes_bounds", source: "BEGINNING AT A PIN; NORTH 100 FEET TO OWNER'S 42-10 TRACT; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET TO THE PLACE OF BEGINNING." }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", source: "BEGINNING AT A PIN; NORTH 100 FEET TO OWNER'S 42-10 TRACT; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET TO THE PLACE OF BEGINNING." }, "Parcel");
   expect(scene.courses).toHaveLength(4);
   expect(scene.courses?.map(course => course.bearing)).toEqual(["NORTH", "EAST", "SOUTH", "WEST"]);
   expect(scene.closed).toBe(true);
@@ -67,7 +67,7 @@ it("renders available extracted measurements instead of empty boundary-table hea
 });
 
 it("retains readable extracted courses and their numbers when one metadata bearing is unreadable", () => {
-  const scene = buildBoundary({ type: "metes_bounds", elements: [
+  const scene = buildMatrix({ type: "metes_bounds", elements: [
     { aspect: "bearings", value: "NORTH; NORTH 89 DEGREES 67 MINUTES EAST; SOUTH; WEST" },
     { aspect: "distances", value: "100 FEET; 50 FEET; 100 FEET; 50 FEET" },
   ] }, "Parcel");
@@ -83,7 +83,7 @@ it("does not render an empty measurements card for a group with acreage only", (
 });
 
 it.each(["0 ft", "00'", "0.0 feet", "0 metres"])("never confirms a zero source distance: %s", distance => {
-  const scene = buildBoundary({ type: "metes_bounds", source: `BEGINNING AT A PIN; NORTH 100 FEET; EAST ${distance}; SOUTH 100 FEET; WEST 50 FEET.` }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", source: `BEGINNING AT A PIN; NORTH 100 FEET; EAST ${distance}; SOUTH 100 FEET; WEST 50 FEET.` }, "Parcel");
   expect(scene.courses?.map(course => course.confirmed)).toEqual([true, false, true, true]);
   expect(scene.items.filter(item => item.kind === "line").map(item => item.confirmed)).toEqual([true, false, true, true]);
   expect(scene.courses?.[1].distance).toBe(distance);
@@ -91,7 +91,7 @@ it.each(["0 ft", "00'", "0.0 feet", "0 metres"])("never confirms a zero source d
 
 it("marks every zero metadata distance unconfirmed while retaining positive distances and original text", () => {
   const original = JSON.stringify(zeroFixture);
-  const scene = buildBoundary(zeroFixture.groups[0], "Parcel");
+  const scene = buildMatrix(zeroFixture.groups[0], "Parcel");
   expect(scene.courses?.map(course => course.confirmed)).toEqual([true, false, true, true, false, true, true, false]);
   render(<LegalMapContent legal={zeroFixture} />);
   const rows = screen.getByRole("table", { name: "Boundary Calls" }).querySelectorAll("tbody tr");
@@ -105,7 +105,7 @@ it("marks every zero metadata distance unconfirmed while retaining positive dist
 });
 
 it("continues to confirm a positive distance smaller than one thousandth of a foot", () => {
-  const scene = buildBoundary({ type: "metes_bounds", source: "NORTH 0.0001 FEET; EAST 1 FOOT." }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", source: "NORTH 0.0001 FEET; EAST 1 FOOT." }, "Parcel");
   expect(scene.courses?.map(course => course.confirmed)).toEqual([true, true]);
 });
 
@@ -130,7 +130,7 @@ it.each([
 it.each([true, false])("preserves the screenshot parcel and separates its extra course with source=%s", withSource => {
   const legal = { ...closureFixture, groups: [{ ...closureFixture.groups[0], source: withSource ? closureFixture.groups[0].source : undefined }] };
   const original = JSON.stringify(legal);
-  const scene = buildBoundary(legal.groups[0], "Parcel");
+  const scene = buildMatrix(legal.groups[0], "Parcel");
   expect(scene.closed).toBe(true);
   expect(scene.beginning).toBe(1);
   expect(scene.courses).toHaveLength(9);
@@ -171,14 +171,14 @@ it.each([true, false])("preserves the screenshot parcel and separates its extra 
 });
 
 it.each(["", "EAST 20 FEET; ", "EAST 20 FEET; NORTH 20 FEET; "])("retains closed geometry and marks all following courses unconfirmed after prefix %s", prefix => {
-  const scene = buildBoundary({ type: "metes_bounds", source: prefix + "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET; NORTH 20 FEET; EAST 10 FEET." }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", source: prefix + "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET; NORTH 20 FEET; EAST 10 FEET." }, "Parcel");
   expect(scene.closed).toBe(true);
   expect(scene.courses!.slice(-2).map(course => course.confirmed)).toEqual([false, false]);
   expect(scene.courses!.slice(0, -2).every(course => course.confirmed)).toBe(true);
 });
 
 it("does not use a later long course to inflate tolerance for an earlier open traverse", () => {
-  const scene = buildBoundary({ type: "metes_bounds", source: "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50.301 FEET; EAST 10000 FEET." }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", source: "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50.301 FEET; EAST 10000 FEET." }, "Parcel");
   expect(scene.closed).not.toBe(true);
   expect(scene.issue).toBeUndefined();
   expect(scene.courses!.every(course => course.confirmed)).toBe(true);

@@ -2,14 +2,8 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { ConfButton, SuccessIcon } from "aurora-core";
 import type { JSX } from "react";
 import { UI_FAIL, UI_PASS, UI_WARNING } from "../data/iqData";
-import { iqStyles } from "../style/iqStyles";
-import type { IqBucket, IqReportView, IqUiStatus } from "../type/iq.types";
-
-const metricFg = {
-  green: "#065f46",
-  amber: "#92400e",
-  red: "#991b1b",
-} satisfies Record<IqBucket, string>;
+import { iqColors, iqStyles } from "../style/iqStyles";
+import type { IqReportView, IqUiStatus } from "../type/iq.types";
 
 function statusLabel(status: IqUiStatus): string {
   return status === UI_PASS ? "PASS" : status.toUpperCase();
@@ -29,7 +23,7 @@ export function IqGates({
     <Tooltip.Provider delayDuration={250}>
       <div style={{ ...iqStyles.summaryCard, margin: "1rem 0 0.25rem" }}>
         <div>
-          <div style={{ ...iqStyles.metricNumber, color: metricFg[gates.bucket] }}>
+          <div style={{ ...iqStyles.metricNumber, color: iqColors[gates.bucket].fg }}>
             {gates.displayPercent}%
           </div>
           <div style={iqStyles.metricSubtext}>out of {gates.total} gates</div>

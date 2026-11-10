@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { IqBucket, IqUiStatus } from "../type/iq.types";
 
-const palette = {
+export const iqColors = {
   green: { fg: "#065f46", bar: "#16a34a" },
   amber: { fg: "#92400e", bar: "#f59e0b" },
   red: { fg: "#991b1b", bar: "#ef4444" },
@@ -90,7 +90,7 @@ export const iqStyles = {
   },
   metricFill(bucket: IqBucket, width: number): CSSProperties {
     return {
-      background: palette[bucket].bar,
+      background: iqColors[bucket].bar,
       height: "100%",
       transition: "width 350ms ease",
       width: `${width}%`,

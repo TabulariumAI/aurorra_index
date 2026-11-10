@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { buildBoundary, parseBearing, parseDistance } from "../data/surveyData";
+import { buildMatrix, parseBearing, parseDistance } from "../data/metesData";
 import { metesFixture } from "./metesFixture";
 
 const rectangle = "BEGINNING AT AN IRON PIN; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET TO THE PLACE OF BEGINNING.";
@@ -17,7 +17,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("does not turn a negative source distance into a positive edge", () => {
-    const scene = buildBoundary({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 45 DEGREES EAST -100 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 45 DEGREES EAST -100 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
     expect(scene.items.every(item => item.kind === "line" && !item.confirmed)).toBe(true);
     expect(scene.items.some(item => item.kind === "line" && item.sequence === 1)).toBe(false);
     expect(scene.issue).toMatch(/distance/i);
@@ -30,7 +30,7 @@ describe("replacement Metes boundaries", () => {
   it("draws the supplied deed with one offset, seven boundary edges and the stated area", () => {
     const input = metesFixture.groups.find(entry => entry.type === "metes_bounds")!;
     const original = JSON.stringify(input);
-    const lines = buildBoundary(input, "Parcel").items.filter(item => item.kind === "line");
+    const lines = buildMatrix(input, "Parcel").items.filter(item => item.kind === "line");
     expect(lines).toHaveLength(8);
     expect(lines.map(line => line.distance)).toEqual(["320.07 FEET", "276.00 FEET", "249.89 FEET", "37.41 FEET", "108.75 FEET", "79.75 FEET", "23.13 FEET", "313.73 FEET"]);
     const boundary = lines.slice(1);
@@ -61,7 +61,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("retains later readable courses as schematic after an unsupported curve", () => {
-    const scene = buildBoundary({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; THENCE ALONG A CURVE TO THE RIGHT 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; THENCE ALONG A CURVE TO THE RIGHT 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET." }, "Parcel");
     expect(scene.items.filter(item => item.kind === "line").map(item => item.confirmed)).toEqual([true, false, false]);
     expect(scene.schematic).toBe(true);
     expect(scene.issue).toMatch(/curve/i);
@@ -88,7 +88,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("reads source courses without requiring parallel lists or backend-only calls", () => {
-    const scene = buildBoundary(group, "Parcel");
+    const scene = buildMatrix(group, "Parcel");
     expect(scene.items.filter(item => item.kind === "line")).toHaveLength(4);
     expect(JSON.stringify(group)).not.toMatch(/calls|bearings|distances/);
   });
@@ -102,7 +102,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("uses stated units consistently within one boundary", () => {
-    const scene = buildBoundary({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; EAST 15.24 METERS; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; EAST 15.24 METERS; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
     const lines = scene.items.filter(item => item.kind === "line");
     expect(lines).toHaveLength(4);
     expect(Math.hypot(lines.at(-1)!.to.x, lines.at(-1)!.to.y)).toBeLessThan(0.000001);
@@ -116,7 +116,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("retains later measurements as unconfirmed after an unpaired source course", () => {
-    const scene = buildBoundary({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; NORTH 45 DEGREES EAST TO A PIN; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; NORTH 45 DEGREES EAST TO A PIN; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
     expect(scene.items.filter(item => item.kind === "line").map(item => item.confirmed)).toEqual([true, false, false]);
     expect(scene.schematic).toBe(true);
     expect(scene.issue).toMatch(/distance/i);
@@ -134,7 +134,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("preserves repeated source bearings and disregards incomplete extracted lists", () => {
-    const scene = buildBoundary({ ...group, source: "BEGINNING AT AN IRON PIN; THENCE NORTH 40 FEET; THENCE NORTH 60 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET TO THE PLACE OF BEGINNING.", elements: [
+    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; THENCE NORTH 40 FEET; THENCE NORTH 60 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET TO THE PLACE OF BEGINNING.", elements: [
       { aspect: "bearings", value: "NORTH; EAST; SOUTH; WEST" },
       { aspect: "distances", value: "40 FEET; 60 FEET; 50 FEET; 100 FEET; 50 FEET" },
     ] }, "Parcel");
@@ -181,7 +181,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("does not skip cardinal courses whose distance has no stated unit", () => {
-    const scene = buildBoundary({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
     expect(scene.items.every(item => item.kind === "line" && !item.confirmed)).toBe(true);
     expect(scene.items.some(item => item.kind === "line" && item.sequence === 1)).toBe(false);
     expect(scene.issue).toMatch(/distance/i);
@@ -200,7 +200,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("constructs the supplied paired measurements when source is absent", () => {
-    const scene = buildBoundary({ type: "metes_bounds", elements: [{ aspect: "bearings", value: "N; E; S; W" }, { aspect: "distances", value: "100 ft; 50 ft; 100 ft; 50 ft" }] }, "Parcel");
+    const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect: "bearings", value: "N; E; S; W" }, { aspect: "distances", value: "100 ft; 50 ft; 100 ft; 50 ft" }] }, "Parcel");
     expect(scene.items).toHaveLength(4);
     expect(scene.closed).toBe(true);
     expect(scene.issue).toBeUndefined();

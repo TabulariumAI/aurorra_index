@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPlss } from "../data/surveyData";
+import { buildPlss } from "../data/plssData";
 
 describe("PLSS schematics", () => {
   it("shows complete six-column rows around Section 16, including sections 11 through 14", () => {

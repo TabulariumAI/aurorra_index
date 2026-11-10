@@ -38,7 +38,15 @@ createRoot(main).render(
         onReadyChange={() => undefined}
       />,
     }] : undefined}
-    legal={params.has("matrix") ? { parcels_num: 1, summary: "One parcel described by bearings and distances.", groups: [params.get("matrix") === "offset" ? matrixOffset : params.get("matrix") === "gap" ? matrixGap : params.get("matrix") === "ambiguous" ? matrixAmbiguous : params.get("matrix") === "retry" ? matrixRetry : matrixFixture] } : params.has("street") ? { ...streetFixture, groups: streetFixture.groups.map(group => params.get("street") === "unsupported" ? {
+    legal={params.has("condominium") ? { parcels_num: 1, groups: [{ type: "lot_block", elements: [
+      { aspect: "unit", value: "2" },
+      { aspect: "condominium", value: "SO FLO OFFICE CONDOMINIUMS" },
+      { aspect: "block", value: "2569" },
+      { aspect: "city", value: "SAN ANTONIO" },
+      { aspect: "county", value: "BEXAR" },
+      { aspect: "state", value: "TX" },
+      { aspect: "parcel", value: "UNIT 2" },
+    ] }] } : params.has("matrix") ? { parcels_num: 1, summary: "One parcel described by bearings and distances.", groups: [params.get("matrix") === "offset" ? matrixOffset : params.get("matrix") === "gap" ? matrixGap : params.get("matrix") === "ambiguous" ? matrixAmbiguous : params.get("matrix") === "retry" ? matrixRetry : matrixFixture] } : params.has("street") ? { ...streetFixture, groups: streetFixture.groups.map(group => params.get("street") === "unsupported" ? {
       ...group, elements: [group.elements[0], { ...group.elements[1], value: "16 ft FRONTAGE" }],
     } : group) } : params.has("metes") ? { ...metesFixture, parcels_num: Number(params.get("metes")) } : scope ? { ...lotFixture, groups: lotFixture.groups!.map(group => ({ ...group, elements: [
       ...group.elements!, { aspect: scope, value: "EASTERLY 40 FEET OF THE WESTERLY 80 FEET" },

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { LegalMapContent } from "../component/LegalMapContent";
-import { normalizeLegalData } from "../data/legalData";
+import { normalizeLegalData } from "../data/platData";
 
 describe("Lot & block location", () => {
   it.each([

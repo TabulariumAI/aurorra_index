@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { indexStoreApi } from "../../metdataview/store/metadataStore";
 import { composeMetadataJSON, splitMetadataJSON, type MetadataPayload } from "aurora-core";
 import { storeApi } from "../../../store/state/store";
-import { normalizeLegalData } from "../../legalmap/data/legalData";
+import { normalizeLegalData } from "../../legalmap/data/platData";
 
 describe("index store", () => {
   afterEach(() => {

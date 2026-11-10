@@ -1,27 +1,8 @@
-import { formatLabel, type LegalElement, type LegalGroup, type LegalPayload } from "aurora-core";
-import { displayLots, getElements, getPresentLayers, resolveGroups, toPlatJSON, type LegalMapView } from "./legalData";
+import type { LegalGroup } from "aurora-core";
+import { getElements, getNotes } from "./legalData";
 import { legalMapConstants } from "../style/legalMapStyles";
-import { solveMatrix, type BoundaryCourse, type MatrixCourse } from "./boundaryMatrix";
-
-type SurveyPoint = { x: number; y: number };
-export type SurveyItem =
-  | { kind: "rect"; role: "section" | "division" | "area"; label: string; detail: string; x: number; y: number; width: number; height: number; highlighted: boolean; partial: boolean; caption?: string }
-  | { kind: "line"; label: string; detail: string; sequence: number; from: SurveyPoint; to: SurveyPoint; bearing: string; distance: string; confirmed: boolean; arc?: { center: SurveyPoint; radius: number; sweep: number; turn: number } };
-export type SurveyScene = {
-  title: string;
-  items: SurveyItem[];
-  notes: { label: string; value: string; explanation?: string }[];
-  courses?: { bearing: string; distance?: string; confirmed: boolean; issue?: string; target?: number }[];
-  beginning?: number;
-  ending?: number;
-  closed?: boolean;
-  issue?: string;
-  schematic?: boolean;
-};
-
-function getNotes(elements: LegalElement[]): SurveyScene["notes"] {
-  return elements.map(element => ({ label: formatLabel(element.aspect), value: element.value!, explanation: element.explanation }));
-}
+import { solveMatrix } from "./boundaryMatrix";
+import type { BoundaryCourse, MatrixCourse, MetesLine, MetesPoint, MetesScene } from "../type/metes.types";
 
 const measureAbbr: Record<string, string> = {
   NORTH: "N", SOUTH: "S", EAST: "E", WEST: "W", NORTHEAST: "NE", NORTHWEST: "NW", SOUTHEAST: "SE", SOUTHWEST: "SW",
@@ -83,17 +64,6 @@ export function parseDistance(source: string): number | null {
   return Number.isFinite(length) ? length : null;
 }
 
-function readCourse(value: string): BoundaryCourse {
-  const bearing = [...value.matchAll(bearingPattern)][0];
-  const distance = [...value.matchAll(new RegExp(distancePattern.source, "gi"))].find(match => !bearing
-    || match.index! < bearing.index! || match.index! >= bearing.index! + bearing[0].length);
-  return {
-    kind: "bearing",
-    bearing: distance ? (value.slice(0, distance.index).trim() + " " + value.slice(distance.index! + distance[0].length).trim()).trim() : value.trim(),
-    distance: distance?.[0], clause: "", detail: value,
-  };
-}
-
 function readList(values: string[], distances: boolean): string[] {
   const entries: string[] = [];
   for (const value of values) {
@@ -135,31 +105,6 @@ function readSource(group: LegalGroup, pattern = bearingPattern): BoundaryCourse
   });
 }
 
-export function parseMetesAndBounds(group: LegalGroup): BoundaryCourse[] {
-  const courses = readSource(group);
-  const elements = getElements(group);
-  const bearings = readList(elements.filter(element => element.aspect === "bearings" && element.value?.trim()).map(element => element.value!), false);
-  const distances = readList(elements.filter(element => element.aspect === "distances" && element.value?.trim()).map(element => element.value!), true);
-  const bearingCalls = bearings.map(readCourse);
-  const distanceCalls = distances.map(readCourse);
-  const paired = bearings.length > 0 && bearings.length === distances.length;
-  const embedded = [bearingCalls, distanceCalls].filter(calls => calls.some(course => parseBearing(course.bearing) !== null && course.distance !== undefined && parseDistance(course.distance) !== null));
-  const measurements = paired ? bearingCalls.map((course, index) => ({ ...course,
-    bearing: parseBearing(course.bearing) === null && parseBearing(distanceCalls[index].bearing) !== null ? distanceCalls[index].bearing : course.bearing,
-    distance: distanceCalls[index].distance ?? course.distance ?? distances[index],
-    detail: `${bearings[index]} · ${distances[index]}`,
-  })) : embedded.length === 1 ? embedded[0] : [];
-  if (measurements.length > 0 && (courses.length === 0 || (courses.every(course => course.kind === "bearing")
-    && measurements.every(course => parseBearing(course.bearing) !== null && course.distance !== undefined && parseDistance(course.distance) !== null)
-    && courses.some(course => parseBearing(course.bearing) === null || !course.distance)))) {
-    return measurements.map((course, index) => ({ ...course,
-      clause: courses[index]?.kind === "bearing" && parseBearing(courses[index].bearing) === parseBearing(course.bearing)
-        && courses[index].distance !== undefined && course.distance !== undefined && parseDistance(courses[index].distance!) === parseDistance(course.distance) ? courses[index].clause : "",
-    }));
-  }
-  return courses;
-}
-
 export function parseStreetRelativeBoundary(group: LegalGroup): BoundaryCourse[] | null {
   const clauses = [...new Set(readList([
     group.source ?? "",
@@ -191,32 +136,25 @@ export function parseStreetRelativeBoundary(group: LegalGroup): BoundaryCourse[]
   }));
 }
 
-export function buildBoundary(group: LegalGroup, title: string): SurveyScene {
-  const parsed = parseMetesAndBounds(group);
-  const courses = parsed.length ? parsed : parseStreetRelativeBoundary(group) ?? [];
-  const schematic = !parsed.length && courses.length > 0;
-  return drawBoundary(group, title, courses, schematic);
-}
-
-function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[], schematic: boolean): SurveyScene {
-  const scene: SurveyScene = { title, items: [], notes: getNotes(getElements(group).filter(element => element.value?.trim())), courses: [] };
+function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[], schematic: boolean): MetesScene {
+  const scene: MetesScene = { title, items: [], notes: getNotes(getElements(group).filter(element => element.value?.trim())), courses: [] };
   if (schematic) {
     scene.schematic = true;
     scene.issue = "Unconfirmed boundary: street-relative schematic requires review.";
   }
   const source = group.source ?? "";
-  let point: SurveyPoint = { x: 0, y: 0 };
+  let point: MetesPoint = { x: 0, y: 0 };
   let heading: number | undefined;
   let curve: { radius: number; turn: number } | undefined;
   let positionIssue: string | undefined;
-  let anchor: SurveyPoint = point;
+  let anchor: MetesPoint = point;
   const offset = schematic ? null : source.slice(0, source.search(bearingPattern)).match(new RegExp("(" + number + "\\s*" + unit + ")\\s+(EASTERLY|WESTERLY|NORTHERLY|SOUTHERLY)\\s+FROM\\b", "i"));
   if (offset) {
     const distance = parseDistance(offset[1])!;
     const bearing = offset[2].replace(/ERLY$/i, "");
     const angle = parseBearing(bearing)! * Math.PI / 180;
     const to = { x: Math.sin(angle) * distance, y: -Math.cos(angle) * distance };
-    scene.courses!.push({ bearing: offset[2], distance: offset[1], confirmed: false, issue: "Commencement offset; not a boundary course." });
+    scene.courses.push({ bearing: offset[2], distance: offset[1], confirmed: false, issue: "Commencement offset; not a boundary course." });
     scene.items.push({ kind: "line", label: "Course 1", detail: offset[0], sequence: 1, from: point, to, bearing: offset[2], distance: offset[1], confirmed: false });
     point = to;
     anchor = to;
@@ -227,13 +165,13 @@ function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[
     const metres = course.metres !== undefined ? course.metres : course.distance ? parseDistance(course.distance) : null;
     const angle = course.angle !== undefined ? course.angle : course.kind === "bearing" ? parseBearing(course.bearing) : null;
     let issue = course.issue ?? (schematic ? scene.issue : positionIssue ? "Position depends on an earlier unconfirmed course: " + positionIssue : undefined);
-    let to: SurveyPoint | undefined;
-    let arc: Extract<SurveyItem, { kind: "line" }>["arc"];
+    let to: MetesPoint | undefined;
+    let arc: MetesLine["arc"];
     if (course.kind === "curve") {
       if (curve && heading !== undefined && metres !== null) {
         issue = "Curve-based position requires review.";
         const sweep = metres / curve.radius;
-        const center: SurveyPoint = { x: point.x + curve.turn * curve.radius * Math.cos(heading), y: point.y + curve.turn * curve.radius * Math.sin(heading) };
+        const center: MetesPoint = { x: point.x + curve.turn * curve.radius * Math.cos(heading), y: point.y + curve.turn * curve.radius * Math.sin(heading) };
         heading += curve.turn * sweep;
         to = { x: center.x - curve.turn * curve.radius * Math.cos(heading), y: center.y - curve.turn * curve.radius * Math.sin(heading) };
         arc = { ...curve, center, sweep };
@@ -257,15 +195,15 @@ function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[
     if (metres === 0) issue = "Distance is zero.";
     const bearing = course.kind === "curve" ? curve ? "Curve " + (curve.turn === 1 ? "right" : "left") : "Curve" : course.bearing;
     const confirmed = issue === undefined;
-    scene.courses!.push({ bearing, distance: course.distance, confirmed, ...(issue ? { issue } : {}), ...(to === anchor ? { target: scene.beginning !== undefined ? scene.beginning + 1 : 1 } : {}) });
+    scene.courses.push({ bearing, distance: course.distance, confirmed, ...(issue ? { issue } : {}), ...(to === anchor ? { target: scene.beginning !== undefined ? scene.beginning + 1 : 1 } : {}) });
     if (to && course.distance) {
-      scene.items.push({ kind: "line", label: "Course " + scene.courses!.length, detail: course.detail, sequence: scene.courses!.length, from: point, to, bearing, distance: course.distance, confirmed, ...(arc ? { arc } : {}) });
+      scene.items.push({ kind: "line", label: "Course " + scene.courses.length, detail: course.detail, sequence: scene.courses.length, from: point, to, bearing, distance: course.distance, confirmed, ...(arc ? { arc } : {}) });
       point = to;
     } else {
       scene.schematic = true;
     }
     if (/\bTRUE\s+POINT\s+OF\s+BEGINNING\b/i.test(clause) && to && index < courses.length - 1) {
-      scene.beginning = scene.courses!.length;
+      scene.beginning = scene.courses.length;
       anchor = point;
     }
     if (course.kind === "bearing") {
@@ -276,10 +214,10 @@ function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[
     }
   }
   if (schematic) {
-    scene.ending = scene.courses!.length;
-    scene.courses!.at(-1)!.target = 1;
+    scene.ending = scene.courses.length;
+    scene.courses.at(-1)!.target = 1;
   }
-  const lines = scene.items.filter(item => item.kind === "line");
+  const lines = scene.items;
   let length = 0;
   for (let end = 0; end < lines.length; end += 1) {
     length += parseDistance(lines[end].distance)!;
@@ -296,13 +234,13 @@ function drawBoundary(group: LegalGroup, title: string, courses: BoundaryCourse[
       scene.beginning = lines[beginning].sequence - 1;
       scene.ending = lines[end].sequence;
       scene.closed = true;
-      scene.courses![scene.ending - 1].target = scene.beginning + 1;
-      for (const course of scene.courses!.slice(scene.ending)) {
+      scene.courses[scene.ending - 1].target = scene.beginning + 1;
+      for (const course of scene.courses.slice(scene.ending)) {
         course.confirmed = false;
         course.issue ??= "Course follows the closed parcel.";
       }
       for (const line of lines.slice(end + 1)) line.confirmed = false;
-      if (scene.ending < scene.courses!.length) scene.issue ??= "Boundary needs review: additional courses follow the closed parcel.";
+      if (scene.ending < scene.courses.length) scene.issue ??= "Boundary needs review: additional courses follow the closed parcel.";
       break;
     }
   }
@@ -385,23 +323,23 @@ function matrixCourses(group: LegalGroup): MatrixCourse[] {
   return rows.sort((left, right) => left.order - right.order).map(row => row.course);
 }
 
-export function buildMatrix(group: LegalGroup, title: string): SurveyScene {
+export function buildMatrix(group: LegalGroup, title: string): MetesScene {
   const courses = matrixCourses(group);
   const street = courses.length === 0 ? parseStreetRelativeBoundary(group) : null;
   if (street) return drawBoundary(group, title, street, true);
   const scene = drawBoundary(group, title, courses, false);
-  const offset = scene.courses!.length - courses.length;
+  const offset = scene.courses.length - courses.length;
   const beginning = scene.beginning !== undefined ? scene.beginning - offset : 0;
   const ending = scene.closed ? scene.ending! - offset : courses.length;
   const resolved = solveMatrix(courses.slice(beginning, ending), legalMapConstants.closureRatio,
-    scene.courses!.slice(0, beginning + offset).reduce((sum, course) => sum + parseDistance(course.distance!)!, 0));
+    scene.courses.slice(0, beginning + offset).reduce((sum, course) => sum + parseDistance(course.distance!)!, 0));
   const result = resolved.courses.every((course, index) => course === courses[beginning + index]) ? scene
     : drawBoundary(group, title, [...courses.slice(0, beginning), ...resolved.courses, ...courses.slice(ending)], false);
   if (resolved.closed) {
     result.closed = true;
     result.beginning = beginning + offset;
     result.ending = ending + offset;
-    result.courses![ending + offset - 1].target = beginning + offset + 1;
+    result.courses[ending + offset - 1].target = beginning + offset + 1;
     if (resolved.courses.some(course => course.issue)) {
       result.schematic = true;
       result.issue = resolved.courses.some(course => course.issue && course.paired)
@@ -412,125 +350,8 @@ export function buildMatrix(group: LegalGroup, title: string): SurveyScene {
     result.closed = false;
     result.beginning = undefined;
     result.ending = undefined;
-    for (const course of result.courses!) delete course.target;
+    for (const course of result.courses) delete course.target;
   }
   if (resolved.issue) result.issue = resolved.issue;
   return result;
-}
-
-function aliquotText(source: string): string {
-  return source.toUpperCase().replace(/NORTHEAST/g, "NE").replace(/NORTHWEST/g, "NW").replace(/SOUTHEAST/g, "SE").replace(/SOUTHWEST/g, "SW")
-    .replace(/NORTH/g, "N").replace(/SOUTH/g, "S").replace(/EAST/g, "E").replace(/WEST/g, "W").replace(/QUARTER/g, "1/4").replace(/HALF/g, "1/2");
-}
-
-function divideSection(parent: Extract<SurveyItem, { kind: "rect" }>, description: string, symbolic: boolean, source: string): SurveyItem[] {
-  const normalized = aliquotText(description);
-  const divisions = normalized.trim() ? normalized.split(/\s*(?:,|\bAND\b|&)\s*/).filter(part => part.trim()) : [""];
-  const items: SurveyItem[] = [];
-  for (const division of divisions) {
-    const aliquots = [...division.matchAll(/\b(NE|NW|SE|SW|N|S|E|W)\s*(?:1\s*\/\s*([24])|([¼½]))/g)];
-    if (!aliquots.length && !/\b(NE|NW|SE|SW|N|S|E|W)\s*\d+\s*\//.test(division) && divisions.some(part => /\b(NE|NW|SE|SW|N|S|E|W)\s*(?:1\s*\/|[¼½])/.test(part))) continue;
-    const unresolved = /\b(EXCEPT|LESS|EXCLUDING|OR)\b/.test(division) || aliquots.some(aliquot => (aliquot[1].length === 2) !== ((aliquot[2] ?? (aliquot[3] === "¼" ? "4" : "2")) === "4"))
-      || (!aliquots.length && /[NSWE]\s*\d+\s*\//.test(division));
-    const partial = symbolic || unresolved || /\b(PARTS?|PORTIONS?|EXCEPT|LESS|EXCLUDING|OR)\b/.test(normalized);
-    let area = { x: parent.x, y: parent.y, width: parent.width, height: parent.height };
-    for (const aliquot of unresolved ? [] : [...aliquots].reverse()) {
-      const direction = aliquot[1];
-      const width = /[EW]/.test(direction) ? area.width / 2 : area.width;
-      const height = /[NS]/.test(direction) ? area.height / 2 : area.height;
-      area = { x: area.x + (direction.includes("E") ? area.width - width : 0), y: area.y + (direction.includes("S") ? area.height - height : 0), width, height };
-      items.push({ ...area, kind: "rect", role: "division", label: "Aliquot", detail: `${aliquot[0]} of ${parent.detail}`, highlighted: false, partial: false });
-    }
-    items.push({ ...area, kind: "rect", role: "area", label: parent.detail, detail: source, highlighted: true, partial, caption: unresolved ? undefined : aliquots.map(aliquot => aliquot[0]).join(" of ") });
-  }
-  return items;
-}
-
-export function buildPlss(group: LegalGroup, title: string, summary?: string): SurveyScene {
-  const elements = getElements(group).filter(element => element.value?.trim());
-  const notes = getNotes(elements);
-  const items: SurveyItem[] = Array.from({ length: 36 }, (_, index) => {
-    const row = Math.floor(index / 6);
-    const column = index % 6;
-    const section = row * 6 + (row % 2 === 0 ? 6 - column : column + 1);
-    return { kind: "rect", role: "section", label: String(section), detail: `Section ${section}`, x: column * 100, y: row * 100, width: 100, height: 100, highlighted: false, partial: false };
-  });
-  const sourceSections = elements.some(element => /\b(?:sections?|secs?\.?)\s+\d+/i.test(element.value!));
-  const explicitSection = elements.find(element => element.aspect?.toLowerCase() === "section" && /^\d+$/.test(element.value!.trim()) && Number(element.value) >= 1 && Number(element.value) <= 36)?.value?.trim();
-  const summarySections = [...(summary ?? "").matchAll(/\b(?:sections?|secs?\.?)\s+(\d+(?:\s*(?:,|and|&|[-–])\s*\d+)*)/gi)];
-  const section = explicitSection ?? (!sourceSections && summarySections.length === 1 && /^\d+$/.test(summarySections[0][1]) && Number(summarySections[0][1]) >= 1 && Number(summarySections[0][1]) <= 36 ? summarySections[0][1] : undefined);
-  if (section && !explicitSection) notes.push({ label: "Section", value: section });
-  const descriptions = section ? [...elements, { aspect: "description", value: `${elements.filter(element => element.aspect === "aliquots").map(element => element.value).join("; ")} of Section ${section}` }] : elements;
-  const symbolic = group.type?.trim() === "government_lot" || group.type?.trim() === "fractional_section";
-  for (const element of descriptions) {
-    for (const clause of element.value!.split(/[;\n]/)) {
-      const sections = [...clause.matchAll(/\b(?:sections?|secs?\.?)\s+(\d+(?:\s*(?:,|and|&|[-–])\s*\d+)*)/gi)];
-      for (let index = 0; index < sections.length; index += 1) {
-        const match = sections[index];
-        const numbers: number[] = [];
-        for (const part of match[1].split(/\s*(?:,|and|&)\s*/i)) {
-          const range = part.split(/\s*[-–]\s*/).map(Number);
-          if (range.some(number => number < 1 || number > 36) || (range.length === 2 && range[1] < range[0])) continue;
-          for (let number = range[0]; number <= (range[1] ?? range[0]); number += 1) numbers.push(number);
-        }
-        const prefix = clause.slice(index === 0 ? 0 : sections[index - 1].index! + sections[index - 1][0].length, match.index);
-        const description = prefix.trim() || (sections.length === 1 ? clause.slice(match.index! + match[0].length) : "");
-        for (const section of numbers) {
-          const parent = items.find(item => item.kind === "rect" && item.role === "section" && item.label === String(section));
-          if (parent?.kind === "rect") items.push(...divideSection(parent, description, symbolic, clause.trim()));
-        }
-      }
-    }
-  }
-  let areas = items.filter(item => item.kind === "rect" && item.role === "area");
-  if (!areas.length) {
-    const aliquots = elements.filter(element => element.aspect === "aliquots").map(element => element.value).join("; ");
-    if (/\b(NE|NW|SE|SW|N|S|E|W)\s*(?:1\s*\/\s*[24]|[¼½])/.test(aliquotText(aliquots)) && !sourceSections) {
-      const parent: Extract<SurveyItem, { kind: "rect" }> = { kind: "rect", role: "section", label: "Section", detail: "Section", x: 0, y: 0, width: 100, height: 100, highlighted: false, partial: false };
-      items.splice(0, items.length, parent, ...divideSection(parent, aliquots, symbolic, aliquots));
-      areas = items.filter(item => item.kind === "rect" && item.role === "area");
-    } else {
-      return { title, notes, items: [], issue: "Cannot map: no section or aliquot could be resolved." };
-    }
-  }
-  const sections = items.filter((item): item is Extract<SurveyItem, { kind: "rect" }> => item.kind === "rect" && item.role === "section" && areas.some(area => area.label === item.detail));
-  const top = Math.min(...sections.map(section => section.y - section.height));
-  const bottom = Math.max(...sections.map(section => section.y + section.height * 2));
-  return {
-    title, notes,
-    items: items.filter(item => item.kind !== "rect" || item.role !== "section" || (item.y >= top && item.y + item.height <= bottom))
-      .map(item => item.kind === "rect" && item.role === "section" ? { ...item, highlighted: sections.includes(item) } : item),
-  };
-}
-
-export function getMapGroups(legal: LegalPayload | null | undefined): { view: LegalMapView; group: LegalGroup; scene?: SurveyScene; notes: SurveyScene["notes"]; aspects: LegalElement[]; issue?: string }[] {
-  const views: Record<string, LegalMapView> = { lot_block: "Lot & block", plss: "PLSS", government_lot: "PLSS", fractional_section: "PLSS", metes_bounds: "Metes & Bounds" };
-  const groups = resolveGroups(legal).filter((group): group is LegalGroup => typeof group === "object" && group !== null);
-  const plssCount = groups.filter(group => views[group.type?.trim() ?? ""] === "PLSS").length;
-  return groups.flatMap(group => {
-    const type = group.type?.trim() ?? "";
-    if (!Object.hasOwn(views, type)) return [];
-    const elements = getElements(group).filter(element => element.value?.trim());
-    if (elements.length === 0 && !group.source?.trim()) return [];
-    const view = views[type];
-    const scene = view === "PLSS" ? buildPlss(group, view, plssCount === 1 ? legal?.summary : undefined) : view === "Metes & Bounds" ? buildMatrix(group, view) : undefined;
-    let aspects: LegalElement[] = [];
-    let issue: string | undefined;
-    if (view === "Lot & block") {
-      const subdivisions = toPlatJSON([{ ...group, type }]);
-      const layers = getPresentLayers(subdivisions);
-      if (subdivisions.some(subdivision => subdivision.divisions.some(division => division.blocks.some(block => displayLots(block.lots).some(lot => lot.acreage))))) {
-        layers.add("acreage");
-      }
-      aspects = elements.filter(element => element.aspect?.trim()
-        && !layers.has(element.aspect.toLowerCase())
-        && !["state", "county", "jurisdiction", "city"].includes(element.aspect.toLowerCase()));
-      if (elements.some(element => !element.aspect?.trim())) {
-        issue = "Cannot map: extracted values without aspect labels cannot be drawn.";
-      } else if (layers.size === 0 && aspects.length === 0) {
-        issue = "Cannot map: only location fields were provided; no drawable identifiers are available.";
-      }
-    }
-    return [{ view, group, scene, notes: view === "Lot & block" ? getNotes(elements) : scene!.notes, aspects, issue }];
-  });
 }

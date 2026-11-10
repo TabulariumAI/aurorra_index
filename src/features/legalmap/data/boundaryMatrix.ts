@@ -1,21 +1,4 @@
-export type BoundaryCourse = {
-  kind: "bearing" | "curve";
-  bearing: string;
-  distance?: string;
-  clause: string;
-  detail: string;
-  angle?: number | null;
-  metres?: number | null;
-  issue?: string;
-};
-
-export type MatrixCourse = BoundaryCourse & {
-  angle: number | null;
-  metres: number | null;
-  paired: boolean;
-  missingBearing: boolean;
-  missingDistance: boolean;
-};
+import type { MatrixCourse } from "../type/metes.types";
 
 type Point = { x: number; y: number };
 type Shape = { courses: MatrixCourse[]; key: string };
