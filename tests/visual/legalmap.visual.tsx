@@ -8,6 +8,8 @@ import { lotFixture } from "../../src/features/legalmap/test/aspectFixture";
 import { metesFixture } from "../../src/features/legalmap/test/metesFixture";
 import { streetFixture } from "../../src/features/legalmap/test/streetFixture";
 import { matrixAmbiguous, matrixFixture, matrixGap, matrixOffset, matrixRetry } from "../../src/features/legalmap/test/matrixFixture";
+import { curveFixture } from "../../src/features/legalmap/test/caseFixture";
+import { reconstructionFixtures } from "../../src/features/legalmap/test/reconstructionFixture";
 
 const stage = document.getElementById("visual-stage");
 if (!stage) throw new Error("visual-stage is required.");
@@ -38,7 +40,9 @@ createRoot(main).render(
         onReadyChange={() => undefined}
       />,
     }] : undefined}
-    legal={params.has("condominium") ? { parcels_num: 1, groups: [{ type: "lot_block", elements: [
+    legal={params.has("reconstruction") ? { parcels_num: 1, groups: [reconstructionFixtures[params.get("reconstruction")!]] }
+      : params.has("curves") ? { parcels_num: 1, groups: curveFixture.groups.filter(group => group.type === "metes_bounds") }
+      : params.has("condominium") ? { parcels_num: 1, groups: [{ type: "lot_block", elements: [
       { aspect: "unit", value: "2" },
       { aspect: "condominium", value: "SO FLO OFFICE CONDOMINIUMS" },
       { aspect: "block", value: "2569" },

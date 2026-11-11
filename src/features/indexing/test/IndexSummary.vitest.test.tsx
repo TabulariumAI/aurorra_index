@@ -18,7 +18,7 @@ it("shows five summary metrics with existing count and score semantics and no re
   expect(value("Ambiguities")).toHaveTextContent("3");
   expect(value("Audit changes")).toHaveTextContent("2");
   expect(value("IQ")).toHaveTextContent("90%");
-  expect(value("Compliance")).toHaveTextContent("75%");
+  expect(value("Compliance")).toHaveTextContent("67%");
   expect(screen.queryByText("Added")).not.toBeInTheDocument();
   expect(screen.queryByText("Compliance Gates")).not.toBeInTheDocument();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
@@ -112,7 +112,7 @@ it("renders an error indicator for an empty error message instead of an endless 
 
 it("exposes named score meters matching the displayed percentages", () => {
   render(<IndexSummary metadata={metadata} audit={audit} iq={iq} />);
-  for (const [label, percent] of [["IQ", 90], ["Compliance", 75]] as const) {
+  for (const [label, percent] of [["IQ", 90], ["Compliance", 67]] as const) {
     const meter = screen.getByRole("meter", { name: label });
     expect(meter).toHaveAttribute("aria-valuemin", "0");
     expect(meter).toHaveAttribute("aria-valuemax", "100");
@@ -156,4 +156,12 @@ it("places count labels before their values without reversing the visual order",
   for (const label of ["IQ", "Compliance"]) {
     expect(value(label).parentElement).toHaveStyle({ flexDirection: "column" });
   }
+});
+
+it("renders independent prepared IQ and compliance errors", () => {
+  const data = { iq_doc: 90, gates: [] };
+  Object.defineProperty(data, "gates", { get() { throw new Error("Gate conversion failed"); } });
+  render(<IndexSummary metadata={metadata} audit={audit} iq={{ data, error: null }} />);
+  expect(value("IQ")).toHaveTextContent("90%");
+  expect(screen.getByRole("button", { name: "Compliance error" })).toBeVisible();
 });

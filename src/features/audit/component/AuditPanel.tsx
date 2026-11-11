@@ -6,10 +6,11 @@ import { AuditFilters } from "./AuditFilters";
 import { AuditGaps } from "./AuditGaps";
 import { AuditSummary } from "./AuditSummary";
 import { AuditUsage } from "./AuditUsage";
+import { AuditChoices } from "./AuditChoices";
 import { auditCss, auditStyles } from "../style/auditStyles";
 
 const initialFilters: AuditFiltersState = { changeType: "", process: "", segment: "" };
-const auditTabs = ["Changes", "Usage"];
+const auditTabs = ["Changes", "Usage", "Choices"];
 
 export function AuditPanel(props: AuditPanelProps): JSX.Element {
   const { report, error } = useAuditReport(props);
@@ -37,6 +38,9 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
             <ErrorBoundary title="Audit usage" resetKey={report}><AuditUsage key={props.session} report={report} session={props.session} /></ErrorBoundary>
           </div>
         </>}
+        <div hidden={active !== "Choices"}>
+          <ErrorBoundary title="Session choices" resetKey={props.session}><AuditChoices key={props.session} session={props.session} sourceDownload={props.sourceDownload} /></ErrorBoundary>
+        </div>
       </div>
     </div>
   </section>;

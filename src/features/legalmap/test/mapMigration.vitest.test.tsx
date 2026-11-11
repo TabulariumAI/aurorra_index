@@ -85,7 +85,7 @@ describe("map migration parity", () => {
     expect(document.querySelector("[data-survey-line], [data-survey-section]")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(4);
-    expect(document.querySelectorAll("[data-survey-line][data-unconfirmed]")).toHaveLength(1);
+    expect(document.querySelectorAll("[data-survey-line][data-unconfirmed]")).toHaveLength(4);
     expect(document.querySelector("[data-survey-section], [data-legal-map-lot]")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
     expect(document.querySelectorAll("[data-survey-section]")).toHaveLength(18);

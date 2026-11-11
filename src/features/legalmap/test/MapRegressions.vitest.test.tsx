@@ -81,21 +81,21 @@ describe("reported map regressions", () => {
     }
   });
 
-  it("retains all six Bennington distances and draws the unresolved return as unconfirmed", () => {
+  it("retains all six Bennington measurements and illustrates one unconfirmed closing border", () => {
     const group = sectionFixture.groups!.find(group => group.type === "metes_bounds")!;
     const original = JSON.stringify(group);
     const scene = buildMatrix(group, "Parcel");
-    expect(scene.courses).toHaveLength(6);
-    expect(scene.courses!.map(course => course.distance)).toEqual(["1181.05 feet", "627.00 feet", "617.00 feet", "648.83 feet", "217.00 feet", "350.00 feet"]);
+    expect(scene.completion).toBe("partial");
+    expect(scene.courses.filter(course => !/synthetic closing/i.test(course.issue ?? "")).map(course => course.distance)).toEqual(["1181.05 feet", "627.00 feet", "617.00 feet", "648.83 feet", "217.00 feet", "350.00 feet"]);
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [group] }} />);
     const rows = within(screen.getByRole("table", { name: "Boundary Calls" })).getAllByRole("row");
-    expect(rows).toHaveLength(7);
+    expect(rows).toHaveLength(8);
     expect(rows.at(-1)).toHaveTextContent("350.00 ft");
     expect(rows.at(-1)).toHaveTextContent("Unconfirmed");
-    expect(rows.at(-1)).toHaveTextContent("6 → 2");
+    expect(rows.at(-1)).toHaveTextContent("Unassigned");
+    expect(rows.at(-2)).toHaveTextContent("6 → 2");
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(6);
-    expect(document.querySelector("[data-survey-line][data-unconfirmed]")).not.toBeNull();
-    expect(document.querySelector("[data-boundary-fill]")).toBeNull();
+    expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
     expect(JSON.stringify(group)).toBe(original);
   });
 

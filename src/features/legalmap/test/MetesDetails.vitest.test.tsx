@@ -40,7 +40,7 @@ it.each([
   ["NORTH 100; EAST 20 FEET.", 0, "Distance is missing or unreadable."],
   ["NORTH 100 FEET; THENCE ALONG A CURVE TO THE RIGHT 50 FEET; EAST 30 FEET.", 1, "Curve geometry is incomplete."],
   ["NORTH 100 FEET; NORTH 91 DEGREES EAST 20 FEET; EAST 30 FEET.", 2, "Position depends on an earlier unconfirmed course: Bearing is unreadable."],
-  ["NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET; EAST 20 FEET.", 4, "Course follows the closed parcel."],
+  ["NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET TO THE POINT OF BEGINNING; EAST 20 FEET.", 4, "Course follows the closed parcel."],
 ])("explains the specific unconfirmed cause in %s", async (source, index, reason) => {
   const legal = { parcels_num: 1, groups: [{ type: "metes_bounds", source }] };
   const scene = buildMatrix(legal.groups[0], "Parcel");
@@ -59,7 +59,8 @@ it("gives the supplied commencement offset and unreadable return separate reason
   const scene = buildMatrix(sectionFixture.groups.find(group => group.type === "metes_bounds")!, "Parcel");
   expect(scene.courses![0]).toMatchObject({ confirmed: false, issue: "Commencement offset; not a boundary course." });
   expect(scene.courses!.at(-1)).toMatchObject({ confirmed: false, issue: "Bearing is unreadable." });
-  expect(scene.courses!.slice(1, -1).every(course => course.confirmed)).toBe(true);
+  expect(scene.courses!.filter(course => course.confirmed)).toHaveLength(4);
+  expect(scene.courses!.filter(course => /synthetic closing/i.test(course.issue ?? ""))).toHaveLength(1);
 });
 
 it("explains every provisional curve position in the supplied case", () => {
@@ -85,10 +86,10 @@ it.each(["bearings", "distances"])("reads both measurements from either end of %
 });
 
 it.each(["bearings", "distances"])("distinguishes DMS angles from embedded lengths in %s", aspect => {
-  const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect, value: 'NORTH 12°34\'56" EAST 123.45 FEET; 67.89 METERS SOUTH 23°45\'12" WEST' }] }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect, value: 'NORTH 12°34\'56" EAST 123.45 FEET; 67.89 METERS SOUTH 23°45\'12" WEST' }] }, "Parcel", { allowSchematic: false });
   expect(scene.courses).toHaveLength(2);
   expect(scene.courses!.map(course => course.distance)).toEqual(["123.45 FEET", "67.89 METERS"]);
-  expect(scene.courses!.every(course => course.confirmed)).toBe(true);
+  expect(scene.courses!.every(course => !course.confirmed && Boolean(course.issue))).toBe(true);
 });
 
 it.each(["bearings", "distances"])("retains repeated courses in embedded %s JSON arrays", aspect => {
@@ -99,10 +100,10 @@ it.each(["bearings", "distances"])("retains repeated courses in embedded %s JSON
 });
 
 it.each(["bearings", "distances"])("preserves bearing punctuation and thousands separators in %s", aspect => {
-  const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect, value: 'NORTH 12°34\'56", EAST 1,000 FEET; 200 FEET WEST' }] }, "Parcel");
+  const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect, value: 'NORTH 12°34\'56", EAST 1,000 FEET; 200 FEET WEST' }] }, "Parcel", { allowSchematic: false });
   expect(scene.courses).toHaveLength(2);
   expect(scene.courses!.map(course => course.distance)).toEqual(["1,000 FEET", "200 FEET"]);
-  expect(scene.courses!.every(course => course.confirmed)).toBe(true);
+  expect(scene.courses!.every(course => !course.confirmed && Boolean(course.issue))).toBe(true);
 });
 
 it("combines embedded and separate fields once without duplicating courses", () => {
@@ -112,7 +113,7 @@ it("combines embedded and separate fields once without duplicating courses", () 
   ] }, "Parcel");
   expect(scene.courses).toHaveLength(4);
   expect(scene.closed).toBe(true);
-  expect(scene.courses!.every(course => course.confirmed)).toBe(true);
+  expect(scene.courses!.every(course => !course.confirmed && Boolean(course.issue))).toBe(true);
 });
 
 it("retains the four frontage rows and draws only the supplied N/S directions as schematic", () => {
@@ -142,7 +143,7 @@ it("retains the four frontage rows and draws only the supplied N/S directions as
 it("retains unreadable embedded bearings and zero distances for review", () => {
   const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect: "bearings", value: "NORTH 100 FEET; NORTH 91 DEGREES EAST 25 FEET; EAST 0 FEET; SOUTH 50 FEET" }] }, "Parcel");
   expect(scene.courses).toHaveLength(4);
-  expect(scene.courses!.map(course => course.confirmed)).toEqual([true, false, false, false]);
+  expect(scene.courses!.map(course => course.confirmed)).toEqual([false, false, false, false]);
   expect(scene.courses![1].distance).toBe("25 FEET");
   expect(scene.courses![1].issue).toBe("Bearing is unreadable.");
   expect(scene.courses![2].issue).toBe("Distance is zero.");

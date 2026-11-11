@@ -9,7 +9,6 @@ export const iqColors = {
 
 const gateColors = {
   warning: "#f59e0b",
-  info: "#94a3b8",
   fail: "#ef4444",
 } satisfies Record<Exclude<IqUiStatus, "success">, string>;
 

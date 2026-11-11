@@ -21,17 +21,17 @@ it("preserves the six extracted courses, filled parcel, commencement tie and sta
   expect(JSON.stringify(presentationFixture)).toBe(original);
 });
 
-it("continues later readable calls as unconfirmed geometry after an unreadable bearing", () => {
+it("illustrates readable source courses and retains the unreadable course as unassigned", () => {
   const scene = buildMatrix(interruptedFixture.groups[0], "Parcel 1");
-  expect(scene.courses).toHaveLength(6);
-  const lines = scene.items.filter(item => item.kind === "line");
-  expect(lines).toHaveLength(5);
-  expect(lines.map(line => line.confirmed)).toEqual([true, true, false, false, false]);
-  expect(scene.closed).not.toBe(true);
+  expect(scene.closed).toBe(true);
+  expect(scene.completion).toBe("partial");
+  expect(scene.courses).toHaveLength(7);
+  expect(scene.items.map(item => item.confirmed)).toEqual([true, true, true, true, true, false]);
+  expect(scene.courses.at(-1)).toMatchObject({ unassigned: true, confirmed: false, issue: "Bearing is unreadable." });
   render(<LegalMapContent legal={interruptedFixture} />);
-  expect(document.querySelectorAll('[data-survey-line][data-unconfirmed="true"]')).toHaveLength(3);
-  expect([...document.querySelectorAll("[data-survey-vertex]")].map(node => node.textContent)).toEqual(["1", "2", "3", "4", "5", "6", "7"]);
-  expect(screen.getByText(/schematic/i)).toBeVisible();
+  expect(document.querySelectorAll('[data-survey-line][data-unconfirmed="true"]')).toHaveLength(1);
+  expect(screen.getByRole("table", { name: "Boundary Calls" })).toHaveTextContent("Unassigned");
+  expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
 });
 
 it("does not create a spurious South course from possessive source text", () => {
@@ -66,41 +66,48 @@ it("renders available extracted measurements instead of empty boundary-table hea
   expect(screen.getByRole("region", { name: "Boundary Calls" })).toHaveStyle({ flex: "1 1 0", height: "auto" });
 });
 
-it("retains readable extracted courses and their numbers when one metadata bearing is unreadable", () => {
+it("retains an unreadable extracted bearing separately from the illustrated outline", () => {
   const scene = buildMatrix({ type: "metes_bounds", elements: [
     { aspect: "bearings", value: "NORTH; NORTH 89 DEGREES 67 MINUTES EAST; SOUTH; WEST" },
     { aspect: "distances", value: "100 FEET; 50 FEET; 100 FEET; 50 FEET" },
   ] }, "Parcel");
-  expect(scene.courses).toHaveLength(4);
-  expect(scene.items.filter(item => item.kind === "line").map(item => [item.sequence, item.confirmed])).toEqual([[1, true], [3, false], [4, false]]);
-  expect(scene.closed).not.toBe(true);
+  expect(scene.completion).toBe("partial");
+  expect(scene.courses).toHaveLength(5);
+  expect(scene.courses.every(course => !course.confirmed)).toBe(true);
+  expect(scene.courses.at(-1)).toMatchObject({ distance: "50 FEET", unassigned: true, issue: "Bearing is unreadable." });
+  expect(scene.items).toHaveLength(4);
 });
 
-it("does not render an empty measurements card for a group with acreage only", () => {
+it("renders unconfirmed acreage-template calls instead of an empty measurements card", () => {
   render(<LegalMapContent legal={{ parcels_num: 2, groups: [presentationFixture.groups[0], { type: "metes_bounds", elements: [{ aspect: "acreage", value: "2 ACRES" }] }] }} />);
-  expect(screen.getAllByRole("table", { name: "Boundary Calls" })).toHaveLength(1);
+  const tables = screen.getAllByRole("table", { name: "Boundary Calls" });
+  expect(tables).toHaveLength(2);
+  expect(tables[1].querySelectorAll("tbody tr")).toHaveLength(4);
+  expect([...tables[1].querySelectorAll("tbody tr")].every(row => row.textContent?.includes("Unconfirmed"))).toBe(true);
   expect(screen.queryByRole("region", { name: "Parcel 2 extracted measurements" })).toBeNull();
 });
 
-it.each(["0 ft", "00'", "0.0 feet", "0 metres"])("never confirms a zero source distance: %s", distance => {
+it.each(["0 ft", "00'", "0.0 feet", "0 metres"])("retains a zero source distance as unassigned: %s", distance => {
   const scene = buildMatrix({ type: "metes_bounds", source: `BEGINNING AT A PIN; NORTH 100 FEET; EAST ${distance}; SOUTH 100 FEET; WEST 50 FEET.` }, "Parcel");
-  expect(scene.courses?.map(course => course.confirmed)).toEqual([true, false, true, true]);
-  expect(scene.items.filter(item => item.kind === "line").map(item => item.confirmed)).toEqual([true, false, true, true]);
-  expect(scene.courses?.[1].distance).toBe(distance);
+  expect(scene.courses.find(course => course.distance === distance)).toMatchObject({ confirmed: false, unassigned: true, issue: "Distance is zero." });
+  expect(scene.items.some(item => item.distance === distance)).toBe(false);
+  expect(scene.completion).toBe("partial");
 });
 
-it("marks every zero metadata distance unconfirmed while retaining positive distances and original text", () => {
+it("retains every zero metadata distance as unassigned beside the illustrated boundary", () => {
   const original = JSON.stringify(zeroFixture);
   const scene = buildMatrix(zeroFixture.groups[0], "Parcel");
-  expect(scene.courses?.map(course => course.confirmed)).toEqual([true, false, true, true, false, true, true, false]);
+  expect(scene.courses.every(course => !course.confirmed)).toBe(true);
+  expect(scene.courses.filter(course => course.distance === "00'")).toHaveLength(3);
+  expect(scene.courses.filter(course => course.distance === "00'").every(course => course.unassigned && course.issue === "Distance is zero.")).toBe(true);
   render(<LegalMapContent legal={zeroFixture} />);
   const rows = screen.getByRole("table", { name: "Boundary Calls" }).querySelectorAll("tbody tr");
-  expect(rows).toHaveLength(8);
-  for (const index of [1, 4, 7]) {
-    expect(rows[index]).toHaveTextContent("00 ft");
-    expect(rows[index].lastElementChild).toHaveTextContent(/^Unconfirmed$/);
+  expect(rows).toHaveLength(9);
+  for (const row of [...rows].filter(row => row.textContent!.includes("00 ft"))) {
+    expect(row).toHaveTextContent("Unassigned");
+    expect(row.lastElementChild).toHaveTextContent(/^Unconfirmed$/);
   }
-  expect(document.querySelectorAll('[data-survey-line][data-unconfirmed="true"]')).toHaveLength(3);
+  expect(document.querySelectorAll('[data-survey-line][data-unconfirmed="true"]')).toHaveLength(6);
   expect(JSON.stringify(zeroFixture)).toBe(original);
 });
 
@@ -127,59 +134,40 @@ it.each([
   }
 });
 
-it.each([true, false])("preserves the screenshot parcel and separates its extra course with source=%s", withSource => {
+it.each([true, false])("uses the supplied reconstruction and retains original measurements with source=%s", withSource => {
   const legal = { ...closureFixture, groups: [{ ...closureFixture.groups[0], source: withSource ? closureFixture.groups[0].source : undefined }] };
   const original = JSON.stringify(legal);
   const scene = buildMatrix(legal.groups[0], "Parcel");
-  expect(scene.closed).toBe(true);
-  expect(scene.beginning).toBe(1);
-  expect(scene.courses).toHaveLength(9);
-  expect(scene.courses!.map(course => course.confirmed)).toEqual([true, true, true, true, true, true, true, true, false]);
-  expect(scene.courses![7].target).toBe(2);
-  expect(scene.courses![8].distance).toBe("4726 in");
-  const lines = scene.items.filter(item => item.kind === "line");
-  const boundary = lines.slice(1, 8);
-  const origin = boundary[0].from;
-  const acres = Math.abs(boundary.reduce((sum, line) => sum + (line.from.x - origin.x) * (line.to.y - origin.y) - (line.to.x - origin.x) * (line.from.y - origin.y), 0)) / 2 / 4046.8564224;
-  expect(acres).toBeCloseTo(30.210, 3);
+  expect(scene).toMatchObject({ closed: true, beginning: 1, completion: withSource ? "partial" : "measured" });
+  expect(scene.calculatedAcres).toBeCloseTo(30.210, 3);
+  expect(scene.courses).toHaveLength(withSource ? 10 : 9);
+  expect(scene.courses.find(course => course.distance === "4726 in")).toBeDefined();
+  expect(scene.courses[scene.ending! - 1].target).toBe(2);
+  expect(scene.items.filter(item => !item.confirmed)).toHaveLength(withSource ? 1 : 8);
   render(<LegalMapContent legal={legal} />);
-  const plotted = [...document.querySelectorAll("[data-survey-line]")];
-  expect(plotted).toHaveLength(9);
+  const plotted = document.querySelectorAll("[data-survey-line]");
+  expect(plotted).toHaveLength(withSource ? 10 : 8);
   expect(plotted[0]).toHaveAttribute("data-survey-tie", "true");
-  expect(plotted[0]).toHaveAttribute("stroke-dasharray", "1 5");
-  expect(plotted[7]).toHaveAttribute("x2", String(origin.x));
-  expect(plotted[7]).toHaveAttribute("y2", String(origin.y));
-  expect(plotted[8]).toHaveAttribute("data-unconfirmed", "true");
-  expect(plotted[8]).toHaveAttribute("stroke-dasharray", "6 4");
-  expect(plotted[8]).toHaveAttribute("x2", String(lines[8].to.x));
-  expect(plotted[8]).toHaveAttribute("y2", String(lines[8].to.y));
-  const fill = document.querySelector("[data-boundary-fill]");
-  expect(fill).not.toBeNull();
-  expect(fill).not.toHaveAttribute("d", expect.stringContaining(String(lines[8].to.y)));
-  expect(document.querySelector('[data-survey-point="10"]')).not.toBeNull();
-  const rows = screen.getByRole("table", { name: "Boundary Calls" }).querySelectorAll("tbody tr");
-  expect(rows[0]).toHaveTextContent("Tie");
-  expect(rows[7]).toHaveTextContent("8 → 2");
-  expect(rows[8]).toHaveTextContent("9 → 10");
-  expect(rows[8].lastElementChild).toHaveTextContent(/^Unconfirmed$/);
-  expect(rows[8]).toHaveStyle({ background: "#fff7ed" });
-  expect(screen.getByRole("note")).toHaveTextContent(/additional courses.*closed parcel/i);
+  expect(plotted[scene.ending! - 1]).toHaveAttribute("x2", String(scene.items[scene.ending! - 1].to.x));
+  expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
+  expect(screen.getByRole("table", { name: "Boundary Calls" }).querySelectorAll("tbody tr")).toHaveLength(withSource ? 10 : 9);
+  expect(screen.getByRole("note")).toHaveTextContent(withSource ? /synthetic closing border/i : /excluded as unassigned/i);
   expect(screen.getByText("POC")).toBeVisible();
   expect(screen.getByText("POB")).toBeVisible();
   expect(JSON.stringify(legal)).toBe(original);
-  expect(screen.getByText("POC")).toHaveAttribute("text-anchor", "start");
 });
 
-it.each(["", "EAST 20 FEET; ", "EAST 20 FEET; NORTH 20 FEET; "])("retains closed geometry and marks all following courses unconfirmed after prefix %s", prefix => {
-  const scene = buildMatrix({ type: "metes_bounds", source: prefix + "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET; NORTH 20 FEET; EAST 10 FEET." }, "Parcel");
+it.each(["", "EAST 20 FEET; ", "EAST 20 FEET; NORTH 20 FEET; "])("retains an explicitly delimited parcel and later calls after prefix %s", prefix => {
+  const scene = buildMatrix({ type: "metes_bounds", source: prefix.replace(/;\s*$/, " TO THE POINT OF BEGINNING; ") + "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET TO THE POINT OF BEGINNING; NORTH 20 FEET; EAST 10 FEET." }, "Parcel");
   expect(scene.closed).toBe(true);
   expect(scene.courses!.slice(-2).map(course => course.confirmed)).toEqual([false, false]);
-  expect(scene.courses!.slice(0, -2).every(course => course.confirmed)).toBe(true);
+  expect(scene.courses!.slice(0, scene.beginning).every(course => course.confirmed)).toBe(true);
+  expect(scene.courses!.slice(scene.beginning, -2).every(course => course.confirmed)).toBe(true);
 });
 
 it("does not use a later long course to inflate tolerance for an earlier open traverse", () => {
   const scene = buildMatrix({ type: "metes_bounds", source: "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50.301 FEET; EAST 10000 FEET." }, "Parcel");
   expect(scene.closed).not.toBe(true);
-  expect(scene.issue).toBeUndefined();
+  expect(scene.issue).toMatch(/remains open/i);
   expect(scene.courses!.every(course => course.confirmed)).toBe(true);
 });

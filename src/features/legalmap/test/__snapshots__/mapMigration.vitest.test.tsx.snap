@@ -317,12 +317,16 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 14.585469075710792,
       "closed": true,
+      "closureMetres": 0.00040649580210577236,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "S 0° 01' 30'' E",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "323.26 FEET",
+          "issue": "Unconfirmed tie: inferred from closure, not source-supported.",
         },
         {
           "bearing": "N 86° 00' 57'' E",
@@ -357,11 +361,12 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
       ],
       "ending": 7,
+      "issue": "Tie inferred from closure; source did not explicitly identify its position.",
       "items": [
         {
           "bearing": "S 0° 01' 30'' E",
-          "confirmed": true,
-          "detail": "S 0° 01' 30'' E · 323.26 FEET",
+          "confirmed": false,
+          "detail": "S 0° 01' 30'' E 323.26 FEET; ",
           "distance": "323.26 FEET",
           "from": {
             "x": 0,
@@ -378,7 +383,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N 86° 00' 57'' E",
           "confirmed": true,
-          "detail": "N 86° 00' 57'' E · 1646.83 FEET",
+          "detail": "N 86° 00' 57'' E 1646.83 FEET; ",
           "distance": "1646.83 FEET",
           "from": {
             "x": 0.04299166784666146,
@@ -395,7 +400,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S 15° 14' 51'' E",
           "confirmed": true,
-          "detail": "S 15° 14' 51'' E · 221.74 FEET",
+          "detail": "S 15° 14' 51'' E 221.74 FEET; ",
           "distance": "221.74 FEET",
           "from": {
             "x": 500.78369840571673,
@@ -412,7 +417,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N 89° 13' 18'' W",
           "confirmed": true,
-          "detail": "N 89° 13' 18'' W · 568.00 FEET",
+          "detail": "N 89° 13' 18'' W 568.00 FEET; ",
           "distance": "568.00 FEET",
           "from": {
             "x": 518.5581734677764,
@@ -429,7 +434,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S 44° 00' 00'' W",
           "confirmed": true,
-          "detail": "S 44° 00' 00'' W · 452.00 FEET",
+          "detail": "S 44° 00' 00'' W 452.00 FEET; ",
           "distance": "452.00 FEET",
           "from": {
             "x": 345.4477474287696,
@@ -446,7 +451,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S 79° 00' 00'' W",
           "confirmed": true,
-          "detail": "S 79° 00' 00'' W · 834.31 FEET",
+          "detail": "S 79° 00' 00'' W 834.31 FEET; ",
           "distance": "834.31 FEET",
           "from": {
             "x": 249.74494159398174,
@@ -463,7 +468,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N 0° 01' 30'' W",
           "confirmed": true,
-          "detail": "N 0° 01' 30'' W · 576.13 FEET",
+          "detail": "N 0° 01' 30'' W 576.13 FEET",
           "distance": "576.13 FEET",
           "from": {
             "x": 0.11941836528896488,
@@ -478,6 +483,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -500,6 +506,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "SUBJECT TO ALL LEGAL HIGHWAYS AND ANY EASEMENTS, RESTRICTIONS, OR RESERVATIONS OF RECORD",
         },
       ],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -565,7 +572,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 30.209903296742603,
       "closed": true,
+      "closureMetres": 120.03955822496278,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "South 79°46'35" West",
@@ -606,22 +616,27 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "bearing": "South 66°45'12" West",
           "confirmed": true,
           "distance": "571.58 feet",
-          "target": 2,
         },
         {
           "bearing": "North 3°09'25" East",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "4726 in",
-          "issue": "Course follows the closed parcel.",
+        },
+        {
+          "bearing": "S 3.157330507523° W",
+          "confirmed": false,
+          "distance": "120.039558224963 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 2,
         },
       ],
-      "ending": 8,
-      "issue": "Boundary needs review: additional courses follow the closed parcel.",
+      "ending": 10,
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 120.0396 m. Source courses unchanged.",
       "items": [
         {
           "bearing": "South 79°46'35" West",
           "confirmed": true,
-          "detail": "South 79°46'35" West · 375.07 feet",
+          "detail": "South 79°46'35" West 375.07 feet; ",
           "distance": "375.07 feet",
           "from": {
             "x": 0,
@@ -638,7 +653,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "South 61°48'34" West",
           "confirmed": true,
-          "detail": "South 61°48'34" West · 53.61 feet",
+          "detail": "South 61°48'34" West 53.61 feet; ",
           "distance": "53.61 feet",
           "from": {
             "x": -112.50620461963214,
@@ -655,7 +670,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "North 56°33'30" West",
           "confirmed": true,
-          "detail": "North 56°33'30" West · 512.68 feet",
+          "detail": "North 56°33'30" West 512.68 feet; ",
           "distance": "512.68 feet",
           "from": {
             "x": -126.90826470663265,
@@ -672,7 +687,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "North 44°17'45" West",
           "confirmed": true,
-          "detail": "North 44°17'45" West · 758.82 feet",
+          "detail": "North 44°17'45" West 758.82 feet; ",
           "distance": "758.82 feet",
           "from": {
             "x": -257.30306193993647,
@@ -689,7 +704,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "North 1°42'48" East",
           "confirmed": true,
-          "detail": "North 1°42'48" East · 534.01 feet",
+          "detail": "North 1°42'48" East 534.01 feet; ",
           "distance": "534.01 feet",
           "from": {
             "x": -418.82633293535196,
@@ -706,7 +721,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "North 83°12'15" East",
           "confirmed": true,
-          "detail": "North 83°12'15" East · 791.49 feet",
+          "detail": "North 83°12'15" East 791.49 feet; ",
           "distance": "791.49 feet",
           "from": {
             "x": -413.95980906997033,
@@ -723,7 +738,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "South 31°12'27" East",
           "confirmed": true,
-          "detail": "South 31°12'27" East · 1405.55 feet",
+          "detail": "South 31°12'27" East 1405.55 feet; ",
           "distance": "1405.55 feet",
           "from": {
             "x": -174.40862453478735,
@@ -740,7 +755,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "South 66°45'12" West",
           "confirmed": true,
-          "detail": "South 66°45'12" West · 571.58 feet",
+          "detail": "South 66°45'12" West 571.58 feet; ",
           "distance": "571.58 feet",
           "from": {
             "x": 47.56814214531792,
@@ -756,8 +771,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "North 3°09'25" East",
-          "confirmed": false,
-          "detail": "North 3°09'25" East · 4726 in",
+          "confirmed": true,
+          "detail": "North 3°09'25" East 4726 in",
           "distance": "4726 in",
           "from": {
             "x": -112.50544336964057,
@@ -771,7 +786,25 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": -99.56641655709284,
           },
         },
+        {
+          "bearing": "S 3.157330507523° W",
+          "confirmed": false,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "120.039558224963 m",
+          "from": {
+            "x": -105.89467451689812,
+            "y": -99.56641655709284,
+          },
+          "kind": "line",
+          "label": "Course 10",
+          "sequence": 10,
+          "to": {
+            "x": -112.50620461963231,
+            "y": 20.290928685261278,
+          },
+        },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -789,6 +822,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "30.210 ACRES",
         },
       ],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -854,7 +888,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 30.209891294234254,
       "closed": true,
+      "closureMetres": 0.0000013238326408758155,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST",
@@ -894,16 +931,17 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S66°45'13.32"W",
           "confirmed": true,
-          "distance": "571.58115 ft",
+          "distance": "571.58115 ft.",
           "target": 2,
         },
       ],
       "ending": 8,
+      "issue": undefined,
       "items": [
         {
           "bearing": "SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST",
           "confirmed": true,
-          "detail": "SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST · 375.07 ft",
+          "detail": "SOUTH 79 DEGREES 46 MINUTES 35 SECONDS WEST 375.07 ft TO THE POINT OF BEGINNING; THENCE ",
           "distance": "375.07 ft",
           "from": {
             "x": 0,
@@ -920,7 +958,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S61°48'34"W",
           "confirmed": true,
-          "detail": "S61°48'34"W · 53.61 ft",
+          "detail": "S61°48'34"W 53.61 ft; THENCE ",
           "distance": "53.61 ft",
           "from": {
             "x": -112.50620461963214,
@@ -937,7 +975,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N56°33'30"W",
           "confirmed": true,
-          "detail": "N56°33'30"W · 512.68 ft",
+          "detail": "N56°33'30"W 512.68 ft; THENCE ",
           "distance": "512.68 ft",
           "from": {
             "x": -126.90826470663265,
@@ -954,7 +992,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N44°17'45"W",
           "confirmed": true,
-          "detail": "N44°17'45"W · 758.82 ft",
+          "detail": "N44°17'45"W 758.82 ft; THENCE ",
           "distance": "758.82 ft",
           "from": {
             "x": -257.30306193993647,
@@ -971,7 +1009,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N1°42'48"E",
           "confirmed": true,
-          "detail": "N1°42'48"E · 534.01 ft",
+          "detail": "N1°42'48"E 534.01 ft; THENCE ",
           "distance": "534.01 ft",
           "from": {
             "x": -418.82633293535196,
@@ -988,7 +1026,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N83°12'15"E",
           "confirmed": true,
-          "detail": "N83°12'15"E · 791.49 ft",
+          "detail": "N83°12'15"E 791.49 ft; THENCE ",
           "distance": "791.49 ft",
           "from": {
             "x": -413.95980906997033,
@@ -1005,7 +1043,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S31°12'27"E",
           "confirmed": true,
-          "detail": "S31°12'27"E · 1405.55 ft",
+          "detail": "S31°12'27"E 1405.55 ft; THENCE ",
           "distance": "1405.55 ft",
           "from": {
             "x": -174.40862453478735,
@@ -1022,8 +1060,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S66°45'13.32"W",
           "confirmed": true,
-          "detail": "S66°45'13.32"W · 571.58115 ft",
-          "distance": "571.58115 ft",
+          "detail": "S66°45'13.32"W 571.58115 ft.",
+          "distance": "571.58115 ft.",
           "from": {
             "x": 47.56814214531792,
             "y": -48.47019464168369,
@@ -1037,6 +1075,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -1054,6 +1093,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "30.210 ACRES, MORE OR LESS; 29.184 ACRES IN NORTHWEST QUARTER; 0.487 ACRES IN NORTHEAST QUARTER; 0.539 ACRES IN SOUTHWEST QUARTER",
         },
       ],
+      "schematic": false,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -1592,6 +1632,8 @@ Commencing at the 1" diameter iron rod shown of record as marking the North Quar
     ],
     "scene": {
       "beginning": 15,
+      "closed": false,
+      "completion": "open",
       "courses": [
         {
           "bearing": "South 89° 21' 19", East",
@@ -2322,6 +2364,7 @@ Commencing at the 1" diameter iron rod shown of record as marking the North Quar
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": "GROUP_BASIS:METES Parcel A's commencement and boundary calls state directional bearings defining the perimeter.",
@@ -2339,6 +2382,7 @@ Commencing at the 1" diameter iron rod shown of record as marking the North Quar
           "value": "EXISTING 60 FOOT WIDE ROADWAY AND UTILITY EASEMENT, EASEMENT "G"",
         },
       ],
+      "schematic": false,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -2504,6 +2548,11 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
+      "beginning": 0,
+      "calculatedAcres": 2.7737041097740735e-17,
+      "closed": false,
+      "closureMetres": 0.01828800000000541,
+      "completion": "open",
       "courses": [
         {
           "bearing": "FRONT",
@@ -2515,13 +2564,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "bearing": "NORTHERLY",
           "confirmed": false,
           "distance": "140.44 FEET",
-          "issue": "Position depends on an earlier unconfirmed course: Bearing is unreadable.",
+          "issue": "Unconfirmed extracted association: source evidence not available. Position depends on an earlier unconfirmed course: Bearing is unreadable.",
         },
         {
           "bearing": "SOUTHERLY",
           "confirmed": false,
           "distance": "140.50 FEET",
-          "issue": "Position depends on an earlier unconfirmed course: Bearing is unreadable.",
+          "issue": "Unconfirmed extracted association: source evidence not available. Position depends on an earlier unconfirmed course: Bearing is unreadable.",
         },
         {
           "bearing": "REAR",
@@ -2530,7 +2579,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "issue": "Bearing is unreadable.",
         },
       ],
-      "issue": "Boundary needs review: a bearing is unreadable.",
+      "issue": "Boundary remains open or geometrically invalid; source measurements preserved without forced closure.",
       "items": [
         {
           "bearing": "NORTHERLY",
@@ -2567,6 +2616,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -2870,56 +2920,77 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
+      "beginning": 1,
+      "calculatedAcres": 1.3161883428451264,
+      "closed": true,
+      "closureMetres": 107.72160023936728,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "SOUTH 85 DEGREES 30 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "320.07 FEET",
+          "issue": "Unconfirmed: tie inferred from geometry.",
         },
         {
           "bearing": "NORTH 11 DEGREES 21 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "276.00 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
         },
         {
           "bearing": "NORTH 82 DEGREES 06 MINUTES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "249.89 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
         },
         {
           "bearing": "NORTH 70 DEGREES 06 MINUTES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "37.41 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
         },
         {
           "bearing": "SOUTH 26 DEGREES 15 MINUTES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "108.75 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "S 51.471076274076° E",
+          "confirmed": false,
+          "distance": "107.721600239367 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 2,
         },
         {
           "bearing": "",
           "confirmed": false,
           "distance": "79.75 FEET",
           "issue": "Bearing is unreadable.",
+          "unassigned": true,
         },
         {
           "bearing": "",
           "confirmed": false,
           "distance": "23.13 FEET",
           "issue": "Bearing is unreadable.",
+          "unassigned": true,
         },
         {
           "bearing": "",
           "confirmed": false,
           "distance": "313.73 FEET",
           "issue": "Bearing is unreadable.",
+          "unassigned": true,
         },
       ],
-      "issue": "Boundary needs review: a bearing is unreadable.",
+      "ending": 6,
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 107.7216 m. Extracted bearing-distance associations require verification.",
       "items": [
         {
           "bearing": "SOUTH 85 DEGREES 30 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "SOUTH 85 DEGREES 30 MINUTES EAST · 320.07 FEET",
           "distance": "320.07 FEET",
           "from": {
@@ -2936,7 +3007,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "NORTH 11 DEGREES 21 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "NORTH 11 DEGREES 21 MINUTES EAST · 276.00 FEET",
           "distance": "276.00 FEET",
           "from": {
@@ -2953,7 +3024,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "NORTH 82 DEGREES 06 MINUTES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "NORTH 82 DEGREES 06 MINUTES WEST · 249.89 FEET",
           "distance": "249.89 FEET",
           "from": {
@@ -2970,7 +3041,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "NORTH 70 DEGREES 06 MINUTES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "NORTH 70 DEGREES 06 MINUTES WEST · 37.41 FEET",
           "distance": "37.41 FEET",
           "from": {
@@ -2987,7 +3058,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "SOUTH 26 DEGREES 15 MINUTES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "SOUTH 26 DEGREES 15 MINUTES WEST · 108.75 FEET",
           "distance": "108.75 FEET",
           "from": {
@@ -3002,7 +3073,25 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": -59.44656168160295,
           },
         },
+        {
+          "bearing": "S 51.471076274076° E",
+          "confirmed": false,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "107.721600239367 m",
+          "from": {
+            "x": 12.986658986806649,
+            "y": -59.44656168160295,
+          },
+          "kind": "line",
+          "label": "Course 6",
+          "sequence": 6,
+          "to": {
+            "x": 97.25659929122656,
+            "y": 7.654260364177951,
+          },
+        },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -3075,12 +3164,16 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 2.0046698522596142,
       "closed": true,
+      "closureMetres": 0.0021043912478046593,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "S85°30'00"E",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "71.16 ft",
+          "issue": "Unconfirmed tie: inferred from closure, not source-supported.",
         },
         {
           "bearing": "N50°45'14"E",
@@ -3125,11 +3218,12 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
       ],
       "ending": 9,
+      "issue": "Tie inferred from closure; source did not explicitly identify its position.",
       "items": [
         {
           "bearing": "S85°30'00"E",
-          "confirmed": true,
-          "detail": "S85°30'00"E · 71.16 ft",
+          "confirmed": false,
+          "detail": "S85°30'00"E 71.16 ft; ",
           "distance": "71.16 ft",
           "from": {
             "x": 0,
@@ -3146,7 +3240,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N50°45'14"E",
           "confirmed": true,
-          "detail": "N50°45'14"E · 70.79 ft",
+          "detail": "N50°45'14"E 70.79 ft; ",
           "distance": "70.79 ft",
           "from": {
             "x": 21.622706300383374,
@@ -3163,7 +3257,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S82°55'32"E",
           "confirmed": true,
-          "detail": "S82°55'32"E · 81.62 ft",
+          "detail": "S82°55'32"E 81.62 ft; ",
           "distance": "81.62 ft",
           "from": {
             "x": 38.33254186739641,
@@ -3180,7 +3274,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N32°31'24"E",
           "confirmed": true,
-          "detail": "N32°31'24"E · 71.16 ft",
+          "detail": "N32°31'24"E 71.16 ft; ",
           "distance": "71.16 ft",
           "from": {
             "x": 63.020922586692194,
@@ -3197,7 +3291,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N13°56'44"W",
           "confirmed": true,
-          "detail": "N13°56'44"W · 143.82 ft",
+          "detail": "N13°56'44"W 143.82 ft; ",
           "distance": "143.82 ft",
           "from": {
             "x": 74.68216763389354,
@@ -3214,7 +3308,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N10°04'59"E",
           "confirmed": true,
-          "detail": "N10°04'59"E · 298.87 ft",
+          "detail": "N10°04'59"E 298.87 ft; ",
           "distance": "298.87 ft",
           "from": {
             "x": 64.11762040107715,
@@ -3231,7 +3325,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S39°52'03"E",
           "confirmed": true,
-          "detail": "S39°52'03"E · 320.51 ft",
+          "detail": "S39°52'03"E 320.51 ft; ",
           "distance": "320.51 ft",
           "from": {
             "x": 80.06622984327778,
@@ -3248,7 +3342,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S26°15'42"W",
           "confirmed": true,
-          "detail": "S26°15'42"W · 336.86 ft",
+          "detail": "S26°15'42"W 336.86 ft; ",
           "distance": "336.86 ft",
           "from": {
             "x": 142.6878516195249,
@@ -3265,7 +3359,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N85°30'00"W",
           "confirmed": true,
-          "detail": "N85°30'00"W · 248.91 ft",
+          "detail": "N85°30'00"W 248.91 ft",
           "distance": "248.91 ft",
           "from": {
             "x": 97.25714235544825,
@@ -3280,6 +3374,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -3297,6 +3392,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "2.005 ACRES OF LAND, MORE OR LESS",
         },
       ],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -3343,6 +3439,11 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
+      "beginning": 3,
+      "calculatedAcres": 0.26379946535649007,
+      "closed": true,
+      "closureMetres": 78.72786823865854,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "EAST",
@@ -3355,31 +3456,37 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "distance": "420 FEET",
         },
         {
+          "bearing": "EAST",
+          "confirmed": true,
+          "distance": "96 FEET",
+        },
+        {
+          "bearing": "WEST",
+          "confirmed": true,
+          "distance": "239.4 FEET",
+        },
+        {
+          "bearing": "NORTH 0 DEGREES 14 MINUTES WEST",
+          "confirmed": true,
+          "distance": "96 FEET",
+        },
+        {
+          "bearing": "S 68.181532424995° E",
+          "confirmed": false,
+          "distance": "78.727868238659 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 4,
+        },
+        {
           "bearing": "NORTH 89 DEGREES 67 MINUTES EAST",
           "confirmed": false,
           "distance": "239.4 FEET",
           "issue": "Bearing is unreadable.",
-        },
-        {
-          "bearing": "EAST",
-          "confirmed": false,
-          "distance": "96 FEET",
-          "issue": "Position depends on an earlier unconfirmed course: Bearing is unreadable.",
-        },
-        {
-          "bearing": "WEST",
-          "confirmed": false,
-          "distance": "239.4 FEET",
-          "issue": "Position depends on an earlier unconfirmed course: Bearing is unreadable.",
-        },
-        {
-          "bearing": "NORTH 0 DEGREES 14 MINUTES WEST",
-          "confirmed": false,
-          "distance": "96 FEET",
-          "issue": "Position depends on an earlier unconfirmed course: Bearing is unreadable.",
+          "unassigned": true,
         },
       ],
-      "issue": "Boundary needs review: a bearing is unreadable.",
+      "ending": 6,
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 78.7279 m. Source courses unchanged.",
       "items": [
         {
           "bearing": "EAST",
@@ -3417,7 +3524,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "EAST",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "EAST 96 FEET; ",
           "distance": "96 FEET",
           "from": {
@@ -3425,8 +3532,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": -2.2545649600558842e-14,
           },
           "kind": "line",
-          "label": "Course 4",
-          "sequence": 4,
+          "label": "Course 3",
+          "sequence": 3,
           "to": {
             "x": 397.4592,
             "y": -2.4337356853583386e-14,
@@ -3434,7 +3541,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "WEST",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "WEST 239.4 FEET; ",
           "distance": "239.4 FEET",
           "from": {
@@ -3442,8 +3549,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": -2.4337356853583386e-14,
           },
           "kind": "line",
-          "label": "Course 5",
-          "sequence": 5,
+          "label": "Course 4",
+          "sequence": 4,
           "to": {
             "x": 324.49008000000003,
             "y": -1.093314696689352e-14,
@@ -3451,7 +3558,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "NORTH 0 DEGREES 14 MINUTES WEST",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "NORTH 0 DEGREES 14 MINUTES WEST 96 FEET.",
           "distance": "96 FEET",
           "from": {
@@ -3459,14 +3566,32 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": -1.093314696689352e-14,
           },
           "kind": "line",
-          "label": "Course 6",
-          "sequence": 6,
+          "label": "Course 5",
+          "sequence": 5,
           "to": {
             "x": 324.37091762563415,
             "y": -29.260557359157332,
           },
         },
+        {
+          "bearing": "S 68.181532424995° E",
+          "confirmed": false,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "78.727868238659 m",
+          "from": {
+            "x": 324.37091762563415,
+            "y": -29.260557359157332,
+          },
+          "kind": "line",
+          "label": "Course 6",
+          "sequence": 6,
+          "to": {
+            "x": 397.4591999999999,
+            "y": 4.121147867408581e-13,
+          },
+        },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -3759,47 +3884,65 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
+      "beginning": 1,
+      "calculatedAcres": 0.46280754811079167,
+      "closed": true,
+      "closureMetres": 131.40876056991516,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "SOUTH 0 DEGREES, 14 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "788.0 FEET",
+          "issue": "Unconfirmed: tie inferred from geometry.",
         },
         {
           "bearing": "NORTH 89 DEGREES, 57 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "420.0 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "SOUTH 0 DEGREES, 14 MINUTES EAST",
+          "confirmed": false,
+          "distance": "96.0 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "N 77.184158437924° W",
+          "confirmed": false,
+          "distance": "131.408760569915 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 2,
         },
         {
           "bearing": "NORTH 89 DEGREES 67 MINUTES EAST",
           "confirmed": false,
           "distance": "239.4 FEET",
           "issue": "Bearing is unreadable.",
-        },
-        {
-          "bearing": "SOUTH 0 DEGREES, 14 MINUTES EAST",
-          "confirmed": false,
-          "distance": "96.0 FEET",
-          "issue": "Position depends on an earlier unconfirmed course: Bearing is unreadable.",
+          "unassigned": true,
         },
         {
           "bearing": "SOUTH 89 DEGREES, 57 MINUTES WEST",
           "confirmed": false,
           "distance": undefined,
           "issue": "Distance is missing or unreadable.",
+          "unassigned": true,
         },
         {
           "bearing": "NORTH 0 DEGREES 14 MINUTES WEST",
           "confirmed": false,
           "distance": undefined,
           "issue": "Distance is missing or unreadable.",
+          "unassigned": true,
         },
       ],
-      "issue": "Boundary needs review: a bearing is unreadable.",
+      "ending": 4,
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 131.4088 m. Extracted bearing-distance associations require verification.",
       "items": [
         {
           "bearing": "SOUTH 0 DEGREES, 14 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "SOUTH 0 DEGREES, 14 MINUTES EAST · 788.0 FEET",
           "distance": "788.0 FEET",
           "from": {
@@ -3816,7 +3959,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "NORTH 89 DEGREES, 57 MINUTES EAST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "NORTH 89 DEGREES, 57 MINUTES EAST · 420.0 FEET",
           "distance": "420.0 FEET",
           "from": {
@@ -3841,14 +3984,32 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": 240.06869330250063,
           },
           "kind": "line",
-          "label": "Course 4",
-          "sequence": 4,
+          "label": "Course 3",
+          "sequence": 3,
           "to": {
             "x": 129.1132381190762,
             "y": 269.32925066165797,
           },
         },
+        {
+          "bearing": "N 77.184158437924° W",
+          "confirmed": false,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "131.408760569915 m",
+          "from": {
+            "x": 129.1132381190762,
+            "y": 269.32925066165797,
+          },
+          "kind": "line",
+          "label": "Course 4",
+          "sequence": 4,
+          "to": {
+            "x": 0.9781244895867189,
+            "y": 240.1804083230828,
+          },
+        },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -4009,42 +4170,37 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     "scene": {
       "beginning": undefined,
       "closed": false,
+      "completion": "open",
       "courses": [
         {
           "bearing": "NORTH",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "100 FEET",
-          "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
         },
         {
           "bearing": "SOUTH",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "50 FEET",
-          "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
         },
         {
           "bearing": "EAST",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "100 FEET",
-          "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
         },
         {
           "bearing": "WEST",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "50 FEET",
-          "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
         },
         {
           "bearing": "SOUTH",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "50 FEET",
-          "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
         },
         {
           "bearing": "WEST",
-          "confirmed": false,
+          "confirmed": true,
           "distance": "50 FEET",
-          "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
         },
         {
           "bearing": "Curve",
@@ -4053,12 +4209,11 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "issue": "Curve geometry is incomplete.",
         },
       ],
-      "ending": undefined,
-      "issue": "Multiple valid boundary shapes; the measurements do not identify a unique outline.",
+      "issue": "Boundary needs review: a curve requires source geometry.",
       "items": [
         {
           "bearing": "NORTH",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "NORTH 100 FEET; ",
           "distance": "100 FEET",
           "from": {
@@ -4075,7 +4230,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "SOUTH",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "SOUTH 50 FEET; ",
           "distance": "50 FEET",
           "from": {
@@ -4092,7 +4247,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "EAST",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "EAST 100 FEET; ",
           "distance": "100 FEET",
           "from": {
@@ -4109,7 +4264,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "WEST",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "WEST 50 FEET; ",
           "distance": "50 FEET",
           "from": {
@@ -4126,7 +4281,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "SOUTH",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "SOUTH 50 FEET; ",
           "distance": "50 FEET",
           "from": {
@@ -4143,7 +4298,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "WEST",
-          "confirmed": false,
+          "confirmed": true,
           "detail": "WEST 50 FEET; ",
           "distance": "50 FEET",
           "from": {
@@ -4159,6 +4314,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [],
       "schematic": true,
       "title": "Metes & Bounds",
@@ -4215,37 +4371,50 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 0,
+      "calculatedAcres": 0.7881365518026052,
       "closed": true,
+      "closureMetres": 131.68155283785313,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "NORTH 72° 45' WEST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "225 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
         },
         {
           "bearing": "SOUTH 17° 15' WEST",
-          "confirmed": true,
-          "distance": "54 FEET",
-        },
-        {
-          "bearing": "S 32°18′21.79″ E (calculated)",
           "confirmed": false,
-          "distance": "400 FEET",
-          "issue": "Calculated bearing to connect the next known section; calculated length 131.682 m. Supplied distance: 400 FEET.",
+          "distance": "54 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
         },
         {
           "bearing": "SUBSTANTIALLY DUE NORTH",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "350 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "S 32.306052645157° E",
+          "confirmed": false,
+          "distance": "131.681552837853 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
           "target": 1,
+        },
+        {
+          "bearing": "",
+          "confirmed": false,
+          "distance": "400 FEET",
+          "issue": "Bearing is unreadable.",
+          "unassigned": true,
         },
       ],
       "ending": 4,
-      "issue": "Boundary includes calculated geometry; calculated borders are Unconfirmed.",
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 131.6816 m. Extracted bearing-distance associations require verification.",
       "items": [
         {
           "bearing": "NORTH 72° 45' WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "NORTH 72° 45' WEST · 225 FEET",
           "distance": "225 FEET",
           "from": {
@@ -4262,7 +4431,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "SOUTH 17° 15' WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "SOUTH 17° 15' WEST · 54 FEET",
           "distance": "54 FEET",
           "from": {
@@ -4278,10 +4447,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "S 32°18′21.79″ E (calculated)",
+          "bearing": "SUBSTANTIALLY DUE NORTH",
           "confirmed": false,
-          "detail": "APPROXIMATELY 400 FEET",
-          "distance": "400 FEET",
+          "detail": "SUBSTANTIALLY DUE NORTH · 350 FEET",
+          "distance": "350 FEET",
           "from": {
             "x": -70.37610488171178,
             "y": -4.617956942014915,
@@ -4290,28 +4459,29 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "label": "Course 3",
           "sequence": 3,
           "to": {
-            "x": -1.4210854715202004e-14,
-            "y": 106.68000000000002,
+            "x": -70.37610488171178,
+            "y": -111.29795694201492,
           },
         },
         {
-          "bearing": "SUBSTANTIALLY DUE NORTH",
-          "confirmed": true,
-          "detail": "SUBSTANTIALLY DUE NORTH · 350 FEET",
-          "distance": "350 FEET",
+          "bearing": "S 32.306052645157° E",
+          "confirmed": false,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "131.681552837853 m",
           "from": {
-            "x": -1.4210854715202004e-14,
-            "y": 106.68000000000002,
+            "x": -70.37610488171178,
+            "y": -111.29795694201492,
           },
           "kind": "line",
           "label": "Course 4",
           "sequence": 4,
           "to": {
-            "x": -1.4210854715202004e-14,
-            "y": 1.4210854715202004e-14,
+            "x": 7.247535904753022e-13,
+            "y": -4.547473508864641e-13,
           },
         },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -4377,38 +4547,51 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
-      "beginning": 0,
+      "beginning": 1,
+      "calculatedAcres": 0.05739210284664826,
       "closed": true,
+      "closureMetres": 34.077675977096796,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "NORTH",
-          "confirmed": true,
-          "distance": "100 FEET",
-        },
-        {
-          "bearing": "S 90°0′0.00″ E (calculated)",
           "confirmed": false,
-          "distance": "50 FEET",
-          "issue": "Calculated bearing to connect the next known section; calculated length 15.240 m. Supplied distance: 50 FEET.",
+          "distance": "100 FEET",
+          "issue": "Unconfirmed: tie inferred from geometry.",
         },
         {
           "bearing": "SOUTH",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "100 FEET",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
         },
         {
           "bearing": "WEST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "50 FEET",
-          "target": 1,
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "N 26.565051177078° E",
+          "confirmed": false,
+          "distance": "34.077675977097 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 2,
+        },
+        {
+          "bearing": "",
+          "confirmed": false,
+          "distance": "50 FEET",
+          "issue": "Bearing is unreadable.",
+          "unassigned": true,
         },
       ],
       "ending": 4,
-      "issue": "Boundary includes calculated geometry; calculated borders are Unconfirmed.",
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 34.0777 m. Extracted bearing-distance associations require verification.",
       "items": [
         {
           "bearing": "NORTH",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "NORTH · 100 FEET",
           "distance": "100 FEET",
           "from": {
@@ -4424,10 +4607,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "S 90°0′0.00″ E (calculated)",
+          "bearing": "SOUTH",
           "confirmed": false,
-          "detail": " · 50 FEET",
-          "distance": "50 FEET",
+          "detail": "SOUTH · 100 FEET",
+          "distance": "100 FEET",
           "from": {
             "x": 0,
             "y": -30.48,
@@ -4436,45 +4619,46 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "label": "Course 2",
           "sequence": 2,
           "to": {
-            "x": 15.239999999999997,
-            "y": -30.48,
-          },
-        },
-        {
-          "bearing": "SOUTH",
-          "confirmed": true,
-          "detail": "SOUTH · 100 FEET",
-          "distance": "100 FEET",
-          "from": {
-            "x": 15.239999999999997,
-            "y": -30.48,
-          },
-          "kind": "line",
-          "label": "Course 3",
-          "sequence": 3,
-          "to": {
-            "x": 15.24,
+            "x": 3.7327234438011324e-15,
             "y": 0,
           },
         },
         {
           "bearing": "WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "WEST · 50 FEET",
           "distance": "50 FEET",
           "from": {
-            "x": 15.24,
+            "x": 3.7327234438011324e-15,
             "y": 0,
+          },
+          "kind": "line",
+          "label": "Course 3",
+          "sequence": 3,
+          "to": {
+            "x": -15.239999999999997,
+            "y": 2.799542582850849e-15,
+          },
+        },
+        {
+          "bearing": "N 26.565051177078° E",
+          "confirmed": false,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "34.077675977097 m",
+          "from": {
+            "x": -15.239999999999997,
+            "y": 2.799542582850849e-15,
           },
           "kind": "line",
           "label": "Course 4",
           "sequence": 4,
           "to": {
-            "x": 0,
-            "y": 2.799542582850849e-15,
+            "x": 8.881784197001252e-15,
+            "y": -30.479999999999997,
           },
         },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -4521,7 +4705,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     "notes": [],
     "scene": {
       "beginning": 1,
-      "closed": true,
+      "calculatedAcres": 1.7571263761870885e-17,
+      "closed": false,
+      "closureMetres": 4.013113574334999e-15,
+      "completion": "open",
       "courses": [
         {
           "bearing": "easterly",
@@ -4535,23 +4722,22 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "distance": "100 FEET",
         },
         {
-          "bearing": "EAST",
-          "confirmed": true,
-          "distance": "50 FEET",
-        },
-        {
           "bearing": "SOUTH",
           "confirmed": true,
           "distance": "100 FEET",
         },
         {
+          "bearing": "EAST",
+          "confirmed": true,
+          "distance": "50 FEET",
+        },
+        {
           "bearing": "WEST",
           "confirmed": true,
           "distance": "50 FEET",
-          "target": 2,
         },
       ],
-      "ending": 5,
+      "issue": "Boundary remains open or geometrically invalid; source measurements preserved without forced closure.",
       "items": [
         {
           "bearing": "easterly",
@@ -4588,10 +4774,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "EAST",
+          "bearing": "SOUTH",
           "confirmed": true,
-          "detail": "EAST 50 FEET; ",
-          "distance": "50 FEET",
+          "detail": "SOUTH 100 FEET; ",
+          "distance": "100 FEET",
           "from": {
             "x": 3.048,
             "y": -30.48,
@@ -4600,25 +4786,25 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "label": "Course 3",
           "sequence": 3,
           "to": {
-            "x": 18.288,
-            "y": -30.48,
+            "x": 3.0480000000000036,
+            "y": 0,
           },
         },
         {
-          "bearing": "SOUTH",
+          "bearing": "EAST",
           "confirmed": true,
-          "detail": "SOUTH 100 FEET; ",
-          "distance": "100 FEET",
+          "detail": "EAST 50 FEET; ",
+          "distance": "50 FEET",
           "from": {
-            "x": 18.288,
-            "y": -30.48,
+            "x": 3.0480000000000036,
+            "y": 0,
           },
           "kind": "line",
           "label": "Course 4",
           "sequence": 4,
           "to": {
             "x": 18.288000000000004,
-            "y": 0,
+            "y": -9.331808609502831e-16,
           },
         },
         {
@@ -4628,18 +4814,20 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "distance": "50 FEET",
           "from": {
             "x": 18.288000000000004,
-            "y": 0,
+            "y": -9.331808609502831e-16,
           },
           "kind": "line",
           "label": "Course 5",
           "sequence": 5,
           "to": {
             "x": 3.0480000000000036,
-            "y": 2.799542582850849e-15,
+            "y": 1.866361721900566e-15,
           },
         },
       ],
+      "method": "source",
       "notes": [],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -4693,34 +4881,38 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 0,
+      "calculatedAcres": 0.013774104683195598,
       "closed": true,
+      "closureMetres": 2.5121479338940403e-15,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "NORTH",
           "confirmed": false,
           "distance": "30 FEET",
-          "issue": "Bearing-distance pairing was rearranged to close the boundary; original distance: 40 FEET.",
+          "issue": "Distance association inferred geometrically; verify source.",
         },
         {
           "bearing": "EAST",
           "confirmed": false,
           "distance": "40 FEET",
-          "issue": "Bearing-distance pairing was rearranged to close the boundary; original distance: 30 FEET.",
+          "issue": "Distance association inferred geometrically; verify source.",
         },
         {
           "bearing": "SOUTH 53.13010235415598 DEGREES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "50 FEET",
+          "issue": "Unconfirmed extracted association: source evidence not available.",
           "target": 1,
         },
       ],
       "ending": 3,
-      "issue": "Boundary includes rearranged bearing-distance pairs; affected borders are Unconfirmed.",
+      "issue": "Bearing-distance associations inferred from geometry; verification required.",
       "items": [
         {
           "bearing": "NORTH",
           "confirmed": false,
-          "detail": "NORTH · 30 FEET",
+          "detail": "NORTH 40 FEET",
           "distance": "30 FEET",
           "from": {
             "x": 0,
@@ -4737,7 +4929,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "EAST",
           "confirmed": false,
-          "detail": "EAST · 40 FEET",
+          "detail": "EAST 30 FEET",
           "distance": "40 FEET",
           "from": {
             "x": 0,
@@ -4753,7 +4945,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "SOUTH 53.13010235415598 DEGREES WEST",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "SOUTH 53.13010235415598 DEGREES WEST 50 FEET",
           "distance": "50 FEET",
           "from": {
@@ -4769,6 +4961,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -5551,7 +5744,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 1.588577588833394,
       "closed": true,
+      "closureMetres": 0.0015669080191231756,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "SOUTH 85 DEGREES 30 MINUTES EAST",
@@ -5596,6 +5792,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
       ],
       "ending": 8,
+      "issue": "Extracted bearing-distance association contradicts the legal description; source measurements used.",
       "items": [
         {
           "bearing": "SOUTH 85 DEGREES 30 MINUTES EAST",
@@ -5734,6 +5931,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": "GROUP_BASIS:METES Parcel One locator: successive boundary courses; basis is the stated bearings defining the parcel perimeter.",
@@ -5751,6 +5949,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "1.589 ACRES, MORE OR LESS",
         },
       ],
+      "schematic": false,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -5803,7 +6002,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 1.588577588833394,
       "closed": true,
+      "closureMetres": 0.0015669080191231756,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "SOUTH 85 DEGREES 30 MINUTES EAST",
@@ -5848,6 +6050,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
       ],
       "ending": 8,
+      "issue": "Extracted bearing-distance association contradicts the legal description; source measurements used. Calculated acreage differs materially from stated acreage.",
       "items": [
         {
           "bearing": "SOUTH 85 DEGREES 30 MINUTES EAST",
@@ -5986,6 +6189,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": "GROUP_BASIS:METES Parcel One locator: successive boundary courses; basis is the stated bearings defining the parcel perimeter.",
@@ -6003,6 +6207,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "2.005 ACRES, MORE OR LESS",
         },
       ],
+      "schematic": false,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -6217,47 +6422,51 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 1.352120466284517,
       "closed": true,
+      "closureMetres": 0.00242913728319755,
+      "completion": "measured",
       "courses": [
         {
-          "bearing": "N 1°08'52" E",
+          "bearing": "NORTH 1 DEG. 08' 52" EAST",
           "confirmed": true,
-          "distance": "519.87 FT",
+          "distance": "519.87 FEET",
         },
         {
-          "bearing": "N 58°58'10" W",
+          "bearing": "NORTH 58 DEG. 58' 10" WEST",
           "confirmed": true,
-          "distance": "133.06 FT",
+          "distance": "133.06 FEET",
         },
         {
-          "bearing": "N 44°39'50" W",
+          "bearing": "NORTH 44 DEG. 39' 50" WEST",
           "confirmed": true,
-          "distance": "255.95 FT",
+          "distance": "255.95 FEET",
         },
         {
-          "bearing": "N 48°20'35" E",
+          "bearing": "NORTH 48 DEG. 20' 35" EAST",
           "confirmed": true,
-          "distance": "101.97 FT",
+          "distance": "101.97 FEET",
         },
         {
-          "bearing": "S 88°51'45" E",
+          "bearing": "SOUTH 88 DEG. 51' 45" EAST",
           "confirmed": true,
-          "distance": "224.08 FT",
+          "distance": "224.08 FEET",
         },
         {
-          "bearing": "S 1°08'52" W",
+          "bearing": "SOUTH 1 DEG. 08' 52" WEST",
           "confirmed": true,
-          "distance": "314.02 FT",
+          "distance": "314.02 FEET",
           "target": 2,
         },
       ],
       "ending": 6,
+      "issue": undefined,
       "items": [
         {
-          "bearing": "N 1°08'52" E",
+          "bearing": "NORTH 1 DEG. 08' 52" EAST",
           "confirmed": true,
-          "detail": "N 1°08'52" E · 519.87 FT",
-          "distance": "519.87 FT",
+          "detail": "NORTH 1 DEG. 08' 52" EAST 519.87 FEET TO THE TRUE POINT OF BEGINNING; THENCE ",
+          "distance": "519.87 FEET",
           "from": {
             "x": 0,
             "y": 0,
@@ -6271,10 +6480,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "N 58°58'10" W",
+          "bearing": "NORTH 58 DEG. 58' 10" WEST",
           "confirmed": true,
-          "detail": "N 58°58'10" W · 133.06 FT",
-          "distance": "133.06 FT",
+          "detail": "NORTH 58 DEG. 58' 10" WEST 133.06 FEET; ",
+          "distance": "133.06 FEET",
           "from": {
             "x": 3.1740652561687535,
             "y": -158.4245827035784,
@@ -6288,10 +6497,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "N 44°39'50" W",
+          "bearing": "NORTH 44 DEG. 39' 50" WEST",
           "confirmed": true,
-          "detail": "N 44°39'50" W · 255.95 FT",
-          "distance": "255.95 FT",
+          "detail": "NORTH 44 DEG. 39' 50" WEST 255.95 FEET; ",
+          "distance": "255.95 FEET",
           "from": {
             "x": -31.578656985067028,
             "y": -179.33135764264685,
@@ -6305,10 +6514,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "N 48°20'35" E",
+          "bearing": "NORTH 48 DEG. 20' 35" EAST",
           "confirmed": true,
-          "detail": "N 48°20'35" E · 101.97 FT",
-          "distance": "101.97 FT",
+          "detail": "NORTH 48 DEG. 20' 35" EAST 101.97 FEET; ",
+          "distance": "101.97 FEET",
           "from": {
             "x": -86.41802188696559,
             "y": -234.81792900031877,
@@ -6322,10 +6531,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "S 88°51'45" E",
+          "bearing": "SOUTH 88 DEG. 51' 45" EAST",
           "confirmed": true,
-          "detail": "S 88°51'45" E · 224.08 FT",
-          "distance": "224.08 FT",
+          "detail": "SOUTH 88 DEG. 51' 45" EAST 224.08 FEET; ",
+          "distance": "224.08 FEET",
           "from": {
             "x": -63.196636309616935,
             "y": -255.4761476320411,
@@ -6339,10 +6548,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "S 1°08'52" W",
+          "bearing": "SOUTH 1 DEG. 08' 52" WEST",
           "confirmed": true,
-          "detail": "S 1°08'52" W · 314.02 FT",
-          "distance": "314.02 FT",
+          "detail": "SOUTH 1 DEG. 08' 52" WEST 314.02 FEET; SAID LINE BEING ",
+          "distance": "314.02 FEET",
           "from": {
             "x": 5.089488115470715,
             "y": -254.12027685113904,
@@ -6356,6 +6565,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -6373,6 +6583,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "1.352 ACRES",
         },
       ],
+      "schematic": false,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -7491,6 +7702,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 7.352895910439304,
+      "closed": true,
+      "closureMetres": 112.15717391017712,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "easterly",
@@ -7519,14 +7734,22 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "distance": "217.00 feet",
         },
         {
+          "bearing": "S 55.185293789131° W",
+          "confirmed": false,
+          "distance": "112.157173910177 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 2,
+        },
+        {
           "bearing": "South. 89 degrees 48: 00" West",
           "confirmed": false,
           "distance": "350.00 feet",
           "issue": "Bearing is unreadable.",
-          "target": 2,
+          "unassigned": true,
         },
       ],
-      "issue": "Boundary needs review: a bearing is unreadable.",
+      "ending": 6,
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 112.1572 m. Source courses unchanged.",
       "items": [
         {
           "bearing": "easterly",
@@ -7614,10 +7837,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "South. 89 degrees 48: 00" West",
+          "bearing": "S 55.185293789131° W",
           "confirmed": false,
-          "detail": "South. 89 degrees 48: 00" West, continuing along said road centerline 350.00 feet to the point of beginning.",
-          "distance": "350.00 feet",
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "112.157173910177 m",
           "from": {
             "x": 452.06538215685896,
             "y": -64.0332576565427,
@@ -7626,11 +7849,12 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "label": "Course 6",
           "sequence": 6,
           "to": {
-            "x": 359.98404,
-            "y": -2.2042665116506637e-14,
+            "x": 359.9840399999995,
+            "y": -7.958078640513122e-13,
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": "GROUP_BASIS:METES Locator: successive boundary calls; basis: bearings define the parcel perimeter.",
@@ -7643,6 +7867,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "1181.05 FEET; 627.00 FEET; 617.00 FEET; 648.83 FEET; 217.00 FEET; 350.00 FEET",
         },
       ],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -7728,6 +7953,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
+      "closed": false,
+      "completion": "synthetic",
       "courses": [
         {
           "bearing": "N",
@@ -7827,6 +8054,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -8178,12 +8406,16 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 14.585469075710792,
       "closed": true,
+      "closureMetres": 0.00040649580210577236,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "S 0° 01' 30'' E",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "323.26 FEET",
+          "issue": "Unconfirmed tie: inferred from closure, not source-supported.",
         },
         {
           "bearing": "N 86° 00' 57'' E",
@@ -8218,11 +8450,12 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
       ],
       "ending": 7,
+      "issue": "Tie inferred from closure; source did not explicitly identify its position.",
       "items": [
         {
           "bearing": "S 0° 01' 30'' E",
-          "confirmed": true,
-          "detail": "S 0° 01' 30'' E · 323.26 FEET",
+          "confirmed": false,
+          "detail": "S 0° 01' 30'' E 323.26 FEET; ",
           "distance": "323.26 FEET",
           "from": {
             "x": 0,
@@ -8239,7 +8472,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N 86° 00' 57'' E",
           "confirmed": true,
-          "detail": "N 86° 00' 57'' E · 1646.83 FEET",
+          "detail": "N 86° 00' 57'' E 1646.83 FEET; ",
           "distance": "1646.83 FEET",
           "from": {
             "x": 0.04299166784666146,
@@ -8256,7 +8489,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S 15° 14' 51'' E",
           "confirmed": true,
-          "detail": "S 15° 14' 51'' E · 221.74 FEET",
+          "detail": "S 15° 14' 51'' E 221.74 FEET; ",
           "distance": "221.74 FEET",
           "from": {
             "x": 500.78369840571673,
@@ -8273,7 +8506,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N 89° 13' 18'' W",
           "confirmed": true,
-          "detail": "N 89° 13' 18'' W · 568.00 FEET",
+          "detail": "N 89° 13' 18'' W 568.00 FEET; ",
           "distance": "568.00 FEET",
           "from": {
             "x": 518.5581734677764,
@@ -8290,7 +8523,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S 44° 00' 00'' W",
           "confirmed": true,
-          "detail": "S 44° 00' 00'' W · 452.00 FEET",
+          "detail": "S 44° 00' 00'' W 452.00 FEET; ",
           "distance": "452.00 FEET",
           "from": {
             "x": 345.4477474287696,
@@ -8307,7 +8540,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S 79° 00' 00'' W",
           "confirmed": true,
-          "detail": "S 79° 00' 00'' W · 834.31 FEET",
+          "detail": "S 79° 00' 00'' W 834.31 FEET; ",
           "distance": "834.31 FEET",
           "from": {
             "x": 249.74494159398174,
@@ -8324,7 +8557,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N 0° 01' 30'' W",
           "confirmed": true,
-          "detail": "N 0° 01' 30'' W · 576.13 FEET",
+          "detail": "N 0° 01' 30'' W 576.13 FEET",
           "distance": "576.13 FEET",
           "from": {
             "x": 0.11941836528896488,
@@ -8339,6 +8572,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -8361,6 +8595,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "SUBJECT TO ALL LEGAL HIGHWAYS AND ANY EASEMENTS, RESTRICTIONS, OR RESERVATIONS OF RECORD",
         },
       ],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -8427,7 +8662,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
     ],
     "scene": {
       "beginning": 1,
+      "calculatedAcres": 2.0046698522596142,
       "closed": true,
+      "closureMetres": 0.0021043912478046593,
+      "completion": "measured",
       "courses": [
         {
           "bearing": "S85°30'00"E",
@@ -8472,16 +8710,17 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N85°30'00"W",
           "confirmed": true,
-          "distance": "248.91 ft",
+          "distance": "248.91 ft.",
           "target": 2,
         },
       ],
       "ending": 9,
+      "issue": undefined,
       "items": [
         {
           "bearing": "S85°30'00"E",
           "confirmed": true,
-          "detail": "S85°30'00"E · 71.16 ft",
+          "detail": "S85°30'00"E 71.16 ft TO THE POINT OF BEGINNING; THENCE ",
           "distance": "71.16 ft",
           "from": {
             "x": 0,
@@ -8498,7 +8737,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N50°45'14"E",
           "confirmed": true,
-          "detail": "N50°45'14"E · 70.79 ft",
+          "detail": "N50°45'14"E 70.79 ft; THENCE ",
           "distance": "70.79 ft",
           "from": {
             "x": 21.622706300383374,
@@ -8515,7 +8754,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S82°55'32"E",
           "confirmed": true,
-          "detail": "S82°55'32"E · 81.62 ft",
+          "detail": "S82°55'32"E 81.62 ft; THENCE ",
           "distance": "81.62 ft",
           "from": {
             "x": 38.33254186739641,
@@ -8532,7 +8771,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N32°31'24"E",
           "confirmed": true,
-          "detail": "N32°31'24"E · 71.16 ft",
+          "detail": "N32°31'24"E 71.16 ft; THENCE ",
           "distance": "71.16 ft",
           "from": {
             "x": 63.020922586692194,
@@ -8549,7 +8788,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N13°56'44"W",
           "confirmed": true,
-          "detail": "N13°56'44"W · 143.82 ft",
+          "detail": "N13°56'44"W 143.82 ft; THENCE ",
           "distance": "143.82 ft",
           "from": {
             "x": 74.68216763389354,
@@ -8566,7 +8805,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N10°04'59"E",
           "confirmed": true,
-          "detail": "N10°04'59"E · 298.87 ft",
+          "detail": "N10°04'59"E 298.87 ft; THENCE ",
           "distance": "298.87 ft",
           "from": {
             "x": 64.11762040107715,
@@ -8583,7 +8822,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S39°52'03"E",
           "confirmed": true,
-          "detail": "S39°52'03"E · 320.51 ft",
+          "detail": "S39°52'03"E 320.51 ft; THENCE ",
           "distance": "320.51 ft",
           "from": {
             "x": 80.06622984327778,
@@ -8600,7 +8839,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "S26°15'42"W",
           "confirmed": true,
-          "detail": "S26°15'42"W · 336.86 ft",
+          "detail": "S26°15'42"W 336.86 ft; THENCE ",
           "distance": "336.86 ft",
           "from": {
             "x": 142.6878516195249,
@@ -8617,8 +8856,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "bearing": "N85°30'00"W",
           "confirmed": true,
-          "detail": "N85°30'00"W · 248.91 ft",
-          "distance": "248.91 ft",
+          "detail": "N85°30'00"W 248.91 ft.",
+          "distance": "248.91 ft.",
           "from": {
             "x": 97.25714235544825,
             "y": 7.65222725233221,
@@ -8632,6 +8871,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
       ],
+      "method": "source",
       "notes": [
         {
           "explanation": undefined,
@@ -8649,6 +8889,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "2.005 ACRES OF LAND, MORE OR LESS",
         },
       ],
+      "schematic": false,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",
@@ -8703,55 +8944,77 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       },
     ],
     "scene": {
+      "beginning": 2,
+      "calculatedAcres": 0.016394272843885917,
+      "closed": true,
+      "closureMetres": 16.346345152203465,
+      "completion": "partial",
       "courses": [
         {
           "bearing": "North 07°55'52" West",
-          "confirmed": true,
+          "confirmed": false,
           "distance": "2.54 feet",
+          "issue": "Unconfirmed: tie inferred from geometry.",
+        },
+        {
+          "bearing": "South 89°45'41" West",
+          "confirmed": false,
+          "distance": "923.41 feet",
+          "issue": "Unconfirmed: tie inferred from geometry.",
+        },
+        {
+          "bearing": "South 00°01'32" East",
+          "confirmed": false,
+          "distance": "0.94 feet",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "North 89°46'56" West",
+          "confirmed": false,
+          "distance": "43.88 feet",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "North 00°00'11" East",
+          "confirmed": false,
+          "distance": "31.61 feet",
+          "issue": "Unconfirmed: extracted pairing not source-verified.",
+        },
+        {
+          "bearing": "S 54.900780955177° E",
+          "confirmed": false,
+          "distance": "16.346345152203 m",
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "target": 3,
         },
         {
           "bearing": "South 00°08'19" East",
           "confirmed": false,
           "distance": "00'",
           "issue": "Distance is zero.",
-        },
-        {
-          "bearing": "South 89°45'41" West",
-          "confirmed": true,
-          "distance": "923.41 feet",
-        },
-        {
-          "bearing": "South 00°01'32" East",
-          "confirmed": true,
-          "distance": "0.94 feet",
+          "unassigned": true,
         },
         {
           "bearing": "North 00°01'32" West",
           "confirmed": false,
           "distance": "00'",
           "issue": "Distance is zero.",
-        },
-        {
-          "bearing": "North 89°46'56" West",
-          "confirmed": true,
-          "distance": "43.88 feet",
-        },
-        {
-          "bearing": "North 00°00'11" East",
-          "confirmed": true,
-          "distance": "31.61 feet",
+          "unassigned": true,
         },
         {
           "bearing": "North 88°01'25" West",
           "confirmed": false,
           "distance": "00'",
           "issue": "Distance is zero.",
+          "unassigned": true,
         },
       ],
+      "ending": 6,
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 16.3463 m. Extracted bearing-distance associations require verification.",
       "items": [
         {
           "bearing": "North 07°55'52" West",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "North 07°55'52" West · 2.54 feet",
           "distance": "2.54 feet",
           "from": {
@@ -8767,10 +9030,10 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           },
         },
         {
-          "bearing": "South 00°08'19" East",
+          "bearing": "South 89°45'41" West",
           "confirmed": false,
-          "detail": "South 00°08'19" East · 00'",
-          "distance": "00'",
+          "detail": "South 89°45'41" West · 923.41 feet",
+          "distance": "923.41 feet",
           "from": {
             "x": -0.10682484218916993,
             "y": -0.7667866104433874,
@@ -8779,30 +9042,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "label": "Course 2",
           "sequence": 2,
           "to": {
-            "x": -0.10682484218916993,
-            "y": -0.7667866104433874,
-          },
-        },
-        {
-          "bearing": "South 89°45'41" West",
-          "confirmed": true,
-          "detail": "South 89°45'41" West · 923.41 feet",
-          "distance": "923.41 feet",
-          "from": {
-            "x": -0.10682484218916993,
-            "y": -0.7667866104433874,
-          },
-          "kind": "line",
-          "label": "Course 3",
-          "sequence": 3,
-          "to": {
             "x": -281.5597521389696,
             "y": 0.40534481932325006,
           },
         },
         {
           "bearing": "South 00°01'32" East",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "South 00°01'32" East · 0.94 feet",
           "distance": "0.94 feet",
           "from": {
@@ -8810,25 +9056,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": 0.40534481932325006,
           },
           "kind": "line",
-          "label": "Course 4",
-          "sequence": 4,
-          "to": {
-            "x": -281.5596243464314,
-            "y": 0.691856790823687,
-          },
-        },
-        {
-          "bearing": "North 00°01'32" West",
-          "confirmed": false,
-          "detail": "North 00°01'32" West · 00'",
-          "distance": "00'",
-          "from": {
-            "x": -281.5596243464314,
-            "y": 0.691856790823687,
-          },
-          "kind": "line",
-          "label": "Course 5",
-          "sequence": 5,
+          "label": "Course 3",
+          "sequence": 3,
           "to": {
             "x": -281.5596243464314,
             "y": 0.691856790823687,
@@ -8836,7 +9065,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "North 89°46'56" West",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "North 89°46'56" West · 43.88 feet",
           "distance": "43.88 feet",
           "from": {
@@ -8844,8 +9073,8 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": 0.691856790823687,
           },
           "kind": "line",
-          "label": "Course 6",
-          "sequence": 6,
+          "label": "Course 4",
+          "sequence": 4,
           "to": {
             "x": -294.93415173402,
             "y": 0.6410207797817391,
@@ -8853,7 +9082,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         },
         {
           "bearing": "North 00°00'11" East",
-          "confirmed": true,
+          "confirmed": false,
           "detail": "North 00°00'11" East · 31.61 feet",
           "distance": "31.61 feet",
           "from": {
@@ -8861,31 +9090,32 @@ exports[`map migration parity > preserves all prepared geometry and source data 
             "y": 0.6410207797817391,
           },
           "kind": "line",
-          "label": "Course 7",
-          "sequence": 7,
+          "label": "Course 5",
+          "sequence": 5,
           "to": {
             "x": -294.93363791874594,
             "y": -8.993707206517504,
           },
         },
         {
-          "bearing": "North 88°01'25" West",
+          "bearing": "S 54.900780955177° E",
           "confirmed": false,
-          "detail": "North 88°01'25" West · 00'",
-          "distance": "00'",
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "distance": "16.346345152203 m",
           "from": {
             "x": -294.93363791874594,
             "y": -8.993707206517504,
           },
           "kind": "line",
-          "label": "Course 8",
-          "sequence": 8,
+          "label": "Course 6",
+          "sequence": 6,
           "to": {
-            "x": -294.93363791874594,
-            "y": -8.993707206517504,
+            "x": -281.55975213896954,
+            "y": 0.40534481932323985,
           },
         },
       ],
+      "method": "extracted",
       "notes": [
         {
           "explanation": undefined,
@@ -8898,6 +9128,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "value": "2.54 feet; 00'; 923.41 feet; 0.94 feet; 00'; 43.88 feet; 31.61 feet; 00'",
         },
       ],
+      "schematic": true,
       "title": "Metes & Bounds",
     },
     "view": "Metes & Bounds",

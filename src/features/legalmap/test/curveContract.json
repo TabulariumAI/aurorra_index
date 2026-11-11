@@ -1,0 +1,755 @@
+{
+  "beginning": 15,
+  "closed": false,
+  "method": "source",
+  "completion": "open",
+  "issue": "Unconfirmed boundary: curve-based positions require review.",
+  "schematic": false,
+  "title": "Parcel",
+  "items": [
+    {
+      "kind": "line",
+      "label": "Course 1",
+      "detail": "South 89° 21' 19\", East, 218.96 feet; thence leaving said Northerly boundary and along the Easterly boundary of that certain parcel of land described by instrument recorded under Auditor's File No. 86142876, records of said County ",
+      "sequence": 1,
+      "from": {
+        "x": 0,
+        "y": 0
+      },
+      "to": {
+        "x": 66.73478282031061,
+        "y": 0.7509665438899795
+      },
+      "bearing": "South 89° 21' 19\", East",
+      "distance": "218.96 feet",
+      "confirmed": true
+    },
+    {
+      "kind": "line",
+      "label": "Course 2",
+      "detail": "South 0° 03' 59\" West, 756.54 feet (South, 756.71 feet per record); thence along the Southerly boundary of said parcel ",
+      "sequence": 2,
+      "from": {
+        "x": 66.73478282031061,
+        "y": 0.7509665438899795
+      },
+      "to": {
+        "x": 66.46759323349463,
+        "y": 231.3442037469579
+      },
+      "bearing": "South 0° 03' 59\" West",
+      "distance": "756.54 feet",
+      "confirmed": true
+    },
+    {
+      "kind": "line",
+      "label": "Course 3",
+      "detail": "North 89° 56' 01\" West, 1,061.21 feet to a point on the centerline of an existing 60 foot wide roadway and utility easement described as Easement \"G\" in that certain instrument recorded under Auditor's File No. 119514, records of said County, said point previously designated of record as Point \"J-1\" for reference purposes; thence leaving said Southerly boundary ",
+      "sequence": 3,
+      "from": {
+        "x": 66.46759323349463,
+        "y": 231.3442037469579
+      },
+      "to": {
+        "x": -256.98899763052805,
+        "y": 230.96941290784184
+      },
+      "bearing": "North 89° 56' 01\" West",
+      "distance": "1,061.21 feet",
+      "confirmed": true
+    },
+    {
+      "kind": "line",
+      "label": "Course 4",
+      "detail": "South 18º 06' 48\" East, 120.70 feet to the P.C. of a curve to the left having a central angle of 41º 15' 07\" and a radius of 79.70 feet; ",
+      "sequence": 4,
+      "from": {
+        "x": -256.98899763052805,
+        "y": 230.96941290784184
+      },
+      "to": {
+        "x": -245.55127330238122,
+        "y": 265.9356176118545
+      },
+      "bearing": "South 18º 06' 48\" East",
+      "distance": "120.70 feet",
+      "confirmed": true
+    },
+    {
+      "kind": "line",
+      "label": "Course 5",
+      "detail": "thence along said curve 57.39 feet to the P.T.; thence ",
+      "sequence": 5,
+      "from": {
+        "x": -245.55127330238122,
+        "y": 265.9356176118545
+      },
+      "to": {
+        "x": -234.8392136810928,
+        "y": 279.28639962868954
+      },
+      "bearing": "Curve left",
+      "distance": "57.39 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 24.29256,
+        "turn": -1,
+        "center": {
+          "x": -222.46256978200168,
+          "y": 258.3831186147269
+        },
+        "sweep": 0.7200752823086574
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 6",
+      "detail": "South 58° 09' 24\" East, 52.13 feet to the P.C. of a curve to the right having a central angle of 17' 20' 50\" and a radius of 524.42 feet; ",
+      "sequence": 6,
+      "from": {
+        "x": -234.8392136810928,
+        "y": 279.28639962868954
+      },
+      "to": {
+        "x": -221.34141468448234,
+        "y": 287.6695292095369
+      },
+      "bearing": "South 58° 09' 24\" East",
+      "distance": "52.13 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 7",
+      "detail": "thence along said curve 158.78 feet to the P.T.; thence ",
+      "sequence": 7,
+      "from": {
+        "x": -221.34141468448234,
+        "y": 287.6695292095369
+      },
+      "to": {
+        "x": -184.69046466130254,
+        "y": 318.99135234819465
+      },
+      "bearing": "Curve right",
+      "distance": "158.78 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 159.84321599999998,
+        "turn": 1,
+        "center": {
+          "x": -305.6744439342039,
+          "y": 423.4553674946403
+        },
+        "sweep": 0.30277258685786207
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 8",
+      "detail": "South 42° 48' 20\" East, 133.25 feet to the P.C. of a curve to the left having a central angle of 17º 58' 31\" and a radius of 410.97 feet; ",
+      "sequence": 8,
+      "from": {
+        "x": -184.69046466130254,
+        "y": 318.99135234819465
+      },
+      "to": {
+        "x": -157.0923384913747,
+        "y": 348.78882145328384
+      },
+      "bearing": "South 42° 48' 20\" East",
+      "distance": "133.25 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 9",
+      "detail": "thence along said curve 128.93 feet to the P.T.; thence ",
+      "sequence": 9,
+      "from": {
+        "x": -157.0923384913747,
+        "y": 348.78882145328384
+      },
+      "to": {
+        "x": -126.33928539538545,
+        "y": 372.99516728679896
+      },
+      "bearing": "Curve left",
+      "distance": "128.93 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 125.26365600000001,
+        "turn": -1,
+        "center": {
+          "x": -65.19090601018516,
+          "y": 263.67060822960474
+        },
+        "sweep": 0.31372119619436944
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 10",
+      "detail": "South 60° 46' 51\" East, 182.84 feet to the P.C. Of a curve to the left having a central angle 12º 39' 16\" and a radius of 270.56 feet; ",
+      "sequence": 10,
+      "from": {
+        "x": -126.33928539538545,
+        "y": 372.99516728679896
+      },
+      "to": {
+        "x": -77.70075703519136,
+        "y": 400.1996787106422
+      },
+      "bearing": "South 60° 46' 51\" East",
+      "distance": "182.84 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 11",
+      "detail": "thence along said curve 59.76 feet to the P.T.; thence ",
+      "sequence": 11,
+      "from": {
+        "x": -77.70075703519136,
+        "y": 400.1996787106422
+      },
+      "to": {
+        "x": -60.95454996412554,
+        "y": 407.2706459264341
+      },
+      "bearing": "Curve left",
+      "distance": "59.76 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 82.466688,
+        "turn": -1,
+        "center": {
+          "x": -37.444507796321105,
+          "y": 328.2261486672485
+        },
+        "sweep": 0.22087522176227084
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 12",
+      "detail": "South 73º 26' 06\" East, 32.50 feet to the P.C. of a curve to the right having a central angle of 42º 11' 54\" and a radius of 285.08 feet; ",
+      "sequence": 12,
+      "from": {
+        "x": -60.95454996412554,
+        "y": 407.2706459264341
+      },
+      "to": {
+        "x": -51.45967954647537,
+        "y": 410.09487533496866
+      },
+      "bearing": "South 73º 26' 06\" East",
+      "distance": "32.50 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 13",
+      "detail": "thence along said curve 209.96 feet to the P.T.; thence ",
+      "sequence": 13,
+      "from": {
+        "x": -51.45967954647537,
+        "y": 410.09487533496866
+      },
+      "to": {
+        "x": -1.937350323376407,
+        "y": 448.3204408477435
+      },
+      "bearing": "Curve right",
+      "distance": "209.96 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 86.89238399999999,
+        "turn": 1,
+        "center": {
+          "x": -76.23295092447664,
+          "y": 493.38095714000593
+        },
+        "sweep": 0.7364950189420515
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 14",
+      "detail": "South 31º 14' 12\" East, 100.23 feet to the P.C. of a curve to the right having a central angle of 85° 17' 06\" and a radius of 50.00 feet: ",
+      "sequence": 14,
+      "from": {
+        "x": -1.937350323376407,
+        "y": 448.3204408477435
+      },
+      "to": {
+        "x": 13.905148384429781,
+        "y": 474.4417748317493
+      },
+      "bearing": "South 31º 14' 12\" East",
+      "distance": "100.23 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 15",
+      "detail": "thence along said curve 24.16 feet to a point previously designated of record as Point H-1, in that certain instrument recorded under Auditor's File No. 119564, records of said County, said point also being the True Point of Beginning of the parcel to be described; ",
+      "sequence": 15,
+      "from": {
+        "x": 13.905148384429781,
+        "y": 474.4417748317493
+      },
+      "to": {
+        "x": 16.085186447810038,
+        "y": 481.4008357955887
+      },
+      "bearing": "Curve right",
+      "distance": "24.16 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 15.24,
+        "turn": 1,
+        "center": {
+          "x": 0.874451994124593,
+          "y": 482.3448471193908
+        },
+        "sweep": 0.4832
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 16",
+      "detail": "thence continuing along said curve 50.26 feet to the P.T.; thence ",
+      "sequence": 16,
+      "from": {
+        "x": 16.085186447810038,
+        "y": 481.4008357955887
+      },
+      "to": {
+        "x": 9.823178898490086,
+        "y": 494.6808872778487
+      },
+      "bearing": "Curve right",
+      "distance": "50.26 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 15.24,
+        "turn": 1,
+        "center": {
+          "x": 0.8744519941245947,
+          "y": 482.3448471193908
+        },
+        "sweep": 1.0052
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 17",
+      "detail": "South 54° 02' 54\" West, 73.78 feet to the P.C. of a curve to the left having a central angle of 60° 43' 00\" and a radius of 119.51 feet; ",
+      "sequence": 17,
+      "from": {
+        "x": 9.823178898490086,
+        "y": 494.6808872778487
+      },
+      "to": {
+        "x": -8.381255847979505,
+        "y": 507.88373455130704
+      },
+      "bearing": "South 54° 02' 54\" West",
+      "distance": "73.78 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 18",
+      "detail": "thence along said curve 126.65 feet to the P.T.; thence ",
+      "sequence": 18,
+      "from": {
+        "x": -8.381255847979505,
+        "y": 507.88373455130704
+      },
+      "to": {
+        "x": -23.175136325507005,
+        "y": 541.6028737987339
+      },
+      "bearing": "Curve left",
+      "distance": "126.65 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 36.426648,
+        "turn": -1,
+        "center": {
+          "x": 13.004923030456494,
+          "y": 537.3715631844133
+        },
+        "sweep": 1.0597439544807967
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 19",
+      "detail": "South 6° 40' 06\" East, 141.29 feet to the P.C. of a curve to the left having a central angle of 20° 21' 28\" and a radius of 222.78 feet; ",
+      "sequence": 19,
+      "from": {
+        "x": -23.175136325507005,
+        "y": 541.6028737987339
+      },
+      "to": {
+        "x": -18.17432844573927,
+        "y": 584.3767289271475
+      },
+      "bearing": "South 6° 40' 06\" East",
+      "distance": "141.29 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 20",
+      "detail": "thence along said curve 79.16 feet to the P.T.; thence ",
+      "sequence": 20,
+      "from": {
+        "x": -18.17432844573927,
+        "y": 584.3767289271475
+      },
+      "to": {
+        "x": -11.218067726686492,
+        "y": 607.3477935318199
+      },
+      "bearing": "Curve left",
+      "distance": "79.16 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 67.903344,
+        "turn": -1,
+        "center": {
+          "x": 49.26964809547376,
+          "y": 576.4916699742516
+        },
+        "sweep": 0.3553281264027291
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 21",
+      "detail": "South 27° 01' 35\" East, 19.59 feet to the P.C. of a curve to the right having a central angle of 28° 01' 48\" and a radius of 120.19 feet; ",
+      "sequence": 21,
+      "from": {
+        "x": -11.218067726686492,
+        "y": 607.3477935318199
+      },
+      "to": {
+        "x": -8.50482585907843,
+        "y": 612.6667729182137
+      },
+      "bearing": "South 27° 01' 35\" East",
+      "distance": "19.59 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 22",
+      "detail": "thence along said curve 58.80 feet to the P.T.; thence ",
+      "sequence": 22,
+      "from": {
+        "x": -8.50482585907843,
+        "y": 612.6667729182137
+      },
+      "to": {
+        "x": -4.50993105455855,
+        "y": 629.9552629783636
+      },
+      "bearing": "Curve right",
+      "distance": "58.80 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 36.633912,
+        "turn": 1,
+        "center": {
+          "x": -41.138217000001205,
+          "y": 629.3132527583267
+        },
+        "sweep": 0.489225393127548
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 23",
+      "detail": "South 1º 00' 13\" West, 31.23 feet to the P.C. of a curve to the right having a central angle of 34º 13' 15\" and a radius of 227.39 feet; ",
+      "sequence": 23,
+      "from": {
+        "x": -4.50993105455855,
+        "y": 629.9552629783636
+      },
+      "to": {
+        "x": -4.676658680635964,
+        "y": 639.472706713943
+      },
+      "bearing": "South 1º 00' 13\" West",
+      "distance": "31.23 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 24",
+      "detail": "thence along said curve 135.81 feet to the P.T.; thence ",
+      "sequence": 24,
+      "from": {
+        "x": -4.676658680635964,
+        "y": 639.472706713943
+      },
+      "to": {
+        "x": -17.356068266324435,
+        "y": 678.2339527649175
+      },
+      "bearing": "Curve right",
+      "distance": "135.81 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 69.308472,
+        "turn": 1,
+        "center": {
+          "x": -73.97449829105504,
+          "y": 638.2587395383508
+        },
+        "sweep": 0.5972558159989446
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 25",
+      "detail": "South 35° 13' 28\" West, 43.27 feet to the P.C. of a curve to the left having a central angle of 52° 10' 48\" and a radius of 102.11 feet; ",
+      "sequence": 25,
+      "from": {
+        "x": -17.356068266324435,
+        "y": 678.2339527649175
+      },
+      "to": {
+        "x": -24.963056045709372,
+        "y": 689.0077839824884
+      },
+      "bearing": "South 35° 13' 28\" West",
+      "distance": "43.27 feet",
+      "confirmed": false
+    },
+    {
+      "kind": "line",
+      "label": "Course 26",
+      "detail": "thence along said curve 92.99 feet to the P.T.; thence ",
+      "sequence": 26,
+      "from": {
+        "x": -24.963056045709372,
+        "y": 689.0077839824884
+      },
+      "to": {
+        "x": -29.309108371503626,
+        "y": 716.0346003009136
+      },
+      "bearing": "Curve left",
+      "distance": "92.99 feet",
+      "confirmed": false,
+      "arc": {
+        "radius": 31.123128,
+        "turn": -1,
+        "center": {
+          "x": 0.4613928941140557,
+          "y": 706.9590093615731
+        },
+        "sweep": 0.9106845558711193
+      }
+    },
+    {
+      "kind": "line",
+      "label": "Course 27",
+      "detail": "South 16º 57' 20\" East, 77.94 feet to the Southeasterly corner of that certain tract of land described b instrument recorded under Auditor's File No. 91174658, records of said county, from which corner a point on the Southerly boundary of said tract marked by a 5/8\" rebar and cap No. 24222 as shown on that certain survey recorded in Book 11 of Surveys, Page 84, records of said County, and noted in the instrument as a point on the Westerly margin of Easement \"G\" as",
+      "sequence": 27,
+      "from": {
+        "x": -29.309108371503626,
+        "y": 716.0346003009136
+      },
+      "to": {
+        "x": -22.38111795617576,
+        "y": 738.7580640809289
+      },
+      "bearing": "South 16º 57' 20\" East",
+      "distance": "77.94 feet",
+      "confirmed": false
+    }
+  ],
+  "notes": [
+    {
+      "label": "Bearings",
+      "value": "PARCEL A BOUNDARY CALLS, INCLUDING SOUTH 89° 21' 19\" EAST AND SUBSEQUENT STATED COURSES",
+      "explanation": "GROUP_BASIS:METES Parcel A's commencement and boundary calls state directional bearings defining the perimeter."
+    },
+    {
+      "label": "Distances",
+      "value": "PARCEL A BOUNDARY CALLS, INCLUDING 218.96 FEET AND SUBSEQUENT STATED DISTANCES",
+      "explanation": "Parcel A's commencement and boundary calls state measured distances defining the perimeter."
+    },
+    {
+      "label": "Easement",
+      "value": "EXISTING 60 FOOT WIDE ROADWAY AND UTILITY EASEMENT, EASEMENT \"G\"",
+      "explanation": "Parcel A boundary description identifies its centerline by the existing 60-foot roadway and utility easement."
+    }
+  ],
+  "courses": [
+    {
+      "bearing": "South 89° 21' 19\", East",
+      "distance": "218.96 feet",
+      "confirmed": true
+    },
+    {
+      "bearing": "South 0° 03' 59\" West",
+      "distance": "756.54 feet",
+      "confirmed": true
+    },
+    {
+      "bearing": "North 89° 56' 01\" West",
+      "distance": "1,061.21 feet",
+      "confirmed": true
+    },
+    {
+      "bearing": "South 18º 06' 48\" East",
+      "distance": "120.70 feet",
+      "confirmed": true
+    },
+    {
+      "bearing": "Curve left",
+      "distance": "57.39 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 58° 09' 24\" East",
+      "distance": "52.13 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve right",
+      "distance": "158.78 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 42° 48' 20\" East",
+      "distance": "133.25 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve left",
+      "distance": "128.93 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 60° 46' 51\" East",
+      "distance": "182.84 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve left",
+      "distance": "59.76 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 73º 26' 06\" East",
+      "distance": "32.50 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve right",
+      "distance": "209.96 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 31º 14' 12\" East",
+      "distance": "100.23 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve right",
+      "distance": "24.16 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve right",
+      "distance": "50.26 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 54° 02' 54\" West",
+      "distance": "73.78 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve left",
+      "distance": "126.65 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 6° 40' 06\" East",
+      "distance": "141.29 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve left",
+      "distance": "79.16 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 27° 01' 35\" East",
+      "distance": "19.59 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve right",
+      "distance": "58.80 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 1º 00' 13\" West",
+      "distance": "31.23 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve right",
+      "distance": "135.81 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 35° 13' 28\" West",
+      "distance": "43.27 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    },
+    {
+      "bearing": "Curve left",
+      "distance": "92.99 feet",
+      "confirmed": false,
+      "issue": "Curve-based position requires review."
+    },
+    {
+      "bearing": "South 16º 57' 20\" East",
+      "distance": "77.94 feet",
+      "confirmed": false,
+      "issue": "Position depends on an earlier unconfirmed course: Curve-based position requires review."
+    }
+  ]
+}

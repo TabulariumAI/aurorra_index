@@ -1,7 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { IqGates } from "../../iq/component/IqGates";
-import { IqSummary } from "../../iq/component/IqSummary";
+import { IqView } from "../../iq/component/IqView";
 import { prepareIqReport } from "../../iq/data/iqData";
 import { IndexSummary } from "../component/IndexSummary";
 
@@ -27,17 +26,16 @@ it.each([
   const view = prepareIqReport(data);
   render(<>
     <IndexSummary metadata={waiting} audit={waiting} iq={{ data, error: null }} />
-    <section aria-label="IQ report score"><IqSummary view={view} /></section>
-    <section aria-label="IQ report gates"><IqGates view={view} ackingCodes={new Set()} onAck={vi.fn()} /></section>
+    <section aria-label="IQ report"><IqView view={view} ackingCodes={new Set()} onAck={vi.fn()} /></section>
   </>);
 
   const summary = screen.getByRole("region", { name: "Indexing results" });
-  for (const [label, percent, reportName] of [["IQ", view.iq.displayInt, "IQ report score"], ["Compliance", view.gates.displayPercent, "IQ report gates"]] as const) {
+  for (const [label, percent, reportName] of [["IQ", view.iq.data!.displayInt, "IQ report"], ["Compliance", view.gates.data!.displayPercent, "IQ report"]] as const) {
     const meter = within(summary).getByRole("meter", { name: label });
     expect(meter.parentElement).toHaveStyle({ color });
     expect(meter.firstElementChild).toHaveStyle({ backgroundColor, width: `${percent}%` });
     expect(meter).toHaveAttribute("aria-valuenow", String(percent));
-    const number = within(screen.getByRole("region", { name: reportName })).getByText(`${percent}%`, { exact: true });
+    const number = within(screen.getByRole("region", { name: reportName })).getAllByText(`${percent}%`, { exact: true })[label === "IQ" ? 0 : 1];
     expect(number).toHaveStyle({ color });
     const fill = number.parentElement!.nextElementSibling!.lastElementChild!.firstElementChild!;
     expect(fill).toHaveStyle({ backgroundColor });
@@ -52,8 +50,8 @@ it("colors IQ and compliance independently and preserves mixed gate calculations
   expect(iq.parentElement).toHaveStyle({ color: "#065f46" });
   expect(iq.firstElementChild).toHaveStyle({ backgroundColor: "#16a34a", width: "100%" });
   expect(gates.parentElement).toHaveStyle({ color: "#991b1b" });
-  expect(gates.firstElementChild).toHaveStyle({ backgroundColor: "#ef4444", width: "75%" });
-  expect(gates).toHaveAttribute("aria-valuenow", "75");
+  expect(gates.firstElementChild).toHaveStyle({ backgroundColor: "#ef4444", width: "67%" });
+  expect(gates).toHaveAttribute("aria-valuenow", "67");
 });
 
 it("updates colors on new results and removes meters for pending and failed reports", () => {

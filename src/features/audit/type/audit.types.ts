@@ -1,4 +1,5 @@
 import type { ResourceRequest } from "aurora-core";
+import type { ReactNode } from "react";
 
 export type AuditStatus = "idle" | "loading" | "refreshing" | "success" | "error";
 
@@ -121,6 +122,7 @@ export type AuditCallbacks = {
 };
 
 export type AuditPanelProps = {
+  sourceDownload?: ReactNode;
   apiGatewayUrl: string;
   authToken: string | null;
   callbacks: AuditCallbacks;

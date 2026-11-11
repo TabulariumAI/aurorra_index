@@ -1,5 +1,59 @@
 import { expect, test } from "@playwright/test";
 
+for (const { width, height } of [{ width: 375, height: 812 }, { width: 390, height: 844 }, { width: 768, height: 1024 },
+  { width: 1024, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
+  for (const scenario of ["closing", "acreage", "partial", "source"]) {
+    test(`source-first reconstruction ${scenario} at ${width}px`, async ({ page }, testInfo) => {
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.setViewportSize({ width, height });
+      await page.goto(`/?scenario=legal-map&reconstruction=${scenario}`);
+      const table = page.getByRole("table", { name: "Boundary Calls" });
+      const unconfirmed = scenario === "closing" ? 1 : scenario === "partial" ? 3 : scenario === "acreage" ? 4 : 0;
+      await expect(table.getByRole("row")).toHaveCount(5);
+      await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(unconfirmed);
+      await expect(page.locator("[data-survey-line]")).toHaveCount(4);
+      await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(unconfirmed);
+      await expect(page.locator("[data-boundary-fill]")).toHaveAttribute("fill-opacity", scenario === "source" ? "0.25" : "0.12");
+      const note = page.getByRole("note");
+      await expect(note).toContainText(scenario === "source" ? /contradicts.*source measurements/i
+        : scenario === "closing" ? /synthetic closing border.*misclosure/i
+          : scenario === "partial" ? /three are fabricated/i : /acreage-based illustration/i);
+      if (unconfirmed) {
+        const status = table.getByRole("button", { name: "Unconfirmed" }).first();
+        await status.scrollIntoViewIfNeeded();
+        await expect(status).toBeInViewport();
+        await status.focus();
+        await expect(page.getByRole("tooltip")).toContainText(scenario === "closing" ? /synthetic/i : /area-derived/i);
+        await page.keyboard.press("Escape");
+      } else {
+        await expect(table).toContainText("100 ft");
+        await expect(table).not.toContainText("200 ft");
+      }
+      const divider = page.getByRole("separator", { name: "Resize map and details" });
+      await divider.focus();
+      await page.keyboard.press("ArrowUp");
+      await expect(page.getByRole("img", { name: /schematic/ })).toBeVisible();
+      const fitted = await page.locator("[data-survey-line]").evaluateAll(nodes => nodes.every(node => {
+        const line = node.getBoundingClientRect();
+        const svg = node.closest("svg")!.getBoundingClientRect();
+        return [line.x, line.y, line.width, line.height].every(Number.isFinite)
+          && line.left >= svg.left - 1 && line.right <= svg.right + 1 && line.top >= svg.top - 1 && line.bottom <= svg.bottom + 1;
+      }));
+      expect(fitted).toBe(true);
+      if (scenario === "source") {
+        await page.getByRole("tab", { name: "Acreage" }).click();
+        await expect(page.getByText("Calculated area: 0.1148 acres.")).toBeVisible();
+        await expect(page.getByText("1 ACRE", { exact: true })).toBeVisible();
+      }
+      await expect(page.getByRole("alert")).toHaveCount(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      expect(errors).toEqual([]);
+      await page.screenshot({ path: testInfo.outputPath(`reconstruction-${scenario}-${width}.png`), fullPage: true });
+    });
+  }
+}
+
 for (const width of [1440, 390]) {
   test(`condominium detail labels stay unbroken at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1100 });
@@ -24,26 +78,27 @@ for (const width of [1440, 390]) {
 }
 
 for (const width of [1440, 390]) {
-  test(`matrix boundary retains three confirmed measurements at ${width}px`, async ({ page }, testInfo) => {
+  test(`matrix boundary retains unassigned measurements beside its synthetic closing border at ${width}px`, async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.setViewportSize({ width, height: 1100 });
     await page.goto("/?scenario=legal-map&matrix=true");
     const table = page.getByRole("table", { name: "Boundary Calls" });
-    await expect(table.getByRole("row")).toHaveCount(5);
-    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(3);
-    const status = table.getByRole("button", { name: "Unconfirmed" });
-    await expect(status).toHaveCount(1);
+    await expect(table.getByRole("row")).toHaveCount(6);
+    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(0);
+    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(5);
+    const status = table.getByRole("button", { name: "Unconfirmed" }).nth(3);
     await expect(page.locator("[data-survey-line]")).toHaveCount(4);
-    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(4);
     await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
-    await expect(table.getByRole("row").filter({ hasText: "Unconfirmed" })).toContainText(/S 32°18′21.79″ E/);
+    await expect(table.getByRole("row").last()).toContainText("Unassigned");
+    await expect(table.getByRole("row").last()).toContainText("400 ft");
     await expect(page.getByRole("alert")).toHaveCount(0);
     await status.hover();
-    await expect(page.getByRole("tooltip")).toContainText(/calculated.*400/i);
+    await expect(page.getByRole("tooltip")).toContainText(/synthetic closing border/i);
     await page.mouse.move(0, 0);
     await status.focus();
-    await expect(page.getByRole("tooltip")).toContainText(/calculated.*400/i);
+    await expect(page.getByRole("tooltip")).toContainText(/synthetic closing border/i);
     await page.keyboard.press("Escape");
     const divider = page.getByRole("separator", { name: "Resize map and details" });
     await divider.focus();
@@ -63,42 +118,42 @@ for (const width of [1440, 390]) {
 }
 
 for (const width of [1440, 390]) {
-  test(`matrix rearrangement closes supplied pairs at ${width}px`, async ({ page }, testInfo) => {
+  test(`matrix single-swap recovery closes supplied pairs at ${width}px`, async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.setViewportSize({ width, height: 1100 });
     await page.goto("/?scenario=legal-map&matrix=retry");
     const table = page.getByRole("table", { name: "Boundary Calls" });
     await expect(table.getByRole("row")).toHaveCount(4);
-    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(1);
-    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(2);
+    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(0);
+    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(3);
     await expect(table.getByRole("row").nth(1)).toContainText("30 ft");
     await expect(table.getByRole("row").nth(2)).toContainText("40 ft");
     await expect(page.locator("[data-survey-line]")).toHaveCount(3);
-    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(2);
+    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(3);
     await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
-    await expect(page.getByRole("note")).toContainText(/rearranged/i);
+    await expect(page.getByRole("note")).toContainText(/associations inferred/i);
     await expect(page.getByRole("alert")).toHaveCount(0);
     await table.getByRole("button", { name: "Unconfirmed" }).first().hover();
-    await expect(page.getByRole("tooltip")).toContainText(/original distance: 40 FEET/i);
+    await expect(page.getByRole("tooltip")).toContainText(/distance association inferred geometrically/i);
     await page.mouse.move(0, 0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     expect(errors).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`matrix-rearranged-${width}.png`), fullPage: true });
   });
 
-  test(`matrix ambiguity remains unconfirmed with trailing curves at ${width}px`, async ({ page }, testInfo) => {
+  test(`invalid source order remains unfilled with trailing curves at ${width}px`, async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.setViewportSize({ width, height: 1100 });
     await page.goto("/?scenario=legal-map&matrix=ambiguous");
     const table = page.getByRole("table", { name: "Boundary Calls" });
     await expect(table.getByRole("row")).toHaveCount(8);
-    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(0);
-    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(7);
+    await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(6);
+    await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(1);
     await expect(table.getByRole("row").last()).toContainText("25 ft");
     await expect(page.locator("[data-boundary-fill]")).toHaveCount(0);
-    await expect(page.getByRole("note")).toContainText(/multiple.*shape/i);
+    await expect(page.getByRole("note")).toContainText(/curve/i);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     expect(errors).toEqual([]);
     await page.screenshot({ path: testInfo.outputPath(`matrix-ambiguous-${width}.png`), fullPage: true });
@@ -111,17 +166,20 @@ for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1100 });
       await page.goto(`/?scenario=legal-map&matrix=${scenario}`);
       const table = page.getByRole("table", { name: "Boundary Calls" });
-      await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(scenario === "gap" ? 3 : 4);
-      await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(1);
+      await expect(table.getByText("Confirmed", { exact: true })).toHaveCount(scenario === "gap" ? 0 : 4);
+      await expect(table.getByRole("button", { name: "Unconfirmed" })).toHaveCount(scenario === "gap" ? 5 : 1);
       await expect(page.locator("[data-survey-line]")).toHaveCount(scenario === "gap" ? 4 : 5);
-      await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
+      await expect(page.locator("[data-boundary-fill]")).toHaveCount(scenario === "gap" ? 1 : 0);
       await expect(page.getByRole("alert")).toHaveCount(0);
       if (scenario === "offset") {
         await expect(page.locator('[data-survey-tie="true"]')).toHaveCount(1);
-        await expect(table.getByRole("row").last()).toContainText("5 → 2");
-      } else {
-        await expect(table.getByRole("row").nth(2)).toContainText("50 ft");
+        await expect(table.getByRole("row").nth(2)).toContainText("N");
         await expect(table.getByRole("row").nth(3)).toContainText("S");
+        await expect(table.getByRole("row").last()).toContainText("5 → 6");
+      } else {
+        await expect(table.getByRole("row").last()).toContainText("50 ft");
+        await expect(table.getByRole("row").last()).toContainText("Unassigned");
+        await expect(table.getByRole("row").nth(2)).toContainText("S");
       }
       await expect(page.getByRole("img", { name: /schematic/ })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
@@ -458,3 +516,43 @@ test("a single ROW stays centered and ordinary maps keep their existing hierarch
   await expect(page.locator("[data-legal-map-block]")).toHaveCount(2);
   await expect(page.locator("[data-legal-map-lot]")).toHaveCount(2);
 });
+
+for (const width of [390, 1440]) {
+  test(`Metes property illustration remains closed after reload at ${width}px`, async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?scenario=legal-map&reconstruction=property");
+    await expect(page.locator("[data-survey-line]")).toHaveCount(10);
+    await expect(page.locator('[data-survey-line][data-unconfirmed="true"]')).toHaveCount(1);
+    await expect(page.locator("[data-boundary-fill]")).toHaveCount(1);
+    await expect(page.getByRole("table", { name: "Boundary Calls" }).getByText("Confirmed", { exact: true })).toHaveCount(9);
+    await page.getByRole("tab", { name: "Acreage" }).click();
+    await expect(page.getByText("Calculated area: 30.2099 acres.")).toBeVisible();
+    await page.getByRole("tab", { name: "Boundary Calls" }).click();
+    const outline = await page.locator("[data-boundary-fill]").getAttribute("d");
+    await page.screenshot({ path: testInfo.outputPath(`metes-property-${width}.png`), fullPage: true });
+    await page.reload();
+    await expect(page.locator("[data-boundary-fill]")).toHaveAttribute("d", outline!);
+    expect(errors).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  });
+
+  test(`Metes existing curves retain their geometry at ${width}px`, async ({ page }, testInfo) => {
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/?scenario=legal-map&curves=true");
+    await expect(page.locator("[data-survey-line]")).toHaveCount(27);
+    await expect(page.locator("[data-survey-arc]")).toHaveCount(12);
+    await expect(page.getByRole("table", { name: "Boundary Calls" }).getByRole("row")).toHaveCount(28);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+    const divider = page.getByRole("separator", { name: "Resize map and details" });
+    await divider.focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(page.getByRole("img", { name: /schematic/ })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`metes-curves-${width}.png`), fullPage: true });
+    expect(errors).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  });
+}

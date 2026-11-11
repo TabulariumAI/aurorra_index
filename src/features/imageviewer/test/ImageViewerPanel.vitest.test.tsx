@@ -243,6 +243,7 @@ describe("ImageViewerPanel", () => {
     expect(select).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(exportSelection).toHaveBeenCalledTimes(1));
     expect(onAddIndex).toHaveBeenCalledExactlyOnceWith(screen.getByRole("button", { name: "More" }));
+    expect(screen.getByRole("button", { name: "More" })).toHaveFocus();
     expect(addIndexStoreApi.getState().request).toEqual({
       groups: [
         { value: { context: ["Selected context"], kind: ["BODY"], token: ["Selected value"] } },

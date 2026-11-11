@@ -8,7 +8,6 @@ export function AuditUsage({ report, session }: { report: AuditReport | null; se
   if (!report.usage?.services?.length) return null;
   const usage = summarizeUsage(report.usage.services.map(service => ({ ...service, session })));
   return <section aria-label="Audit usage" style={auditStyles.usage}>
-    <h3 style={auditStyles.usageTitle}>Service usage</h3>
     <table aria-label="Audit service usage" style={auditStyles.usageTable}>
       <thead><tr><th scope="col" style={auditStyles.serviceCell}>Service</th>
         {["Credits", "Time", "Pages"].map(label => <th scope="col" key={label} style={auditStyles.usageCell}>{label}</th>)}

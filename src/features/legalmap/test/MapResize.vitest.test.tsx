@@ -25,12 +25,15 @@ beforeEach(() => {
   });
 });
 
-it("shows available acreage without a blank map or splitter when no boundary can be drawn", () => {
+it("fits the unconfirmed acreage illustration above its details", () => {
   render(<LegalMapContent legal={{ groups: [{ ...incompleteFixture.groups![0], elements: incompleteFixture.groups![0].elements!.filter(element => element.aspect === "acreage") }] }} />);
-  expect(screen.queryByRole("separator")).toBeNull();
-  expect(document.querySelector(".legal-map-column")).toBeNull();
-  expect(screen.getByRole("region", { name: "Acreage" })).toHaveStyle({ flex: "1 1 0", height: "auto" });
-  expect(screen.getByRole("alert")).toBeVisible();
+  act(() => measure());
+  expect(screen.getByRole("separator")).toBeVisible();
+  expect(document.querySelectorAll('[data-survey-line][data-unconfirmed="true"]')).toHaveLength(4);
+  expect(screen.getByRole("note")).toHaveTextContent(/acreage-based illustration/i);
+  fireEvent.click(screen.getByRole("tab", { name: "Acreage" }));
+  expect(screen.getByText("Illustrated area: 1.5890 acres.")).toBeVisible();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("reserves one map viewport when all Lot Block parcels share its scroller", () => {

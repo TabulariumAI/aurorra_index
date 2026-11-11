@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { iqStoreApi } from "../store/iqStore";
 import { IqPanel } from "../component/IqPanel";
@@ -63,15 +63,15 @@ describe("IqPanel", () => {
     expect(screen.queryByText(/Loading IQ summary…|Loading indexing segments…|Loading IQ gates…/)).not.toBeInTheDocument();
     expect(screen.queryByText("No IQ report found.")).not.toBeInTheDocument();
     finish(report);
-    await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument());
     expect(screen.queryByRole("status", { name: /^Loading/ })).not.toBeInTheDocument();
   });
 
   it("renders report summary, segment table, explanations, notes, and no dialog role", async () => {
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client()} />);
 
-    await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
-    expect(screen.getByText("90%")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument());
+    expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument();
     expect(screen.getByText("Indexing Segments (1)")).toBeInTheDocument();
     expect(screen.getByText("Segment")).toBeInTheDocument();
     expect(screen.getByText("Expected")).toBeInTheDocument();
@@ -88,15 +88,37 @@ describe("IqPanel", () => {
     const noNotes = { ...report, explanation: [] };
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => ({ report: noNotes, metadataEtag: "" })))} />);
 
-    await waitFor(() => expect(screen.getByText("90%")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument());
     expect(screen.queryByText("Notes")).not.toBeInTheDocument();
+  });
+
+  it("keeps INFO notes after clearing a failed gate and recalculates only actual gates", async () => {
+    const mixed: IqReport = { ...report, gates: [
+      { code: "pass", status: "PASS", description: "Passed requirement" },
+      { code: "fail", status: "FAIL", description: "Failed requirement" },
+      { code: "info", status: "INFO", description: "Missing address" },
+    ] };
+    const workerClient = client(vi.fn(async () => ({ report: mixed, metadataEtag: "" })));
+    render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={workerClient} />);
+    await screen.findByText("Compliance Gates (2)");
+    expect(screen.getByText("50%")).toBeVisible();
+    const notes = screen.getByText("Notes").nextElementSibling as HTMLElement;
+    expect(within(notes).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Report note", "Missing address"]);
+    expect(document.querySelector("[data-gate-code='info']")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Clear gate" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await screen.findByText("Compliance Gates (1)");
+    expect(screen.getByText("100%")).toBeVisible();
+    expect(screen.getByText("Missing address")).toBeVisible();
+    expect(workerClient.ackGate).toHaveBeenCalledExactlyOnceWith("token", "session-1", "fail");
   });
 
   it("renders service text-comparison descriptions and statuses without interpreting literals", async () => {
     const description = 'Notary Seal must be equal to "Available && Ready" (case-insensitive). This requirement is satisfied. Notary Seal: "AVAILABLE && READY".';
     const textReport: IqReport = { ...report, gates: [
       { code: "seal", status: "PASS", description },
-      { code: "signature", status: "FAIL", description: 'Notary Signature must be equal to "Yes" (case-insensitive). The available values do not satisfy this requirement. Notary Signature: "No".' },
+      { code: "signature", status: "FAIL", description: 'Notary Signature is present. The available values do not satisfy this requirement. Notary Signature is "No".' },
+      { code: "custom", status: "PASS", description: 'Custom Aspect is present. This requirement is satisfied. Custom Aspect is "YES".' },
     ] };
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="text-session" workerClient={client(vi.fn(async () => ({ report: textReport, metadataEtag: "" })))} />);
     await waitFor(() => expect(screen.getByText(description)).toBeInTheDocument());
@@ -106,6 +128,7 @@ describe("IqPanel", () => {
     const signature = screen.getByText(textReport.gates[1].description).closest("li")!;
     expect(within(signature).getByText("FAIL")).toBeInTheDocument();
     expect(within(signature).getByRole("button", { name: "Clear gate" })).toBeEnabled();
+    expect(screen.getByText(textReport.gates[2].description)).toBeVisible();
     expect(screen.queryByText("Yes is unavailable.")).not.toBeInTheDocument();
   });
 

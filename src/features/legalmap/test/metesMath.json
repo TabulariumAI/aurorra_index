@@ -1,0 +1,1171 @@
+[
+  {
+    "name": "source rectangle",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "BEGINNING at a pin; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET to the point of beginning."
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 100 FEET; THENCE ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET to the point of beginning.",
+          "detail": "WEST 50 FEET to the point of beginning.",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "source",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "synthetic closing border",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "BEGINNING at a pin; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; "
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; ",
+          "detail": "SOUTH 100 FEET; ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 W",
+          "distance": "15.240000000000 m",
+          "angle": 270,
+          "metres": 15.240000000000004,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "source",
+      "completion": "partial",
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 15.2400 m. Source courses unchanged.",
+      "closureMetres": 15.240000000000004,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "one measured side and stated acreage",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "BEGINNING at a pin; THENCE NORTH 100 FEET.",
+      "acreage": "1 ACRE"
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET.",
+          "detail": "NORTH 100 FEET.",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 W",
+          "distance": "132.770880000000 m",
+          "angle": 270,
+          "metres": 132.77088,
+          "detail": "UNCONFIRMED: Area-derived side; no bearing or distance in the source supports this line.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived side; no bearing or distance in the source supports this line."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "S 0.000000000000\u00b0 E",
+          "distance": "30.480000000000 m",
+          "angle": 180,
+          "metres": 30.48,
+          "detail": "UNCONFIRMED: Area-derived side; no bearing or distance in the source supports this line.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived side; no bearing or distance in the source supports this line."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 E",
+          "distance": "132.770880000000 m",
+          "angle": 90,
+          "metres": 132.77088,
+          "detail": "UNCONFIRMED: Area-derived side; no bearing or distance in the source supports this line.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived side; no bearing or distance in the source supports this line."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "source",
+      "completion": "partial",
+      "calculatedAcres": 1.0000000000000002,
+      "issue": "PARTIALLY UNCONFIRMED: Only one source-supported border; the other three are fabricated using stated acreage."
+    }
+  },
+  {
+    "name": "area illustration",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "acreage": "2.5 ACRES"
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 E",
+          "distance": "100.584000000000 m",
+          "angle": 90,
+          "metres": 100.584,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "S 0.000000000000\u00b0 E",
+          "distance": "100.584000000000 m",
+          "angle": 180,
+          "metres": 100.584,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 W",
+          "distance": "100.584000000000 m",
+          "angle": 270,
+          "metres": 100.584,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 0.000000000000\u00b0 E",
+          "distance": "100.584000000000 m",
+          "angle": 0,
+          "metres": 100.584,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "synthetic",
+      "completion": "synthetic",
+      "calculatedAcres": 2.5,
+      "issue": "Entire polygon is Unconfirmed - acreage-based illustration, NOT a source-verified boundary. Source-supported course pairing is missing or incomplete."
+    }
+  },
+  {
+    "name": "separate lists",
+    "input": {
+      "bearings": [
+        "NORTH; EAST; SOUTH; WEST"
+      ],
+      "distances": [
+        "100 FEET; 50 FEET; 100 FEET; 50 FEET"
+      ]
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "NORTH 100 FEET",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "EAST 50 FEET",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "SOUTH 100 FEET",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "WEST 50 FEET",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "issue": "Boundary inferred from extracted measurements; source pairing and tie lines unverified.",
+      "method": "extracted",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "inline associations",
+    "input": {
+      "bearings": [
+        "NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET"
+      ],
+      "distances": []
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "NORTH 100 FEET",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "EAST 50 FEET",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "SOUTH 100 FEET",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "WEST 50 FEET",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "issue": "Boundary inferred from extracted measurements; source pairing and tie lines unverified.",
+      "method": "extracted",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "single distance swap",
+    "input": {
+      "bearings": [
+        "NORTH; EAST; SOUTH 53.13010235415598 DEGREES WEST"
+      ],
+      "distances": [
+        "40 FEET; 50 FEET; 30 FEET"
+      ]
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "40 FEET",
+          "clause": "",
+          "detail": "NORTH 40 FEET",
+          "angle": 0,
+          "metres": 12.192,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed: extracted pairing not source-verified."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "EAST 50 FEET",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed: extracted pairing not source-verified."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH 53.13010235415598 DEGREES WEST",
+          "distance": "30 FEET",
+          "clause": "",
+          "detail": "SOUTH 53.13010235415598 DEGREES WEST 30 FEET",
+          "angle": 233.13010235415598,
+          "metres": 9.144,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed: extracted pairing not source-verified."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "S 49.763641690726\u00b0 W",
+          "distance": "10.381113928669 m",
+          "angle": 229.763641690726,
+          "metres": 10.381113928668736,
+          "detail": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "extracted",
+      "completion": "partial",
+      "issue": "PARTIALLY UNCONFIRMED: Synthetic closing border inserted; measured misclosure 10.3811 m. Extracted bearing-distance associations require verification.",
+      "closureMetres": 10.381113928668736,
+      "calculatedAcres": 0.022268135904499588
+    }
+  },
+  {
+    "name": "excluded extracted measurement",
+    "input": {
+      "bearings": [
+        "NORTH 100 FEET; EAST 50 FEET; NORTH 45 DEGREES EAST 20 FEET; SOUTH 100 FEET; WEST 50 FEET"
+      ],
+      "distances": []
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "NORTH 100 FEET",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "EAST 50 FEET",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "SOUTH 100 FEET",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "WEST 50 FEET",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "issue": "Boundary inferred from extracted measurements; source pairing and tie lines unverified. 1 extracted course(s) were excluded as unassigned; source review required.",
+      "method": "extracted",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "explicit beginning",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "COMMENCING at a monument; THENCE EAST 20 FEET to the POINT OF BEGINNING; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET to the point of beginning."
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "20 FEET",
+          "clause": " 20 FEET to the POINT OF BEGINNING; THENCE ",
+          "detail": "EAST 20 FEET to the POINT OF BEGINNING; THENCE ",
+          "angle": 90,
+          "metres": 6.096,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 100 FEET; THENCE ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET to the point of beginning.",
+          "detail": "WEST 50 FEET to the point of beginning.",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 1,
+      "closed": true,
+      "method": "source",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "inferred tie",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "COMMENCING at a monument; THENCE EAST 20 FEET; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET to the point of beginning."
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "20 FEET",
+          "clause": " 20 FEET; THENCE ",
+          "detail": "EAST 20 FEET; THENCE ",
+          "angle": 90,
+          "metres": 6.096,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed tie: inferred from closure, not source-supported."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 100 FEET; THENCE ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET to the point of beginning.",
+          "detail": "WEST 50 FEET to the point of beginning.",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 1,
+      "closed": true,
+      "issue": "Tie inferred from closure; source did not explicitly identify its position.",
+      "method": "source",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "measured misclosure",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "BEGINNING at a pin; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 49.999 FEET to the point of beginning."
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 100 FEET; THENCE ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "49.999 FEET",
+          "clause": " 49.999 FEET to the point of beginning.",
+          "detail": "WEST 49.999 FEET to the point of beginning.",
+          "angle": 270,
+          "metres": 15.239695200000002,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "source",
+      "completion": "measured",
+      "closureMetres": 0.0003048000000021034,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "strict open boundary",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "BEGINNING at a pin; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 49 FEET to the point of beginning.",
+      "allowSchematic": false
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 100 FEET; THENCE ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "49 FEET",
+          "clause": " 49 FEET to the point of beginning.",
+          "detail": "WEST 49 FEET to the point of beginning.",
+          "angle": 270,
+          "metres": 14.9352,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 0,
+      "closed": false,
+      "method": "source",
+      "completion": "open",
+      "closureMetres": 0.30480000000000373,
+      "calculatedAcres": 0.11478420569329661,
+      "issue": "Boundary remains open or geometrically invalid; source measurements preserved without forced closure."
+    }
+  },
+  {
+    "name": "source conflict",
+    "input": {
+      "source": "BEGINNING at a pin; THENCE NORTH 100 FEET; THENCE EAST 50 FEET; THENCE SOUTH 100 FEET; THENCE WEST 50 FEET to the point of beginning.",
+      "bearings": [
+        "NORTH 200 FEET; EAST 50 FEET; SOUTH 200 FEET; WEST 50 FEET"
+      ],
+      "distances": []
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 100 FEET; THENCE ",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "EAST 50 FEET; THENCE ",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 100 FEET; THENCE ",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET to the point of beginning.",
+          "detail": "WEST 50 FEET to the point of beginning.",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "issue": "Extracted bearing-distance association contradicts the legal description; source measurements used.",
+      "method": "source",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  },
+  {
+    "name": "incomplete extracted lists",
+    "input": {
+      "bearings": [
+        "NORTH; EAST; SOUTH; WEST"
+      ],
+      "distances": [
+        "100 FEET; 50 FEET"
+      ],
+      "acreage": "1 ACRE"
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 E",
+          "distance": "63.614907234075 m",
+          "angle": 90,
+          "metres": 63.614907234075254,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "S 0.000000000000\u00b0 E",
+          "distance": "63.614907234075 m",
+          "angle": 180,
+          "metres": 63.614907234075254,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 90.000000000000\u00b0 W",
+          "distance": "63.614907234075 m",
+          "angle": 270,
+          "metres": 63.614907234075254,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "N 0.000000000000\u00b0 E",
+          "distance": "63.614907234075 m",
+          "angle": 0,
+          "metres": 63.614907234075254,
+          "detail": "UNCONFIRMED: Area-derived schematic border; not a measured course.",
+          "clause": "",
+          "paired": false,
+          "missingBearing": false,
+          "missingDistance": false,
+          "synthetic": true,
+          "issue": "UNCONFIRMED: Area-derived schematic border; not a measured course."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "synthetic",
+      "completion": "synthetic",
+      "calculatedAcres": 1,
+      "issue": "Entire polygon is Unconfirmed - acreage-based illustration, NOT a source-verified boundary. Source-supported course pairing is missing or incomplete. Extracted measurements: 4 bearings, 2 distances; association unresolved."
+    }
+  },
+  {
+    "name": "missing measurements",
+    "input": {
+      "bearings": [],
+      "distances": []
+    },
+    "expected": {
+      "courses": [],
+      "beginning": 0,
+      "closed": false,
+      "method": "none",
+      "completion": "open",
+      "issue": "Insufficient paired boundary measurements and acreage for a schematic."
+    }
+  },
+  {
+    "name": "fractional angular courses",
+    "input": {
+      "bearings": [],
+      "distances": [],
+      "source": "BEGINNING at a pin; THENCE NORTH 45 1/2 DEGREES EAST 100 FEET; THENCE SOUTH 44 1/2 DEGREES EAST 50 FEET; THENCE SOUTH 45 1/2 DEGREES WEST 100 FEET; THENCE NORTH 44 1/2 DEGREES WEST 50 FEET."
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH 45 1/2 DEGREES EAST",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "NORTH 45 1/2 DEGREES EAST 100 FEET; THENCE ",
+          "angle": 45.5,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH 44 1/2 DEGREES EAST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET; THENCE ",
+          "detail": "SOUTH 44 1/2 DEGREES EAST 50 FEET; THENCE ",
+          "angle": 135.5,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH 45 1/2 DEGREES WEST",
+          "distance": "100 FEET",
+          "clause": " 100 FEET; THENCE ",
+          "detail": "SOUTH 45 1/2 DEGREES WEST 100 FEET; THENCE ",
+          "angle": 225.5,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        },
+        {
+          "kind": "bearing",
+          "bearing": "NORTH 44 1/2 DEGREES WEST",
+          "distance": "50 FEET",
+          "clause": " 50 FEET.",
+          "detail": "NORTH 44 1/2 DEGREES WEST 50 FEET.",
+          "angle": 315.5,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "method": "source",
+      "completion": "measured",
+      "closureMetres": 7.105427357601002e-15,
+      "calculatedAcres": 0.11478420569329657
+    }
+  },
+  {
+    "name": "explicit units for numeric entries",
+    "input": {
+      "bearings": [
+        "[\"NORTH\",\"EAST\",\"SOUTH\",\"WEST\"]"
+      ],
+      "distances": [
+        "[100,50,100,\"50 FEET\"]"
+      ]
+    },
+    "expected": {
+      "courses": [
+        {
+          "kind": "bearing",
+          "bearing": "NORTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "NORTH 100 FEET",
+          "angle": 0,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "EAST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "EAST 50 FEET",
+          "angle": 90,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "SOUTH",
+          "distance": "100 FEET",
+          "clause": "",
+          "detail": "SOUTH 100 FEET",
+          "angle": 180,
+          "metres": 30.48,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        },
+        {
+          "kind": "bearing",
+          "bearing": "WEST",
+          "distance": "50 FEET",
+          "clause": "",
+          "detail": "WEST 50 FEET",
+          "angle": 270,
+          "metres": 15.24,
+          "paired": true,
+          "missingBearing": false,
+          "missingDistance": false,
+          "issue": "Unconfirmed extracted association: source evidence not available."
+        }
+      ],
+      "beginning": 0,
+      "closed": true,
+      "issue": "Boundary inferred from extracted measurements; source pairing and tie lines unverified.",
+      "method": "extracted",
+      "completion": "measured",
+      "closureMetres": 4.523186173123033e-15,
+      "calculatedAcres": 0.11478420569329661
+    }
+  }
+]

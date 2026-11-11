@@ -39,8 +39,8 @@ function MetadataCounts({ data, error }: SummaryValue) {
 function IqScores({ data, error }: SummaryValue) {
   const view = data ? prepareIqReport(data) : null;
   return <>
-    <SummaryMetric label="IQ" value={view ? view.iq.displayInt : null} error={error} bucket={view?.iq.bucket} score />
-    <SummaryMetric label="Compliance" value={view ? view.gates.displayPercent : null} error={error} bucket={view?.gates.bucket} score />
+    <SummaryMetric label="IQ" value={view?.iq.data?.displayInt ?? null} error={error ?? view?.iq.error ?? null} bucket={view?.iq.data?.bucket} score />
+    <SummaryMetric label="Compliance" value={view?.gates.data?.displayPercent ?? null} error={error ?? view?.gates.error ?? null} bucket={view?.gates.data?.bucket} score />
   </>;
 }
 

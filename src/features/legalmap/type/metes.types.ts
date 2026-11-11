@@ -14,16 +14,24 @@ export type MetesLine = {
   arc?: { center: MetesPoint; radius: number; sweep: number; turn: number };
 };
 
-export type MetesScene = {
+export type ReconstructedBoundary = {
+  courses: MatrixCourse[];
+  beginning?: number;
+  ending?: number;
+  closed: boolean;
+  issue?: string;
+  schematic?: boolean;
+  method: "source" | "extracted" | "synthetic" | "none";
+  completion: "measured" | "partial" | "synthetic" | "open";
+  closureMetres?: number;
+  calculatedAcres?: number;
+};
+
+export type MetesScene = Omit<ReconstructedBoundary, "courses"> & {
   title: string;
   items: MetesLine[];
   notes: MapNote[];
-  courses: { bearing: string; distance?: string; confirmed: boolean; issue?: string; target?: number }[];
-  beginning?: number;
-  ending?: number;
-  closed?: boolean;
-  issue?: string;
-  schematic?: boolean;
+  courses: { bearing: string; distance?: string; confirmed: boolean; issue?: string; target?: number; unassigned?: boolean }[];
 };
 
 export type BoundaryCourse = {
@@ -32,9 +40,9 @@ export type BoundaryCourse = {
   distance?: string;
   clause: string;
   detail: string;
-  angle?: number | null;
-  metres?: number | null;
   issue?: string;
+  synthetic?: true;
+  unassigned?: true;
 };
 
 export type MatrixCourse = BoundaryCourse & {
@@ -43,4 +51,22 @@ export type MatrixCourse = BoundaryCourse & {
   paired: boolean;
   missingBearing: boolean;
   missingDistance: boolean;
+};
+
+export type SurveyCourse = MatrixCourse & {
+  kind: "bearing";
+  distance: string;
+  angle: number;
+  metres: number;
+  missingBearing: false;
+  missingDistance: false;
+};
+
+export type BoundaryInput = {
+  source?: string;
+  bearings: string[];
+  distances: string[];
+  acreage?: string;
+  closureRatio?: number;
+  allowSchematic?: boolean;
 };

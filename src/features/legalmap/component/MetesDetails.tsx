@@ -17,10 +17,10 @@ export function MetesDetails({ scenes, active, showParcels, hasDrawing }: {
     {active === "Acreage" ? <section className="legal-map-acreage" style={legalMapStyles.infoSection}>
       {scenes.map((scene, index) => {
         const acreage = scene.notes.find(note => note.label === "Acreage")?.value;
-        return acreage ? <div key={index} aria-label={showParcels ? `${scene.title} acreage` : "Reported acreage"} style={legalMapStyles.infoCard}>
+        return acreage || scene.calculatedAcres !== undefined ? <div key={index} aria-label={showParcels ? `${scene.title} acreage` : "Reported acreage"} style={legalMapStyles.infoCard}>
           {showParcels ? <h4 style={legalMapStyles.infoTitle}>{scene.title}</h4> : null}
           {!hasDrawing && scene.issue ? <MapIssue title={scene.title} issue={scene.issue} /> : null}
-          <ul style={legalMapStyles.acreageList}>
+          {acreage ? <ul style={legalMapStyles.acreageList}>
             {acreage.split(";").map((entry, index) => <li key={index}>
               {index === 0 ? <strong style={legalMapStyles.acreageFirst}>
                 <svg data-survey-swatch="true" aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" style={legalMapStyles.acreageSwatch}>
@@ -29,7 +29,9 @@ export function MetesDetails({ scenes, active, showParcels, hasDrawing }: {
                 {entry.trim()}
               </strong> : entry.trim()}
             </li>)}
-          </ul>
+          </ul> : null}
+          {scene.calculatedAcres !== undefined ? <p style={legalMapStyles.infoNote}>{scene.completion === "synthetic" ? "Illustrated area" : "Calculated area"}: {scene.calculatedAcres.toFixed(4)} acres.</p> : null}
+          {scene.closureMetres !== undefined ? <p style={legalMapStyles.infoNote}>Measured misclosure: {scene.closureMetres.toFixed(4)} m{scene.completion === "partial" ? " before completion" : ""}.</p> : null}
         </div> : null;
       })}
     </section> : null}
@@ -68,7 +70,7 @@ function MetesCourses({ scene, showTitle, showIssue }: { scene: MetesScene; show
     <thead><tr>{["#", "Boundary", "Bearing", "Distance", "Status"].map(label => <th key={label} scope="col" style={surveyStyles.cell}>{label}</th>)}</tr></thead>
     <tbody>{scene.courses.map((course, index) => <tr key={index} style={course.confirmed ? undefined : surveyStyles.unconfirmedRow}>
       <td style={surveyStyles.cell}>{index + 1}</td>
-      <td style={surveyStyles.cell}>{scene.beginning !== undefined && index < scene.beginning ? "Tie" : (index + 1) + " → " + (course.target ?? index + 2)}</td>
+      <td style={surveyStyles.cell}>{course.unassigned ? "Unassigned" : scene.beginning !== undefined && index < scene.beginning ? "Tie" : (index + 1) + " → " + (course.target ?? index + 2)}</td>
       <td style={surveyStyles.cell}>{formatMeasure(course.bearing, true)}</td>
       <td style={surveyStyles.cell}>{course.distance ? formatMeasure(course.distance, false) : "—"}</td>
       <td style={surveyStyles.cell}>{course.confirmed ? "Confirmed" : <Tooltip.Root>

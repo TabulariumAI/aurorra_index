@@ -1,5 +1,15 @@
 # IQ report flow
 
+`iqData` converts the service JSON into a fully prepared `IqReportView` before
+rendering. It owns normalization, segment ordering, gate labels and clear
+eligibility, score calculations, and INFO-to-Notes conversion. INFO entries do
+not contribute to gate lists or metrics. Existing report notes precede INFO
+descriptions in their service order. Each prepared section contains either data
+or its conversion error; segment explanation errors retain the segment row.
+`IqView` renders this structure using the existing Core error UI and styles.
+`IqPanel` retains request state, placeholders, refresh progress, and callbacks.
+Indexing summary metrics consume the same prepared scores and section errors.
+
 The IQ package uses one public report request: GET `/v1/iq/{session}/data`.
 Gate acknowledgement remains POST `/v1/iq/{session}/gates/{code}/ack`.
 

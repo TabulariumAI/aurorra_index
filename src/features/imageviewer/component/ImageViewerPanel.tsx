@@ -130,6 +130,7 @@ export function ImageViewerPanel({ compact, hostInput, renderTolerance, onAddInd
             if (action === "export") {
               void viewer.exportSelection().then((selection) => {
                 if (selection) {
+                  exportRef.current!.focus({ preventScroll: true });
                   addIndexStoreApi.getState().open(selection);
                   onAddIndex?.(exportRef.current!);
                 }

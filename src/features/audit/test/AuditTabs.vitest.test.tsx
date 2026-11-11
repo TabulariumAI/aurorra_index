@@ -27,7 +27,7 @@ it("starts on Changes and displays only the selected content", async () => {
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
   expect(screen.getByRole("tabpanel", { name: "Usage" })).toBeVisible();
-  expect(screen.getByRole("row", { name: "Index Extraction 0 credits 88.14 s 3" })).toBeVisible();
+  expect(screen.getByRole("row", { name: "Index Extraction 1 credits 88.14 s 3" })).toBeVisible();
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   expect(screen.queryByRole("article")).not.toBeInTheDocument();
   expect(screen.getByText("Out of 1")).not.toBeVisible();
@@ -41,6 +41,7 @@ it("retains filters, expanded messages, and loaded resources across tab switches
   fireEvent.change(screen.getByLabelText("Segment"), { target: { value: "party" } });
   fireEvent.click(screen.getByText("[Show more]"));
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Choices" }));
   fireEvent.click(screen.getByRole("tab", { name: "Changes" }));
   expect(screen.getByLabelText("Change type")).toHaveValue("ADD");
   expect(screen.getByLabelText("Process")).toHaveValue("VERIFICATION");
@@ -54,7 +55,7 @@ it("supports keyboard switching and focuses the selected tab", async () => {
   render(<AuditPanel  {...props} />);
   await screen.findByText("[Show more]");
   screen.getByRole("tab", { name: "Changes" }).focus();
-  for (const [key, target] of [["ArrowRight", "Usage"], ["ArrowRight", "Changes"], ["ArrowLeft", "Usage"], ["Home", "Changes"], ["End", "Usage"]]) {
+  for (const [key, target] of [["ArrowRight", "Usage"], ["ArrowRight", "Choices"], ["ArrowRight", "Changes"], ["ArrowLeft", "Choices"], ["Home", "Changes"], ["End", "Choices"]]) {
     fireEvent.keyDown(document.activeElement!, { key });
     expect(screen.getByRole("tab", { name: target })).toHaveFocus();
     expect(screen.getByRole("tabpanel", { name: target })).toBeVisible();
@@ -75,11 +76,11 @@ it("keeps tabs operable during loading and shows the selected placeholders", asy
   expect(screen.getByRole("tab", { name: "Usage" })).toHaveAttribute("aria-selected", "true");
 });
 
-it("retains both tabs for empty reports without inventing usage rows", async () => {
+it("retains all three tabs for empty reports without inventing usage rows", async () => {
   render(<AuditPanel  {...props} workerClient={{ loadReport: async () => ({ gaps: [], usage: { services: [] } }) }} />);
   await screen.findByText("No gaps found.");
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
-  expect(screen.getAllByRole("tab")).toHaveLength(2);
+  expect(screen.getAllByRole("tab")).toHaveLength(3);
   expect(screen.getByRole("tabpanel", { name: "Usage" })).toBeVisible();
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   expect(screen.getByText("No gaps found.")).not.toBeVisible();

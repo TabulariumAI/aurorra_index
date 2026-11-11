@@ -12,7 +12,7 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
   const [scale, setScale] = useState(1);
   const [activePoint, setActivePoint] = useState<SVGCircleElement | null>(null);
   const items = scenes.flatMap(scene => scene.items);
-  const points = items.flatMap(item => {
+  const points = [{ x: 0, y: 0 }, ...items.flatMap(item => {
     const points = [item.from, item.to];
     if (item.arc) {
       const { center, radius, sweep, turn } = item.arc;
@@ -22,7 +22,7 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
       }
     }
     return points;
-  });
+  })];
   const minX = Math.min(...points.map(point => point.x));
   const maxX = Math.max(...points.map(point => point.x));
   const minY = Math.min(...points.map(point => point.y));
@@ -104,7 +104,7 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
   }, [frame.width, frame.height, spanX, spanY, fontSize, scenes, activePoint]);
 
   return <>
-    {scenes.filter(scene => scene.issue).map((scene, index) => <div key={index} role="note" style={surveyStyles.warning}><Icon name="info" /><span>{scene.issue}{scene.schematic ? " Dashed segments are schematic." : ""}</span></div>)}
+    {scenes.filter(scene => scene.issue).map((scene, index) => <div key={index} role="note" style={surveyStyles.warning}><Icon name="info" /><span>{scene.issue}</span></div>)}
     <MapSurface style={surveyStyles.viewport} footer={<div aria-label="Map legend" className="legal-map-legend" style={legalMapStyles.legendItems}>
       <span style={legalMapStyles.legendItem}><span style={surveyStyles.legendLine} /><span>Parcel boundary</span></span>
       {items.some(item => !item.confirmed) ? <span style={legalMapStyles.legendItem}><span style={surveyStyles.unconfirmedLine} /><span>Unconfirmed</span></span> : null}
@@ -125,10 +125,9 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
           }).concat(lines.length === 0 || lines.at(-1)!.sequence === scene.ending ? [] : [{ point: lines.at(-1)!.to, number: lines.at(-1)!.sequence + 1 }]);
           return <g key={group} data-survey-group={group + 1}>
             {lines.length > 0 ? <line data-survey-reference="true" x1={lines[0].from.x} y1={frame.y} x2={lines[0].from.x} y2={frame.y + frame.height} stroke={legalMapColors.secondaryText} strokeWidth="1" strokeDasharray="6 4" vectorEffect="non-scaling-stroke" /> : null}
-            {origin ? <path data-boundary-fill="true" d={"M " + origin.x + " " + origin.y + " " + edges.map((line, index) => "L " + (index === edges.length - 1 ? origin.x : line.to.x) + " " + (index === edges.length - 1 ? origin.y : line.to.y)).join(" ") + " Z"} fill={legalMapColors.parcelFill} fillOpacity="0.25" /> : null}
+            {origin ? <path data-boundary-fill="true" d={"M " + origin.x + " " + origin.y + " " + edges.map(line => "L " + line.to.x + " " + line.to.y).join(" ") + " Z"} fill={legalMapColors.parcelFill} fillOpacity={scene.schematic ? "0.12" : "0.25"} /> : null}
             {scene.items.map((item, index) => {
               const tie = beginning !== undefined && item.sequence <= beginning;
-              const end = origin && item.sequence === scene.ending ? origin : item.to;
               const stroke = {
                 "data-survey-line": "true",
                 "data-survey-tie": tie ? "true" : undefined,
@@ -143,11 +142,11 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
               return <g key={index}>
                 <title>{item.detail}</title>
                 {item.arc ? <path {...stroke} data-survey-arc="true" d={`M ${item.from.x} ${item.from.y} A ${item.arc.radius} ${item.arc.radius} 0 ${item.arc.sweep > Math.PI ? 1 : 0} ${item.arc.turn === 1 ? 1 : 0} ${item.to.x} ${item.to.y}`} fill="none" />
-                  : <line {...stroke} x1={item.from.x} y1={item.from.y} x2={end.x} y2={end.y} />}
+                  : <line {...stroke} x1={item.from.x} y1={item.from.y} x2={item.to.x} y2={item.to.y} />}
               </g>;
             })}
             {vertices.map(({ point, number }, index) => {
-              const right = index === 0 && beginning !== undefined && beginning > 0 && point.x > lines.find(line => line.sequence === beginning)!.to.x;
+              const right = index === 0 && beginning !== undefined && beginning > 0 && lines.some(line => line.sequence === beginning && point.x > line.to.x);
               return <g key={index}>
                 <line data-survey-leader={number} x1={point.x} y1={point.y} x2={point.x} y2={point.y} stroke={legalMapColors.secondaryText} strokeWidth="1" vectorEffect="non-scaling-stroke" style={{ visibility: "hidden", pointerEvents: "none" }} />
                 <circle data-survey-point={number} cx={point.x} cy={point.y} r={2.5 / scale} fill={legalMapColors.parcelLine}

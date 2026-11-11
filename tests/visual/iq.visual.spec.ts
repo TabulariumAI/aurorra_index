@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-test("IQ panel renders and clears failed gate", async ({ page }) => {
+for (const width of [1440, 390]) test(`IQ panel renders notes and clears failed gate at ${width}px`, async ({ page }, testInfo) => {
+  await page.setViewportSize({ width, height: 900 });
   await page.goto("/?scenario=iq");
 
   await expect(page.getByText("Indexing Quality (IQ)")).toBeVisible();
-  await expect(page.getByText("90%")).toBeVisible();
+  await expect(page.locator("div").filter({ hasText: /^90%$/ })).toBeVisible();
   await expect(page.getByText("Indexing Segments (5)")).toBeVisible();
   const rows = page.getByRole("table").getByRole("row");
   await expect(rows).toHaveCount(6);
@@ -15,6 +16,16 @@ test("IQ panel renders and clears failed gate", async ({ page }) => {
   await expect(rows.nth(5).getByRole("cell").first()).toHaveText("Reference");
   await expect(page.getByRole("cell", { name: "Party" })).toBeVisible();
   await expect(page.getByText("Compliance Gates (2)")).toBeVisible();
+  await expect(page.getByText("50%")).toBeVisible();
+  await expect(page.locator("[data-gate-code]")).toHaveCount(2);
+  await expect(page.locator("[data-gate-code='gate-pass']")).toContainText('Notary Seal is present. This requirement is satisfied. Notary Seal is "YES".');
+  await expect(page.locator("[data-gate-code='gate-pass']").getByText("PASS", { exact: true })).toBeVisible();
+  await expect(page.getByText("INFO", { exact: true })).toHaveCount(0);
+  const notes = page.getByText("Notes", { exact: true }).locator("xpath=following-sibling::ul[1]");
+  await expect(notes.locator("li")).toHaveCount(6);
+  await expect(notes.getByText("Missing indexes: Effective Date. Cue verification did not confirm the existence of required indexes.", { exact: true })).toBeVisible();
+  await notes.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath("iq-notes.png"), fullPage: true });
   await expect(page.getByText("Missing indexes: Party Address or Legal Description. Cue verification did not confirm the existence of required indexes.")).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator("[data-gate-code='gate-fail']").getByRole("button", { name: "Clear gate" })).toBeVisible();
@@ -34,4 +45,6 @@ test("IQ panel renders and clears failed gate", async ({ page }) => {
   await page.keyboard.press("Space");
   await expect(page.locator("[data-gate-code='gate-fail']")).toHaveCount(0);
   await expect(page.getByText("Compliance Gates (1)")).toBeVisible();
+  await expect(page.locator("div").filter({ hasText: /^100%$/ })).toBeVisible();
+  await expect(notes.locator("li")).toHaveCount(6);
 });

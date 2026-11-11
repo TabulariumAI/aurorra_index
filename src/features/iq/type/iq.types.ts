@@ -1,5 +1,5 @@
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
-export type IqUiStatus = "success" | "fail" | "warning" | "info";
+export type IqUiStatus = "success" | "fail" | "warning";
 export type IqDecision = "Pass" | "Review" | "Reject";
 export type IqBucket = "green" | "amber" | "red";
 export type IqStatus = "idle" | "loading" | "refreshing" | "success" | "error";
@@ -31,7 +31,11 @@ export type IqGateView = {
   status: IqUiStatus;
   description: string;
   isFailure: boolean;
+  label: string;
+  clearable: boolean;
 };
+
+export type IqSection<T> = { data: T; error: null } | { data: null; error: string };
 
 export type IqSegmentView = {
   id: string;
@@ -42,17 +46,17 @@ export type IqSegmentView = {
   actualDisplay: string;
   iq: number;
   iqDisplay: string;
-  explanations: string[];
+  explanations: IqSection<string[]>;
 };
 
 export type IqReportView = {
-  iq: {
+  iq: IqSection<{
     value: number;
     displayInt: number;
     bucket: IqBucket;
     decision: IqDecision;
-  };
-  gates: {
+  }>;
+  gates: IqSection<{
     items: IqGateView[];
     total: number;
     success: number;
@@ -60,9 +64,9 @@ export type IqReportView = {
     displayPercent: number;
     bucket: IqBucket;
     decision: IqDecision;
-  };
-  segments: IqSegmentView[];
-  explanations: string[];
+  }>;
+  segments: IqSection<IqSegmentView[]>;
+  explanations: IqSection<string[]>;
 };
 
 export type IqWorkerError = {

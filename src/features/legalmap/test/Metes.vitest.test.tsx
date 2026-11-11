@@ -17,14 +17,14 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("does not turn a negative source distance into a positive edge", () => {
-    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 45 DEGREES EAST -100 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
+    const scene = buildMatrix({ ...group, elements: [], source: "BEGINNING AT AN IRON PIN; NORTH 45 DEGREES EAST -100 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
     expect(scene.items.every(item => item.kind === "line" && !item.confirmed)).toBe(true);
     expect(scene.items.some(item => item.kind === "line" && item.sequence === 1)).toBe(false);
     expect(scene.issue).toMatch(/distance/i);
   });
 
   it("does not fill a collinear traverse", () => {
-    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; SOUTH 100 FEET; NORTH 100 FEET; SOUTH 100 FEET." }] }} />);
+    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, elements: [], source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; SOUTH 100 FEET; NORTH 100 FEET; SOUTH 100 FEET." }] }} />);
     expect(document.querySelector("[data-boundary-fill]")).toBeNull();
   });
   it("draws the supplied deed with one offset, seven boundary edges and the stated area", () => {
@@ -44,20 +44,22 @@ describe("replacement Metes boundaries", () => {
   });
 
   it.each([0.01, 1, 1000])("keeps closure and two starting ties proportional at scale %s", scale => {
-    const source = `BEGINNING AT A REFERENCE POINT; EAST ${20 * scale} FEET; NORTH ${20 * scale} FEET; NORTH ${100 * scale} FEET; EAST ${50 * scale} FEET; SOUTH ${100 * scale} FEET; WEST ${50.3 * scale} FEET.`;
+    const source = `BEGINNING AT A REFERENCE POINT; EAST ${20 * scale} FEET; NORTH ${20 * scale} FEET; NORTH ${100 * scale} FEET; EAST ${50 * scale} FEET; SOUTH ${100 * scale} FEET; WEST ${50.01 * scale} FEET.`;
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source }] }} />);
     expect(document.querySelectorAll("[data-survey-line][stroke-dasharray]")).toHaveLength(2);
     expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
   });
 
-  it("prefers point one when more than one starting point is within tolerance", () => {
+  it("excludes a touching reference edge while retaining the simple property outline", () => {
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT A REFERENCE POINT; EAST 0.01 FEET; NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET." }] }} />);
-    expect(document.querySelectorAll("[data-survey-line][stroke-dasharray]")).toHaveLength(0);
+    expect(document.querySelectorAll("[data-survey-line][stroke-dasharray]")).toHaveLength(1);
   });
 
-  it("does not infer three ties or close an open boundary", () => {
+  it("identifies three preceding ties and reports that their position was inferred", () => {
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT A REFERENCE POINT; EAST 20 FEET; NORTH 20 FEET; EAST 20 FEET; NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET." }] }} />);
-    expect(document.querySelector("[data-boundary-fill]")).toBeNull();
+    expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
+    expect(document.querySelectorAll('[data-survey-tie="true"]')).toHaveLength(3);
+    expect(screen.getByRole("note")).toHaveTextContent(/tie inferred/i);
   });
 
   it("retains later readable courses as schematic after an unsupported curve", () => {
@@ -68,7 +70,7 @@ describe("replacement Metes boundaries", () => {
   });
 
   it("does not fill a zero-length boundary", () => {
-    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 0 FEET; EAST 0 FEET; SOUTH 0 FEET; WEST 0 FEET." }] }} />);
+    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, elements: [], source: "BEGINNING AT AN IRON PIN; NORTH 0 FEET; EAST 0 FEET; SOUTH 0 FEET; WEST 0 FEET." }] }} />);
     expect(document.querySelector("[data-boundary-fill]")).toBeNull();
     expect(document.body.innerHTML).not.toMatch(/NaN|Infinity/);
   });
@@ -115,14 +117,15 @@ describe("replacement Metes boundaries", () => {
     expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
   });
 
-  it("retains later measurements as unconfirmed after an unpaired source course", () => {
-    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; NORTH 45 DEGREES EAST TO A PIN; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
-    expect(scene.items.filter(item => item.kind === "line").map(item => item.confirmed)).toEqual([true, false, false]);
-    expect(scene.schematic).toBe(true);
-    expect(scene.issue).toMatch(/distance/i);
-    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; NORTH 45 DEGREES EAST TO A PIN; SOUTH 100 FEET; WEST 50 FEET." }] }} />);
-    expect(screen.getByRole("table", { name: "Boundary Calls" }).querySelectorAll("tbody tr")[2].children[2]).toHaveTextContent(/^S$/);
-    expect(document.querySelector("[data-boundary-fill]")).toBeNull();
+  it("illustrates the supported sides and retains an unpaired source course for review", () => {
+    const input = { ...group, elements: [], source: "BEGINNING AT AN IRON PIN; NORTH 100 FEET; NORTH 45 DEGREES EAST TO A PIN; SOUTH 100 FEET; WEST 50 FEET." };
+    const scene = buildMatrix(input, "Parcel");
+    expect(scene.completion).toBe("partial");
+    expect(scene.items.map(item => item.confirmed)).toEqual([true, true, true, false]);
+    expect(scene.courses.find(course => course.unassigned)).toMatchObject({ bearing: "NORTH 45 DEGREES EAST", confirmed: false, issue: "Distance is missing or unreadable." });
+    render(<LegalMapContent legal={{ parcels_num: 1, groups: [input] }} />);
+    expect(screen.getByRole("table", { name: "Boundary Calls" })).toHaveTextContent("Unassigned");
+    expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
   });
 
   it.each(["N 45°30′30″ E", "N 45º30’30” E", "N 45 DEGREES 30 MINUTES 30 SECONDS E"])("parses existing DMS notation %s", bearing => {
@@ -161,30 +164,35 @@ describe("replacement Metes boundaries", () => {
     }
   });
 
-  it.each([[50.3, true], [50.301, false]])("uses 0.1 percent of total course length for closure: %s", (last, closed) => {
-    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: rectangle.replace("WEST 50 FEET", `WEST ${last} FEET`) }] }} />);
-    expect(Boolean(document.querySelector("[data-boundary-fill]"))).toBe(closed);
+  it.each([[50.01, "measured", 4], [49.7, "partial", 5]] as const)("preserves the measured endpoint and explicitly completes misclosure for %s feet", (last, completion, count) => {
+    const input = { ...group, source: rectangle.replace("WEST 50 FEET", `WEST ${last} FEET`) };
+    const scene = buildMatrix(input, "Parcel");
+    expect(scene.completion).toBe(completion);
+    render(<LegalMapContent legal={{ parcels_num: 1, groups: [input] }} />);
+    expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
     const lines = [...document.querySelectorAll<SVGLineElement>("[data-survey-line]")];
-    if (closed) {
-      expect(lines.at(-1)!.getAttribute("x2")).toBe(lines[0].getAttribute("x1"));
-      expect(lines.at(-1)!.getAttribute("y2")).toBe(lines[0].getAttribute("y1"));
-    }
+    expect(lines).toHaveLength(count);
+    expect(Number(lines[3].getAttribute("x2"))).toBeCloseTo(scene.items[3].to.x, 10);
+    expect(Number(lines[3].getAttribute("x2"))).not.toBe(0);
+    expect(scene.closureMetres).toBeCloseTo(Math.abs(last - 50) * 0.3048);
   });
 
-  it("includes tie distances in the tolerance", () => {
-    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT A REFERENCE POINT; EAST 1000 FEET; NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 51 FEET TO THE PLACE OF BEGINNING." }] }} />);
+  it("adds an unconfirmed closing side instead of hiding misclosure behind a long tie", () => {
+    render(<LegalMapContent legal={{ parcels_num: 1, groups: [{ ...group, source: "BEGINNING AT A REFERENCE POINT; EAST 1000 FEET; NORTH 100 FEET; EAST 50 FEET; SOUTH 100 FEET; WEST 49 FEET TO THE PLACE OF BEGINNING." }] }} />);
     expect(document.querySelector("[data-boundary-fill]")).not.toBeNull();
-    expect(document.querySelectorAll("[data-survey-line][stroke-dasharray]")).toHaveLength(1);
+    expect(document.querySelectorAll("[data-survey-line][stroke-dasharray]")).toHaveLength(2);
+    expect(document.querySelectorAll('[data-survey-line][data-unconfirmed="true"]')).toHaveLength(1);
     expect(screen.getByText("POC")).toBeVisible();
     expect(screen.getByText("POB")).toBeVisible();
-    expect(document.querySelectorAll("[data-survey-vertex]")).toHaveLength(5);
+    expect(document.querySelectorAll("[data-survey-vertex]")).toHaveLength(6);
   });
 
-  it("does not skip cardinal courses whose distance has no stated unit", () => {
-    const scene = buildMatrix({ ...group, source: "BEGINNING AT AN IRON PIN; NORTH 100; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
-    expect(scene.items.every(item => item.kind === "line" && !item.confirmed)).toBe(true);
-    expect(scene.items.some(item => item.kind === "line" && item.sequence === 1)).toBe(false);
-    expect(scene.issue).toMatch(/distance/i);
+  it("retains a cardinal course without a stated distance separately from a synthetic border", () => {
+    const scene = buildMatrix({ ...group, elements: [], source: "BEGINNING AT AN IRON PIN; NORTH 100; EAST 50 FEET; SOUTH 100 FEET; WEST 50 FEET." }, "Parcel");
+    expect(scene.closed).toBe(true);
+    expect(scene.completion).toBe("partial");
+    expect(scene.courses.find(course => course.unassigned)).toMatchObject({ bearing: "NORTH", distance: undefined, confirmed: false, issue: "Distance is missing or unreadable." });
+    expect(scene.items.filter(item => !item.confirmed)).toHaveLength(1);
   });
 
   it("keeps acreage, easements and keyboard navigation without an Issue column", () => {
@@ -203,6 +211,6 @@ describe("replacement Metes boundaries", () => {
     const scene = buildMatrix({ type: "metes_bounds", elements: [{ aspect: "bearings", value: "N; E; S; W" }, { aspect: "distances", value: "100 ft; 50 ft; 100 ft; 50 ft" }] }, "Parcel");
     expect(scene.items).toHaveLength(4);
     expect(scene.closed).toBe(true);
-    expect(scene.issue).toBeUndefined();
+    expect(scene.issue).toMatch(/source pairing.*unverified/i);
   });
 });

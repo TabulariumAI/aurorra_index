@@ -1,4 +1,4 @@
-import type { IqBucket, IqDecision, IqGate, IqGateStatus, IqReport, IqReportView, IqSegment, IqUiStatus, IqWorkerError } from "../type/iq.types";
+import type { IqBucket, IqDecision, IqGate, IqGateStatus, IqGateView, IqReport, IqReportView, IqSection, IqSegment, IqUiStatus, IqWorkerError } from "../type/iq.types";
 
 export function toIqError(error: unknown): IqWorkerError {
   const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
@@ -22,7 +22,6 @@ export const GATE_INFO = "INFO";
 export const UI_PASS = "success";
 export const UI_FAIL = "fail";
 export const UI_WARNING = "warning";
-export const UI_INFO = "info";
 
 function num(value: unknown): number {
   const n = Number(value);
@@ -44,11 +43,11 @@ function isDecision(value: unknown): value is IqDecision {
   return value === "Pass" || value === "Review" || value === "Reject";
 }
 
-function isKnownGateStatus(status: unknown): status is IqGateStatus {
-  return status === GATE_PASS || status === GATE_FAIL || status === GATE_WARNING || status === GATE_INFO;
+function isKnownGateStatus(status: unknown): status is Exclude<IqGateStatus, "INFO"> {
+  return status === GATE_PASS || status === GATE_FAIL || status === GATE_WARNING;
 }
 
-function gateStatus(status: IqGateStatus): IqUiStatus {
+function gateStatus(status: Exclude<IqGateStatus, "INFO">): IqUiStatus {
   switch (status) {
     case GATE_PASS:
       return UI_PASS;
@@ -56,8 +55,6 @@ function gateStatus(status: IqGateStatus): IqUiStatus {
       return UI_FAIL;
     case GATE_WARNING:
       return UI_WARNING;
-    case GATE_INFO:
-      return UI_INFO;
   }
 }
 
@@ -78,7 +75,7 @@ function text(value: unknown): string {
   return value === null || value === undefined ? "" : String(value);
 }
 
-function computeGatesDecision(gates: IqReportView["gates"]["items"]): IqDecision {
+function computeGatesDecision(gates: IqGateView[]): IqDecision {
   let fail = 0;
   let success = 0;
   for (const gate of gates) {
@@ -113,7 +110,10 @@ export function normalizeIqReport(raw: unknown): IqReport {
           expected_weight: num(segment.expected_weight),
           actual_weight: num(segment.actual_weight),
           iq: num(segment.iq),
-          explanations: Array.isArray(segment.explanations) ? segment.explanations.map(text) : [],
+          get explanations() {
+            const explanations = segment.explanations;
+            return Array.isArray(explanations) ? explanations.map(text) : [];
+          },
         } satisfies IqSegment;
       }) : [];
     },
@@ -121,37 +121,52 @@ export function normalizeIqReport(raw: unknown): IqReport {
   };
 }
 
+function prepareSection<T>(prepare: () => T): IqSection<T> {
+  try {
+    return { data: prepare(), error: null };
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export function prepareIqReport(raw: unknown): IqReportView {
   const report = normalizeIqReport(raw);
+  const gates = prepareSection(() => report.gates);
   return {
-    get iq() {
+    iq: prepareSection(() => {
       const value = clampPercent(report.iq_doc);
       return {
         value,
         displayInt: Math.round(value),
         bucket: bucketForScore(value),
-        decision: isDecision(report.decision) ? report.decision : "Review",
+        decision: report.decision as IqDecision,
       };
-    },
-    get gates() {
-      const items = report.gates
-        .filter((gate): gate is IqGate & { status: IqGateStatus } => isKnownGateStatus(gate.status))
-        .map(gate => ({ code: gate.code, status: gateStatus(gate.status), description: gate.description, isFailure: gate.status === GATE_FAIL }));
+    }),
+    gates: gates.error !== null ? gates : prepareSection(() => {
+      const items = gates.data
+        .filter((gate): gate is IqGate & { status: Exclude<IqGateStatus, "INFO"> } => isKnownGateStatus(gate.status))
+        .map(gate => ({
+          code: gate.code,
+          status: gateStatus(gate.status),
+          description: gate.description,
+          isFailure: gate.status === GATE_FAIL,
+          label: gate.status,
+          clearable: gate.status === GATE_FAIL || gate.status === GATE_WARNING,
+        }));
       const success = items.filter(gate => gate.isFailure === false).length;
       const ratio = items.length > 0 ? (success / items.length) * 100 : 0;
-      const percent = clampPercent(ratio);
       return {
         items,
         total: items.length,
         success,
         ratio,
-        displayPercent: Math.round(percent),
-        bucket: bucketForScore(percent),
+        displayPercent: Math.round(ratio),
+        bucket: bucketForScore(ratio),
         decision: computeGatesDecision(items),
       };
-    },
-    get segments() {
-      return report.segments.map(segment => ({
+    }),
+    segments: prepareSection(() => {
+      return report.segments.sort((left, right) => right.expected_weight - left.expected_weight).map(segment => ({
         id: segment.segment_name,
         displayId: prettyId(segment.segment_name),
         expectedWeight: segment.expected_weight,
@@ -159,10 +174,18 @@ export function prepareIqReport(raw: unknown): IqReportView {
         actualWeight: segment.actual_weight,
         actualDisplay: formatNumber(segment.actual_weight),
         iq: segment.iq,
-        iqDisplay: formatNumber(segment.iq),
-        explanations: segment.explanations.map(text),
+        iqDisplay: `${Math.round(segment.iq)}%`,
+        explanations: prepareSection(() => segment.explanations),
       }));
-    },
-    get explanations() { return report.explanation.map(text); },
+    }),
+    explanations: prepareSection(() => {
+      const notes = report.explanation;
+      if (gates.error === null) {
+        for (const gate of gates.data) {
+          if (gate.status === GATE_INFO) notes.push(gate.description);
+        }
+      }
+      return notes;
+    }),
   };
 }

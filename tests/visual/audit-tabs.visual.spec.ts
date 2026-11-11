@@ -23,6 +23,7 @@ for (const width of [1440, 440, 390]) {
     await page.goto("/?scenario=audit&details");
     const changes = page.getByRole("tab", { name: "Changes", exact: true });
     const usage = page.getByRole("tab", { name: "Usage", exact: true });
+    const choices = page.getByRole("tab", { name: "Choices", exact: true });
     await expect(changes).toHaveAttribute("aria-selected", "true");
     await expect(changes).toHaveCSS("box-shadow", "none");
     await usage.hover();
@@ -70,7 +71,7 @@ for (const width of [1440, 440, 390]) {
     await expect(page.getByLabel("Segment", { exact: true })).toHaveValue("party");
     await expect(page.getByText("[Show less]", { exact: true })).toBeVisible();
     await page.keyboard.press("End");
-    await expect(usage).toBeFocused();
+    await expect(choices).toBeFocused();
     await page.keyboard.press("ArrowRight");
     await expect(changes).toBeFocused();
     expect(reports).toBe(1);

@@ -18,6 +18,7 @@ export function useIqReport({
   const store = useIqStore();
   const ackClient = useMemo(() => workerClient || createIqWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
   const report = store.report;
+  const view = useMemo(() => report ? prepareIqReport(report) : null, [report]);
 
   useEffect(() => {
     callbacksRef.current = callbacks;
@@ -76,6 +77,6 @@ export function useIqReport({
     retryAttempt: store.retryAttempt,
     ackGate,
     status: store.status,
-    view: report ? prepareIqReport(report) : null,
+    view,
   };
 }

@@ -56,7 +56,6 @@ export {
   GATE_PASS,
   GATE_WARNING,
   UI_FAIL,
-  UI_INFO,
   UI_PASS,
   UI_WARNING,
 } from "./features/iq";
@@ -122,6 +121,7 @@ export type {
   IqReport,
   IqResource,
   IqReportView,
+  IqSection,
   IqSegment,
   IqSegmentView,
   IqStatus,

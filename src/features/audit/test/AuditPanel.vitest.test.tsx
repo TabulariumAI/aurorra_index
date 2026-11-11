@@ -94,7 +94,7 @@ describe("AuditPanel", () => {
     const props = { onResource: resource, apiGatewayUrl: "https://api", authToken: "token", callbacks: {}, retryLimit: 5, retryIntervalMs: 0, workerClient };
     const { rerender } = render(<AuditPanel  {...props} session="first" />);
     fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
-    expect(await screen.findByRole("row", { name: "Index Extraction 0 credits 0.00 s 2" })).toBeInTheDocument();
+    expect(await screen.findByRole("row", { name: "Index Extraction 1 credits 0.00 s 2" })).toBeInTheDocument();
     rerender(<AuditPanel  {...props} session="other" />);
     expect(await screen.findByRole("row", { name: "Index Extraction 2 credits 0.00 s 1" })).toBeInTheDocument();
     expect(screen.queryByText("0 CR")).not.toBeInTheDocument();

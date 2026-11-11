@@ -85,10 +85,11 @@ export const auditStyles = {
     margin: "0.85rem 0",
     padding: "0.75rem",
   } as CSSProperties,
-  usageTitle: {
-    fontSize: "1rem",
-    fontWeight: 600,
-    margin: "0 0 0.5rem",
+  choices: {
+    display: "grid",
+    gap: "1rem",
+    margin: "0.85rem 0",
+    minWidth: 0,
   } as CSSProperties,
   usageTable: {
     borderCollapse: "collapse",

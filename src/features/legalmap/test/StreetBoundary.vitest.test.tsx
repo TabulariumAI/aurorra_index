@@ -77,8 +77,9 @@ describe("street-relative boundary fallback", () => {
 
   it("preserves partial primary-parser results instead of replacing them with a rectangle", () => {
     const scene = buildMatrix({ ...group, source: "NORTH 100 FEET; EAST TO A PIN." }, "Parcel");
-    expect(scene.courses).toHaveLength(1);
+    expect(scene.courses).toHaveLength(2);
     expect(scene.courses![0].distance).toBe("100 FEET");
+    expect(scene.courses![1]).toMatchObject({ bearing: "EAST", confirmed: false });
     expect(scene.items).toHaveLength(1);
     expect(scene.closed).not.toBe(true);
   });
@@ -192,13 +193,13 @@ describe("compound boundary distances", () => {
     expect(parseDistance(value)).toBeNull();
   });
 
-  it.each(["source", "bearings", "distances"] as const)("does not truncate an invalid compound length into a confirmed course in %s", field => {
+  it.each(["source", "bearings", "distances"] as const)("retains an invalid compound length as unassigned in %s", field => {
     const calls = "EAST 59 ft -8 in; NORTH 16 ft; WEST 59 ft 8 in; SOUTH 16 ft";
     const input = field === "source" ? { type: "metes_bounds", source: calls }
       : { type: "metes_bounds", elements: [{ aspect: field, value: calls }] };
     const scene = buildMatrix(input, "Parcel");
-    expect(scene.courses![0].distance).toBe("59 ft -8 in");
-    expect(scene.courses![0].confirmed).toBe(false);
-    expect(scene.closed).not.toBe(true);
+    expect(scene.courses!.find(course => course.distance === "59 ft -8 in")).toMatchObject({ confirmed: false, unassigned: true });
+    expect(scene.completion).toBe("partial");
+    expect(scene.courses!.some(course => /synthetic closing/i.test(course.issue ?? ""))).toBe(true);
   });
 });

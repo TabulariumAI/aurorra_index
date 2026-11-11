@@ -6,13 +6,19 @@ const report = {
   iq_doc: 90,
   decision: "Review",
   gates: [
-    { code: "gate-pass", status: "PASS", description: "Pass gate" },
+    { code: "gate-pass", status: "PASS", description: 'Notary Seal is present. This requirement is satisfied. Notary Seal is "YES".' },
     {
       code: "gate-fail",
       status: "FAIL",
       kind: "MissingIndexes",
       fields: ["party_address", "legal_description"],
+      description: "Missing indexes: Party Address or Legal Description. Cue verification did not confirm the existence of required indexes.",
     },
+    { code: "info-date", status: "INFO", description: "Missing indexes: Effective Date. Cue verification did not confirm the existence of required indexes." },
+    { code: "info-address", status: "INFO", description: "Missing indexes: Party Address. Cue verification did not confirm the existence of required indexes." },
+    { code: "info-amount", status: "INFO", description: "Missing indexes: Promissory Note Amount. Cue verification did not confirm the existence of required indexes." },
+    { code: "info-loan", status: "INFO", description: "Missing indexes: Loan Number. Cue verification did not confirm the existence of required indexes." },
+    { code: "info-reference", status: "INFO", description: "Missing indexes: Reference Instrument or Reference Instrument Volume. Cue verification did not confirm the existence of required indexes." },
   ],
   segments: [
     { segment_name: "transaction", expected_weight: 10, actual_weight: 10, iq: 100, explanations: [] },
