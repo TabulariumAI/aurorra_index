@@ -50,6 +50,31 @@ describe("AuditPanel", () => {
     resource.mockClear();
   });
 
+  it("renders separate Correction and Enrichment labels, counts, and process filters", async () => {
+    const gaps = ["Correction", "Enrichment"].map(owner => ({
+      ...report.gaps[2], owner, explanation: `${owner} removal`, segment: "transaction",
+    }));
+    render(<AuditPanel onResource={resource} apiGatewayUrl="https://api" authToken="token" callbacks={{}}
+      retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => ({ gaps })))} />);
+    await screen.findByText("Correction removal");
+    const process = screen.getByLabelText("Process");
+    expect(within(process).getByRole("option", { name: "Correction (1)" })).toHaveValue("CORRECTION");
+    expect(within(process).getByRole("option", { name: "Enrichment (1)" })).toHaveValue("ENRICHMENT");
+    expect(within(screen.getByText("Correction removal").closest("article")!).getByText("Correction", { exact: true })).toBeVisible();
+    expect(within(screen.getByText("Enrichment removal").closest("article")!).getByText("Enrichment", { exact: true })).toBeVisible();
+    fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "REMOVE" } });
+    fireEvent.change(screen.getByLabelText("Segment"), { target: { value: "transaction" } });
+    fireEvent.change(process, { target: { value: "CORRECTION" } });
+    expect(screen.getByText("Correction removal")).toBeVisible();
+    expect(screen.queryByText("Enrichment removal")).not.toBeInTheDocument();
+    expect(screen.getByText("Out of 2").parentElement).toHaveTextContent("1");
+    fireEvent.change(process, { target: { value: "ENRICHMENT" } });
+    expect(screen.getByText("Enrichment removal")).toBeVisible();
+    expect(screen.queryByText("Correction removal")).not.toBeInTheDocument();
+    fireEvent.change(process, { target: { value: "" } });
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
   it("shows all four service groups in Usage independently of change filters", async () => {
     const service = { code: "one", cost: 11, time: 2, page_num: 2, timestamp: "2025-01-01T00:00:00Z" };
     const grouped: AuditReport = { ...report, usage: { ...report.usage, services: [
@@ -69,7 +94,7 @@ describe("AuditPanel", () => {
     expect(within(table).getAllByRole("row")).toHaveLength(5);
     const extraction = within(table).getByRole("row", { name: "Index Extraction 33 credits 5.00 s 5" });
     expect(extraction).toBeInTheDocument();
-    expect(within(table).getByRole("row", { name: "Model Generation 6 credits 2.00 s 0" })).toBeInTheDocument();
+    expect(within(table).getByRole("row", { name: "Model Refinement 6 credits 2.00 s 0" })).toBeInTheDocument();
     expect(within(table).getByRole("row", { name: "User Refinement 11 credits 2" }).children[2]).toHaveTextContent("");
     fireEvent.click(screen.getByRole("tab", { name: "Changes" }));
     fireEvent.change(screen.getByLabelText("Change type"), { target: { value: "REMOVE" } });
@@ -96,6 +121,7 @@ describe("AuditPanel", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(await screen.findByRole("row", { name: "Index Extraction 1 credits 0.00 s 2" })).toBeInTheDocument();
     rerender(<AuditPanel  {...props} session="other" />);
+    fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
     expect(await screen.findByRole("row", { name: "Index Extraction 2 credits 0.00 s 1" })).toBeInTheDocument();
     expect(screen.queryByText("0 CR")).not.toBeInTheDocument();
     expect(within(screen.getByRole("table", { name: "Audit service usage" })).getAllByRole("row")).toHaveLength(2);

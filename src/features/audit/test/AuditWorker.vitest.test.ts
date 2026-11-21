@@ -23,6 +23,18 @@ const auditFixture = {
 };
 
 describe("AuditWorker", () => {
+  it("keeps Correction distinct from Enrichment in downloaded audit entries", async () => {
+    const gaps = ["Correction", "Enrichment"].map(owner => ({ ...auditGap, owner }));
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://storage/audit.json" }))
+      .mockResolvedValueOnce(jsonResponse({ gaps })));
+    const result = await new AuditWorker().run({ apiBaseUrl: "https://api", session: "session-1", token: "token", type: "auditData" });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.data.gaps.map(gap => gap.owner)).toEqual(["CORRECTION", "ENRICHMENT"]);
+    expect(result.data.gaps.map(gap => gap.patch)).toEqual([auditPatch, auditPatch]);
+  });
+
   it("preserves patch details fetched from the audit artifact", async () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://storage/audit.json" }))

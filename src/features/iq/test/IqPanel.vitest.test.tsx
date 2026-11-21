@@ -1,15 +1,15 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { iqQueueStore } from "../store/iqQueueStore";
 import { iqStoreApi } from "../store/iqStore";
 import { IqPanel } from "../component/IqPanel";
 import type { IqReport, IqResource, IqWorkerClient } from "../type/iq.types";
 
 const report: IqReport = {
   iq_doc: 90,
-  decision: "Review",
   gates: [{ code: "gate-1", status: "PASS", description: "Pass" }],
   segments: [
-    {
+    { cues: [],
       segment_name: "party",
       expected_weight: 50,
       actual_weight: 45,
@@ -17,19 +17,28 @@ const report: IqReport = {
       explanations: ["Segment explanation"],
     },
   ],
-  explanation: ["Report note"],
+  notes: [{ segment: null, message: "Report note" }, { segment: null, message: "This document is a Warranty Deed conveying the property." }],
 };
 
 function client(loadReport: IqWorkerClient["loadReport"] = vi.fn(async () => ({ report, metadataEtag: "" }))): IqWorkerClient {
-  return {
-    ackGate: vi.fn(async () => ({ status: "ok", data: {}, isComplete: true as const })),
+  return { ackCue: vi.fn(),
+    ackGate: vi.fn(async () => ({ status: "ok", etag: "inputs-after", data: {}, isComplete: true as const })),
     loadReport,
   };
 }
 
 
 describe("IqPanel", () => {
+  const scrollDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
+  afterEach(() => {
+    cleanup();
+    iqQueueStore.getState().reset();
+    if (scrollDescriptor) Object.defineProperty(HTMLElement.prototype, "scrollIntoView", scrollDescriptor);
+    else delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+  });
   beforeEach(() => {
+    iqQueueStore.getState().reset();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
     iqStoreApi.getState().resetIq();
   });
 
@@ -48,23 +57,29 @@ describe("IqPanel", () => {
     expect(screen.queryByRole("status")).toBeNull();
     await screen.findByRole("status", { name: "Loading IQ summary" });
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    for (const label of ["Loading IQ summary", "Loading indexing segments", "Loading IQ gates"]) {
+    for (const label of ["Loading IQ summary", "Loading indexing segments"]) {
       expect(screen.getByRole("status", { name: label })).toHaveAttribute("aria-busy", "true");
     }
     expect(screen.getByText("Indexing Quality (IQ)")).toBeVisible();
-    expect(screen.getByText("Indexing Segments", { exact: true })).toBeVisible();
-    expect(screen.getAllByText("Compliance Gates")).toHaveLength(2);
+    expect(screen.queryByText("Indexing Segments", { exact: true })).toBeNull();
+    expect(screen.getByText("Compliance Gates")).not.toBeVisible();
     expect(screen.getAllByRole("columnheader").map(cell => cell.textContent)).toEqual(["Segment", "Expected", "Actual", "IQ"]);
     const segments = screen.getByRole("status", { name: "Loading indexing segments" });
     expect(segments.querySelectorAll("tbody tr")).toHaveLength(3);
     expect(segments.querySelector("tbody")).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
     expect(screen.getByRole("status", { name: "Loading IQ gates" }).querySelectorAll("li")).toHaveLength(2);
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Loading IQ summary" })).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    expect(screen.getByRole("status", { name: "Loading IQ notes" })).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "Quality" }));
     expect(screen.queryByText(/Loading IQ summary…|Loading indexing segments…|Loading IQ gates…/)).not.toBeInTheDocument();
     expect(screen.queryByText("No IQ report found.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
     finish(report);
     await waitFor(() => expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument());
     expect(screen.queryByRole("status", { name: /^Loading/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Compliance" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("renders report summary, segment table, explanations, notes, and no dialog role", async () => {
@@ -72,44 +87,64 @@ describe("IqPanel", () => {
 
     await waitFor(() => expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument());
     expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument();
-    expect(screen.getByText("Indexing Segments (1)")).toBeInTheDocument();
+    expect(screen.queryByText(/^Indexing Segments/)).toBeNull();
     expect(screen.getByText("Segment")).toBeInTheDocument();
     expect(screen.getByText("Expected")).toBeInTheDocument();
     expect(screen.getByText("Actual")).toBeInTheDocument();
     expect(screen.getByText("IQ")).toBeInTheDocument();
     expect(screen.getByText("Segment: Party")).toBeInTheDocument();
     expect(screen.getByText("Segment explanation")).toBeInTheDocument();
-    expect(screen.getByText("Notes")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    expect(screen.getByText("Report note")).toBeVisible();
+    expect(screen.getAllByText("This document is a Warranty Deed conveying the property.")).toHaveLength(1);
+    expect(screen.getByText("This document is a Warranty Deed conveying the property.")).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "Quality" }));
+    expect(screen.getByText("This document is a Warranty Deed conveying the property.")).not.toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Indexing Quality" }).querySelector("[data-panel-scroll='true']")).toBeTruthy();
   });
 
   it("renders notes only when present", async () => {
-    const noNotes = { ...report, explanation: [] };
+    const noNotes = { ...report, notes: [] };
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => ({ report: noNotes, metadataEtag: "" })))} />);
 
     await waitFor(() => expect(screen.getByText("90%", { selector: "div" })).toBeInTheDocument());
-    expect(screen.queryByText("Notes")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    expect(within(screen.getByRole("tabpanel", { name: "Notes" })).queryByRole("list")).toBeNull();
   });
 
-  it("keeps INFO notes after clearing a failed gate and recalculates only actual gates", async () => {
+  it("removes a cleared gate while preserving saved summaries and service notes", async () => {
     const mixed: IqReport = { ...report, gates: [
       { code: "pass", status: "PASS", description: "Passed requirement" },
       { code: "fail", status: "FAIL", description: "Failed requirement" },
-      { code: "info", status: "INFO", description: "Missing address" },
-    ] };
+    ], notes: [{ segment: null, message: "Report note" }, { segment: null, message: "Missing address" }, { segment: null, message: "Missing indexes: Person." }, { segment: null, message: "Unclassified indexes: Optimal (1/20)" }, { segment: null, message: "Compliance gates: not satisfied (1 / 2)." }, { segment: null, message: "Indexing quality needing attention: Party." }] };
     const workerClient = client(vi.fn(async () => ({ report: mixed, metadataEtag: "" })));
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={workerClient} />);
-    await screen.findByText("Compliance Gates (2)");
-    expect(screen.getByText("50%")).toBeVisible();
-    const notes = screen.getByText("Notes").nextElementSibling as HTMLElement;
-    expect(within(notes).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Report note", "Missing address"]);
+    await screen.findByText("out of 2 gates");
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
+    const notes = screen.getByRole("tabpanel", { name: "Notes" });
+    expect(Array.from(notes.querySelectorAll("p > span:last-child"), item => item.textContent)).toEqual(["Unclassified indexes: Optimal (1/20)", "Missing indexes: Person.", "Missing address", "Report note"]);
+    expect(notes.querySelectorAll("p[data-status='warning']")).toHaveLength(1);
+    expect(notes.querySelectorAll("p[data-status='success']")).toHaveLength(1);
+    expect(screen.queryByText("Compliance gates: not satisfied (1 / 2).")).toBeNull();
+    expect(screen.queryByText("Indexing quality needing attention: Party.")).toBeNull();
     expect(document.querySelector("[data-gate-code='info']")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
+    expect(screen.getByText("50%")).toBeVisible();
+    vi.mocked(workerClient.loadReport).mockResolvedValueOnce({ report: { ...mixed, gates: [mixed.gates[0]] }, metadataEtag: "updated" });
     fireEvent.click(screen.getByRole("button", { name: "Clear gate" }));
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    await screen.findByText("Compliance Gates (1)");
-    expect(screen.getByText("100%")).toBeVisible();
+    await waitFor(() => expect(document.querySelector("[data-gate-code='fail']")).toBeNull());
+    expect(screen.getByText("out of 2 gates")).toBeVisible();
+    expect(screen.getByText("50%")).toBeVisible();
+    expect(workerClient.loadReport).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("tab", { name: "Notes" }));
     expect(screen.getByText("Missing address")).toBeVisible();
+    expect(screen.getByText("Missing indexes: Person.").closest("p")).toHaveAttribute("data-status", "warning");
+    expect(screen.getByText("Unclassified indexes: Optimal (1/20)").closest("p")).toHaveAttribute("data-status", "success");
+    expect(screen.getByRole("tabpanel", { name: "Notes" }).querySelectorAll("p")).toHaveLength(4);
+    expect(within(screen.getByRole("tabpanel", { name: "Notes" })).queryByRole("img")).toBeNull();
+    expect(screen.getByText("Report note").closest("p")).toHaveStyle({ color: "var(--title-ink)" });
     expect(workerClient.ackGate).toHaveBeenCalledExactlyOnceWith("token", "session-1", "fail");
   });
 
@@ -122,6 +157,7 @@ describe("IqPanel", () => {
     ] };
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="text-session" workerClient={client(vi.fn(async () => ({ report: textReport, metadataEtag: "" })))} />);
     await waitFor(() => expect(screen.getByText(description)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
     const seal = screen.getByText(description).closest("li")!;
     expect(within(seal).getByText("PASS")).toBeInTheDocument();
     expect(within(seal).queryByRole("button", { name: "Clear gate" })).not.toBeInTheDocument();
@@ -136,16 +172,16 @@ describe("IqPanel", () => {
     const mixed = {
       ...report,
       segments: [
-        { segment_name: "transaction", expected_weight: 10, actual_weight: 10, iq: 100, explanations: [] },
-        { segment_name: "party", expected_weight: 6, actual_weight: 6, iq: 100, explanations: [] },
-        { segment_name: "sides", expected_weight: 12, actual_weight: 12, iq: 100, explanations: [] },
-        { segment_name: "legal", expected_weight: 6, actual_weight: 0, iq: 0, explanations: [] },
-        { segment_name: "reference", expected_weight: 2, actual_weight: 2, iq: 100, explanations: [] },
+        { cues: [], segment_name: "transaction", expected_weight: 10, actual_weight: 10, iq: 100, explanations: [] },
+        { cues: [], segment_name: "party", expected_weight: 6, actual_weight: 6, iq: 100, explanations: [] },
+        { cues: [], segment_name: "sides", expected_weight: 12, actual_weight: 12, iq: 100, explanations: [] },
+        { cues: [], segment_name: "legal", expected_weight: 6, actual_weight: 0, iq: 0, explanations: [] },
+        { cues: [], segment_name: "reference", expected_weight: 2, actual_weight: 2, iq: 100, explanations: [] },
       ],
     };
     render(<IqPanel apiGatewayUrl="https://api" authToken="token" callbacks={{}} retryLimit={5} retryIntervalMs={0} session="session-1" workerClient={client(vi.fn(async () => ({ report: mixed, metadataEtag: "" })))} />);
 
-    await waitFor(() => expect(screen.getByText("Indexing Segments (5)")).toBeInTheDocument());
+    await screen.findByRole("table");
     const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
     expect(rows.map((row) => within(row).getAllByRole("cell")[0].textContent)).toEqual(["Sides", "Transaction", "Party", "Legal", "Reference"]);
   });

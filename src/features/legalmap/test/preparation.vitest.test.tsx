@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ fail: true }));
@@ -12,12 +12,21 @@ vi.mock("../data/mapGroups", async original => {
 import { LegalMapContent } from "../component/LegalMapContent";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); state.fail = true; });
-it("retains the summary during parcel preparation failure and recovers on new legal data", () => {
+it("retries preparation through the shared error boundary without replacing the payload", () => {
   vi.spyOn(console, "error").mockImplementation(() => undefined);
-  const legal = { summary: "Healthy summary", groups: [{ type: "plss", elements: [{ aspect: "section", value: "4" }] }] };
+  render(<LegalMapContent legal={{ groups: [{ type: "plss", elements: [{ aspect: "aliquots", value: "NE1/4 of Section 12" }] }] }} />);
+  expect(screen.getByRole("alert").querySelector("details")).not.toHaveAttribute("open");
+  state.fail = false;
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByRole("img", { name: "Parcel 1 schematic" })).toBeVisible();
+});
+it("contains parcel preparation failure and recovers on new legal data", () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const legal = {  groups: [{ type: "plss", elements: [{ aspect: "section", value: "4" }] }] };
   const view = render(<LegalMapContent legal={legal} />);
   expect(screen.getByRole("alert")).toHaveTextContent("Parcel preparation failed");
-  expect(screen.getByText("Healthy summary")).toBeVisible();
+  expect(screen.queryByText("Healthy summary")).not.toBeInTheDocument();
   state.fail = false;
   view.rerender(<LegalMapContent legal={{ ...legal }} />);
   expect(screen.queryByRole("alert")).toBeNull();

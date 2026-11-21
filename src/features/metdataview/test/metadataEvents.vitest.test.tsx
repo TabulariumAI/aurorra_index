@@ -29,7 +29,7 @@ it("never exposes a selected session without its supplied ETag", () => {
   } finally { unsubscribe(); }
 });
 
-it("emits metadata updates after loading and refreshing through the existing Index event callback", async () => {
+it("retains loaded and refreshed ETags without publishing metadata mutations", async () => {
   const onQueueChange = vi.fn();
   let etag: string | null = "one";
   const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
@@ -41,13 +41,16 @@ it("emits metadata updates after loading and refreshing through the existing Ind
       PARTY: "party", PROPERTY: "property", REFERENCE: "reference", SECRETS: "secrets", TITLE: "title",
       TRANSACTION: "transaction", VITAL: "vital",
     },
-    workerClient: { indexData: vi.fn(async () => { queueStoreApi.getState().setEtag("selected", etag); return { tags: ["deed"] }; }),
-      pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn() },
+    workerClient: { indexData: vi.fn(async () => { queueStoreApi.getState().setEtag("selected", etag); return { heading: { title: "Deed" } }; }),
+      pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn() },
   };
   const view = renderHook(() => useMetadata(props));
-  await waitFor(() => expect(onQueueChange).toHaveBeenCalledWith(expect.objectContaining({ type: "metadata-updated", session: "selected", etag: "one", tags: ["deed"] })));
+  await waitFor(() => expect(view.result.current.metadata?.heading?.title).toBe("Deed"));
+  expect(queueStoreApi.getState().etag).toBe("one");
+  expect(onQueueChange).not.toHaveBeenCalled();
   etag = null;
   await act(async () => { await view.result.current.loadMetadata(true); });
-  expect(onQueueChange).toHaveBeenLastCalledWith(expect.objectContaining({ type: "metadata-updated", session: "selected", etag: null, tags: ["deed"] }));
+  expect(queueStoreApi.getState().etag).toBeNull();
+  expect(onQueueChange).not.toHaveBeenCalled();
   view.unmount();
 });

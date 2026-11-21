@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
+
 export type IqGateStatus = "PASS" | "FAIL" | "WARNING" | "INFO";
 export type IqUiStatus = "success" | "fail" | "warning";
-export type IqDecision = "Pass" | "Review" | "Reject";
 export type IqBucket = "green" | "amber" | "red";
 export type IqStatus = "idle" | "loading" | "refreshing" | "success" | "error";
+export type IqPending = { busy: boolean; actions: ReactNode };
 
 export type IqGate = {
   code: string;
@@ -10,20 +12,27 @@ export type IqGate = {
   description: string;
 };
 
+export type IqCue = { code: string; aspect: string; description: string };
+
 export type IqSegment = {
   segment_name: string;
   expected_weight: number;
   actual_weight: number;
   iq: number;
   explanations: string[];
+  cues: IqCue[];
+};
+
+export type IqNote = {
+  segment: string | null;
+  message: string;
 };
 
 export type IqReport = {
   iq_doc: number;
-  decision: IqDecision | string;
   gates: IqGate[];
   segments: IqSegment[];
-  explanation: string[];
+  notes: IqNote[];
 };
 
 export type IqGateView = {
@@ -47,6 +56,11 @@ export type IqSegmentView = {
   iq: number;
   iqDisplay: string;
   explanations: IqSection<string[]>;
+  cues: IqSection<IqCue[]>;
+};
+
+export type IqNoteView = IqNote & {
+  status: "success" | "warning" | "neutral";
 };
 
 export type IqReportView = {
@@ -54,7 +68,6 @@ export type IqReportView = {
     value: number;
     displayInt: number;
     bucket: IqBucket;
-    decision: IqDecision;
   }>;
   gates: IqSection<{
     items: IqGateView[];
@@ -63,10 +76,9 @@ export type IqReportView = {
     ratio: number;
     displayPercent: number;
     bucket: IqBucket;
-    decision: IqDecision;
   }>;
   segments: IqSection<IqSegmentView[]>;
-  explanations: IqSection<string[]>;
+  notes: IqSection<IqNoteView[]>;
 };
 
 export type IqWorkerError = {
@@ -81,9 +93,11 @@ export type IqWorkerResult<T> = { ok: true; data: T } | ({ ok: false } & IqWorke
 
 export type IqWorkerEvent = { type: "iqDownload" };
 
-export type IqWorkerCommand =
-  | { apiBaseUrl: string; session: string; token: string; type: "iqData"; etag: string | null }
-  | { apiBaseUrl: string; session: string; code: string; token: string; type: "iqAck" };
+export type IqWorkerCommand = { apiBaseUrl: string; session: string; token: string } & (
+  | { type: "iqData"; etag: string | null }
+  | { type: "iqAck"; code: string }
+  | { type: "iqCueAck"; code: string }
+);
 
 export type IqWorkerConfig = {
   apiBaseUrl: string;
@@ -94,6 +108,7 @@ export type IqWorkerConfig = {
 };
 
 export type IqAckResult = {
+  etag: string;
   data: unknown;
   isComplete: true;
   status: string;
@@ -101,10 +116,12 @@ export type IqAckResult = {
 
 export type IqWorkerClient = {
   ackGate(token: string, session: string, code: string): Promise<IqAckResult>;
+  ackCue(token: string, session: string, code: string): Promise<IqAckResult>;
   loadReport(token: string, session: string, etag: string | null): Promise<IqResource>;
 };
 
-export type IqResource = { report: IqReport; metadataEtag?: string };
+export type IqModel = { class: string; jurisdiction: string | null; etag: string };
+export type IqResource = { etag?: string; reportEtag?: string; acknowledgements?: { code: string; status: string }[]; report: IqReport; metadataEtag?: string; verificationEtag?: string; verificationModel?: IqModel };
 
 export type LoadIqInput = {
   apiGatewayUrl: string;
@@ -117,7 +134,17 @@ export type LoadIqInput = {
   workerClient?: IqWorkerClient;
 };
 
+export type IqTransition = {
+  id: string;
+  session: string;
+  kind: "gates" | "cues";
+  code: string;
+  error: string | null;
+  status: "queued" | "processing" | "failed" | "completed" | "retried" | "canceled";
+};
+
 export type IqCallbacks = {
+  onIqChange?: (event: IqTransition) => void;
   onIqAck?: (code: string) => void;
   onIqCanceled?: () => void;
   onIqError?: (error: IqWorkerError) => void;
@@ -136,20 +163,24 @@ export type IqPanelProps = {
 };
 
 export type IqStoreState = {
+  etag: string | null | undefined;
+  reportEtag: string | null | undefined;
+  removedCodes: Set<string>;
   metadataEtag: string | null | undefined;
+  verificationEtag: string | null | undefined;
+  verificationModel: IqModel | null | undefined;
   generation: number;
-  ackGeneration: number;
+  reportGeneration: number;
   activeSession: string | null;
-  ackingCodes: ReadonlySet<string>;
   error: IqWorkerError | null;
   report: IqReport | null;
   retryAttempt: number;
   status: IqStatus;
-  ackStart(session: string, code: string): number | null;
-  ackFinish(session: string, generation: number, code: string, error: IqWorkerError | null): boolean;
   resetIq(): void;
   setError(error: IqWorkerError): void;
-  setLoaded(session: string, report: IqReport, metadataEtag?: string): void;
+  setLoaded(session: string, report: IqReport, metadataEtag?: string, verificationEtag?: string, verificationModel?: IqModel, source?: Pick<IqResource, "etag" | "reportEtag" | "acknowledgements">): void;
+  setAcknowledged(code: string, etag: string): void;
+  setVerificationModel(session: string, model: IqModel): void;
   setLoading(session: string, refresh: boolean): void;
   setRetryAttempt(attempt: number): void;
 };

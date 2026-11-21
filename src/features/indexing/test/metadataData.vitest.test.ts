@@ -66,7 +66,6 @@ describe("metadata data normalization", () => {
         },
       ] },
       secrets: [{ code: "s1", page: "1", page_number: "1", label: "secret", segment: "secrets", value: "classified" }],
-      tags: ["a", "b"],
     } as unknown as MetadataPayload;
 
     const parts = splitMetadataJSON(payload);
@@ -82,7 +81,6 @@ describe("metadata data normalization", () => {
     });
     expect(parts.headingJSON).toEqual({
       heading: { title: "NOTICE" },
-      tags: ["a", "b"],
     });
     expect(parts.indexJSON).toEqual({
       indexes: payload.indexes,
@@ -108,7 +106,6 @@ describe("metadata data normalization", () => {
       pages: { num_of_pages: 2 },
       parties: { summary: null, indexes: [] },
       secrets: [],
-      tags: ["a"],
     } as unknown as MetadataPayload);
     const recomposed = composeMetadataJSON(parts);
 
@@ -124,7 +121,6 @@ describe("metadata data normalization", () => {
       pages: { num_of_pages: 2 },
       parties: { summary: null, indexes: [] },
       secrets: [],
-      tags: ["a"],
     });
   });
 

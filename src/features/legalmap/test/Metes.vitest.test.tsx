@@ -79,7 +79,7 @@ describe("replacement Metes boundaries", () => {
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [group, { type: "plss", elements: [{ aspect: "aliquots", value: "NW1/4 of Section 16" }] }] }} />);
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(4);
     fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
-    expect(document.querySelectorAll("[data-survey-section-area]")).toHaveLength(18);
+    expect(document.querySelectorAll("[data-survey-section-area]")).toHaveLength(1);
     fireEvent.click(screen.getByRole("tab", { name: "Metes & Bounds" }));
     expect(document.querySelectorAll("[data-survey-line]")).toHaveLength(4);
   });

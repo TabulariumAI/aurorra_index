@@ -75,9 +75,9 @@ describe("session processing choices", () => {
     }
   });
 
-  it.each(["Texas, Harris County", null])("shows the session jurisdiction or its absence: %s", jurisdiction => {
-    render(<MetadataPanel {...props} openSegment="title" jurisdiction={jurisdiction} />);
-    expect(screen.getByText(jurisdiction ? `Jurisdiction for this session: ${jurisdiction}.` : "No jurisdiction was selected for this session.")).toBeVisible();
+  it("keeps session jurisdiction information out of Titles", () => {
+    render(<MetadataPanel {...props} openSegment="title" />);
+    expect(screen.queryByText(/jurisdiction/i)).toBeNull();
   });
 
   it("keeps page scope information accessible while Pages is collapsed", async () => {

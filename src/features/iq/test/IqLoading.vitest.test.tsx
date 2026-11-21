@@ -5,7 +5,7 @@ import { IqPanel, iqStoreApi, refreshIqReport } from "../../../public-api";
 import * as iqWorker from "../worker/iqWorkerClient";
 import type { IqPanelProps, IqResource, IqWorkerClient, IqWorkerConfig } from "../type/iq.types";
 
-const report = { iq_doc: 98, decision: "Pass", gates: [], segments: [], explanation: [] };
+const report = { iq_doc: 98, gates: [], segments: [], notes: [] };
 const request = { apiGatewayUrl: "https://api", authToken: "token", session: "session-1", retryLimit: 5, retryIntervalMs: 7500, onError: vi.fn() };
 
 describe("IQ loading phases", () => {
@@ -20,7 +20,7 @@ describe("IQ loading phases", () => {
     request.onError.mockClear();
     scrollDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollIntoView");
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", { configurable: true, value: vi.fn() });
-    worker = {
+    worker = { ackCue: vi.fn(),
       ackGate: vi.fn(),
       loadReport: vi.fn(() => new Promise<IqResource>((resolve, reject) => { finish = resolve; fail = reject; })),
     };
@@ -75,7 +75,7 @@ describe("IQ loading phases", () => {
     expect(screen.queryByText("98%")).not.toBeInTheDocument();
     act(() => config.onDownload!());
     expect(screen.queryByTestId("progress-view")).not.toBeInTheDocument();
-    for (const name of ["Loading IQ summary", "Loading indexing segments", "Loading IQ gates"]) {
+    for (const name of ["Loading IQ summary", "Loading indexing segments"]) {
       expect(await screen.findByRole("status", { name })).toBeVisible();
     }
     await act(async () => { finish({ report: { ...report, iq_doc: 100 }, metadataEtag: "next-source" }); await refresh; });
@@ -118,7 +118,7 @@ describe("IQ loading phases", () => {
 
   it("renders a fast IQ report without a loading status", async () => {
     vi.useFakeTimers();
-    const workerClient = { ackGate: vi.fn(), loadReport: vi.fn(async () => ({ report, metadataEtag: "source" })) };
+    const workerClient = { ackCue: vi.fn(), ackGate: vi.fn(), loadReport: vi.fn(async () => ({ report, metadataEtag: "source" })) };
     render(<IqPanel {...request} workerClient={workerClient} callbacks={{}} />);
     expect(screen.queryByRole("status", { name: /^Loading/ })).toBeNull();
     await act(async () => {});
@@ -129,7 +129,7 @@ describe("IQ loading phases", () => {
 
   it("restarts IQ placeholders for a new pending session", async () => {
     vi.useFakeTimers();
-    const workerClient: IqWorkerClient = { ackGate: vi.fn(), loadReport: vi.fn(() => new Promise<IqResource>(() => {})) };
+    const workerClient: IqWorkerClient = { ackCue: vi.fn(), ackGate: vi.fn(), loadReport: vi.fn(() => new Promise<IqResource>(() => {})) };
     const view = render(<IqPanel {...request} workerClient={workerClient} callbacks={{}} />);
     await act(async () => {});
     act(() => vi.advanceTimersByTime(loaderDelayMs));

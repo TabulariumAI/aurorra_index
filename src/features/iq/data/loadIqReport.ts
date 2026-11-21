@@ -1,7 +1,7 @@
 import { iqStoreApi } from "../store/iqStore";
 import type { IqReport, IqWorkerError, LoadIqInput } from "../type/iq.types";
 import { createIqWorkerClient } from "../worker/iqWorkerClient";
-import { toIqError } from "./iqData";
+import { resolveIqModel, toIqError } from "./iqData";
 import { requestResource } from "../../metdataview/data/metadataResource";
 
 let activeLoad: { session: string; generation: number; load: Promise<IqReport | IqWorkerError | undefined> } | null = null;
@@ -25,9 +25,13 @@ async function runIqReport(input: LoadIqInput, generation: number, refresh: bool
   try {
     const etag = refresh ? null : await requestResource({ resource: "metadata_etag" }, input.session) ?? "";
     if (iqStoreApi.getState().generation !== generation || iqStoreApi.getState().activeSession !== input.session) return;
-    const { report, metadataEtag } = await client.loadReport(input.authToken, input.session, etag);
+    const model = iqStoreApi.getState().verificationModel;
+    const resource = await client.loadReport(input.authToken, input.session, etag);
     if (iqStoreApi.getState().generation !== generation || iqStoreApi.getState().activeSession !== input.session) return;
-    iqStoreApi.getState().setLoaded(input.session, report, metadataEtag);
+    const { report, metadataEtag, verificationEtag, verificationModel } = resource;
+    const current = iqStoreApi.getState().verificationModel;
+    iqStoreApi.getState().setLoaded(input.session, report, metadataEtag, verificationEtag,
+      resolveIqModel(model, current, verificationModel), resource);
     return report;
   } catch (error) {
     if (iqStoreApi.getState().generation !== generation || iqStoreApi.getState().activeSession !== input.session) return;

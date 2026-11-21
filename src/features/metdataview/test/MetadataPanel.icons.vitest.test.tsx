@@ -5,7 +5,7 @@ import { getPanelData, MetadataRow } from "aurora-core";
 import { MetadataPanel, type MetadataPanelProps } from "../component/MetadataPanel";
 
 const metadata = {
-  heading: { title: "Warranty Deed", secondary_titles: ["Addendum"], summary: "Recorded title" },
+  heading: { title: "Warranty Deed", secondary_titles: ["Addendum"] },
   legals: { groups: [{ code: "legal-1", type: "lot_block", elements: [{ aspect: "lot", value: "12" }] }] },
 };
 const props: MetadataPanelProps = {
@@ -25,7 +25,7 @@ it("uses green dots for titles and legal groups while preserving content and act
     expect(article.style.borderLeftColor).not.toBe("var(--primary-dark)");
     expect(article).not.toHaveTextContent("Recorded title");
   }
-  expect(within(view.container).getAllByText("Recorded title")).toHaveLength(1);
+  expect(within(view.container).queryByText("Recorded title")).not.toBeInTheDocument();
   view.rerender(<MetadataPanel {...props} openSegment="legal" />);
   const legal = view.container.querySelector('[data-index-code="legal-1"]')!;
   expect(within(legal as HTMLElement).getByRole("img", { name: "OK" }).querySelector("svg circle")).toHaveAttribute("r", "12");

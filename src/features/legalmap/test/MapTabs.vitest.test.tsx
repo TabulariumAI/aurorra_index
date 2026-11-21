@@ -4,7 +4,7 @@ import { AddressMapContent } from "../../addressmap/component/AddressMapContent"
 import { buildAddressMapEmbedUrl, DEFAULT_ADDRESS_MAP_ZOOM } from "../../addressmap/data/addressMap";
 import { LegalMapContent } from "../component/LegalMapContent";
 
-const legal = { summary: "One parcel.", groups: [
+const legal = {  groups: [
   { type: "lot_block", elements: [{ aspect: "lot", value: "8" }, { aspect: "block", value: "2" }] },
   { type: "plat_reference", elements: [{ aspect: "plat_volume", value: "6" }] },
 ] };
@@ -36,16 +36,14 @@ describe("combined property map", () => {
     }
   });
 
-  it("opens Plat first, retains summary without references or an address card, and switches only the map", () => {
+  it("opens Plat first without a summary, references or an address card, and switches only the map", () => {
     const onReadyChange = vi.fn();
     render(<LegalMapContent legal={legal} addressMaps={[addressMap]} onReadyChange={onReadyChange} />);
     const plat = screen.getByRole("tab", { name: "Lot & block" });
     expect(plat).toHaveAttribute("aria-selected", "true");
     expect(document.querySelector("[data-legal-map-lot]")).toHaveTextContent("8Lot");
-    const info = document.querySelector(".legal-map-summary") as HTMLElement;
-    expect(within(info).queryAllByRole("heading")).toEqual([]);
-    expect(info).toHaveTextContent(legal.summary);
-    expect(within(info).queryByText(addressMap.address)).not.toBeInTheDocument();
+    expect(document.querySelector(".legal-map-summary")).toBeNull();
+    expect(screen.queryByText(addressMap.address)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Address" }));
     expect(screen.getByRole("tab", { name: "Address" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Address");

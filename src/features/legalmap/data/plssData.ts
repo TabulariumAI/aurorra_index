@@ -30,7 +30,7 @@ function divideSection(parent: PlssItem, description: string, symbolic: boolean,
   return items;
 }
 
-export function buildPlss(group: LegalGroup, title: string, summary?: string): PlssScene {
+export function buildPlss(group: LegalGroup, title: string): PlssScene {
   const elements = getElements(group).filter(element => element.value?.trim());
   const notes = getNotes(elements);
   const items: PlssItem[] = Array.from({ length: 36 }, (_, index) => {
@@ -40,10 +40,7 @@ export function buildPlss(group: LegalGroup, title: string, summary?: string): P
     return { kind: "rect", role: "section", label: String(section), detail: `Section ${section}`, x: column * 100, y: row * 100, width: 100, height: 100, highlighted: false, partial: false };
   });
   const sourceSections = elements.some(element => /\b(?:sections?|secs?\.?)\s+\d+/i.test(element.value!));
-  const explicitSection = elements.find(element => element.aspect?.toLowerCase() === "section" && /^\d+$/.test(element.value!.trim()) && Number(element.value) >= 1 && Number(element.value) <= 36)?.value?.trim();
-  const summarySections = [...(summary ?? "").matchAll(/\b(?:sections?|secs?\.?)\s+(\d+(?:\s*(?:,|and|&|[-–])\s*\d+)*)/gi)];
-  const section = explicitSection ?? (!sourceSections && summarySections.length === 1 && /^\d+$/.test(summarySections[0][1]) && Number(summarySections[0][1]) >= 1 && Number(summarySections[0][1]) <= 36 ? summarySections[0][1] : undefined);
-  if (section && !explicitSection) notes.push({ label: "Section", value: section });
+  const section = elements.find(element => element.aspect?.toLowerCase() === "section" && /^\d+$/.test(element.value!.trim()) && Number(element.value) >= 1 && Number(element.value) <= 36)?.value?.trim();
   const descriptions = section ? [...elements, { aspect: "description", value: `${elements.filter(element => element.aspect === "aliquots").map(element => element.value).join("; ")} of Section ${section}` }] : elements;
   const symbolic = group.type?.trim() === "government_lot" || group.type?.trim() === "fractional_section";
   for (const element of descriptions) {

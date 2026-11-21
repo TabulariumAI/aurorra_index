@@ -52,7 +52,7 @@ function createClient(): MetadataClient {
     dropIndex: vi.fn(async () => { data = { ...data, indexes: [] }; return { data: "", status: "completed" as const, version: 1 }; }),
     indexData: vi.fn(async () => data),
     patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-    reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+    clearSegment: vi.fn(), reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
   };
 }
 
@@ -108,6 +108,29 @@ describe("useMetadata", () => {
     expect(indexStoreApi.getState().status).toBe("idle");
     expect(onMetadataLoaded).not.toHaveBeenCalled();
     view.unmount();
+  });
+
+  it.each([null, "page", "party"])("defaults to Titles while preserving explicit segment %s across sessions", async segment => {
+    const onSegmentExpand = vi.fn();
+    const props: MetadataProps = {
+      formatError: (error: unknown) => (error as Error).message,
+      authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
+      callbacks: { onSegmentExpand }, deferredState: createDeferredState({ segment }),
+      intervalMs: 0, retryLimit: 5, retryIntervalMs: 0, onQueueChange: vi.fn(), refresh: null,
+      segments, session: "session-1", workerClient: createClient(),
+    };
+    const view = renderHook(value => useMetadata(value), { initialProps: props });
+    await waitFor(() => expect(view.result.current.store.status).toBe("success"));
+    expect(view.result.current.openSegment).toBe(segment || "title");
+    expect(onSegmentExpand).toHaveBeenLastCalledWith(segment || "title");
+    act(() => view.result.current.setSectionOpen("page", true));
+    expect(view.result.current.openSegment).toBe("page");
+    act(() => view.result.current.setSectionOpen("page", false));
+    expect(view.result.current.openSegment).toBe("page");
+    view.rerender({ ...props, session: "session-2", deferredState: createDeferredState() });
+    await waitFor(() => expect(view.result.current.store.activeSession).toBe("session-2"));
+    expect(view.result.current.openSegment).toBe("title");
+    expect(onSegmentExpand).toHaveBeenLastCalledWith("title");
   });
 
   it("exposes the current segment, opens Pages on request, and resets between sessions", async () => {
@@ -201,6 +224,8 @@ describe("useMetadata", () => {
     expect(result.current.openSegment).toBe("legal");
     expect(onActionComplete).not.toHaveBeenCalled();
     expect(props.onQueueChange).toHaveBeenCalledWith(expect.objectContaining({ status: "queued", changes: [{ action: "reprocess", segment: "party" }] }));
+    await waitFor(() => expect(props.onQueueChange).toHaveBeenCalledWith(expect.objectContaining({ type: "metadata-updated", status: "completed" })));
+    expect(vi.mocked(props.onQueueChange).mock.calls.filter(([event]) => event.type === "metadata-updated")).toHaveLength(1);
     expect(onActionError).not.toHaveBeenCalled();
   });
 
@@ -272,8 +297,31 @@ describe("useMetadata", () => {
     expect(client.indexData).not.toHaveBeenCalled();
     expect(result.current.choices).toEqual(choices);
     expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata, "session-1");
+    expect(props.onQueueChange).not.toHaveBeenCalled();
     await waitFor(() => expect(auditClient.loadReport).toHaveBeenCalledExactlyOnceWith("token", "session-1"));
     await waitFor(() => expect(auditStoreApi.getState().report).toEqual({ gaps: [] }));
+    await act(async () => { await result.current.loadMetadata(false); });
+    expect(props.onQueueChange).not.toHaveBeenCalled();
+    expect(auditClient.loadReport).toHaveBeenCalledTimes(2);
+  });
+
+  it("loads fresh metadata without reporting a metadata mutation", async () => {
+    const client = createClient();
+    const onMetadataLoaded = vi.fn();
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
+      authToken: "token", apiGatewayUrl: "https://doc.example.com", batchCode: null,
+      callbacks: { onMetadataLoaded }, deferredState: createDeferredState(), intervalMs: 0,
+      retryIntervalMs: 0, retryLimit: 1, onQueueChange: vi.fn(), refresh: null,
+      segments, session: "session-1", workerClient: client,
+    };
+    const view = renderHook(() => useMetadata(props));
+    await waitFor(() => expect(onMetadataLoaded).toHaveBeenCalledWith(baseMetadata, "session-1"));
+    expect(client.indexData).toHaveBeenCalledOnce();
+    expect(props.onQueueChange).not.toHaveBeenCalled();
+    await act(async () => { await view.result.current.loadMetadata(true); });
+    expect(client.indexData).toHaveBeenCalledTimes(2);
+    expect(props.onQueueChange).not.toHaveBeenCalled();
+    view.unmount();
   });
 
   it.each(["error", "runtime"] as const)("reports a rejecting host load callback as a view error: %s", async kind => {

@@ -20,7 +20,7 @@ function matches(item: MetadataIndex, patch: IndexChange): boolean {
 }
 
 export function readChanges(request: QueueRequest, metadata: MetadataPayload, id: string): QueueChange[] {
-  if ("action" in request && request.action === "reprocess") return [{ action: "reprocess", segment: request.segment }];
+  if ("action" in request && (request.action === "reprocess" || request.action === "clear")) return [{ action: request.action, segment: request.segment }];
   const indexes = [...(metadata.indexes ?? []), ...(metadata.parties?.indexes ?? []), ...(metadata.execution?.indexes ?? []), ...(metadata.secrets ?? [])];
   if ("action" in request && request.action === "page") {
     replaceMetadataPageSegments(splitMetadataJSON(metadata), request.code, request.segments);
@@ -59,7 +59,7 @@ export function readChanges(request: QueueRequest, metadata: MetadataPayload, id
 }
 
 export function applyChange(metadata: MetadataPayload, change: QueueChange): MetadataPayload {
-  if (change.action === "reprocess") return metadata;
+  if ("segment" in change) return metadata;
   if (change.action === "page") return composeMetadataJSON(replaceMetadataPageSegments(splitMetadataJSON(metadata), change.code, change.segments))!;
   const patch = change.patch;
   const selected = (item: MetadataIndex) => change.code ? item.code === change.code : Boolean(patch && matches(item, patch));
@@ -85,10 +85,10 @@ export function applyChange(metadata: MetadataPayload, change: QueueChange): Met
     });
   };
   if (change.index.segment === "execution") {
-    return { ...metadata, execution: { summary: metadata.execution?.summary ?? null, indexes: apply(metadata.execution?.indexes ?? [], true) } };
+    return { ...metadata, execution: { indexes: apply(metadata.execution?.indexes ?? [], true) } };
   }
   if (change.index.segment === "party" && patch && patch.action !== "remove" && !patch.allow_enrichment) {
-    return { ...metadata, parties: { summary: metadata.parties?.summary ?? null,
+    return { ...metadata, parties: {
       indexes: apply(patch.action === "add" ? getPanelData(metadata).parties : metadata.parties?.indexes ?? [], false) } };
   }
   const result = { ...metadata, indexes: apply(metadata.indexes ?? [], false) };

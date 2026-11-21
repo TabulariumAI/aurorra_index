@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   composeMetadataJSON,
   getPanelData,
+  indexSegments,
   type MetadataActionPayload,
   type MetadataError,
   type MetadataPayload,
@@ -63,9 +64,7 @@ export function useMetadata({
     indexStoreApi.getState().setLoaded(session);
     callbacks.onView?.(metadata);
     callbacks.onMetadataLoaded?.(metadata, session);
-    onQueueChange({ type: "metadata-updated", session, batch: batchCode, status: "completed", changes: [], error: null,
-      etag: queueStoreApi.getState().etag, tags: metadata.tags });
-  }, [batchCode, callbacks, onQueueChange, session]);
+  }, [callbacks, session]);
 
   const loadMetadata = useCallback(
     async (refresh: boolean) => {
@@ -120,9 +119,9 @@ export function useMetadata({
   }, [loadMetadata, refresh, session]);
 
   useEffect(() => {
-    indexStoreApi.setState({ openSegment: deferredState.segment || segments.PAGE });
+    indexStoreApi.setState({ openSegment: deferredState.segment || segments.TITLE });
     setSelectedIndex(deferredState.selectedIndex);
-  }, [deferredState.segment, deferredState.selectedIndex, segments.PAGE, session]);
+  }, [deferredState.segment, deferredState.selectedIndex, segments.TITLE, session]);
 
   useEffect(() => {
     const segment = indexStoreApi.getState().openSegment;
@@ -156,14 +155,25 @@ export function useMetadata({
       { authToken: authToken!, client, intervalMs, formatError, onChange: onQueueChange });
   }, [onQueueChange, formatError, authToken, batchCode, client, intervalMs, session]);
 
+  const onClear = useCallback(async (segment: string) => {
+    await queueStoreApi.getState().enqueue({ action: "clear", session, segment, batch: batchCode },
+      { authToken: authToken!, client, intervalMs, formatError, onChange: onQueueChange });
+    if (selectedIndex?.segment === segment ||
+      (segment === segments.PROPERTY && selectedIndex?.segment === segments.LEGAL) ||
+      (segment === segments.ACKNOWLEDGMENT && selectedIndex?.segment === indexSegments.EXECUTION)) {
+      setSelectedIndex(null);
+      callbacks.onIndexFocus?.(null);
+    }
+  }, [onQueueChange, formatError, authToken, batchCode, callbacks, client, intervalMs, selectedIndex?.segment, segments, session]);
+
   return {
     choices: store.choices?.items ?? null,
-    jurisdiction: store.choices?.jurisdiction,
     loadMetadata,
     metadata,
     onConfirm,
     onDrop,
     onReprocess,
+    onClear,
     openSegment,
     pageError: store.activeSession === session ? store.pageError : null,
     retryAttempt: store.retryAttempt,

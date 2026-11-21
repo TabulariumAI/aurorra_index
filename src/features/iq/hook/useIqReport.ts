@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { prepareIqReport, toIqError } from "../data/iqData";
-import { iqStoreApi, useIqStore } from "../store/iqStore";
+import { prepareIqReport } from "../data/iqData";
+import { useIqStore } from "../store/iqStore";
 import type { IqPanelProps } from "../type/iq.types";
 import { loadIqReport, refreshIqReport } from "../data/loadIqReport";
 import { createIqWorkerClient } from "../worker/iqWorkerClient";
+import { iqQueueStore } from "../store/iqQueueStore";
 
 export function useIqReport({
   apiGatewayUrl,
@@ -18,7 +19,15 @@ export function useIqReport({
   const store = useIqStore();
   const ackClient = useMemo(() => workerClient || createIqWorkerClient({ apiBaseUrl: apiGatewayUrl, retryIntervalMs, retryLimit }), [apiGatewayUrl, retryIntervalMs, retryLimit, workerClient]);
   const report = store.report;
-  const view = useMemo(() => report ? prepareIqReport(report) : null, [report]);
+  const view = useMemo(() => {
+    if (!report) return null;
+    const view = prepareIqReport(report);
+    if (view.gates.error === null) view.gates.data.items = view.gates.data.items.filter(gate => !store.removedCodes.has(gate.code));
+    if (view.segments.error === null) for (const segment of view.segments.data) {
+      if (segment.cues.error === null) segment.cues.data = segment.cues.data.filter(cue => !store.removedCodes.has(cue.code));
+    }
+    return view;
+  }, [report, store.removedCodes]);
 
   useEffect(() => {
     callbacksRef.current = callbacks;
@@ -55,21 +64,19 @@ export function useIqReport({
     void loadReport();
   }, [loadReport]);
 
-  const ackGate = useCallback(async (code: string) => {
-    const generation = iqStoreApi.getState().ackStart(session, code);
-    if (generation === null) return;
-    const callbacks = callbacksRef.current;
-    try {
-      await ackClient.ackGate(authToken ?? "", session, code);
-      if (iqStoreApi.getState().ackFinish(session, generation, code, null)) callbacks.onIqAck?.(code);
-    } catch (error) {
-      const workerError = toIqError(error);
-      if (iqStoreApi.getState().ackFinish(session, generation, code, workerError)) callbacks.onIqError?.(workerError);
-    }
+  const acknowledge = useCallback(async (code: string, cue: boolean) => {
+    iqQueueStore.getState().enqueue(session, cue ? "cues" : "gates", code, {
+      authToken: authToken ?? "", client: ackClient,
+      onChange: event => callbacksRef.current.onIqChange?.(event),
+      onComplete: code => callbacksRef.current.onIqAck?.(code),
+    });
   }, [authToken, ackClient, session]);
 
+  const ackGate = useCallback((code: string) => acknowledge(code, false), [acknowledge]);
+  const ackCue = useCallback((code: string) => acknowledge(code, true), [acknowledge]);
+
   return {
-    ackingCodes: store.ackingCodes,
+    ackCue,
     error: store.error,
     loadReport,
     refreshReport,

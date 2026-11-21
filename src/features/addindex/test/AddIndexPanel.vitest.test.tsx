@@ -17,7 +17,7 @@ function props(overrides: Partial<AddIndexPanelProps> = {}): AddIndexPanelProps 
     workerClient: {
       pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(() => new Promise<never>(() => undefined)),
       confirmIndex: vi.fn(), dropIndex: vi.fn(), indexData: vi.fn(async () => ({ indexes: [] })),
-      reprocessSegment: vi.fn(), patchStatus: vi.fn(),
+      clearSegment: vi.fn(), reprocessSegment: vi.fn(), patchStatus: vi.fn(),
     },
     ...overrides,
   };

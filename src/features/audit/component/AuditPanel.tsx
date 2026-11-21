@@ -16,6 +16,7 @@ export function AuditPanel(props: AuditPanelProps): JSX.Element {
   const { report, error } = useAuditReport(props);
   const [filters, setFilters] = useState(initialFilters);
   const { active, controls, panel } = useTabs(auditTabs, "Audit views", {
+    storageKey: `aurorra-index:audit-tab:${props.session}`,
     className: "audit-tabs", style: auditStyles.tabs, tabStyle: auditStyles.tab, hideSingle: false,
   });
   return <section aria-label="Audit panel" className="audit-panel" style={auditStyles.root}>

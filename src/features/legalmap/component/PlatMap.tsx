@@ -3,7 +3,7 @@ import { formatLabel } from "aurora-core";
 import { isBlank, labelValue } from "../data/legalData";
 import { blockKinds, displayLots, divisionKinds, lotKinds, lotLabels, subdivisionKinds } from "../data/platData";
 import type { DisplayLot, LegalViewModel, PlatBlock, PlatDivision } from "../type/plat.types";
-import { MapIssue, MapSurface } from "./MapSurface";
+import { MapSurface } from "./MapSurface";
 import { usePlatFit } from "../hook/usePlatFit";
 import {
   blockLabelStyle, blockStyle, divisionLabelStyle, divisionStyle, legalMapColors,
@@ -146,9 +146,8 @@ export function PlatMap({ view, issues, title }: {
   title: string;
 }): JSX.Element {
   const fit = usePlatFit(view);
-  return <>
-    {!view.isEmptyStructure ? <MapSurface footer={<Legend presentLayers={view.presentLayers} />}>
-      <div ref={fit.viewportRef} data-legal-map-fit="true" role="region" aria-label={`${title} drawing`} tabIndex={-1} style={legalMapStyles.fitViewport}>
+  return <MapSurface showNorth={!view.isEmptyStructure} issues={issues.map(issue => ({ title, issue }))} footer={!view.isEmptyStructure ? <Legend presentLayers={view.presentLayers} /> : undefined}>
+      {!view.isEmptyStructure ? <div ref={fit.viewportRef} data-legal-map-fit="true" role="region" aria-label={`${title} drawing`} tabIndex={-1} style={legalMapStyles.fitViewport}>
         <div ref={fit.contentRef} data-legal-map-grid="true" style={legalMapStyles.grid}>
           <div style={legalMapStyles.gridContent}>
             {view.subdivisions.map((subdivision, index) => (
@@ -167,8 +166,6 @@ export function PlatMap({ view, issues, title }: {
           </div>
           {view.locationLabel ? <div data-legal-map-location="true" style={legalMapStyles.location}>{view.locationLabel}</div> : null}
         </div>
-      </div>
-    </MapSurface> : null}
-    {issues.map((issue, index) => <MapIssue key={index} title={title} issue={issue} />)}
-  </>;
+      </div> : null}
+  </MapSurface>;
 }

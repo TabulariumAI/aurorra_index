@@ -185,7 +185,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       "subdivision": "WINNIE SUBURBS SUBDIVISION",
     },
   ],
-  "summary": "Two parcels in Lot 6, Block 12, Winnie Suburbs Subdivision.",
 }
 `;
 
@@ -219,7 +218,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       ],
       "type": "lot_block",
     },
-    "issue": undefined,
+    "issue": "No drawable property identifiers could be resolved.",
     "notes": [
       {
         "explanation": undefined,
@@ -262,7 +261,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel in Cleveland Heights, Cuyahoga County, Ohio: part of Sublots 513 and 514.",
 }
 `;
 
@@ -517,16 +515,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for boundaryFixture > boundaryFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel is described by metes-and-bounds calls with stated acreage portions.",
 }
 `;
 
@@ -627,6 +622,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "120.039558224963 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 2,
         },
       ],
@@ -833,16 +829,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for closureFixture > closureFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel with 30.210 acres, a commencement tie, and an additional course requiring review.",
 }
 `;
 
@@ -1104,16 +1097,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for clusterFixture > clusterFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "A schematic parcel with closely spaced commencement and boundary points.",
 }
 `;
 
@@ -2513,7 +2503,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       "subdivision": "",
     },
   ],
-  "summary": "Two parcels are identified: Parcel A, described by PLSS and metes and bounds, and Parcel B, an easement identified by recorded instrument. The abbreviated legal and tax parcel numbers are not separate parcel descriptions.",
 }
 `;
 
@@ -2640,16 +2629,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for frontageFixture > frontageFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel with frontage and side measurements requiring review.",
 }
 `;
 
@@ -2666,10 +2652,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         {
           "aspect": "county",
           "value": "LAKE",
-        },
-        {
-          "aspect": "jurisdiction",
-          "value": "LIBERTYVILLE TOWNSHIP",
         },
         {
           "aspect": "city",
@@ -2729,11 +2711,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         "explanation": undefined,
         "label": "County",
         "value": "LAKE",
-      },
-      {
-        "explanation": undefined,
-        "label": "Jurisdiction",
-        "value": "LIBERTYVILLE TOWNSHIP",
       },
       {
         "explanation": undefined,
@@ -2803,10 +2780,9 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "location": {
     "city": "Grayslake",
     "county": "Lake",
-    "jurisdiction": "Libertyville Township",
     "state": "Illinois",
   },
-  "locationLabel": "Illinois | Lake County | Libertyville Township | Grayslake",
+  "locationLabel": "Illinois | Lake County | Grayslake",
   "matchPlatSubdivision": true,
   "platName": "Wooded Glen Gardens",
   "presentLayers": Set {
@@ -2851,13 +2827,11 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "unit": "2",
         },
       ],
-      "jurisdiction": "LIBERTYVILLE TOWNSHIP",
       "rightsOfWay": [],
       "state": "ILLINOIS",
       "subdivision": "WOODED GLEN GARDENS",
     },
   ],
-  "summary": undefined,
 }
 `;
 
@@ -2961,6 +2935,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "107.721600239367 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 2,
         },
         {
@@ -3403,16 +3378,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for incompleteFixture > incompleteFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "Two parcels are described: a 1.589-acre tract and a 2.005-acre tract.",
 }
 `;
 
@@ -3475,6 +3447,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "78.727868238659 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 4,
         },
         {
@@ -3610,16 +3583,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for interruptedFixture > interruptedFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "A boundary with one unreadable bearing; the remaining measurements are retained for review.",
 }
 `;
 
@@ -3913,6 +3883,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "131.408760569915 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 2,
         },
         {
@@ -4033,17 +4004,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for invalidFixture > invalidFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "county": "Wayne",
-    "state": "Michigan",
-  },
-  "locationLabel": "Michigan | Wayne County",
+  "location": {},
+  "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel is described by a PLSS aliquot and township/range, with metes-and-bounds boundaries in Romulus Township, Wayne County, Michigan.",
 }
 `;
 
@@ -4153,7 +4120,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       "subdivision": "LOWRIE COMPANY'S FORESTDALE ALLOTMENT",
     },
   ],
-  "summary": "One parcel: the easterly 40 feet of the westerly 80 feet of Sublot 37 in Lowrie Company's Forestdale Allotment.",
 }
 `;
 
@@ -4334,7 +4300,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": undefined,
 }
 `;
 
@@ -4399,6 +4364,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "131.681552837853 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 1,
         },
         {
@@ -4512,7 +4478,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": undefined,
 }
 `;
 
@@ -4576,6 +4541,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "34.077675977097 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 2,
         },
         {
@@ -4689,7 +4655,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": undefined,
 }
 `;
 
@@ -4845,7 +4810,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": undefined,
 }
 `;
 
@@ -4992,7 +4956,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": undefined,
 }
 `;
 
@@ -6228,7 +6191,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "Two parcels are described: Parcel One by PLSS location and metes-and-bounds calls, and Parcel Two by PLSS location and acreage. The attached Exhibit A description is excluded under the attachment rule.",
 }
 `;
 
@@ -6376,7 +6338,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       "subdivision": "M. AND E. DENNERLE",
     },
   ],
-  "summary": "One parcel in Parma, Cuyahoga County, Ohio: part of Original Parma Township Lot 24, Ely Tract, and the easterly 75 feet of Parcel 13 in the proposed M. and E. Dennerle Subdivision. Metes and bounds define it; legal highways are excepted, and a conveyed portion is excluded.",
 }
 `;
 
@@ -6594,16 +6555,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for presentationFixture > presentationFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel described by a metes-and-bounds boundary with a commencement tie.",
 }
 `;
 
@@ -6845,17 +6803,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for quarterFixture > quarterFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "county": "Wayne",
-    "state": "Michigan",
-  },
-  "locationLabel": "Michigan | Wayne County",
+  "location": {},
+  "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel is described by a PLSS aliquot and township/range, with metes-and-bounds boundaries in Romulus Township, Wayne County, Michigan.",
 }
 `;
 
@@ -7738,6 +7692,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "112.157173910177 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 2,
         },
         {
@@ -7918,7 +7873,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
       "subdivision": "",
     },
   ],
-  "summary": "One parcel in the Town of Bennington, Wyoming County, New York, described by portions of Lots 7 and 8 and metes and bounds.",
 }
 `;
 
@@ -8085,7 +8039,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": undefined,
 }
 `;
 
@@ -8145,159 +8098,23 @@ exports[`map migration parity > preserves all prepared geometry and source data 
         "label": "State",
         "value": "OHIO",
       },
-      {
-        "label": "Section",
-        "value": "32",
-      },
     ],
     "scene": {
       "items": [
         {
-          "detail": "Section 30",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "30",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 0,
-          "y": 400,
-        },
-        {
-          "detail": "Section 29",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "29",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 100,
-          "y": 400,
-        },
-        {
-          "detail": "Section 28",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "28",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 200,
-          "y": 400,
-        },
-        {
-          "detail": "Section 27",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "27",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 300,
-          "y": 400,
-        },
-        {
-          "detail": "Section 26",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "26",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 400,
-          "y": 400,
-        },
-        {
-          "detail": "Section 25",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "25",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 500,
-          "y": 400,
-        },
-        {
-          "detail": "Section 31",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "31",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 0,
-          "y": 500,
-        },
-        {
-          "detail": "Section 32",
+          "detail": "Section",
           "height": 100,
           "highlighted": true,
           "kind": "rect",
-          "label": "32",
+          "label": "Section",
           "partial": false,
           "role": "section",
           "width": 100,
-          "x": 100,
-          "y": 500,
+          "x": 0,
+          "y": 0,
         },
         {
-          "detail": "Section 33",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "33",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 200,
-          "y": 500,
-        },
-        {
-          "detail": "Section 34",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "34",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 300,
-          "y": 500,
-        },
-        {
-          "detail": "Section 35",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "35",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 400,
-          "y": 500,
-        },
-        {
-          "detail": "Section 36",
-          "height": 100,
-          "highlighted": false,
-          "kind": "rect",
-          "label": "36",
-          "partial": false,
-          "role": "section",
-          "width": 100,
-          "x": 500,
-          "y": 500,
-        },
-        {
-          "detail": "NE 1/4 of Section 32",
+          "detail": "NE 1/4 of Section",
           "height": 50,
           "highlighted": false,
           "kind": "rect",
@@ -8305,21 +8122,21 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "partial": false,
           "role": "division",
           "width": 50,
-          "x": 150,
-          "y": 500,
+          "x": 50,
+          "y": 0,
         },
         {
           "caption": "NE 1/4",
-          "detail": "PART OF THE NORTHEAST QUARTER of Section 32",
+          "detail": "PART OF THE NORTHEAST QUARTER",
           "height": 50,
           "highlighted": true,
           "kind": "rect",
-          "label": "Section 32",
+          "label": "Section",
           "partial": true,
           "role": "area",
           "width": 50,
-          "x": 150,
-          "y": 500,
+          "x": 50,
+          "y": 0,
         },
       ],
       "notes": [
@@ -8347,10 +8164,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "explanation": undefined,
           "label": "State",
           "value": "OHIO",
-        },
-        {
-          "label": "Section",
-          "value": "32",
         },
       ],
       "title": "PLSS",
@@ -8616,7 +8429,6 @@ exports[`map migration parity > preserves all prepared geometry and source data 
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel is described by part of the Northeast Quarter of Section 32, Township 14, Range 4, with metes-and-bounds boundaries and an area of 14.585 acres, more or less, in Carroll County, Ohio.",
 }
 `;
 
@@ -8900,16 +8712,13 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for tieFixture > tieFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "One parcel has a commencement tie and eight boundary calls.",
 }
 `;
 
@@ -8985,6 +8794,7 @@ exports[`map migration parity > preserves all prepared geometry and source data 
           "confirmed": false,
           "distance": "16.346345152203 m",
           "issue": "UNCONFIRMED: Synthetic closing border; no source measurement supports this line.",
+          "synthetic": true,
           "target": 3,
         },
         {
@@ -9139,15 +8949,12 @@ exports[`map migration parity > preserves all prepared geometry and source data 
 exports[`map migration parity > preserves all prepared geometry and source data for zeroFixture > zeroFixture plat 1`] = `
 {
   "isEmptyStructure": true,
-  "location": {
-    "state": undefined,
-  },
+  "location": {},
   "locationLabel": "",
   "matchPlatSubdivision": false,
   "platName": undefined,
   "presentLayers": Set {},
   "references": [],
   "subdivisions": [],
-  "summary": "Boundary measurements with three zero distances requiring review.",
 }
 `;

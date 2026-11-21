@@ -1,4 +1,4 @@
-vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => ({ load: async () => ({ items: choices, jurisdiction: null }) }) }));
+vi.mock("../../choices/worker/choicesWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../choices/worker/choicesWorkerClient")>(), createSessionDataWorkerClient: () => ({ load: async () => ({ items: choices, jurisdiction: "Supplied State" }) }) }));
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IndexContainer } from "../component/IndexContainer";
@@ -61,7 +61,7 @@ const metadata: MetadataPayload = {
         type: "lot_block",
       },
     ],
-    summary: "Property is described.",
+
   },
   pages: {
     nonrecordables: [],
@@ -82,6 +82,11 @@ function renderMetadata(data = metadata) {
   let remote = structuredClone(data);
   const pending: { drop?: () => void; reprocess?: () => void } = {};
   const workerClient = {
+    clearSegment: vi.fn(async () => {
+      remote = { ...remote, indexes: remote.indexes?.filter(item => item.segment !== "property" && item.segment !== "legal") };
+      delete remote.legals;
+      return { data: "", status: "completed" as const };
+    }),
     pagesData: vi.fn(), updatePageSegments: vi.fn(),
     patchIndex: vi.fn(),
     confirmIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
@@ -116,6 +121,21 @@ function renderMetadata(data = metadata) {
 }
 
 describe("IndexContainer", () => {
+  it("clears both property segments through one bulk request and preserves other sections", async () => {
+    const { workerClient } = renderMetadata();
+    await screen.findByText("Alice");
+    fireEvent.click(screen.getByRole("button", { name: "Property Info" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear indexes" }));
+    expect(workerClient.clearSegment).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(workerClient.clearSegment).toHaveBeenCalledExactlyOnceWith("token", "session-1", "property"));
+    await waitFor(() => expect(screen.queryByText("Legal Description", { exact: true })).toBeNull());
+    expect(screen.queryByText("101 Main Street")).toBeNull();
+    expect(workerClient.dropIndex).not.toHaveBeenCalled();
+    expect(workerClient.patchIndex).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Parties(Party Clause)" }));
+    expect(screen.getByText("Alice")).toBeVisible();
+  });
   it("reprocesses merged property content through the queue and preserves legal actions after refresh", async () => {
     const { workerClient, pending, onPageClick, view } = renderMetadata();
     await screen.findByText("Alice");
@@ -129,9 +149,10 @@ describe("IndexContainer", () => {
     expect(onPageClick).toHaveBeenCalledWith(expect.objectContaining({ code: "legal-1", segment: "legal", page: "3" }));
     expect(within(group).queryByRole("button")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledExactlyOnceWith("token", "session-1", "property"));
     expect(screen.getByText("101 Main Street").closest("[inert]")).not.toBeNull();
-    expect(screen.getByText("Property is described.").closest("[inert]")).not.toBeNull();
+    expect(screen.queryByText("Property is described.")).toBeNull();
     expect(screen.getByText("Riverside", { exact: false }).closest("[inert]")).not.toBeNull();
     act(() => pending.reprocess!());
     await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
@@ -141,16 +162,21 @@ describe("IndexContainer", () => {
     expect(within(group).queryByRole("button")).toBeNull();
   });
 
-  it("hands page and title clicks to the host and viewer with distinct search data", async () => {
-    const { onPageClick } = renderMetadata({ ...metadata, heading: { ...metadata.heading, secondary_titles: ["Additional Title"] } });
+  it.each(["Warranty Deed", "Warranty  \nDeed"])("hands page and title %j to the host and viewer with distinct search data", async title => {
+    const { onPageClick } = renderMetadata({ ...metadata, heading: { ...metadata.heading, title, secondary_titles: ["Additional Title"] }, indexes: [...metadata.indexes!, { code: "jurisdiction-1", aspect: "jurisdiction", segment: "transaction", label: "jurisdiction", value: "Québec" }] });
     await screen.findByText("Alice");
     fireEvent.click(screen.getByRole("button", { name: "Pages" }));
     fireEvent.click(await screen.findByRole("link", { name: "1 : Title page" }));
     expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "page", segment: "page", metadataIndex: null, quote: "", value: "" });
     expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", type: "page", metadataIndex: null, quote: "", value: "", highlightOptions: { scroll: false } }));
     fireEvent.click(screen.getByRole("button", { name: "Titles" }));
-    for (const value of ["Warranty Deed", "Additional Title"]) {
-      fireEvent.click(await screen.findByRole("link", { name: value }));
+    expect(screen.getByText("Primary Title", { exact: true })).toBeVisible();
+    expect(screen.getByText("Secondary Title", { exact: true })).toBeVisible();
+    expect(screen.queryByText("Jurisdiction", { exact: true })).toBeNull();
+    expect(screen.queryByText("Québec", { exact: true })).toBeNull();
+    expect(screen.queryByText("Supplied State", { exact: true })).toBeNull();
+    for (const [name, value] of [["Warranty Deed", title], ["Additional Title", "Additional Title"]]) {
+      fireEvent.click(await screen.findByRole("link", { name }));
       expect(imageViewerStoreApi.getState().request).toMatchObject({ code: "page-1", page: "1", index: "title", segment: "title", metadataIndex: null, quote: "", value });
       expect(onPageClick).toHaveBeenLastCalledWith(expect.objectContaining({ code: "page-1", page: "1", segment: "title", type: "title", value, highlightOptions: { scroll: false } }));
       expect(screen.getByRole("button", { name: "Titles" })).toHaveAttribute("aria-expanded", "true");
@@ -200,7 +226,7 @@ describe("IndexContainer", () => {
     await waitFor(() => expect(workerClient.indexData).toHaveBeenCalledTimes(2));
     expect(row).toHaveAttribute("data-index-code", code);
     expect(within(row).getByRole("progressbar")).toBeVisible();
-    act(() => refresh({ ...metadata, parties: { summary: null, indexes: [{ code: "server-party", label: "Grantor", aspect: "grantor", value: "New party" }, metadata.indexes![0]] } }));
+    act(() => refresh({ ...metadata, parties: {  indexes: [{ code: "server-party", label: "Grantor", aspect: "grantor", value: "New party" }, metadata.indexes![0]] } }));
     await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
     const serverRow = view.container.querySelector("[data-index-code='server-party']")!;
     expect(serverRow).toBeVisible();
@@ -336,9 +362,12 @@ describe("IndexContainer", () => {
     addIndexStoreApi.getState().close();
     expect(footer).toHaveStyle({ flex: "0 0 0", height: "0px", overflow: "hidden" });
     expect(footer).toBeEmptyDOMElement();
-    expect(reprocess.parentElement?.parentElement).toBe(partyTrigger.parentElement);
+    expect(partyTrigger.parentElement).toContainElement(reprocess);
+    expect(screen.getByRole("group", { name: "Section actions" })).toContainElement(reprocess);
     expect(partyTrigger).not.toContainElement(reprocess);
     fireEvent.click(reprocess);
+    expect(workerClient.reprocessSegment).not.toHaveBeenCalled();
+    fireEvent.click(partyActions.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(workerClient.reprocessSegment).toHaveBeenCalledWith("token", "session-1", "party"));
     expect(screen.getByRole("progressbar", { name: "Reprocessing party" })).toBeVisible();
     expect(partyTrigger.closest("[inert]")).not.toBeNull();
@@ -398,7 +427,7 @@ describe("IndexContainer", () => {
           dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
           indexData: vi.fn(async () => { throw new Error("broken"); }),
           patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-          reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+          clearSegment: vi.fn(), reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
         }}
       />,
     );
@@ -431,7 +460,7 @@ describe("IndexContainer", () => {
           resolveRefresh = resolve;
         })),
       patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-      reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+      clearSegment: vi.fn(), reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
     const props = {
       authToken: "token",
@@ -467,7 +496,7 @@ describe("IndexContainer", () => {
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       indexData: vi.fn(async () => metadata),
       patchStatus: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
-      reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
+      clearSegment: vi.fn(), reprocessSegment: vi.fn(async () => ({ data: "", status: "completed" as const })),
     };
     const view = render(
       <IndexContainer formatError={(error: unknown) => (error as Error).message} onQueueChange={vi.fn()}
@@ -497,6 +526,7 @@ it("keeps failed segments blocked with accessible shared recovery", async () => 
   await screen.findByText("Alice");
   vi.mocked(workerClient.reprocessSegment).mockRejectedValue(new Error("Reprocess failed"));
   fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
   await screen.findByRole("alert");
   expect(screen.queryByRole("progressbar")).toBeNull();
   expect(screen.getByText("Alice").closest("[inert]")).not.toBeNull();

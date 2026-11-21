@@ -286,7 +286,6 @@ export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
     const elements = getElements(legal);
     const state = getVal(elements, "state").trim();
     const county = getVal(elements, "county").trim();
-    const jurisdiction = getVal(elements, "jurisdiction").trim();
     const city = getVal(elements, "city").trim();
     const subdivision = getVal(elements, "subdivision").trim();
     const condominium = getVal(elements, "condominium").trim();
@@ -304,10 +303,10 @@ export function toPlatJSON(legalJSON: unknown): PlatSubdivision[] {
       .map(element => element.value?.trim()).filter((value): value is string => Boolean(value));
     if (![subdivision, condominium, unit, phase, section, block, tract, building, ...lots, ...rightsOfWay].some(Boolean)) continue;
 
-    const subdivisionKey = JSON.stringify([state, county, jurisdiction, city, subdivision, condominium].map(normName));
+    const subdivisionKey = JSON.stringify([state, county, city, subdivision, condominium].map(normName));
     let subNode = subdivisions.get(subdivisionKey);
     if (!subNode) {
-      subNode = { state, county, subdivision, ...(condominium ? { condominium } : {}), ...(jurisdiction ? { jurisdiction } : {}), ...(city ? { city } : {}), rightsOfWay: [], divisions: new Map() };
+      subNode = { state, county, subdivision, ...(condominium ? { condominium } : {}), ...(city ? { city } : {}), rightsOfWay: [], divisions: new Map() };
       subdivisions.set(subdivisionKey, subNode);
     }
     for (const rightOfWay of rightsOfWay) {
@@ -376,7 +375,6 @@ export function formatLocation(location: LegalLocation): string {
   const parts: string[] = [];
   if (location.state) parts.push(normalizeState(location.state) || "");
   if (location.county) parts.push(`${cleanPlace(location.county)} County`);
-  if (location.jurisdiction) parts.push(cleanPlace(location.jurisdiction));
   if (location.city) parts.push(cleanPlace(location.city));
   return parts.filter(Boolean).join(" | ");
 }
@@ -395,7 +393,6 @@ function extractLocation(legalJSON: unknown): LegalLocation {
       if (typeof plat.city === "string" && plat.city.trim()) out.city = cleanPlace(plat.city);
       if (typeof plat.county === "string" && plat.county.trim()) out.county = cleanPlace(plat.county.replace(/\bCounty\b/i, "").trim());
       if (typeof plat.state === "string" && plat.state.trim()) out.state = normalizeState(plat.state);
-      if (typeof plat.jurisdiction === "string" && plat.jurisdiction.trim()) out.jurisdiction = cleanPlace(plat.jurisdiction);
     }
   }
 
@@ -408,9 +405,8 @@ function extractLocation(legalJSON: unknown): LegalLocation {
       if (!out.city && (aspect === "city" || aspect === "municipality" || aspect === "locality")) out.city = cleanPlace(value);
       if (!out.county && (aspect === "county" || aspect === "parish" || aspect === "borough")) out.county = cleanPlace(value.replace(/\bCounty\b/i, "").trim());
       if (!out.state && (aspect === "state" || aspect === "province")) out.state = normalizeState(value);
-      if (!out.jurisdiction && aspect === "jurisdiction") out.jurisdiction = cleanPlace(value);
     }
-    if (out.city && out.county && out.state && out.jurisdiction) break;
+    if (out.city && out.county && out.state) break;
   }
 
   if (out.city && out.county && out.state) return out;
@@ -423,7 +419,6 @@ function extractLocation(legalJSON: unknown): LegalLocation {
   if (isRecord(legalJSON)) {
     pushText(legalJSON.text);
     pushText(legalJSON.header);
-    pushText(legalJSON.summary);
     pushText(legalJSON.location_text);
   }
 
@@ -432,7 +427,6 @@ function extractLocation(legalJSON: unknown): LegalLocation {
       if (!isRecord(entry)) continue;
       pushText(entry.text);
       pushText(entry.header);
-      pushText(entry.summary);
     }
   }
 
@@ -482,7 +476,6 @@ export function normalizeLegalData(legalJSON: LegalMapPayload | LegalGroup[] | n
     matchPlatSubdivision: allSubsMatchPlat(subdivisions, platName),
     isEmptyStructure: isAllEmptyStructure(subdivisions),
     locationLabel: formatLocation(location),
-    summary: isRecord(legalJSON) && typeof legalJSON.summary === "string" ? legalJSON.summary.trim() : undefined,
   };
 }
 
@@ -495,12 +488,14 @@ export function getPlatDetails(group: LegalGroup) {
   }
   const aspects: LegalElement[] = elements.filter(element => element.aspect?.trim()
     && !layers.has(element.aspect.toLowerCase())
-    && !["state", "county", "jurisdiction", "city"].includes(element.aspect.toLowerCase()));
+    && !["state", "county", "city"].includes(element.aspect.toLowerCase()));
   let issue: string | undefined;
   if (elements.some(element => !element.aspect?.trim())) {
     issue = "Cannot map: extracted values without aspect labels cannot be drawn.";
-  } else if (layers.size === 0 && aspects.length === 0) {
-    issue = "Cannot map: only location fields were provided; no drawable identifiers are available.";
+  } else if (layers.size === 0) {
+    issue = aspects.length === 0
+      ? "Cannot map: only location fields were provided; no drawable identifiers are available."
+      : "No drawable property identifiers could be resolved.";
   }
   return { notes: getNotes(elements), aspects, issue };
 }

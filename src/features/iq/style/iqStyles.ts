@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { iconButtonStyle } from "aurora-core";
 import type { IqBucket, IqUiStatus } from "../type/iq.types";
 
 export const iqColors = {
@@ -12,7 +13,41 @@ const gateColors = {
   fail: "#ef4444",
 } satisfies Record<Exclude<IqUiStatus, "success">, string>;
 
+export const iqCss = `.iq-note[data-state="open"] { background: #F6FCFB; } .iq-tabs button:focus-visible, .iq-content:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }`;
+
 export const iqStyles = {
+  recovery: {
+    gridColumn: "1 / -1",
+  } as CSSProperties,
+  tabs: {
+    borderBottom: "1px solid var(--border-card)",
+    display: "flex",
+    flex: "0 0 auto",
+    margin: "0 var(--panel-content-padding) 0.45rem",
+    minWidth: 0,
+  } as CSSProperties,
+  tab(active: boolean): CSSProperties {
+    return {
+      appearance: "none",
+      background: "transparent",
+      border: 0,
+      borderBottom: `3px solid ${active ? "var(--primary)" : "transparent"}`,
+      borderRadius: 0,
+      boxShadow: "none",
+      color: active ? "var(--primary-dark)" : "var(--body-ink)",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: "0.9rem",
+      fontWeight: 500,
+      minHeight: "2.75rem",
+      padding: "0.5rem 1rem",
+      textAlign: "center",
+      transform: "none",
+      transition: "none",
+      width: "8rem",
+    };
+  },
+
   root: {
     alignItems: "stretch",
     boxSizing: "border-box",
@@ -100,12 +135,6 @@ export const iqStyles = {
     height: "0.0625rem",
     margin: "0.35rem 0 0.8rem",
   },
-  sectionTitle: {
-    color: "var(--title-ink)",
-    fontSize: "1.02rem",
-    fontWeight: 700,
-    margin: "0 0 0.45rem",
-  },
   segmentTable: {
     borderCollapse: "separate",
     borderSpacing: 0,
@@ -136,7 +165,18 @@ export const iqStyles = {
     };
   },
   explanationBlock: {
+    background: "#FFFCF5",
+    border: `1px solid ${iqColors.amber.fg}`,
+    borderRadius: "var(--radius-card)",
+    boxSizing: "border-box",
+    color: "var(--body-ink)",
+    fontSize: "0.9rem",
+    lineHeight: 1.65,
+    margin: 0,
     marginTop: "0.5rem",
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    padding: "1rem",
   },
   explanationTitle: {
     color: "var(--title-ink)",
@@ -181,6 +221,13 @@ export const iqStyles = {
       width: "0.7rem",
     };
   },
+  cueRow: {
+    alignItems: "start",
+    display: "grid",
+    gap: "0.75rem",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    padding: "0.5rem 0",
+  },
   gateText: {
     color: "var(--title-ink)",
     fontSize: "0.92rem",
@@ -196,12 +243,32 @@ export const iqStyles = {
   empty: {
     color: "var(--slate-500)",
   },
-  notesTitle: {
-    fontWeight: 700,
-    marginBottom: "0.25rem",
+  notes: {
+    display: "grid",
+    minWidth: 0,
   },
-  notesList: {
-    margin: "0 0 0 1rem",
-    paddingLeft: "1rem",
+  noteRow: {
+    alignItems: "start",
+    borderBottom: "1px solid var(--border-card)",
+    display: "grid",
+    gridTemplateColumns: "2.25rem minmax(0, 1fr)",
+    padding: "1.25rem 0",
+    minWidth: 0,
   },
+  noteButton: {
+    ...iconButtonStyle,
+    justifySelf: "center",
+  },
+  noteText: {
+    color: "var(--title-ink)",
+    display: "grid",
+    fontSize: "0.9rem",
+    gap: "0.25rem",
+    gridColumn: 2,
+    lineHeight: 1.65,
+    margin: 0,
+    minWidth: 0,
+    overflowWrap: "anywhere",
+    padding: "0 1rem",
+  } satisfies CSSProperties,
 } satisfies Record<string, CSSProperties | ((...args: never[]) => CSSProperties)>;

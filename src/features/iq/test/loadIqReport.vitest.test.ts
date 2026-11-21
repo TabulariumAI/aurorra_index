@@ -6,9 +6,9 @@ import { queueStoreApi } from "../../queue/store/queueStore";
 import * as metadataResource from "../../metdataview/data/metadataResource";
 import type { IqReport, IqResource, IqWorkerClient } from "../type/iq.types";
 
-const report: IqReport = { decision: "Pass", explanation: [], gates: [], iq_doc: 97, segments: [] };
+const report: IqReport = { notes: [], gates: [], iq_doc: 97, segments: [] };
 function client(): IqWorkerClient {
-  return { ackGate: vi.fn(), loadReport: vi.fn(async () => ({ report, metadataEtag: "" })) };
+  return { ackCue: vi.fn(), ackGate: vi.fn(), loadReport: vi.fn(async () => ({ report, metadataEtag: "" })) };
 }
 function input(workerClient: IqWorkerClient) {
   return { apiGatewayUrl: "https://api", authToken: "token", retryIntervalMs: 0, retryLimit: 5,
@@ -317,4 +317,22 @@ describe("loadIqReport", () => {
     expect(request.onComplete).not.toHaveBeenCalled();
   });
 
+});
+
+it.each(["deed", "release"])("keeps newer updates only for the regenerated model scope: %s", async nextClass => {
+  iqStoreApi.getState().resetIq();
+  queueStoreApi.getState().setEtag("session-1", "metadata");
+  const model = { class: "deed", jurisdiction: null, etag: "model-one" };
+  iqStoreApi.getState().setLoaded("session-1", report, "metadata", "model-one", model);
+  let finish!: (value: IqResource) => void;
+  const worker = client();
+  vi.mocked(worker.loadReport).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const load = refreshIqReport(input(worker));
+  await vi.waitFor(() => expect(worker.loadReport).toHaveBeenCalledOnce());
+  iqStoreApi.getState().setVerificationModel("session-1", { ...model, etag: "model-two" });
+  finish({ report, metadataEtag: "metadata", verificationEtag: "model-one", verificationModel: { ...model, class: nextClass } });
+  await load;
+  expect(iqStoreApi.getState().verificationEtag).toBe("model-one");
+  expect(iqStoreApi.getState().verificationModel).toEqual({ ...model, class: nextClass, etag: nextClass === "deed" ? "model-two" : "model-one" });
+  iqStoreApi.getState().resetIq();
 });

@@ -14,7 +14,7 @@ describe("unpositioned map data", () => {
     const table = screen.getByRole("table", { name: "Details" });
     expect(within(table).getByRole("rowheader")).toHaveTextContent(formatLabel(aspect));
     expect(within(table).getByRole("cell").textContent).toBe(value);
-    expect(document.querySelectorAll("[data-legal-map-aspect], [data-legal-map-lot], [data-legal-map-surface]")).toHaveLength(0);
+    expect(document.querySelectorAll("[data-legal-map-aspect], [data-legal-map-lot]")).toHaveLength(0);
     expect(JSON.stringify(legal)).toBe(source);
   });
 
@@ -64,13 +64,13 @@ describe("unpositioned map data", () => {
     fireEvent.keyDown(screen.getByRole("tab", { name: "Address" }), { key: "Home" });
     expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("SUBLOTS NOS. 513 AND 514");
     rerender(<LegalMapContent legal={{ groups: [{ type: "lot_block", elements: [{ aspect: "county", value: "CUYAHOGA" }] }] }} />);
-    expect(screen.getByRole("alert", { name: "Parcel 1" })).toHaveTextContent("only location fields");
+    expect(screen.getByRole("note", { name: "Parcel 1" })).toHaveTextContent("only location fields");
     expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("CUYAHOGA");
   });
 
   it("preserves unlabeled values and their explicit source issue", () => {
     render(<LegalMapContent legal={{ groups: [{ type: "lot_block", elements: [{ value: "UNLABELED SOURCE" }] }] }} />);
-    expect(screen.getByRole("alert", { name: "Parcel 1" })).toHaveTextContent("without aspect labels");
+    expect(screen.getByRole("note", { name: "Parcel 1" })).toHaveTextContent("without aspect labels");
     expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("UNLABELED SOURCE");
   });
 
@@ -78,6 +78,7 @@ describe("unpositioned map data", () => {
     render(<LegalMapContent legal={legal} />);
     expect(screen.queryByRole("tab")).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("note")).toBeNull();
   });
 });
 

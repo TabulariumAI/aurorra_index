@@ -12,7 +12,7 @@ export type IndexSummaryProps = Record<"metadata" | "audit" | "iq", SummaryValue
 
 function SummaryMetric({ label, value, error, score, bucket }: { label: string; value: number | null; error: string | null; score?: boolean; bucket?: IqBucket }) {
   return <div className="index-summary-metric" style={{ ...summaryStyles.metric, ...(score ? summaryStyles.score : {}) }}>
-    <dt style={summaryStyles.label}>{label}</dt>
+    <dt style={{ ...summaryStyles.label, ...(score ? summaryStyles.scoreLabel : {}) }}>{label}</dt>
     <dd style={{ ...summaryStyles.value, ...(score ? summaryStyles.percent : {}), ...(bucket ? { color: iqColors[bucket].fg } : {}) }}>
       {error !== null ? <ErrorBadge label={label} error={error} /> : value === null ? <LoadPlaceholder label={`Loading ${label}`}><span aria-hidden="true" style={{ ...skeletonStyle, height: "1em", width: "3ch" }} /></LoadPlaceholder> : <>
         {value}{score ? "%" : null}

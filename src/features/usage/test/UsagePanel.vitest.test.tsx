@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { UsagePanel } from "../component/UsagePanel";
 import type { UsageRecord } from "../type/usage.types";
 
-const names = { extraction: "Index Extraction", iq_refinement: "IQ Refinement", refinement: "User Refinement", model_generation: "Model Generation" };
+const names = { extraction: "Index Extraction", iq_refinement: "IQ Refinement", refinement: "User Refinement", model_generation: "Model Refinement" };
 const records: UsageRecord[] = [
   { session: "one", code: "a", name: "extraction", cost: 11, page_num: 1, timestamp: "2026-10-04T12:00:00Z" },
   { session: "two", code: "b", name: "extraction", cost: 22, page_num: 10, timestamp: "2026-10-05T12:00:00Z" },
@@ -51,7 +51,7 @@ function selectServices(selected: UsageRecord["name"][]) {
   fireEvent.keyDown(screen.getByRole("checkbox", { name: names[selected[0]] }), { key: "Escape" });
 }
 
-it("combines only Index Extraction and IQ Refinement, with separate User Refinement and Model Generation charts", () => {
+it("combines only Index Extraction and IQ Refinement, with separate User Refinement and Model Refinement charts", () => {
   showUsage();
   expect(screen.getAllByRole("img")).toHaveLength(3);
   const group = screen.getByRole("region", { name: "Index Extraction and IQ Refinement usage" });
@@ -69,7 +69,7 @@ it("combines only Index Extraction and IQ Refinement, with separate User Refinem
     expect(within(totals).getByText(label)).toHaveAttribute("style", within(extractionSummary).getByText(label).getAttribute("style")!);
     expect(within(totals).getByText(label).nextElementSibling).toHaveAttribute("style", within(extractionSummary).getByText(label).nextElementSibling!.getAttribute("style")!);
   }
-  expect(within(group).queryByRole("region", { name: "Model Generation usage" })).not.toBeInTheDocument();
+  expect(within(group).queryByRole("region", { name: "Model Refinement usage" })).not.toBeInTheDocument();
   expect(within(group).queryByRole("region", { name: "User Refinement usage" })).not.toBeInTheDocument();
   expect(chart.querySelectorAll("rect")).toHaveLength(6);
   expect(new Set([...chart.querySelectorAll("rect")].map(bar => bar.getAttribute("fill"))).size).toBe(3);
@@ -96,7 +96,7 @@ it("combines only Index Extraction and IQ Refinement, with separate User Refinem
     expect(total.getAttribute("x")).toBe(extraction.getAttribute("x"));
     expect(extraction.getAttribute("x")).toBe(iq.getAttribute("x"));
   }
-  for (const name of ["User Refinement", "Model Generation"]) {
+  for (const name of ["User Refinement", "Model Refinement"]) {
     const service = screen.getByRole("region", { name: `${name} usage` });
     expect(within(service).getByRole("img", { name: `${name} daily credits chart` })).toBeInTheDocument();
     expect(within(service).queryByRole("region", { name: "Totals usage" })).not.toBeInTheDocument();
@@ -142,7 +142,7 @@ it("preserves distinct sessions, pages, weighted averages, UTC date limits and w
   fireEvent.change(screen.getByLabelText("Period"), { target: { value: "weekly" } });
   expect(screen.getByRole("img", { name: "Index Extraction and IQ Refinement weekly credits chart" })).toBeInTheDocument();
   expect(screen.getByText("Total 2026-10-05: 28 CR")).toBeInTheDocument();
-  expect(screen.getByRole("img", { name: "Model Generation weekly credits chart" })).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "Model Refinement weekly credits chart" })).toBeInTheDocument();
 });
 
 it("merges weekly costs from different days and keeps service colors stable when filtering", () => {
@@ -155,7 +155,7 @@ it("merges weekly costs from different days and keeps service colors stable when
   expect(within(screen.getByRole("region", { name: "Totals usage" })).getByText("Credits").nextElementSibling).toHaveTextContent("6 CR");
   fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-10-05" } });
   expect(screen.queryByRole("region", { name: "Index Extraction and IQ Refinement usage" })).not.toBeInTheDocument();
-  expect(screen.getByRole("img", { name: "Model Generation weekly credits chart" })).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "Model Refinement weekly credits chart" })).toBeInTheDocument();
 });
 
 it("renders finite zero-cost bars and keeps no-page metrics for page services", () => {
@@ -186,7 +186,7 @@ it("uses a collapsed service dropdown, exposes checks, and prevents removal of t
   const options = within(screen.getByRole("group", { name: "Services" })).getAllByRole("checkbox");
   expect(options).toHaveLength(4);
   for (const option of options) expect(option).toBeChecked();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Model Generation" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Model Refinement" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "User Refinement" }));
   expect(trigger).toHaveTextContent("2 services");
   fireEvent.click(screen.getByRole("checkbox", { name: "IQ Refinement" }));
@@ -234,7 +234,7 @@ it.each(["extraction", "iq_refinement"] as const)("sums only available averages 
 
 it("places every summary row beneath its chart while preserving summary styles", () => {
   showUsage();
-  for (const label of ["Index Extraction and IQ Refinement", "User Refinement", "Model Generation"]) {
+  for (const label of ["Index Extraction and IQ Refinement", "User Refinement", "Model Refinement"]) {
     const card = screen.getByRole("region", { name: `${label} usage` });
     const chart = within(card).getByRole("img");
     const heading = within(card).getByRole("heading", { name: label === "Index Extraction and IQ Refinement" ? "Totals" : label });
@@ -244,9 +244,9 @@ it("places every summary row beneath its chart while preserving summary styles",
   }
 });
 
-it.each([0, 3])("shows only Credits in the Model Generation summary with %s pages", pages => {
+it.each([0, 3])("shows only Credits in the Model Refinement summary with %s pages", pages => {
   showUsage(records.map(row => row.name === "model_generation" ? { ...row, page_num: pages } : row));
-  const models = screen.getByRole("region", { name: "Model Generation usage" });
+  const models = screen.getByRole("region", { name: "Model Refinement usage" });
   expect(within(models).getByText("Credits").nextElementSibling).toHaveTextContent("3 CR");
   expect(models.querySelectorAll("dt")).toHaveLength(1);
   for (const label of ["Sessions", "Pages used", "Average page credits", "No pages used"]) {

@@ -7,13 +7,34 @@ const view = prepareIqReport({ iq_doc: 90, gates: [
   { code: "pass", status: "PASS", description: "Pass gate" },
   { code: "fail", status: "FAIL", description: "Notary Name must be present - none were found in the available values." },
   { code: "warning", status: "WARNING", description: "Warning gate" },
-  { code: "info", status: "INFO", description: "Info note" },
-] });
+], notes: [{ segment: null, message: "Info note" }] });
 
 describe("IqView gates", () => {
   afterEach(() => vi.useRealTimers());
+  it.each([
+    ["Compliance is satisfied. Notary Seal is present.", "Compliance is satisfied.", 1],
+    ["Compliance is not satisfied. Notary Seal is not present.", "Compliance is not satisfied.", 1],
+    ["Compliance is satisfied. Direct Persons are \"Alice\" and \"Bob\". Their signatures are present.", "Compliance is satisfied.", 1],
+    ["Compliance is satisfied. The direct agent is \"John Trump\". Their signature is present.", "Compliance is satisfied.", 1],
+    ["Compliance is satisfied.", "", 0],
+    ["Compliance is not satisfied.", "", 0],
+    ["Compliance could not be evaluated. Notary Seal is unavailable.", "", 0],
+    ["Evidence says Compliance is satisfied. This requirement is satisfied.", "", 0],
+  ])("separates only the leading compliance outcome in %s", (description, outcome, count) => {
+    render(<IqView pendingChanges={new Map()} view={prepareIqReport({ gates: [{ code: "formatted", status: "PASS", description }] })} onAck={vi.fn()} onAckCue={vi.fn()} />);
+    const text = screen.getByText(description);
+    expect(text.textContent).toBe(description);
+    const breaks = text.querySelectorAll("br");
+    expect(breaks).toHaveLength(count);
+    if (count > 0) {
+      expect(breaks[0].previousSibling?.textContent).toBe(outcome);
+      expect(breaks[0].nextSibling?.textContent).toBe(description.slice(outcome.length));
+    }
+  });
+
   it("uses colored dots while retaining gate labels and actions", () => {
-    render(<IqView ackingCodes={new Set()} view={view} onAck={vi.fn()} />);
+    render(<IqView pendingChanges={new Map()} view={view} onAck={vi.fn()}  onAckCue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
     const pass = document.querySelector('[data-gate-code="pass"]')!;
     expect(pass.querySelector('svg[data-status-icon="success"] circle')).toHaveAttribute("r", "12");
     expect(pass.querySelector("svg")).toHaveStyle({ color: "#15803d" });
@@ -29,7 +50,8 @@ describe("IqView gates", () => {
   });
 
   it("renders metric and clear actions", () => {
-    render(<IqView ackingCodes={new Set()} view={view} onAck={vi.fn()} />);
+    render(<IqView pendingChanges={new Map()} view={view} onAck={vi.fn()}  onAckCue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
 
     expect(screen.getByText("67%")).toBeInTheDocument();
     expect(screen.getByText("out of 3 gates")).toBeInTheDocument();
@@ -39,7 +61,7 @@ describe("IqView gates", () => {
       expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
       expect(button).toHaveStyle({ width: "2rem", height: "2rem", padding: "0" });
     }
-    expect(within(screen.getByText("Info note").closest("li")!).queryByRole("button")).toBeNull();
+    expect(within(screen.getByText("Info note")).queryByRole("button")).toBeNull();
     expect(screen.getByText("PASS")).toBeInTheDocument();
     expect(screen.getByText("Notary Name must be present - none were found in the available values.")).toBeInTheDocument();
 
@@ -54,7 +76,8 @@ describe("IqView gates", () => {
 
   it.each(["fail", "warning"])("confirms only the selected %s gate", (code) => {
     const onAck = vi.fn();
-    render(<IqView ackingCodes={new Set()} view={view} onAck={onAck} />);
+    render(<IqView pendingChanges={new Map()} view={view} onAck={onAck}  onAckCue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
 
     const clear = within(document.querySelector(`[data-gate-code='${code}']`) as HTMLElement).getByRole("button", { name: "Clear gate" });
     fireEvent.click(clear);
@@ -73,7 +96,8 @@ describe("IqView gates", () => {
   it("expires confirmation after four seconds without clearing a gate", () => {
     vi.useFakeTimers();
     const onAck = vi.fn();
-    render(<IqView ackingCodes={new Set()} view={view} onAck={onAck} />);
+    render(<IqView pendingChanges={new Map()} view={view} onAck={onAck}  onAckCue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
     const clear = screen.getAllByRole("button", { name: "Clear gate" })[0];
     fireEvent.click(clear);
     act(() => vi.advanceTimersByTime(4000));
@@ -87,7 +111,8 @@ describe("IqView gates", () => {
 
   it("disables acking clear action and renders empty gates", () => {
     const onAck = vi.fn();
-    const { rerender } = render(<IqView ackingCodes={new Set(["fail"])} view={view} onAck={onAck} />);
+    const { rerender } = render(<IqView pendingChanges={new Map([["fail", { busy: true, actions: null }]])} view={view} onAck={onAck}  onAckCue={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Compliance" }));
 
     expect(screen.getAllByRole("button", { name: "Clear gate" })[0]).toBeDisabled();
     fireEvent.click(screen.getAllByRole("button", { name: "Clear gate" })[0]);
@@ -95,7 +120,7 @@ describe("IqView gates", () => {
     expect(onAck).not.toHaveBeenCalled();
     expect(screen.getAllByRole("button", { name: "Clear gate" })[1]).toBeEnabled();
 
-    rerender(<IqView ackingCodes={new Set()} view={prepareIqReport({})} onAck={vi.fn()} />);
+    rerender(<IqView pendingChanges={new Map()} view={prepareIqReport({})} onAck={vi.fn()}  onAckCue={vi.fn()} />);
     expect(screen.getByText("None")).toBeInTheDocument();
   });
 });

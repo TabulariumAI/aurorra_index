@@ -9,8 +9,9 @@ const measureAbbr: Record<string, string> = {
   RODS: "rd", ROD: "rd", LINKS: "lk", LINK: "lk", MILES: "mi", MILE: "mi",
 };
 const measurePattern = new RegExp("\\b(?:" + Object.keys(measureAbbr).join("|") + ")\\b", "gi");
-export function formatMeasure(source: string, angular: boolean): string {
-  const value = source.replace(measurePattern, word => measureAbbr[word.toUpperCase()])
+export function formatMeasure(source: string, angular: boolean, synthetic?: true): string {
+  const value = (synthetic ? source.replace(/\d+\.\d+/g, value => String(+Number(value).toFixed(2))) : source)
+    .replace(measurePattern, word => measureAbbr[word.toUpperCase()])
     .replace(/\b(?:DEGREES?|DEG)\b\.?/gi, "°").replace(/\b(?:MINUTES?|MIN)\b\.?/gi, "′").replace(/\b(?:SECONDS?|SEC)\b\.?/gi, "″");
   return angular ? value.replace(/''|[″”"]/g, "″").replace(/[′’']/g, "′").replace(/[º˚]/g, "°").replace(/(\d)\s*O(?=\s*\d)/gi, "$1°").replace(/\s*([°′″])/g, "$1").replace(/([°′″])\s+(?=\d)/g, "$1")
     : value.replace(/(\d)\s*'/g, "$1 ft").replace(/(\d)\s*"/g, "$1 in");
@@ -684,7 +685,7 @@ function drawBoundary(group: LegalGroup, title: string, boundary: ReconstructedB
       issue = "Distance is zero.";
     const bearing = course.kind === "curve" ? curve ? "Curve " + (curve.turn === 1 ? "right" : "left") : "Curve" : course.bearing;
     const confirmed = issue === undefined;
-    scene.courses.push({ bearing, distance: course.distance, confirmed, ...(issue ? { issue } : {}), ...(to === anchor ? { target: scene.beginning !== undefined ? scene.beginning + 1 : 1 } : {}) });
+    scene.courses.push({ bearing, distance: course.distance, confirmed, ...(course.synthetic ? { synthetic: course.synthetic } : {}), ...(issue ? { issue } : {}), ...(to === anchor ? { target: scene.beginning !== undefined ? scene.beginning + 1 : 1 } : {}) });
     if (to && course.distance) {
       scene.items.push({ kind: "line", label: "Course " + scene.courses.length, detail: course.detail, sequence: scene.courses.length, from: point, to, bearing, distance: course.distance, confirmed, ...(arc ? { arc } : {}) });
       point = to;

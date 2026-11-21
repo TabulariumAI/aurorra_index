@@ -14,6 +14,24 @@ function jsonResponse(payload: unknown, init: ResponseInit = {}) {
 }
 
 describe("IqWorker", () => {
+  it("carries current and generated input ETags and saved acknowledgements without changing report content", async () => {
+    const report = { iq_doc: 80, gates: [], segments: [], notes: [] };
+    const acknowledgements = [{ code: "cue", status: "DISMISSED" }];
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json",
+      etag: "current-inputs", report_etag: "generated-inputs", acknowledgements })).mockResolvedValueOnce(jsonResponse(report)));
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: "metadata" }))
+      .toEqual({ ok: true, data: { report, etag: "current-inputs", reportEtag: "generated-inputs", acknowledgements } });
+  });
+
+  it("downloads the notes contract unchanged", async () => {
+    const report = { iq_doc: 87.5, gates: [{ code: "fail", status: "FAIL", description: "Failed requirement" }], segments: [], notes: [{ segment: null, message: "Compliance gates: not satisfied (0 / 1)." }, { segment: null, message: "Indexing quality needing attention: Party." }, { segment: null, message: "Unclassified indexes: Optimal (1/20)" }, { segment: null, message: "Missing indexes: Person." }, { segment: "sides", message: "Party summary" }] };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json" }))
+      .mockResolvedValueOnce(jsonResponse(report)));
+    const result = await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: null });
+    expect(result).toEqual({ ok: true, data: { report } });
+  });
+
   it.each([null, "source-version"])("signals download after the envelope and before fetching the report, etag=%s", async etag => {
     const onDownload = vi.fn();
     const fetchMock = vi.fn()
@@ -85,6 +103,15 @@ describe("IqWorker", () => {
     expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: "client-version" }))
       .toEqual({ ok: true, data: { report: { iq_doc: 98 }, metadataEtag: source } });
   });
+  it("retains the saved verification ETag and current scoped model", async () => {
+    const model = { class: "deed", jurisdiction: "Texas, Harris County", etag: "current-model" };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: "metadata", verification_etag: "saved-model", verification_model: model }))
+      .mockResolvedValueOnce(jsonResponse({ iq_doc: 98 })));
+    expect(await new IqWorker().run({ apiBaseUrl: "x", session: "s", token: "t", type: "iqData", etag: "metadata" }))
+      .toEqual({ ok: true, data: { report: { iq_doc: 98 }, metadataEtag: "metadata", verificationEtag: "saved-model", verificationModel: model } });
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
   });

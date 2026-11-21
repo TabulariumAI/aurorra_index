@@ -150,7 +150,6 @@ const propertyMetadata: MetadataPayload = {
   ...shortMetadata,
   indexes: [{ code: "property-1", segment: "property", aspect: "property_city", label: "property", page_number: "1", value: "Roanoke" }],
   legals: {
-    summary: "One parcel in Green Acres Estates, Denton County, Texas.",
     groups: [{ code: "legal-1", type: "lot_block", elements: [
       { aspect: "subdivision", value: "GREEN ACRES ESTATES", explanation: "Subdivision identified in the legal description." },
       { aspect: "lot", value: "6" },
@@ -162,6 +161,7 @@ const summaryMetadata: MetadataPayload = {
   heading: { class: "mortgage", title: "Mortgage Satisfaction",
     secondary_titles: new URLSearchParams(window.location.search).has("secondary") ? ["Release of Lien"] : undefined,
     summary: `This document is a Mortgage Satisfaction${new URLSearchParams(window.location.search).has("secondary") ? " with a Release of Lien" : ""} extinguishing the recorded mortgage and releasing the lender's lien on the property.` },
+  indexes: [...shortMetadata.indexes!, ...(new URLSearchParams(window.location.search).has("jurisdiction") ? [{ code: "j1", aspect: "jurisdiction", segment: "transaction", label: "jurisdiction", value: new URLSearchParams(window.location.search).get("jurisdiction")!, page: "2" }] : [])],
   pages: { recordables: [{ name: "2", code: "summary-page", class: "Title" }], num_of_pages: 2 },
 };
 const activeMetadata = scenario === "metadata-summary" ? summaryMetadata : scenario === "metadata-property-alignment" ? propertyMetadata : scenario === "metadata-pages" ? pageMetadata : scenario === "metadata-address-row" ? addressRowMetadata : scenario === "metadata-party-rows" ? partyRowMetadata : scenario === "metadata-row" ? rowMetadata : scenario === "metadata-short" ? shortMetadata : metadata;
@@ -179,13 +179,16 @@ const groupMetadata: MetadataPayload = {
     { code: "property-1", segment: "property", page: "1", aspect: "property_id", label: "Parcel", value: "Parcel 42" },
     { code: "notary-1", segment: "acknowledgment", page: "2", aspect: "notary_name", label: "Notary", value: "Jane Doe" },
   ],
-  parties: { summary: "Party overview.", indexes: [
+  parties: { indexes: [
     { code: "side-1", segment: "party", page: "1", aspect: "person, Direct", label: "Grantor", value: "John Smith" },
     { code: "side-2", segment: "party", aspect: "person, Indirect", label: "Grantee", value: "Jane Smith" },
   ] },
-  legals: { summary: "Legal overview.", groups: [{ code: "legal-1", page: "Exhibit-A", type: "lot_block", elements: [{ aspect: "lot", value: "12" }, { aspect: "block", value: "4" }] }] },
-  execution: { summary: "Execution overview.", indexes: [
+  legals: { groups: [{ code: "legal-1", page: "Exhibit-A", type: "lot_block", elements: [{ aspect: "lot", value: "12" }, { aspect: "block", value: "4" }] }] },
+  execution: { indexes: [
+    { code: "signature-2", segment: "execution", page: "2", aspect: "signatory_signature", label: "Signatory Signature", value: "No", source: "Arnold Lee Andrews", explanation: "Blank signature line." },
     { code: "seal-1", segment: "execution", page: "2", aspect: "notary_seal", label: "Notary seal", value: "Yes" },
+    { code: "signature-1", segment: "execution", page: "1", aspect: "signatory_signature", label: "Signatory Signature", value: "Yes", source: "Valerie Gutterson" },
+    { code: "execution-date", segment: "execution", page: "1", aspect: "execution_date", label: "Execution Date", value: "March 20, 2023" },
   ] },
 };
 
@@ -195,7 +198,7 @@ const duplicateMetadata: MetadataPayload = {
     { code: "owner", segment: "party", page: "1", aspect: "person", label: "Owner", value: "Extracted owner", ambiguous: "YES" },
     { code: "agency", segment: "party", page: "1", aspect: "government", label: "Agency", value: "TEXAS COMM ON ENVIRONMENTAL QUALITY REGION 12" },
   ],
-  parties: { summary: "Oscar Corona is the homeowner and owner of record.", indexes: [
+  parties: { indexes: [
     { code: "owner", segment: "party", page: "1", aspect: "person, Direct", label: "Owner", value: "CORONA OSCAR", explanation: longExplanation, source: "Oscar Corona, homeowner and owner of record.", ambiguous: "NO" },
     { code: "owner", segment: "party", page: "1", aspect: "person, Direct", label: "Owner", value: "Duplicate owner" },
   ] },
@@ -213,7 +216,7 @@ function MetadataPreview() {
   return (
   <MetadataPanel
     actions={{ confirm: true, drop: true, reprocess: true }}
-    callbacks={{ onAddressClick: (value) => stage!.setAttribute("data-address", value), onEditPage: noOp, onPageClick: value => stage!.setAttribute("data-title-page", String(value.page)) }}
+    callbacks={{ onLegalView: () => stage!.setAttribute("data-map-open", "true"), onAddressClick: (value) => stage!.setAttribute("data-address", value), onEditPage: noOp, onPageClick: value => stage!.setAttribute("data-title-page", String(value.page)) }}
     choices={[{ level: 1, service: "PartyClauseIndexing" }]}
     confirmedCodes={new Set()}
     metadata={scenario === "metadata-duplicates" ? duplicateMetadata : scenario === "metadata-groups" ? groupMetadata : activeMetadata}
@@ -221,7 +224,7 @@ function MetadataPreview() {
     onDrop={noOp}
     onAddIndex={(segment) => stage!.setAttribute("data-add-segment", segment)}
     onEditIndex={(item) => stage.setAttribute("data-edit-code", String(item.code))}
-    onReprocess={noOp}
+    onReprocess={(segment) => stage!.setAttribute("data-reprocess-segment", segment)}
     openSegment={openSegment}
     panelData={scenario === "metadata-duplicates" ? getPanelData(duplicateMetadata) : scenario === "metadata-groups" ? getPanelData(groupMetadata) : activePanelData}
     reprocessingSegments={new Set(scenario === "metadata-reprocess" ? [segments.PARTY] : [])}

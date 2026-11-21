@@ -8,7 +8,7 @@ function runtime(): QueueRuntime {
     patchIndex: vi.fn(() => new Promise<never>(() => {})),
     patchStatus: vi.fn(() => new Promise<never>(() => {})),
     indexData: vi.fn(async () => ({ indexes: [] })),
-    confirmIndex: vi.fn(), dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), reprocessSegment: vi.fn(),
+    confirmIndex: vi.fn(), dropIndex: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(),
   } };
 }
 
@@ -34,15 +34,17 @@ it("restores the current owner but never revives a replaced owner's session", as
   expect(restored.queueStoreApi.getState()).toMatchObject({ session: null, path: null, etag: null });
 });
 
-it.each([false, true])("restores reprocess with acknowledged=%s without resending", async (acknowledged) => {
+it.each((["reprocess", "clear"] as const).flatMap(action => [false, true].map(acknowledged => ({ action, acknowledged }))))(
+  "restores $action with acknowledged=$acknowledged without resending", async ({ action, acknowledged }) => {
   const first = await load();
   const config = runtime();
-  vi.mocked(config.client.reprocessSegment).mockImplementation(() => acknowledged
+  const method = action === "clear" ? "clearSegment" : "reprocessSegment";
+  vi.mocked(config.client[method]).mockImplementation(() => acknowledged
     ? Promise.resolve({ status: "completed", data: "" }) : new Promise(() => {}));
   vi.mocked(config.client.indexData).mockReturnValue(new Promise(() => {}));
   first.queueStoreApi.getState().restore("user-one", config);
   first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [] }));
-  await first.queueStoreApi.getState().enqueue({ action: "reprocess", session: "session", batch: null, segment: "party" }, config);
+  await first.queueStoreApi.getState().enqueue({ action, session: "session", batch: null, segment: "party" }, config);
   if (acknowledged) await waitFor(() => expect(config.client.indexData).toHaveBeenCalledOnce());
   vi.resetModules();
   const restored = await load();
@@ -56,7 +58,7 @@ it.each([false, true])("restores reprocess with acknowledged=%s without resendin
     expect(restored.queueStoreApi.getState().tasks[0]).toMatchObject({ status: "failed", cursor: 0 });
     expect(next.client.indexData).not.toHaveBeenCalled();
   }
-  expect(next.client.reprocessSegment).not.toHaveBeenCalled();
+  expect(next.client[method]).not.toHaveBeenCalled();
 });
 
 it.each([false, true])("restores unacknowledged requests with enrichment=%s and keeps disabled row data", async (allow_enrichment) => {
@@ -91,7 +93,7 @@ it.each(["processing", "completed"] as const)("restores a %s addition with its o
   vi.mocked(config.client.patchIndex).mockResolvedValue({ status, data: "", version: 7 });
   vi.mocked(config.client.indexData).mockReturnValue(new Promise(() => {}));
   first.queueStoreApi.getState().restore("owner", config);
-  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [], parties: { summary: null, indexes: [] } }));
+  first.storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [], parties: {  indexes: [] } }));
   await first.queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "party", data: JSON.stringify([{
     action: "add", explanation: "Source", new_index_label: "Grantor", new_index_aspect: "grantor", new_index_value: "Bob",
     new_index_ambiguous: null, old_index_label: null, old_index_aspect: null, old_index_value: null,
@@ -109,7 +111,7 @@ it.each(["processing", "completed"] as const)("restores a %s addition with its o
   expect(getPanelData(composeMetadataJSON(restored.storeApi.getState().getJSON("session"))!).parties).toEqual([change.index]);
   await waitFor(() => expect(next.client.indexData).toHaveBeenCalledOnce());
   const server = { ...change.index, code: "server" };
-  refresh({ indexes: [], parties: { summary: null, indexes: [server] } });
+  refresh({ indexes: [], parties: {  indexes: [server] } });
   await waitFor(() => expect(restored.queueStoreApi.getState().tasks).toHaveLength(0));
   expect(getPanelData(composeMetadataJSON(restored.storeApi.getState().getJSON("session"))!).parties).toEqual([server]);
   expect(next.client.patchIndex).not.toHaveBeenCalled();

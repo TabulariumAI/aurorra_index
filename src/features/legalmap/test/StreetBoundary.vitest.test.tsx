@@ -156,7 +156,7 @@ describe("street-relative boundary fallback", () => {
     expect(scene.courses).toEqual([]);
     expect(scene.issue).toBe(failure);
     render(<LegalMapContent legal={{ parcels_num: 1, groups: [input] }} />);
-    expect(screen.getByRole("alert")).toHaveTextContent(failure);
+    expect(screen.getByRole("note")).toHaveTextContent(failure);
     expect(screen.getByText(distances)).toBeVisible();
     expect(document.querySelector("[data-survey-line]")).toBeNull();
   });

@@ -66,10 +66,19 @@ it("keeps tabs operable during loading and shows the selected placeholders", asy
   let resolve!: (report: AuditReport) => void;
   render(<AuditPanel  {...props} workerClient={{ loadReport: () => new Promise(done => { resolve = done; }) }} />);
   expect(screen.queryByRole("status", { name: "Loading audit gaps" })).toBeNull();
-  expect(await screen.findByRole("status", { name: "Loading audit gaps" })).toBeVisible();
+  const gaps = await screen.findByRole("status", { name: "Loading audit gaps" });
+  expect(gaps).toBeVisible();
+  expect(gaps.querySelectorAll("article")).toHaveLength(3);
+  expect(gaps.querySelectorAll("dl")).toHaveLength(3);
+  expect(screen.getByRole("status", { name: "Loading audit filters" }).textContent).toBe("Change typeProcessSegment");
+  expect(screen.getByRole("status", { name: "Loading audit summary" }).querySelectorAll("span")).toHaveLength(2);
   expect(screen.queryByRole("status", { name: "Loading service usage" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
-  expect(screen.getByRole("status", { name: "Loading service usage" })).toBeVisible();
+  const usage = screen.getByRole("status", { name: "Loading service usage" });
+  expect(usage).toBeVisible();
+  expect(usage.querySelectorAll("thead th")).toHaveLength(4);
+  expect(usage.querySelectorAll("tbody tr")).toHaveLength(3);
+  expect(usage.querySelector("tbody")).toHaveAttribute("aria-hidden", "true");
   expect(screen.queryByRole("status", { name: "Loading audit gaps" })).not.toBeInTheDocument();
   await act(async () => resolve(report));
   expect(screen.getByRole("table", { name: "Audit service usage" })).toBeVisible();
@@ -86,7 +95,7 @@ it("retains all three tabs for empty reports without inventing usage rows", asyn
   expect(screen.getByText("No gaps found.")).not.toBeVisible();
 });
 
-it("refreshes content without stale usage and keeps a new mount on Changes", async () => {
+it("refreshes content without stale usage and restores the selected tab on a new mount", async () => {
   const view = render(<AuditPanel  {...props} />);
   await screen.findByText("[Show more]");
   fireEvent.click(screen.getByRole("tab", { name: "Usage" }));
@@ -94,6 +103,30 @@ it("refreshes content without stale usage and keeps a new mount on Changes", asy
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Usage" })).toHaveAttribute("aria-selected", "true");
   view.rerender(<AuditPanel  {...props} key="refresh" />);
-  expect(screen.getByRole("tab", { name: "Changes" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.getByRole("tab", { name: "Usage" })).toHaveAttribute("aria-selected", "true");
+  await act(async () => {});
+});
+
+it("persists tabs per document session across closing, reopening, and session switches", async () => {
+  const first = render(<AuditPanel {...props} />);
+  await screen.findByText("[Show more]");
+  fireEvent.click(screen.getByRole("tab", { name: "Choices" }));
+  expect(localStorage.getItem("aurorra-index:audit-tab:session")).toBe("Choices");
+  first.unmount();
+  const second = render(<AuditPanel {...props} />);
+  expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Choices");
+  second.rerender(<AuditPanel {...props} session="other" />);
+  expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Changes");
+  fireEvent.keyDown(screen.getByRole("tab", { name: "Changes" }), { key: "ArrowRight" });
+  expect(localStorage.getItem("aurorra-index:audit-tab:other")).toBe("Usage");
+  second.rerender(<AuditPanel {...props} />);
+  expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Choices");
+  await act(async () => {});
+});
+
+it("falls back to Changes for an invalid saved tab", async () => {
+  localStorage.setItem("aurorra-index:audit-tab:session", "Unknown");
+  render(<AuditPanel {...props} />);
+  expect(screen.getByRole("tabpanel")).toHaveAccessibleName("Changes");
   await act(async () => {});
 });

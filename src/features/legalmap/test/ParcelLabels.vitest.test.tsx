@@ -113,7 +113,7 @@ describe("Parcel at Lot level", () => {
     render(<LegalMapContent legal={{ ...parcelFixture, parcels_num: 2 }} />);
     expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(1);
     expect(document.querySelector("[data-legal-map-lot]")).toHaveTextContent("13Parcel");
-    expect(screen.getByRole("alert", { name: "Parcel 2" })).toHaveTextContent("Lot Block legal group is missing");
+    expect(screen.getByRole("note", { name: "Parcel 2" })).toHaveTextContent("Lot Block legal group is missing");
   });
 
   it("leaves parcel_scope in Details and excludes parcels from non-Lot Block hierarchies", () => {

@@ -1,4 +1,4 @@
-import { formatLabel, LoadPlaceholder, type MetadataError, type ResourceRequest } from "aurora-core";
+import { formatLabel, LoadPlaceholder, skeletonStyle, type MetadataError, type ResourceRequest } from "aurora-core";
 import { useMemo, useState } from "react";
 import { auditStyles } from "../style/auditStyles";
 import type { AuditFilters as AuditFiltersState, AuditReport } from "../type/audit.types";
@@ -23,6 +23,7 @@ const changeOptions = [
 const processOptions = [
   ["", "All"],
   ["VERIFICATION", "Verification"],
+  ["CORRECTION", "Correction"],
   ["ENRICHMENT", "Enrichment"],
   ["Reprocess |", "Reprocess"],
   ["USER", "User change"],
@@ -34,7 +35,9 @@ export function AuditFilters({ filters, onFiltersChange, report: data, session, 
   const [resourceReady, setResourceReady] = useState(false);
   const [error, setError] = useState<MetadataError | null>(null);
   const { aspects, ready } = useAspects(request, session, onResource, setResourceReady, setError);
-  if (data === null) return <LoadPlaceholder label="Loading audit filters" />;
+  if (data === null) return <div style={auditStyles.filters}><LoadPlaceholder label="Loading audit filters"><div style={auditStyles.filterRow}>
+    {["Change type", "Process", "Segment"].map(label => <div key={label} style={{ ...auditStyles.filterLabel, ...auditStyles.filterSelectGroup }}><span>{label}</span><span aria-hidden="true" style={{ ...skeletonStyle, ...auditStyles.filterSelect }} /></div>)}
+  </div></LoadPlaceholder></div>;
   const report = prepareAuditReport(data, filters, Object.keys(aspects));
   const allChanges = Object.values(report.changeCounts).reduce((total, count) => total + count, 0);
   const allProcesses = Object.values(report.processCounts).reduce((total, count) => total + count, 0);
@@ -76,7 +79,7 @@ export function AuditFilters({ filters, onFiltersChange, report: data, session, 
                 value={value}
               >
                 {`${label} (${value === "" ? allProcesses : report.processCounts[
-                  value === "VERIFICATION" ? "verification" : value === "ENRICHMENT" ? "enrichment" : value === "Reprocess |" ? "reprocess" : value === "USER" ? "user" : "other"
+                  value === "VERIFICATION" ? "verification" : value === "CORRECTION" ? "correction" : value === "ENRICHMENT" ? "enrichment" : value === "Reprocess |" ? "reprocess" : value === "USER" ? "user" : "other"
                 ]})`}
               </option>
             ))}

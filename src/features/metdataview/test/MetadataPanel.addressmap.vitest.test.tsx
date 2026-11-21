@@ -88,13 +88,13 @@ function PanelHarness(): JSX.Element {
 }
 
 describe("MetadataPanel address map integration", () => {
-  it("opens the combined map once above the property rows", async () => {
+  it("opens the combined map once from the property header", async () => {
     render(<PanelHarness />);
 
     const openButton = await screen.findByRole("button", { name: "Open legal view" });
     const value = screen.getByText("123 Main Street, Austin, TX 78701");
     expect(openButton.parentElement).not.toContainElement(value);
-    expect(openButton).toHaveStyle({ padding: "0px" });
+    expect(openButton).toHaveStyle({ padding: "0px 0.5rem" });
     expect(value).toHaveStyle({ display: "inline", whiteSpace: "normal", overflowWrap: "anywhere" });
     expect(openButton).toHaveTextContent("Show Map");
     expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });

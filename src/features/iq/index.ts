@@ -4,6 +4,8 @@ export { useIqReport } from "./hook/useIqReport";
 export { useIqRefresh } from "./hook/useIqRefresh";
 export { createIqWorkerClient, generateIqReport } from "./worker/iqWorkerClient";
 export { iqStoreApi, useIqStore } from "./store/iqStore";
+export { iqQueueStore } from "./store/iqQueueStore";
+export type { IqQueueRuntime } from "./type/iqQueue.types";
 export {
   GATE_FAIL,
   GATE_INFO,
@@ -16,16 +18,20 @@ export {
   prepareIqReport,
 } from "./data/iqData";
 export type {
+  IqTransition,
   IqAckResult,
+  IqCue,
   IqBucket,
   IqCallbacks,
-  IqDecision,
   IqGate,
   IqGateStatus,
   IqGateView,
+  IqNoteView,
+  IqNote,
   IqPanelProps,
   IqReport,
   IqResource,
+  IqModel,
   IqReportView,
   IqSection,
   IqSegment,

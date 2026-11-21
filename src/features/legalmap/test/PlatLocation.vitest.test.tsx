@@ -4,6 +4,15 @@ import { LegalMapContent } from "../component/LegalMapContent";
 import { normalizeLegalData } from "../data/platData";
 
 describe("Lot & block location", () => {
+  it("does not read a summary to infer location", () => {
+    const legal = { groups: [{ type: "lot_block", elements: [{ aspect: "lot", value: "24" }] }] };
+    Object.defineProperty(legal, "summary", { get() { throw new Error("Summary must not be read"); } });
+    expect(normalizeLegalData(legal).locationLabel).toBe("");
+    render(<LegalMapContent legal={legal} />);
+    expect(document.querySelector("[data-legal-map-location]")).toBeNull();
+    expect(document.querySelector(".legal-map-summary")).toBeNull();
+  });
+
   it.each([
     [{ city: "GRAYSLAKE" }, "Grayslake"],
     [{ county: "LAKE COUNTY" }, "Lake County"],

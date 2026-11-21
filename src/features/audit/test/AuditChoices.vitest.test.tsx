@@ -24,6 +24,21 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); indexStoreApi.getState().resetMetadata(); });
 
+it.each(["Texas, Harris County", null, "   "])("shows the saved jurisdiction or its absence in Choices: %s", async jurisdiction => {
+  indexStoreApi.setState({ choices: { ...choices, jurisdiction } });
+  render(<AuditPanel {...props} />);
+  await screen.findByText("No gaps found.");
+  fireEvent.click(screen.getByRole("tab", { name: "Choices" }));
+  const note = screen.getByText(jurisdiction?.trim()
+    ? jurisdiction.trim()
+    : "No jurisdiction selected");
+  expect(note).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Jurisdiction", level: 3 })).toBeVisible();
+  expect(note.tagName).toBe("P");
+  expect(screen.getByRole("link").compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(note.compareDocumentPosition(screen.getByRole("heading", { name: "Indexing choices" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
 it("shows saved session choices and the input download only in Choices without requesting defaults", async () => {
   render(<AuditPanel {...props} />);
   await screen.findByText("No gaps found.");
@@ -54,6 +69,7 @@ it("keeps Choices independent of an audit report failure", async () => {
   fireEvent.click(screen.getByRole("tab", { name: "Choices" }));
   expect(screen.getByRole("table", { name: "Indexing choices" })).toBeVisible();
   expect(screen.getByRole("link")).toBeVisible();
+  expect(screen.getByText("Texas, Harris County")).toBeVisible();
 });
 
 it("clears choices and the download when the selected session changes or is reset", async () => {
@@ -63,6 +79,8 @@ it("clears choices and the download when the selected session changes or is rese
   view.rerender(<AuditPanel {...props} session="other" />);
   expect(screen.queryByRole("table")).toBeNull();
   expect(screen.queryByRole("link")).toBeNull();
+  expect(screen.queryByRole("heading", { name: "Jurisdiction" })).toBeNull();
+  fireEvent.click(screen.getByRole("tab", { name: "Choices" }));
   act(() => { queueStoreApi.setState({ session: "other" }); indexStoreApi.setState({ choices: { items: [], jurisdiction: null } }); });
   expect(screen.getByRole("table")).toBeVisible();
   expect(screen.getAllByRole("row")).toHaveLength(1);

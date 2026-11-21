@@ -9,9 +9,9 @@ describe("five-level plat hierarchy", () => {
   it("preserves all source fields in their approved tiers without mutating the payload", () => {
     const source = JSON.stringify(hierarchyFixture);
     const view = normalizeLegalData(hierarchyFixture);
-    expect(view.locationLabel).toBe("Illinois | Lake County | Libertyville Township | Grayslake");
+    expect(view.locationLabel).toBe("Illinois | Lake County | Grayslake");
     expect(view.subdivisions[0]).toMatchObject({
-      condominium: "GLEN CONDOMINIUM", jurisdiction: "LIBERTYVILLE TOWNSHIP", city: "GRAYSLAKE",
+      condominium: "GLEN CONDOMINIUM", city: "GRAYSLAKE",
       divisions: [{ phase: "1", unit: "2", section: "A", blocks: [{ name: "4", tract: "B", building: "C", lots: [
         { kind: "lot", name: "24" }, { name: "2-3", kind: "condominium_unit" },
       ] }] }],
@@ -21,7 +21,7 @@ describe("five-level plat hierarchy", () => {
     expect(JSON.stringify(hierarchyFixture)).toBe(source);
   });
 
-  it.each(["city", "jurisdiction", "condominium", "building"])("keeps differing %s ancestors separate", aspect => {
+  it.each(["city", "county", "state", "condominium", "building"])("keeps differing %s ancestors separate", aspect => {
     const groups = [hierarchyFields, { ...hierarchyFields, [aspect]: "OTHER" }].map(fields => ({
       type: "lot_block", elements: Object.entries(fields).map(([aspect, value]) => ({ aspect, value })),
     }));
@@ -44,8 +44,9 @@ describe("five-level plat hierarchy", () => {
     expect(surface.querySelector(".legal-map-legend")).toHaveTextContent("Condominium");
     expect(surface.querySelector(".legal-map-legend")).toHaveTextContent("Building");
     expect(surface.querySelector(".legal-map-legend")).toHaveTextContent("Condo Unit");
-    expect(document.querySelector("[data-legal-map-location]")).toHaveTextContent("Illinois | Lake County | Libertyville Township | Grayslake");
-    expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("Jurisdiction");
+    expect(document.querySelector("[data-legal-map-location]")).toHaveTextContent("Illinois | Lake County | Grayslake");
+    expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("StateILLINOISCountyLAKECityGRAYSLAKE");
+    expect(screen.getByRole("table", { name: "Details" })).not.toHaveTextContent("Jurisdiction");
   });
 
   it.each(["condominium", "building", "condominium_unit"])("draws a partial hierarchy containing only %s", aspect => {
@@ -61,8 +62,8 @@ describe("five-level plat hierarchy", () => {
     }
   });
 
-  it("keeps jurisdiction-only groups as location data rather than inventing a drawable layer", () => {
-    const group = getMapGroups({ groups: [{ type: "lot_block", elements: [{ aspect: "jurisdiction", value: "LIBERTYVILLE TOWNSHIP" }] }] })[0];
+  it.each(["county", "state", "city"])("keeps %s-only groups as location data rather than inventing a drawable layer", aspect => {
+    const group = getMapGroups({ groups: [{ type: "lot_block", elements: [{ aspect, value: "LOCATION" }] }] })[0];
     expect(group.aspects).toEqual([]);
     expect(group.issue).toContain("only location fields");
   });

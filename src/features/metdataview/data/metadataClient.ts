@@ -73,5 +73,8 @@ export function createMetadataClient(config: MetadataConfig): MetadataClient {
     async reprocessSegment(token, session, segment) {
       return (await runMetadataWorker<MetadataReprocessResult>({ apiBaseUrl, segment, session, token, type: "reprocessSegment" })).data;
     },
+    async clearSegment(token, session, segment) {
+      return (await runMetadataWorker<MetadataReprocessResult>({ apiBaseUrl, segment, session, token, type: "clearSegment" })).data;
+    },
   };
 }

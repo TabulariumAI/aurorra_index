@@ -6,7 +6,7 @@ import { MetadataPanel, type MetadataPanelProps } from "../component/MetadataPan
 const metadata: MetadataPayload = {
   heading: { class: "deed", title: "Warranty Deed" },
   indexes: [{ code: "reference", segment: "reference", label: "Reference", value: "Book 42", page_number: "1" }],
-  parties: { summary: null, indexes: [{ code: "party", segment: "party", label: "Grantor", value: "Alice" }] },
+  parties: {  indexes: [{ code: "party", segment: "party", label: "Grantor", value: "Alice" }] },
   pages: { recordables: [{ name: "1", code: "page", class: "Title" }] },
 };
 const props: MetadataPanelProps = {

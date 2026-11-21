@@ -28,7 +28,7 @@ function runtime(): QueueRuntime {
       dropIndex: vi.fn(async () => ({ data: "", status: "completed" as const, version: 1 })),
       patchStatus: vi.fn(async (_token: string, _session: string, version: number) => ({ data: "", status: "completed" as const, version })),
       indexData: vi.fn(async () => ({ indexes: [index] })),
-      reprocessSegment: vi.fn(),
+      clearSegment: vi.fn(), reprocessSegment: vi.fn(),
     },
   };
 }
@@ -129,7 +129,7 @@ describe("index mutation queue", () => {
     await enqueue([addition], config);
     await waitFor(() => expect(queueStoreApi.getState().queues[0].completed).toBe(1));
     expect(config.client.indexData).not.toHaveBeenCalled();
-    queueStoreApi.getState().cancel(failed.id, failed.changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(failed.id, failed.changes.filter(change => "code" in change)[0].code);
     await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
     expect(config.client.indexData).toHaveBeenCalledTimes(1);
     expect(queueStoreApi.getState().queues[0].completed).toBe(1);
@@ -167,7 +167,7 @@ describe("index mutation queue", () => {
     expect(projected.parties?.indexes).toEqual(action === "add" ? [expect.objectContaining({ value: "Bob" }), ...base.parties.indexes] : base.parties.indexes);
     expect(config.client.patchIndex).toHaveBeenCalledWith("token", "session-1", "party", expect.objectContaining({ allow_enrichment: false }));
     const task = queueStoreApi.getState().tasks[0];
-    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => "code" in change)[0].code);
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.parties).toEqual(base.parties);
   });
 
@@ -184,7 +184,7 @@ describe("index mutation queue", () => {
     const config = runtime();
     const first = pendingResponse();
     vi.mocked(config.client.patchIndex).mockReturnValueOnce(first.promise).mockReturnValueOnce(pendingResponse().promise);
-    vi.mocked(config.client.indexData).mockResolvedValueOnce({ indexes: [index], parties: { summary: null, indexes: [{ ...index, code: "party-1" }] } });
+    vi.mocked(config.client.indexData).mockResolvedValueOnce({ indexes: [index], parties: {  indexes: [{ ...index, code: "party-1" }] } });
     await enqueue([{ ...addition, allow_enrichment: false }], config);
     await enqueue([{ ...update, allow_enrichment: false }], config);
     first.resolve({ data: "", status: "completed", version: 1 });
@@ -231,7 +231,7 @@ describe("index mutation queue", () => {
     if (segment === "party") expect(metadata.parties?.indexes.map(item => item.value)).toEqual(expected);
     if (segment === "secrets") expect(metadata.secrets?.map(item => item.value)).toEqual(expected);
     const task = queueStoreApi.getState().tasks[1];
-    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => "code" in change)[0].code);
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes?.map(item => item.value))
       .toEqual(expected.slice(1));
   });
@@ -318,7 +318,7 @@ describe("index mutation queue", () => {
     vi.mocked(config.client.patchIndex).mockRejectedValueOnce(new Error("Update failed"));
     await enqueue([update], config);
     await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
-    await queueStoreApi.getState().cancel(queueStoreApi.getState().tasks[0].id, queueStoreApi.getState().tasks[0].changes.filter(change => change.action !== "reprocess")[0].code);
+    await queueStoreApi.getState().cancel(queueStoreApi.getState().tasks[0].id, queueStoreApi.getState().tasks[0].changes.filter(change => "code" in change)[0].code);
     expect(queueStoreApi.getState().tasks).toEqual([]);
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes?.[0].value).toBe("Alice");
     expect(queueStoreApi.getState().queues[0]).toMatchObject({ pending: 0, completed: 0 });
@@ -393,7 +393,7 @@ describe("index mutation queue", () => {
   it("preserves enriched party rows and raw indexes while an edit is pending", async () => {
     const config = runtime();
     vi.mocked(config.client.patchIndex).mockReturnValue(pendingResponse().promise);
-    storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [index], parties: { summary: null, indexes: [index] } }));
+    storeApi.getState().setJSON("session-1", splitMetadataJSON({ indexes: [index], parties: {  indexes: [index] } }));
     await enqueue([update], config);
     const metadata = composeMetadataJSON(storeApi.getState().getJSON("session-1"));
     expect(metadata?.indexes?.[0].value).toBe("Alice");
@@ -430,7 +430,7 @@ describe("index mutation queue", () => {
     vi.mocked(config.client.patchIndex).mockReturnValue(first.promise);
     await enqueue([update], config);
     await enqueue([{ ...addition, new_index_value: "Carol" }], config);
-    queueStoreApi.getState().cancel(queueStoreApi.getState().tasks[1].id, queueStoreApi.getState().tasks[1].changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(queueStoreApi.getState().tasks[1].id, queueStoreApi.getState().tasks[1].changes.filter(change => "code" in change)[0].code);
     expect(queueStoreApi.getState().queues[0].pending).toBe(1);
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes?.map((item) => item.value)).toEqual(["Alice"]);
     first.resolve({ data: "", status: "completed", version: 1 });
@@ -478,7 +478,7 @@ describe("queued row recovery and pages", () => {
     await queueStoreApi.getState().enqueue({ session: "session-1", batch: "batch-1", segment: "party", action: "drop", code: index.code }, config);
     await waitFor(() => expect(queueStoreApi.getState().queues[0]).toMatchObject({ pending: 0, failed: 1, completed: 0 }));
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes).toEqual([index]);
-    queueStoreApi.getState().cancel(queueStoreApi.getState().tasks[0].id, queueStoreApi.getState().tasks[0].changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(queueStoreApi.getState().tasks[0].id, queueStoreApi.getState().tasks[0].changes.filter(change => "code" in change)[0].code);
     expect(queueStoreApi.getState().queues[0]).toMatchObject({ pending: 0, failed: 0, completed: 0 });
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes).toEqual([index]);
   });
@@ -539,7 +539,7 @@ describe("queued row recovery and pages", () => {
     else await enqueue([action === "add" ? { ...addition, new_index_value: "Carol" } : update], config);
     await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
     const task = queueStoreApi.getState().tasks[0];
-    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => "code" in change)[0].code);
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes).toEqual([index]);
     expect(queueStoreApi.getState().tasks).toEqual([]);
   });
@@ -548,7 +548,7 @@ describe("queued row recovery and pages", () => {
     await enqueue([update, { ...addition, new_index_value: "Carol" }], config);
     await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
     const task = queueStoreApi.getState().tasks[0];
-    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => change.action !== "reprocess")[0].code);
+    queueStoreApi.getState().cancel(task.id, task.changes.filter(change => "code" in change)[0].code);
     expect(composeMetadataJSON(storeApi.getState().getJSON("session-1"))?.indexes?.map(item => item.value)).toEqual(["Carol", "Alice"]);
     expect(queueStoreApi.getState().tasks[0].changes).toHaveLength(1);
     expect(queueStoreApi.getState().tasks[0].status).toBe("failed");

@@ -28,7 +28,6 @@ export type PlatSubdivision = {
   county: string;
   subdivision: string;
   condominium?: string;
-  jurisdiction?: string;
   city?: string;
   rightsOfWay: string[];
   divisions: PlatDivision[];
@@ -38,7 +37,6 @@ export type LegalLocation = {
   city?: string;
   county?: string;
   state?: string;
-  jurisdiction?: string;
 };
 
 export type LegalViewModel = {
@@ -50,5 +48,4 @@ export type LegalViewModel = {
   presentLayers: Set<string>;
   references: LegalElement[];
   subdivisions: PlatSubdivision[];
-  summary?: string;
 };

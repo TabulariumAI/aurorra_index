@@ -78,6 +78,7 @@ export type AuditReportView = {
   filtered: number;
   gaps: AuditGapView[];
   processCounts: {
+    correction: number;
     enrichment: number;
     other: number;
     reprocess: number;

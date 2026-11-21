@@ -17,15 +17,16 @@ function SummaryPlaceholder({ margin, title }: { margin: CSSProperties["margin"]
   );
 }
 
-export function IqPlaceholder(): JSX.Element {
+export function IqPlaceholder({ tab }: { tab: string }): JSX.Element {
+  if (tab === "Notes") return <LoadPlaceholder label="Loading IQ notes"><div aria-hidden="true" style={iqStyles.notes}>{["90%", "70%"].map(width => <div key={width} style={iqStyles.noteRow}><p style={iqStyles.noteText}><span style={{ ...skeletonStyle, width }} /></p></div>)}</div></LoadPlaceholder>;
   return (
     <>
+      {tab === "Quality" && <>
       <LoadPlaceholder label="Loading IQ summary">
         <div style={iqStyles.panelHeader}><SummaryPlaceholder margin={iqStyles.summaryCard.margin} title="Indexing Quality (IQ)" /></div>
         <div style={iqStyles.divider} />
       </LoadPlaceholder>
       <LoadPlaceholder label="Loading indexing segments">
-        <div style={iqStyles.sectionTitle}>Indexing Segments</div>
         <table style={iqStyles.segmentTable}>
           <thead><tr>
             {["Segment", "Expected", "Actual", "IQ"].map((label, index) => (
@@ -47,9 +48,9 @@ export function IqPlaceholder(): JSX.Element {
           </tbody>
         </table>
       </LoadPlaceholder>
-      <LoadPlaceholder label="Loading IQ gates">
-        <SummaryPlaceholder margin="1rem 0 0.25rem" title="Compliance Gates" />
-        <div style={iqStyles.sectionTitle}>Compliance Gates</div>
+      </>}
+      {tab === "Compliance" && <LoadPlaceholder label="Loading IQ gates">
+        <SummaryPlaceholder margin={iqStyles.summaryCard.margin} title="Compliance Gates" />
         <ul aria-hidden="true" style={iqStyles.gateList}>
           {["90%", "70%"].map(width => (
             <li key={width} style={iqStyles.gateRow}>
@@ -58,7 +59,7 @@ export function IqPlaceholder(): JSX.Element {
             </li>
           ))}
         </ul>
-      </LoadPlaceholder>
+      </LoadPlaceholder>}
     </>
   );
 }

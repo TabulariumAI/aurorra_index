@@ -27,6 +27,18 @@ const fixtures: Record<string, LegalPayload> = {
 };
 
 describe("map migration parity", () => {
+  it("uses county, state and city for legal location and subdivision identity", () => {
+    const legal: LegalPayload = { groups: [{ type: "lot_block", elements: [
+      { aspect: "lot", value: "7" }, { aspect: "subdivision", value: "Maple Heights" },
+      { aspect: "city", value: "Romulus" }, { aspect: "county", value: "Wayne" }, { aspect: "state", value: "Michigan" },
+    ] }] };
+    const normalized = normalizeLegalData(legal);
+    expect(JSON.stringify(normalized)).toContain("Romulus");
+    expect(JSON.stringify(normalized)).toContain("Wayne");
+    expect(normalized.location).toEqual({ city: "Romulus", county: "Wayne", state: "Michigan" });
+    expect(JSON.stringify(normalized)).not.toContain('"jurisdiction"');
+  });
+
   it.each(["plss", "metes_bounds"])("retains unresolved %s warnings beside drawable groups in one parcel", type => {
     const valid = type === "plss"
       ? { type, elements: [{ aspect: "aliquots", value: "NE1/4 of Section 12" }] }
@@ -48,18 +60,18 @@ describe("map migration parity", () => {
     const legal = { parcels_num: 2, groups: [valid, unresolved] };
     render(<LegalMapContent legal={legal} />);
     expect(screen.getByRole("img", { name: "Parcel 1 schematic" })).toBeVisible();
-    expect(screen.getByRole("alert", { name: "Parcel 2" })).toHaveTextContent(getMapGroups(legal)[1].scene!.issue!);
-    expect(screen.queryByRole("note")).toBeNull();
+    expect(screen.getByRole("note", { name: "Parcel 2" })).toHaveTextContent(getMapGroups(legal)[1].scene!.issue!);
+    expect(screen.getAllByRole("note")).toHaveLength(1);
   });
 
-  it.each(["plss", "metes_bounds"])("retains data-only %s errors without a blank drawing or divider", type => {
+  it.each(["plss", "metes_bounds"])("retains each unavailable %s map surface and the divider", type => {
     const legal = { parcels_num: 1, groups: [1, 2].map(index => ({ type, elements: [
       { aspect: type === "plss" ? "description" : "bearings", value: `Unresolved parcel ${index}` },
     ] })) };
     render(<LegalMapContent legal={legal} />);
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(screen.getAllByRole("note")).toHaveLength(2);
     expect(screen.queryByRole("img")).toBeNull();
-    expect(screen.queryByRole("separator")).toBeNull();
+    expect(screen.getByRole("separator")).toBeVisible();
     expect(screen.getByText("Unresolved parcel 1")).toBeVisible();
     expect(screen.getByText("Unresolved parcel 2")).toBeVisible();
   });
@@ -88,7 +100,7 @@ describe("map migration parity", () => {
     expect(document.querySelectorAll("[data-survey-line][data-unconfirmed]")).toHaveLength(4);
     expect(document.querySelector("[data-survey-section], [data-legal-map-lot]")).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
-    expect(document.querySelectorAll("[data-survey-section]")).toHaveLength(18);
+    expect(document.querySelectorAll("[data-survey-section]")).toHaveLength(1);
     expect(document.querySelectorAll("[data-survey-area]")).toHaveLength(1);
     expect(document.querySelector("[data-survey-line], [data-survey-point], [data-boundary-fill]")).toBeNull();
     expect(document.querySelector("[data-survey-partial]") !== null).toBe(type !== "plss");

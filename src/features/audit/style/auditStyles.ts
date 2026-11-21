@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { choicesStyles } from "aurora-core";
 
 const gapMetaPalette: Record<string, string> = {
   header: "var(--title-ink)",
@@ -80,10 +81,10 @@ export const auditStyles = {
     width: "100%",
   } as CSSProperties,
   usage: {
-    border: "1px solid var(--border-card)",
-    borderRadius: "var(--radius-card)",
+    display: "grid",
+    gap: "1rem",
     margin: "0.85rem 0",
-    padding: "0.75rem",
+    minWidth: 0,
   } as CSSProperties,
   choices: {
     display: "grid",
@@ -91,21 +92,25 @@ export const auditStyles = {
     margin: "0.85rem 0",
     minWidth: 0,
   } as CSSProperties,
+  choiceValue: {
+    ...choicesStyles.service,
+    margin: 0,
+    lineHeight: 1.45,
+    overflowWrap: "anywhere",
+    minWidth: 0,
+  } as CSSProperties,
   usageTable: {
-    borderCollapse: "collapse",
-    fontSize: "0.8125rem",
-    width: "100%",
+    ...choicesStyles.table,
   } as CSSProperties,
   serviceCell: {
-    fontWeight: 500,
-    padding: "0.4rem 0.25rem",
+    ...choicesStyles.cell,
+    ...choicesStyles.service,
     textAlign: "left",
   } as CSSProperties,
   usageCell: {
-    fontVariantNumeric: "tabular-nums",
-    padding: "0.4rem 0.25rem",
-    textAlign: "right",
-    whiteSpace: "nowrap",
+    ...choicesStyles.cell,
+    ...choicesStyles.level,
+    width: "4.75rem",
   } as CSSProperties,
   summaryBadge: {
     alignItems: "center",

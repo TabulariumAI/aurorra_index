@@ -5,7 +5,7 @@ const curveSources = [
 ];
 
 export const curveFixture = {
-  "summary": "Two parcels are identified: Parcel A, described by PLSS and metes and bounds, and Parcel B, an easement identified by recorded instrument. The abbreviated legal and tax parcel numbers are not separate parcel descriptions.",
+
   "parcels_num": 2,
   "groups": [
     {
@@ -172,7 +172,7 @@ const sectionSources = [
 ];
 
 export const sectionFixture = {
-  "summary": "One parcel in the Town of Bennington, Wyoming County, New York, described by portions of Lots 7 and 8 and metes and bounds.",
+
   "parcels_num": 1,
   "groups": [
     {

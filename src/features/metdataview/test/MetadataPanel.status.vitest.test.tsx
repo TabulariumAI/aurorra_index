@@ -64,7 +64,7 @@ describe("MetadataPanel status contract", () => {
 
   it.each([undefined, []])("renders separate parties when indexes are absent or empty", indexes => {
     const parties = [{ ...metadata.indexes![0], ambiguous: "YES" }];
-    const { container } = renderPanel("success", { ...metadata, indexes, parties: { summary: null, indexes: parties } });
+    const { container } = renderPanel("success", { ...metadata, indexes, parties: {  indexes: parties } });
     expect(container.querySelector('[data-index-code="idx-1"]')).toHaveAttribute("data-status", "warning");
   });
 
@@ -78,7 +78,7 @@ describe("MetadataPanel status contract", () => {
   });
 
   it("renders extracted parties when the enriched collection is empty", () => {
-    const { container } = renderPanel("success", { ...metadata, parties: { summary: null, indexes: [] } });
+    const { container } = renderPanel("success", { ...metadata, parties: {  indexes: [] } });
     expect(container.querySelector('[data-index-code="idx-1"]')).toHaveTextContent("Alice");
   });
 

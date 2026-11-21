@@ -27,7 +27,7 @@ beforeEach(() => {
   client = {
     indexData: vi.fn(() => new Promise<MetadataPayload>((resolve, reject) => { finish = resolve; fail = reject; })),
     pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(),
-    confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn(),
+    confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(),
   };
   props = { formatError: (error: unknown) => (error as Error).message,
     apiGatewayUrl: "https://api.test", authToken: "token", batchCode: null,

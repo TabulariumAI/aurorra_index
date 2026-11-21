@@ -21,6 +21,7 @@ it.each([0, 1])("reprocesses acknowledgment without an extra approval control wh
   render(<MetadataPanel {...props} choices={[{ service: "ExecutionEnrichment", level }]} openSegment="acknowledgment" onReprocess={onReprocess} />);
   expect(screen.queryByRole("checkbox", { name: "Acknowledgment Verification" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
   expect(onReprocess).toHaveBeenCalledExactlyOnceWith("acknowledgment");
 });
 
@@ -34,8 +35,7 @@ it.each(["party", "property", "acknowledgment", "execution"])("uses the standard
 });
 
 it("displays execution results before acknowledgment indexes and preserves their segment for editing", () => {
-  const summary = "Notary seal and John Smith's signature are visible. Mary Smith's signature is missing.";
-  const data = { indexes: [{ code: "notary", segment: "acknowledgment", aspect: "notary_name", label: "Notary Name", value: "Jane Doe", page: "1" }], execution: { summary, indexes: [
+  const data = { indexes: [{ code: "notary", segment: "acknowledgment", aspect: "notary_name", label: "Notary Name", value: "Jane Doe", page: "1" }], execution: { indexes: [
     { code: "seal", segment: "execution", aspect: "notary_seal", label: "Jane Doe Seal", value: "Yes", source: "Jane Doe, Notary", explanation: "Visible seal", page: "1" },
     { code: "signed", segment: "execution", aspect: "signatory_signature", label: "John Smith Signature", value: "Yes", source: "J. Smith", explanation: "Visible signature", page: "1" },
     { code: "unsigned", segment: "execution", aspect: "signatory_signature", label: "Mary Smith Signature", value: "No", source: "", explanation: "Blank signature line", page: "1" },
@@ -43,10 +43,7 @@ it("displays execution results before acknowledgment indexes and preserves their
   const onEditIndex = vi.fn();
   render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} openSegment="acknowledgment" onEditIndex={onEditIndex} />);
   expect(screen.getByRole("button", { name: /Acknowledgment/i })).toBeVisible();
-  const paragraph = screen.getByText(summary);
-  expect(paragraph.tagName).toBe("P");
-  expect(paragraph.closest("article")).toBeNull();
-  expect(paragraph.compareDocumentPosition(screen.getAllByRole("article")[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.queryByText("Notary seal and John Smith's signature are visible. Mary Smith's signature is missing.")).toBeNull();
   expect(screen.getByText(/John Smith Signature/i)).toBeVisible();
   expect(screen.getByText(/Mary Smith Signature/i)).toBeVisible();
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["seal", "signed", "unsigned", "notary"]);
@@ -56,7 +53,7 @@ it("displays execution results before acknowledgment indexes and preserves their
 });
 
 it("does not fabricate a summary for unverified execution indexes", () => {
-  const data = { execution: { summary: null, indexes: [{ code: "seal", segment: "execution", aspect: "notary_seal", label: "Notary Seal", value: "No" }] } };
+  const data = { execution: { indexes: [{ code: "seal", segment: "execution", aspect: "notary_seal", label: "Notary Seal", value: "No" }] } };
   render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} openSegment="acknowledgment" />);
   expect(screen.getByText("No")).toBeVisible();
   expect(screen.getAllByRole("article")).toHaveLength(1);
@@ -65,7 +62,7 @@ it("does not fabricate a summary for unverified execution indexes", () => {
 
 describe("Metadata segment progress", () => {
   it.each([metadata, { indexes: [] }])("blocks the complete segment, including empty content, while reprocessing", (data) => {
-    const view = render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} pendingSegments={new Map([["party", { busy: true, actions: null }]])} />);
+    const view = render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} pendingSegments={new Map([["party", { busy: true, actions: null, label: "Reprocessing party" }]])} />);
     const progress = screen.getByRole("progressbar", { name: "Reprocessing party" });
     const segment = progress.parentElement!;
     expect(segment).toHaveAttribute("aria-busy", "true");
@@ -83,9 +80,9 @@ describe("Metadata segment progress", () => {
   });
 
   it("keeps progress on each running segment when the displayed segment changes", () => {
-    const view = render(<MetadataPanel {...props} pendingSegments={new Map(["party", "property"].map(segment => [segment, { busy: true, actions: null }]))} />);
+    const view = render(<MetadataPanel {...props} pendingSegments={new Map(["party", "property"].map(segment => [segment, { busy: true, actions: null, label: `Reprocessing ${segment}` }]))} />);
     expect(screen.getAllByRole("progressbar")).toHaveLength(2);
-    view.rerender(<MetadataPanel {...props} openSegment="property" pendingSegments={new Map([["party", { busy: true, actions: null }]])} />);
+    view.rerender(<MetadataPanel {...props} openSegment="property" pendingSegments={new Map([["party", { busy: true, actions: null, label: "Reprocessing party" }]])} />);
     expect(screen.getByRole("progressbar", { name: "Reprocessing party" })).toBeVisible();
     expect(screen.queryByRole("progressbar", { name: "Reprocessing property" })).toBeNull();
     expect(screen.getByRole("button", { name: "Reprocess" }).closest("[inert]")).toBeNull();
@@ -93,7 +90,7 @@ describe("Metadata segment progress", () => {
 });
 
 it("keeps failed content inert while recovery remains interactive", () => {
-  render(<MetadataPanel {...props} pendingSegments={new Map([["party", { busy: false, actions: <button>Retry change</button> }]])} />);
+  render(<MetadataPanel {...props} pendingSegments={new Map([["party", { busy: false, actions: <button>Retry change</button>, label: "Reprocessing party" }]])} />);
   expect(screen.queryByRole("progressbar")).toBeNull();
   expect(screen.getByRole("button", { name: "Add Index" }).closest("[inert]")).not.toBeNull();
   expect(screen.getByRole("button", { name: "Retry change" }).closest("[inert]")).toBeNull();

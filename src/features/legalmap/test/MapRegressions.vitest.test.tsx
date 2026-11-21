@@ -36,7 +36,7 @@ describe("reported map regressions", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     for (const section of [9, 10]) {
       expect(document.querySelectorAll(`[data-survey-section-area="${section}"]`)).toHaveLength(1);
-      expect(document.querySelector(`[data-survey-section-area="${section}"]`)).toHaveAttribute("fill", "#f3edcf");
+      expect(document.querySelector(`[data-survey-section-area="${section}"]`)).toHaveAttribute("fill", "#f4f1ea");
     }
     expect(screen.getAllByRole("table", { name: "Details" })).toHaveLength(2);
     expect(JSON.stringify(sectionFixture)).toBe(original);

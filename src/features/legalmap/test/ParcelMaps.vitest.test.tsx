@@ -30,8 +30,8 @@ describe("Lot Block parcel maps", () => {
 
   it("draws the available parcel and a specific error for a missing second Lot Block group", () => {
     render(<LegalMapContent legal={{ parcels_num: 2, groups: [acreageFixture.groups![0]] }} />);
-    expect(document.querySelectorAll("[data-legal-map-surface]")).toHaveLength(1);
-    expect(screen.getByRole("alert", { name: "Parcel 2" })).toHaveTextContent("Cannot map: Lot Block legal group is missing for this parcel.");
+    expect(document.querySelectorAll("[data-legal-map-surface]")).toHaveLength(2);
+    expect(screen.getByRole("note", { name: "Parcel 2" })).toHaveTextContent("Cannot map: Lot Block legal group is missing for this parcel.");
     expect(document.querySelectorAll("[data-legal-map-lot]")).toHaveLength(1);
     expect(screen.getByRole("table", { name: "Parcel 1 details" })).toHaveTextContent(acreageValues[0]);
     expect(screen.queryByRole("table", { name: "Parcel 2 details" })).toBeNull();
@@ -69,7 +69,7 @@ describe("Lot Block parcel maps", () => {
       { type: "lot_block", elements: [{ aspect: "county", value: "CHAMBERS" }] },
     ] }} />);
     expect(screen.getByRole("table", { name: "Parcel 1 details" })).toHaveTextContent("Tract A");
-    expect(screen.getByRole("alert", { name: "Parcel 2" })).toHaveTextContent("only location fields");
+    expect(screen.getByRole("note", { name: "Parcel 2" })).toHaveTextContent("only location fields");
     expect(screen.getByRole("table", { name: "Parcel 2 details" })).toHaveTextContent("CHAMBERS");
     expect(screen.queryByText("Lot Block legal group is missing", { exact: false })).toBeNull();
   });
@@ -85,7 +85,7 @@ describe("Lot Block parcel maps", () => {
     rerender(<LegalMapContent legal={{ ...acreageFixture, parcels_num: 1 }} addressMaps={[addressMap]} />);
     expect(document.querySelectorAll("[data-legal-map-surface]")).toHaveLength(1);
     rerender(<LegalMapContent legal={{ parcels_num: 2, groups: [acreageFixture.groups![0]] }} addressMaps={[addressMap]} />);
-    expect(screen.getByRole("alert", { name: "Parcel 2" })).toBeVisible();
+    expect(screen.getByRole("note", { name: "Parcel 2" })).toBeVisible();
     rerender(<LegalMapContent legal={{ ...acreageFixture, parcels_num: 2 }} addressMaps={[addressMap]} />);
     expect(document.querySelectorAll("[data-legal-map-surface]")).toHaveLength(2);
     expect(screen.queryByRole("alert")).toBeNull();

@@ -48,5 +48,5 @@ it("retains source data when PLSS or Plat cannot draw an outline", () => {
   fireEvent.click(screen.getByRole("tab", { name: "PLSS" }));
   expect(screen.queryByRole("img")).toBeNull();
   expect(screen.getByRole("table", { name: "Details" })).toHaveTextContent("18");
-  expect(screen.getByRole("alert", { name: "Parcel 1" })).toHaveTextContent("Cannot map");
+  expect(screen.getByRole("note", { name: "Parcel 1" })).toHaveTextContent("Cannot map");
 });

@@ -14,12 +14,13 @@ const segments: MetadataSegments = {
 };
 const client = createMetadataClient({ apiBaseUrl: "https://gateway.example.test", retryIntervalMs: 0, retryLimit: 0 });
 const onQueueChange = () => {};
-queueStoreApi.getState().restore("queue-visual-owner", { authToken: "token", client, intervalMs: 1, onChange: onQueueChange });
+const formatError = (error: unknown) => (error as Error).message;
+queueStoreApi.getState().restore("queue-visual-owner", { authToken: "token", client, intervalMs: 1, onChange: onQueueChange, formatError });
 
 createRoot(document.getElementById("root")!).render(
   <main style={{ boxSizing: "border-box", display: "flex", flexDirection: "column", padding: 16, height: "100vh", overflow: "hidden" }}>
     <IndexContainer apiGatewayUrl="https://gateway.example.test" authToken="token" batchCode={null}
-      callbacks={{}} choices={[{ level: 1, service: "PartyClauseIndexing" }]}
+      callbacks={{}} formatError={formatError}
       deferredState={createDeferredState({ segment: "party", selectedIndex: null })}
       intervalMs={1} onQueueChange={onQueueChange} refresh={null}
       retryIntervalMs={0} retryLimit={0} segments={segments} session="session" workerClient={client} />

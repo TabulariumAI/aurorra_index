@@ -1,7 +1,7 @@
 import type { LegalPayload } from "aurora-core";
 
 export const lotFixture: LegalPayload = {
-  summary: "One parcel: the easterly 40 feet of the westerly 80 feet of Sublot 37 in Lowrie Company's Forestdale Allotment.",
+
   groups: [{ type: "lot_block", elements: [
     { aspect: "city", value: "CLEVELAND" },
     { aspect: "county", value: "CUYAHOGA" },
@@ -12,7 +12,7 @@ export const lotFixture: LegalPayload = {
 };
 
 export const aspectFixture: LegalPayload = {
-  summary: "One parcel in Cleveland Heights, Cuyahoga County, Ohio: part of Sublots 513 and 514.",
+
   groups: [{ type: "lot_block", elements: [
     { aspect: "city", value: "CLEVELAND HEIGHTS" },
     { aspect: "county", value: "CUYAHOGA" },

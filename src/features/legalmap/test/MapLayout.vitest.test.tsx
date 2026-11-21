@@ -6,7 +6,7 @@ import { acreageFixture, acreageValues } from "./acreageFixture";
 describe("consistent map layout", () => {
 
   it("keeps a single map tab and untabbed data without a single-parcel heading", () => {
-    render(<LegalMapContent legal={{ parcels_num: 1, summary: "One parcel.", groups: [acreageFixture.groups![0]] }} />);
+    render(<LegalMapContent legal={{ parcels_num: 1,  groups: [acreageFixture.groups![0]] }} />);
     expect(screen.getByRole("tab", { name: "Lot & block" })).toBeVisible();
     expect(screen.queryByRole("heading", { name: "Parcel 1" })).toBeNull();
     expect(screen.queryByRole("tablist", { name: "Map details" })).toBeNull();
@@ -41,12 +41,12 @@ describe("consistent map layout", () => {
     expect(document.querySelectorAll("[data-acreage-leader]")).toHaveLength(1);
   });
 
-  it("shows data without an empty map or splitter when no geometry can be represented", () => {
+  it("keeps map framing and the splitter when geometry cannot be represented", () => {
     render(<LegalMapContent legal={{ groups: [{ type: "lot_block", elements: [{ aspect: "subdivision_procedural", value: "OF PART OF ORIGINAL 100 ACRE LOT NO. 370" }] }] }} />);
     expect(screen.getByRole("tab", { name: "Lot & block" })).toBeVisible();
-    expect(document.querySelectorAll("[data-map-scroll]")).toHaveLength(0);
-    expect(screen.queryByRole("separator")).toBeNull();
+    expect(document.querySelectorAll("[data-map-scroll]")).toHaveLength(1);
+    expect(screen.getByRole("separator")).toBeVisible();
     expect(screen.getByRole("tabpanel", { name: "Lot & block" })).toContainElement(screen.getByRole("table", { name: "Details" }));
-    expect(screen.getByRole("region", { name: "Details" })).toHaveStyle({ flex: "1 1 0", height: "auto" });
+    expect(screen.getByRole("region", { name: "Details" })).toHaveStyle({ height: "9.2rem" });
   });
 });

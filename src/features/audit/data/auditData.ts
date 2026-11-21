@@ -4,6 +4,7 @@ export const CHANGE_ADD = "ADD";
 export const CHANGE_REMOVE = "REMOVE";
 export const CHANGE_CORRECTION = "CORRECTION";
 export const PROCESS_VERIFICATION = "VERIFICATION";
+export const PROCESS_CORRECTION = "CORRECTION";
 export const PROCESS_ENRICHMENT = "ENRICHMENT";
 export const PROCESS_REPROCESS = "Reprocess |";
 export const PROCESS_USER = "USER";
@@ -38,7 +39,8 @@ function normalizeChangeType(value: unknown): string {
 function normalizeProcess(value: unknown): string {
   const normalized = normalizeText(value).toLowerCase();
   if (normalized === "indexing" || normalized === "verification") return PROCESS_VERIFICATION;
-  if (normalized === "correction" || normalized === "formatting" || normalized === "enrichment") return PROCESS_ENRICHMENT;
+  if (normalized === "correction") return PROCESS_CORRECTION;
+  if (normalized === "formatting" || normalized === "enrichment") return PROCESS_ENRICHMENT;
   if (normalized === "refinement" || normalized === PROCESS_REPROCESS.toLowerCase()) return PROCESS_REPROCESS;
   if (normalized === "user") return PROCESS_USER;
   return PROCESS_OTHER;
@@ -97,7 +99,8 @@ function changeTypeCounts(type: string): "add" | "correction" | "other" | "remov
   return "other";
 }
 
-function getProcessCountKey(type: string): "enrichment" | "other" | "reprocess" | "user" | "verification" {
+function getProcessCountKey(type: string): "correction" | "enrichment" | "other" | "reprocess" | "user" | "verification" {
+  if (type === PROCESS_CORRECTION) return "correction";
   if (type === PROCESS_ENRICHMENT) return "enrichment";
   if (type === PROCESS_REPROCESS) return "reprocess";
   if (type === PROCESS_USER) return "user";
@@ -121,6 +124,7 @@ function changeTypeLabel(changeType: string): string {
 
 function processLabel(process: string): string {
   if (process === PROCESS_VERIFICATION) return "Verification";
+  if (process === PROCESS_CORRECTION) return "Correction";
   if (process === PROCESS_ENRICHMENT) return "Enrichment";
   if (process === PROCESS_REPROCESS) return "Reprocess";
   if (process === PROCESS_USER) return "User change";
@@ -210,6 +214,7 @@ export function prepareAuditReport(raw: unknown, filters: AuditFilters, segments
     remove: 0,
   };
   const processCounts = {
+    correction: 0,
     enrichment: 0,
     other: 0,
     reprocess: 0,

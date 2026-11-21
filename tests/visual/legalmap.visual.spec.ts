@@ -1,5 +1,172 @@
 import { expect, test } from "@playwright/test";
 
+for (const width of [390, 1440]) {
+  test(`legal location uses county, state and city at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/?scenario=legal-map&hierarchy=1");
+    expect(await page.evaluate(() => navigator.userAgent)).toContain("Edg/");
+    const location = page.locator("[data-legal-map-location]");
+    await expect(location).toHaveText("Illinois | Lake County | Grayslake");
+    await expect(page.locator('[data-legal-map-heading="subdivision"]')).toHaveText("WOODED GLEN GARDENS");
+    await expect(page.getByText("LIBERTYVILLE TOWNSHIP", { exact: true })).toHaveCount(0);
+    expect(await location.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`legal-location-${width}.png`), fullPage: true });
+    await page.reload();
+    await expect(location).toHaveText("Illinois | Lake County | Grayslake");
+  });
+}
+
+for (const { width, height, fontSize } of [{ width: 1347, height: 1840, fontSize: 24 }, { width: 390, height: 844, fontSize: 16 }]) {
+  for (const state of ["unresolved", "partial"]) {
+    test(`property map ${state} preserves canvas and resizing at ${width}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/?scenario=legal-map&property=${state}`);
+      await page.evaluate(size => document.documentElement.style.fontSize = `${size}px`, fontSize);
+      const divider = page.getByRole("separator", { name: "Resize map and details" });
+      const surface = page.locator("[data-legal-map-surface]");
+      await expect(surface).toBeVisible();
+      await expect(divider).toBeVisible();
+      await expect(divider.locator("span")).toHaveCSS("height", "4px");
+      await expect(divider.locator("span")).toBeInViewport();
+      await expect(divider.locator("span")).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(page.getByRole("table", { name: "Details" })).toContainText(state === "unresolved" ? "WILLIAM LUMPKIN SURVEY" : "ROMULUS TOWNSHIP");
+      if (state === "unresolved") {
+        await expect(surface.getByRole("note")).toBeVisible();
+        await expect(surface.locator("img, [data-survey-area]")).toHaveCount(0);
+      } else {
+        await expect(surface.locator("[data-survey-section-area]")).toHaveCount(1);
+        await expect(surface.locator('[data-survey-section="4"]')).toHaveText("Section 4");
+        const section = await surface.locator("[data-survey-section-area]").boundingBox();
+        const drawing = await surface.locator("[data-legal-map-drawing]").boundingBox();
+        expect(section!.width).toBeGreaterThan(Math.min(drawing!.width, drawing!.height) * 0.6);
+        expect(section!.x + section!.width / 2).toBeCloseTo(drawing!.x + drawing!.width / 2, 0);
+        expect(section!.y + section!.height / 2).toBeCloseTo(drawing!.y + drawing!.height / 2, 0);
+        await expect(surface.getByLabel("Map legend").getByText("Partial area", { exact: true })).toBeVisible();
+      }
+      await page.screenshot({ path: testInfo.outputPath("property-map.png"), fullPage: true });
+      const handle = (await divider.boundingBox())!;
+      const before = Number(await divider.getAttribute("aria-valuenow"));
+      await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handle.x + handle.width / 2, handle.y - 48, { steps: 4 });
+      await page.mouse.up();
+      await expect.poll(async () => Number(await divider.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    });
+  }
+}
+
+for (const width of [375, 390, 768, 1024, 1440, 1920]) {
+  for (const type of ["plss", "lot_block", "metes_bounds"]) {
+    for (const partial of [false, true]) {
+      test(`map message ${partial ? "partial-" : ""}${type} at ${width}px`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(`/?scenario=legal-map&message=${partial ? "partial-" : ""}${type}`);
+        const note = page.getByRole("note");
+        await expect(note).toBeVisible();
+        await expect(page.getByRole("alert")).toHaveCount(0);
+        await expect(note.locator("details")).not.toHaveAttribute("open");
+        const disclosure = await note.locator("summary").boundingBox();
+        expect(disclosure!.width).toBeGreaterThanOrEqual(44);
+        expect(disclosure!.height).toBeGreaterThanOrEqual(44);
+        if (partial) {
+          await expect(note).toContainText("Map preview is incomplete.");
+          await expect(note.locator("summary")).toHaveText("Map preview is incomplete.");
+          await expect(note.locator("summary")).toHaveCSS("text-decoration-line", "none");
+          const message = await note.locator("summary span").boundingBox();
+          const chevron = await note.locator("summary svg").boundingBox();
+          expect(chevron!.x).toBeGreaterThanOrEqual(message!.x + message!.width);
+          expect(chevron!.y + chevron!.height / 2).toBeCloseTo(message!.y + message!.height / 2, 0);
+          await expect(page.locator("[data-legal-map-surface]")).toBeVisible();
+        } else {
+          const message = await note.boundingBox();
+          expect(disclosure!.x + disclosure!.width / 2).toBeCloseTo(message!.x + message!.width / 2, 0);
+          await expect(note.getByRole("heading", { name: "Map preview unavailable" })).toBeVisible();
+          await expect(note.locator("img")).toHaveCount(0);
+          await expect(page.locator("[data-legal-map-surface]")).toBeVisible();
+          await expect(page.getByText("Unresolved description", { exact: true })).toBeVisible();
+        }
+        await expect(note.locator("xpath=ancestor::*[@data-legal-map-surface]")).toHaveCount(1);
+        const divider = page.getByRole("separator", { name: "Resize map and details" });
+        await divider.focus();
+        await page.keyboard.press("Home");
+        const before = Number(await divider.getAttribute("aria-valuenow"));
+        await page.keyboard.press("ArrowUp");
+        await expect.poll(async () => Number(await divider.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+        await note.locator("summary").focus();
+        await page.keyboard.press("Enter");
+        await expect(note.locator("details")).toHaveAttribute("open");
+        await expect(note.locator("details p")).toBeVisible();
+        await page.keyboard.press("Enter");
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath("map-message.png"), fullPage: true });
+      });
+    }
+  }
+}
+
+for (const width of [390, 1440]) {
+  for (const scenario of ["source", "acreage", "closing", "curves"]) {
+    test(`Metes direction arrows follow sides and resizing for ${scenario} at ${width}px`, async ({ page }, testInfo) => {
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/?scenario=legal-map&${scenario === "curves" ? "curves=true" : `reconstruction=${scenario}`}`);
+      const drawing = page.getByRole("img", { name: "Parcel 1 schematic", exact: true });
+      const lines = drawing.locator("[data-survey-line]");
+      await expect(drawing).toBeVisible();
+      const original = await lines.evaluateAll(nodes => nodes.map(node => ["x1", "y1", "x2", "y2", "d"].map(name => node.getAttribute(name))));
+      const divider = page.getByRole("separator", { name: "Resize map and details" });
+      for (const resized of [false, true]) {
+        if (resized) {
+          await divider.focus();
+          await page.keyboard.press("ArrowUp");
+          await page.setViewportSize({ width: width === 390 ? 768 : 900, height: 1000 });
+        }
+        await expect(drawing.locator("[data-survey-arrow]")).toHaveCount(await lines.count());
+        await expect(async () => {
+          const issues = await drawing.evaluate(svg => {
+            const issues: string[] = [];
+            const bounds = svg.getBoundingClientRect();
+            const arrows = [...svg.querySelectorAll<SVGPathElement>("[data-survey-arrow]")];
+            for (const arrow of arrows) {
+              const line = arrow.parentElement!.querySelector<SVGGeometryElement>("[data-survey-line]")!;
+              const length = line.getTotalLength();
+              const center = line.getPointAtLength(length / 2);
+              const before = line.getPointAtLength(length * 0.499);
+              const after = line.getPointAtLength(length * 0.501);
+              const matrix = arrow.getScreenCTM()!;
+              const tip = new DOMPoint(0, 0).matrixTransform(matrix);
+              const tail = new DOMPoint(-1, 0).matrixTransform(matrix);
+              const midpoint = new DOMPoint(center.x, center.y).matrixTransform(line.getScreenCTM()!);
+              if (Math.hypot(tip.x - midpoint.x, tip.y - midpoint.y) > 0.2) issues.push("Arrow misses the side midpoint");
+              const alignment = ((tip.x - tail.x) * (after.x - before.x) + (tip.y - tail.y) * (after.y - before.y))
+                / Math.hypot(tip.x - tail.x, tip.y - tail.y) / Math.hypot(after.x - before.x, after.y - before.y);
+              if (alignment < 0.999) issues.push("Arrow opposes the side direction");
+              const expectedSize = Math.min(8, length * line.getScreenCTM()!.a / 4);
+              if (Math.abs(Math.hypot(tip.x - tail.x, tip.y - tail.y) - expectedSize) > 0.1) issues.push("Arrow has incorrect screen size");
+              if (arrow.getAttribute("stroke") !== line.getAttribute("stroke")) issues.push("Arrow changes the course color");
+              const box = arrow.getBoundingClientRect();
+              if (box.left < bounds.left || box.right > bounds.right || box.top < bounds.top || box.bottom > bounds.bottom) issues.push("Arrow is clipped");
+              for (const label of svg.querySelectorAll("text")) {
+                if (getComputedStyle(label).visibility === "hidden") continue;
+                const next = label.getBoundingClientRect();
+                if (box.left < next.right && box.right > next.left && box.top < next.bottom && box.bottom > next.top) issues.push("Arrow overlaps a label");
+              }
+            }
+            return issues;
+          });
+          expect(issues).toEqual([]);
+        }).toPass({ timeout: 5000 });
+        expect(await lines.evaluateAll(nodes => nodes.map(node => ["x1", "y1", "x2", "y2", "d"].map(name => node.getAttribute(name))))).toEqual(original);
+        await page.screenshot({ path: testInfo.outputPath(`metes-arrows-${resized ? "resized" : "initial"}.png`), fullPage: true });
+      }
+      expect(errors).toEqual([]);
+    });
+  }
+}
+
 for (const { width, height } of [{ width: 375, height: 812 }, { width: 390, height: 844 }, { width: 768, height: 1024 },
   { width: 1024, height: 768 }, { width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
   for (const scenario of ["closing", "acreage", "partial", "source"]) {

@@ -2,9 +2,6 @@
   "heading": {
     "title": "Synthetic document"
   },
-  "tags": [
-    "fixture"
-  ],
   "usage": {
     "costs": []
   },
@@ -20,7 +17,10 @@
       "value": "Synthetic value"
     }
   ],
-  "parties": { "summary": null, "indexes": [] },
+  "parties": {
+    "summary": null,
+    "indexes": []
+  },
   "legals": {
     "summary": "Synthetic legal summary"
   },

@@ -26,7 +26,7 @@ it.each([
   const view = prepareIqReport(data);
   render(<>
     <IndexSummary metadata={waiting} audit={waiting} iq={{ data, error: null }} />
-    <section aria-label="IQ report"><IqView view={view} ackingCodes={new Set()} onAck={vi.fn()} /></section>
+    <section aria-label="IQ report"><IqView view={view} pendingChanges={new Map()} onAck={vi.fn()}  onAckCue={vi.fn()} /></section>
   </>);
 
   const summary = screen.getByRole("region", { name: "Indexing results" });

@@ -5,6 +5,30 @@ import { MetadataPanel, type MetadataPanelProps } from "../component/MetadataPan
 
 const segments = { ...indexSegments, TITLE: "title", FEE: "fee", FUND: "fund", FEEFACTOR: "factor" };
 
+it.each([false, true])("keeps Confidential last after Judgment with choice filtering=%s", filterByChoices => {
+  panel({}, "title", { sections: { filterByChoices, hiddenSegments: new Set(), showEmpty: false } });
+  expect(within(screen.getByRole("region", { name: "Metadata accordion" })).getAllByRole("button")
+    .filter(button => button.hasAttribute("aria-expanded")).map(button => button.textContent)).toEqual([
+    "Pages", "Titles", "Endorsements", "Parties(Party Clause)", "References(Recital)",
+    "Property Info", "Monetary", "Acknowledgment", "Transactional", "Vital", "Judgment", "Confidential",
+  ]);
+});
+
+it.each(["party", "property", "acknowledgment"])("does not read enrichment summaries in %s", segment => {
+  const metadata = {
+    indexes: [index("raw", segment, "1")],
+    parties: { indexes: [index("side", "party", "1")] },
+    execution: { indexes: [index("mark", "execution", "1")] },
+    legals: { groups: [{ type: "lot_block", code: "legal", elements: [{ aspect: "lot", value: "7" }] }] },
+  };
+  for (const value of [metadata.parties, metadata.execution, metadata.legals]) {
+    Object.defineProperty(value, "summary", { get() { throw new Error("Enrichment summary must not be read"); } });
+  }
+  panel(metadata, segment);
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText("raw value")).toBeVisible();
+});
+
 it("uses the donor original for legal preview without changing the displayed group", () => {
   const onPageClick = vi.fn();
   panel({ legals: { groups: [{ code: "legal", page: "1", type: "lot_block", original: "LOT SEVEN BLOCK TWO", source: "Recorded description", elements: [{ aspect: "lot", value: "7" }] }] } }, "property", { callbacks: { onPageClick } });
@@ -42,14 +66,13 @@ it("shows the enriched party once when its code matches an extracted party and c
   const side = { ...raw, value: "Enriched name", aspect: "person, Direct", ambiguous: "NO" };
   const onEditIndex = vi.fn();
   const onPageClick = vi.fn();
-  const { container } = panel({ indexes: [raw], parties: { summary: "Party overview", indexes: [side] } }, "party", { onEditIndex, callbacks: { onPageClick } });
+  const { container } = panel({ indexes: [raw], parties: {  indexes: [side] } }, "party", { onEditIndex, callbacks: { onPageClick } });
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
   expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Page 1"]);
   const rows = screen.getAllByRole("article");
   expect(rows).toHaveLength(1);
   expect(rows[0]).toHaveTextContent(side.value);
   expect(rows[0]).not.toHaveTextContent(raw.value!);
-  expect(screen.getByText("Party overview").compareDocumentPosition(rows[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
   expect(screen.getByRole("button", { name: "Parties(Party Clause)" }).parentElement?.lastElementChild).toHaveTextContent("1");
   fireEvent.click(within(rows[0]).getByRole("button", { name: "Edit index" }));
@@ -81,7 +104,7 @@ it.each(["enriched", "both"])("deduplicates repeated codes in %s party collectio
   const raw = { ...side, value: "Extracted name" };
   const metadata = {
     indexes: [index("raw", "party", "2"), ...(collection === "both" ? [raw, raw] : [])],
-    parties: { summary: "Overview", indexes: [side, { ...side, value: "Duplicate side" }, index("other", "party", "1")] },
+    parties: { indexes: [side, { ...side, value: "Duplicate side" }, index("other", "party", "1")] },
   };
   const { container } = panel(metadata, "party");
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["shared", "other", "raw"]);
@@ -90,16 +113,16 @@ it.each(["enriched", "both"])("deduplicates repeated codes in %s party collectio
   expect(within(container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
 });
 
-it("deduplicates confidential and execution indexes without changing their grouping", () => {
+it("deduplicates confidential and execution indexes and labels visual verification once", () => {
   const secret = index("secret", "secrets", "1");
   const execution = index("execution", "execution", "2");
-  const metadata = { secrets: [secret, secret], execution: { summary: null, indexes: [execution, execution] } };
+  const metadata = { secrets: [secret, secret], execution: { indexes: [execution, execution] } };
   const view = panel(metadata, "secrets");
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["secret"]);
   expect(screen.getByRole("button", { name: "Confidential" }).parentElement?.lastElementChild).toHaveTextContent("1");
   view.rerender(<MetadataPanel {...view.props} openSegment="acknowledgment" />);
   expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["execution"]);
-  expect(screen.queryByRole("heading", { level: 4 })).toBeNull();
+  expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Visual Verification"]);
   expect(screen.getByRole("button", { name: "Acknowledgment" }).parentElement?.lastElementChild).toHaveTextContent("1");
   expect(within(view.container.querySelector("header")!).queryAllByRole("definition")).toHaveLength(0);
 });
@@ -107,7 +130,7 @@ it("deduplicates confidential and execution indexes without changing their group
 it("keeps the enriched row selected and pending, then updates its value and counts after refresh", () => {
   const raw = index("shared", "party", "1");
   const side = { ...raw, value: "Enriched name", ambiguous: "YES" };
-  const metadata = { indexes: [raw], parties: { summary: null, indexes: [side] } };
+  const metadata = { indexes: [raw], parties: { indexes: [side] } };
   const onEditIndex = vi.fn();
   const view = panel(metadata, "party", {
     selectedIndex: { code: "shared", segment: "party" }, onEditIndex,
@@ -116,7 +139,7 @@ it("keeps the enriched row selected and pending, then updates its value and coun
   expect(screen.getAllByRole("article")).toHaveLength(1);
   expect(screen.getByRole("article")).toHaveAttribute("data-active", "true");
   expect(screen.getByRole("article")).toHaveAttribute("aria-disabled", "true");
-  const refreshed = { indexes: [raw, raw], parties: { summary: null, indexes: [{ ...side, value: "Updated name", ambiguous: "NO" }] } };
+  const refreshed = { indexes: [raw, raw], parties: { indexes: [{ ...side, value: "Updated name", ambiguous: "NO" }] } };
   view.rerender(<MetadataPanel {...view.props} pendingChanges={undefined} metadata={refreshed} panelData={getPanelData(refreshed)} />);
   expect(screen.getAllByRole("article")).toHaveLength(1);
   expect(screen.getByRole("article")).toHaveTextContent("Updated name");
@@ -130,7 +153,7 @@ it.each(["sides", "parties", "both", "empty"])("retains party grouping and empty
   const raw = index("raw", "party", "Exhibit-A");
   const metadata: MetadataPayload = {
     indexes: collection === "parties" || collection === "both" ? [raw] : [],
-    parties: { summary: null, indexes: collection === "sides" || collection === "both" ? [side] : [] },
+    parties: {  indexes: collection === "sides" || collection === "both" ? [side] : [] },
   };
   const view = panel(metadata, "party");
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
@@ -141,37 +164,94 @@ it.each(["sides", "parties", "both", "empty"])("retains party grouping and empty
     collection === "both" ? ["side", "raw"] : collection === "sides" ? ["side"] : collection === "parties" ? ["raw"] : [],
   );
   expect(screen.queryAllByText("No parties found.")).toHaveLength(collection === "empty" ? 1 : 0);
-  const refreshed = { indexes: [raw], parties: { summary: null, indexes: [side] } };
+  const refreshed = { indexes: [raw], parties: { indexes: [side] } };
   view.rerender(<MetadataPanel {...view.props} metadata={refreshed} panelData={getPanelData(refreshed)} />);
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
   expect(screen.getAllByRole("article").map(node => node.dataset.indexCode)).toEqual(["side", "raw"]);
 });
 
 it("retains extracted parties when the enriched collection is empty", () => {
-  panel({ indexes: [index("raw", "party", "1")], parties: { summary: null, indexes: [] } }, "party");
+  panel({ indexes: [index("raw", "party", "1")], parties: {  indexes: [] } }, "party");
   expect(screen.getByText("raw value")).toBeVisible();
   expect(screen.queryByText("No parties found.")).toBeNull();
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
 });
 
 it("keeps property page headings and omits page headings before legal descriptions", () => {
-  panel({ indexes: [index("parcel", "property", "3")], legals: { summary: "Legal overview", groups: [
+  panel({ indexes: [index("parcel", "property", "3")], legals: {  groups: [
     { code: "legal-a", page: "Exhibit-A", type: "lot_block", elements: [{ aspect: "lot", value: "12" }] },
     { code: "legal-b", type: "lot_block", elements: [{ aspect: "lot", value: "13" }] },
   ] } }, "property");
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
   expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Page 3"]);
-  expect(screen.getByText("Legal overview").compareDocumentPosition(screen.getAllByRole("article")[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getAllByRole("article").map(node => node.dataset.indexCode)).toEqual(["parcel", "legal-a", "legal-b"]);
 });
 
-it("puts execution first without segment or execution-page headings and retains acknowledgment page headings", () => {
-  panel({ indexes: [index("notary", "acknowledgment", "1")], execution: { summary: "Execution overview", indexes: [index("seal", "execution", "2"), index("signature", "execution", "1")] } }, "acknowledgment");
+it("puts visual verification first and retains acknowledgment page headings", () => {
+  panel({ indexes: [index("notary", "acknowledgment", "1")], execution: {  indexes: [index("seal", "execution", "2"), index("signature", "execution", "1")] } }, "acknowledgment");
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
-  expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Page 1"]);
+  expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Visual Verification", "Page 1"]);
   expect(screen.getAllByRole("article").map(node => node.dataset.indexCode)).toEqual(["seal", "signature", "notary"]);
-  expect(screen.getByText("Execution overview").compareDocumentPosition(screen.getAllByRole("article")[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
+
+it("sorts execution by aspect A-Z across pages, keeps equal aspects stable and leaves metadata unchanged", () => {
+  const items = [
+    { ...index("signature-2", "execution", "2"), aspect: "signatory_signature", label: "A label" },
+    { ...index("seal", "execution", "1"), aspect: "notary_seal", label: "Z label" },
+    { ...index("signature-1", "execution", "1"), aspect: "signatory_signature", label: "B label" },
+    { ...index("date", "execution", "2"), aspect: "execution_date", label: "Y label" },
+    { ...index("notary-signature", "execution", "Exhibit-A"), aspect: "notary_signature" },
+  ];
+  const metadata = { execution: { indexes: items }, indexes: [
+    { ...index("notary-z", "acknowledgment", "2"), aspect: "z" },
+    { ...index("notary-a", "acknowledgment", "1"), aspect: "a" },
+  ] };
+  const snapshot = JSON.stringify(metadata);
+  items.forEach(Object.freeze);
+  Object.freeze(items);
+  panel(metadata, "acknowledgment");
+  expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual([
+    "date", "seal", "notary-signature", "signature-2", "signature-1", "notary-z", "notary-a",
+  ]);
+  expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual([
+    "Visual Verification", "Page 2", "Page 1",
+  ]);
+  expect(JSON.stringify(metadata)).toBe(snapshot);
+});
+
+it("preserves execution identity, page preview, editing and pending selection after sorting and refresh", () => {
+  const signature = { ...index("signature", "execution", "12"), aspect: "signatory_signature" };
+  const seal = { ...index("seal", "execution", "13"), aspect: "notary_seal" };
+  const onEditIndex = vi.fn();
+  const onPageClick = vi.fn();
+  const view = panel({ execution: { indexes: [signature, seal] } }, "acknowledgment", {
+    onEditIndex, callbacks: { onPageClick }, selectedIndex: { code: "signature", segment: "execution" },
+    pendingChanges: new Map([["signature", { kind: "update", busy: true, actions: null }]]),
+  });
+  expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["seal", "signature"]);
+  expect(screen.getAllByRole("article")[1]).toHaveAttribute("data-active", "true");
+  expect(screen.getAllByRole("article")[1]).toHaveAttribute("aria-disabled", "true");
+  fireEvent.click(within(screen.getAllByRole("article")[0]).getByRole("link", { name: seal.value! }));
+  expect(onPageClick).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code: "seal", page: "13", segment: "execution" }));
+  fireEvent.click(within(screen.getAllByRole("article")[0]).getByRole("button", { name: "Edit index" }));
+  expect(onEditIndex).toHaveBeenCalledExactlyOnceWith(seal, "execution", expect.any(HTMLButtonElement));
+  const refreshed = { execution: { indexes: [{ ...signature, aspect: "execution_date", value: "Updated date" }, seal] } };
+  view.rerender(<MetadataPanel {...view.props} metadata={refreshed} panelData={getPanelData(refreshed)} pendingChanges={undefined} />);
+  expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["signature", "seal"]);
+  expect(screen.getAllByRole("article")[0]).toHaveTextContent("Updated date");
+  expect(screen.getAllByRole("article")[0]).toHaveAttribute("data-active", "true");
+  expect(screen.getAllByRole("article")[0]).not.toHaveAttribute("aria-disabled", "true");
+  expect(screen.getAllByRole("heading", { name: "Visual Verification" })).toHaveLength(1);
+});
+
+it.each([undefined, { indexes: [] }, { indexes: [index("removed", "execution", "1")] }])(
+  "omits the visual verification heading when no execution rows are visible: %j", execution => {
+    panel({ execution, indexes: [index("notary", "acknowledgment", "2")] }, "acknowledgment", { removedCodes: new Set(["removed"]) });
+    expect(screen.queryByRole("heading", { name: "Visual Verification" })).toBeNull();
+    expect(screen.getAllByRole("heading", { level: 4 }).map(node => node.textContent)).toEqual(["Page 2"]);
+    expect(screen.getAllByRole("article").map(row => row.dataset.indexCode)).toEqual(["notary"]);
+  },
+);
 
 it.each(["property_address", "mailback", "party_address", "property_location"])("removes the address map action for %s while retaining image preview and editing", aspect => {
   const item = { ...index("address", "transaction", "1"), aspect, value: "123 Main Street, Austin" };
@@ -189,7 +269,7 @@ it.each(["property_address", "mailback", "party_address", "property_location"])(
 });
 
 it("groups confidential items while pages and titles remain ungrouped", () => {
-  const metadata: MetadataPayload = { secrets: [index("secret", "secrets", "Exhibit-A")], heading: { class: "deed", title: "Deed", secondary_titles: ["Addendum"], summary: "Title overview" }, pages: {
+  const metadata: MetadataPayload = { secrets: [index("secret", "secrets", "Exhibit-A")], heading: { class: "deed", title: "Deed", secondary_titles: ["Addendum"] }, pages: {
     recordables: [{ code: "page", name: "1", class: "Title" }], nonrecordables: [{ code: "attachment", name: "Exhibit-A", class: "Exhibit" }],
   } };
   const view = panel(metadata, "secrets");
@@ -202,8 +282,7 @@ it("groups confidential items while pages and titles remain ungrouped", () => {
   expect(screen.queryByRole("group")).toBeNull();
   expect(screen.queryByRole("heading", { level: 4 })).toBeNull();
   expect(screen.getAllByRole("article")).toHaveLength(2);
-  expect(screen.getByText("Title overview").compareDocumentPosition(screen.getAllByRole("article")[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(screen.getByText("Title overview").closest("[role=group]")).toBeNull();
+  expect(screen.queryByText("Title overview")).not.toBeInTheDocument();
 });
 
 it("preserves endorsement order across repeated page names without group headings", () => {

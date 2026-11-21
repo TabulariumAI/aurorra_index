@@ -11,7 +11,7 @@ const metadata: MetadataPayload = {
     { code: "party", segment: "party", aspect: "legal_description", label: "party", page_number: "1", value: "Unrelated party description" },
   ],
   legals: {
-    summary: "Property legal summary.",
+
     groups: [
       { code: "legal-1", page: "2", type: "lot_block", elements: [{ aspect: "lot", value: "12" }, { aspect: "block", value: "4" }] },
       { code: "legal-2", page: "3", type: "metes_bounds", elements: [{ aspect: "description", value: "Boundary description" }] },
@@ -36,7 +36,7 @@ it("merges property rows and legal groups with one count and no duplicate descri
   expect(screen.queryByRole("button", { name: "Legal Descriptions" })).toBeNull();
   const content = trigger.parentElement!.parentElement!;
   expect(within(content).getByText("Parcel 42")).toBeVisible();
-  expect(within(content).getByText("Property legal summary.")).toBeVisible();
+  expect(screen.queryByText("Property legal summary.")).toBeNull();
   expect(within(content).getByText("Boundary description")).toBeVisible();
   expect(within(content).getAllByText("Legal Description", { exact: true })).toHaveLength(2);
   expect(screen.queryByText("Duplicate description one")).toBeNull();
@@ -70,7 +70,6 @@ it.each([
   } else {
     expect(trigger!.parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent(count);
     expect(Boolean(screen.queryByText("Parcel 42"))).toBe(Boolean(property));
-    expect(Boolean(screen.queryByText("Property legal summary."))).toBe(Boolean(legal));
     expect(Boolean(screen.queryByText("Boundary description"))).toBe(Boolean(legal));
   }
 });
@@ -81,7 +80,7 @@ it("retains hidden-segment filters for each content source", () => {
   expect(screen.queryByText("Parcel 42")).toBeNull();
   view.rerender(<MetadataPanel {...props} sections={{ ...props.sections, hiddenSegments: new Set(["legal"]) }} />);
   expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("1");
-  expect(screen.queryByText("Property legal summary.")).toBeNull();
+  expect(screen.queryByText("Boundary description")).toBeNull();
   view.rerender(<MetadataPanel {...props} sections={{ ...props.sections, hiddenSegments: new Set(["legal", "property"]) }} />);
   expect(screen.queryByRole("button", { name: "Property Info" })).toBeNull();
 });
@@ -104,17 +103,9 @@ it.each([
 
   expect(screen.getByRole("button", { name: "Property Info" })).toBeDisabled();
   expect(screen.queryByText("Parcel 42")).not.toBeInTheDocument();
-  expect(screen.queryByText("Property legal summary.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Boundary description")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Add Index" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Reprocess" })).not.toBeInTheDocument();
-});
-
-it("keeps the summary font consistent with legal element text", () => {
-  render(<MetadataPanel {...props} />);
-  const summary = screen.getByText("Property legal summary.");
-  expect(summary.style.fontSize).toBe("");
-  expect(summary.style.fontWeight).toBe("");
-  expect(summary.style.color).toBe("");
 });
 
 it("retains property locations, legal locations, explanations and every group element", () => {
@@ -168,15 +159,15 @@ it("adds and reprocesses only property from the merged header", () => {
   render(<MetadataPanel {...props} openSegment="legal" onAddIndex={onAddIndex} onReprocess={onReprocess} />);
   fireEvent.click(screen.getByRole("button", { name: "Add Index" }));
   fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
   expect(onAddIndex).toHaveBeenCalledExactlyOnceWith("property", screen.getByRole("button", { name: "Add Index" }));
   expect(onReprocess).toHaveBeenCalledExactlyOnceWith("property");
 });
 
 it.each([true, false])("blocks all merged content during property reprocess, busy=%s", (busy) => {
-  const view = render(<MetadataPanel {...props} pendingSegments={new Map([["property", { busy, actions: busy ? null : <button>Retry change</button> }]])} />);
+  const view = render(<MetadataPanel {...props} pendingSegments={new Map([["property", { busy, actions: busy ? null : <button>Retry change</button>, label: "Reprocessing property" }]])} />);
   expect(screen.getByText("Parcel 42").closest("[inert]")).not.toBeNull();
   expect(screen.getByText("Boundary description").closest("[inert]")).not.toBeNull();
-  expect(screen.getByText("Property legal summary.").closest("[inert]")).not.toBeNull();
   if (busy) expect(screen.getByRole("progressbar", { name: "Reprocessing property" })).toBeVisible();
   else expect(screen.getByRole("button", { name: "Retry change" }).closest("[inert]")).toBeNull();
   view.rerender(<MetadataPanel {...props} pendingSegments={new Map()} />);
@@ -184,10 +175,10 @@ it.each([true, false])("blocks all merged content during property reprocess, bus
 });
 
 it("shows one empty message and zero items when both sources have no rows", () => {
-  const data = { indexes: [], legals: { summary: "Summary without elements." } };
+  const data = { indexes: [], legals: { groups: [] } };
   render(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} />);
   expect(screen.getByRole("button", { name: "Property Info" }).parentElement?.querySelector(':scope > span, :scope > button[aria-label="Property Info information"]')).toHaveTextContent("0");
-  expect(screen.getByText("Summary without elements.")).toBeVisible();
+  expect(screen.queryByRole("article")).toBeNull();
   expect(screen.getAllByText("No property info found.")).toHaveLength(1);
   expect(screen.queryByText("No legal descriptions found.")).toBeNull();
 });
@@ -231,7 +222,7 @@ it.each([
 });
 
 it("opens the available data for an incomplete legal description", () => {
-  const data: MetadataPayload = { ...metadata, legals: { summary: "Metes and bounds.", groups: [
+  const data: MetadataPayload = { ...metadata, legals: {  groups: [
     { type: "metes_bounds", elements: [{ aspect: "description", value: "A tract." }] },
   ] } };
   const onLegalView = vi.fn();
@@ -253,5 +244,30 @@ it.each(["groups", "legalGroups", "LegalGroups", "items"] as const)("enables bot
     view.rerender(<MetadataPanel {...props} metadata={data} panelData={getPanelData(data)} choices={[{ service: "LegalEnrichment", level: 0 }]} />);
     expect(screen.queryByRole("button", { name: "Open legal view" })).not.toBeInTheDocument();
     view.unmount();
+  }
+});
+
+it("shares the property header action visibility, order and pending state", () => {
+  const onLegalView = vi.fn();
+  const onAddIndex = vi.fn();
+  const onReprocess = vi.fn();
+  const panel = <MetadataPanel {...props} callbacks={{ onLegalView }} onAddIndex={onAddIndex} onReprocess={onReprocess} />;
+  const view = render(panel);
+  const header = screen.getByRole("button", { name: "Property Info" }).parentElement!;
+  expect(within(header).getAllByRole("button").map(button => button.getAttribute("aria-label") || button.textContent)).toEqual([
+    "Property Info", "Open legal view", "Add Index", "Reprocess",
+  ]);
+  fireEvent.click(within(header).getByRole("button", { name: "Open legal view" }));
+  expect(onLegalView).toHaveBeenCalledExactlyOnceWith();
+  expect(onAddIndex).not.toHaveBeenCalled();
+  expect(onReprocess).not.toHaveBeenCalled();
+  expect(props.setSectionOpen).not.toHaveBeenCalled();
+  view.rerender(<MetadataPanel {...panel.props} openSegment="party" />);
+  expect(screen.queryByRole("button", { name: "Open legal view" })).toBeNull();
+  expect(within(header).queryByRole("button", { name: "Add Index" })).toBeNull();
+  expect(within(header).queryByRole("button", { name: "Reprocess" })).toBeNull();
+    view.rerender(<MetadataPanel {...panel.props} pendingSegments={new Map([["property", { busy: true, actions: null, label: "Reprocessing property" }]])} />);
+  for (const name of ["Open legal view", "Add Index", "Reprocess"]) {
+    expect(screen.getByRole("button", { name }).closest("[inert]")).toBe(header);
   }
 });

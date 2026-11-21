@@ -1,5 +1,5 @@
 import { useState, type JSX } from "react";
-import { LoadPlaceholder } from "aurora-core";
+import { LoadPlaceholder, skeletonStyle } from "aurora-core";
 import type { AuditFilters, AuditGapView, AuditReport } from "../type/audit.types";
 import { prepareAuditReport } from "../data/auditData";
 import { auditStyles } from "../style/auditStyles";
@@ -52,7 +52,16 @@ export function AuditGaps({ report, filters }: AuditGapsProps): JSX.Element {
     setExpanded((state) => ({ ...state, [messageKey]: !state[messageKey] }));
   }
 
-  if (gaps === null) return <LoadPlaceholder label="Loading audit gaps" />;
+  if (gaps === null) return <LoadPlaceholder label="Loading audit gaps">
+    <div aria-hidden="true" style={auditStyles.gaps}>
+      {[0, 1, 2].map(index => <article key={index} style={auditStyles.gapCard}>
+        <div style={auditStyles.gapHeader}><span style={{ ...skeletonStyle, width: "35%" }} /><span style={{ ...skeletonStyle, width: "20%" }} /></div>
+        <dl style={auditStyles.details}>{[0, 1].map(row => <div key={row} style={auditStyles.detailRow}><dt style={auditStyles.detailLabel}><span style={{ ...skeletonStyle, width: "80%" }} /></dt><dd style={auditStyles.detailValue}><span style={{ ...skeletonStyle, width: "65%" }} /></dd></div>)}</dl>
+        <div style={auditStyles.gapMessage}><span style={{ ...skeletonStyle, width: "95%" }} /><span style={{ ...skeletonStyle, width: "75%" }} /></div>
+        <div style={auditStyles.gapFooter}><span style={{ ...skeletonStyle, width: "25%" }} /><span style={{ ...skeletonStyle, width: "20%" }} /></div>
+      </article>)}
+    </div>
+  </LoadPlaceholder>;
 
   if (gaps.length === 0) {
     return <div style={auditStyles.empty}>No gaps found.</div>;

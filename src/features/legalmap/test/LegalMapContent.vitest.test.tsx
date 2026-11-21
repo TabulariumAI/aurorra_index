@@ -9,7 +9,7 @@ describe("parcel count rendering", () => {
   ] }));
 
   it("renders one lot and both block identifiers for the approved one-parcel example", () => {
-    const legal = { groups, parcels_num: 1, summary: "One parcel: Lot 32, Block 1, County Block 4482C." };
+    const legal = { groups, parcels_num: 1, };
     render(<LegalMapContent legal={legal} onReadyChange={vi.fn()} />);
     const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     expect(document.querySelectorAll("[data-legal-map-block]")).toHaveLength(1);
@@ -17,7 +17,7 @@ describe("parcel count rendering", () => {
     expect(map.getByText("1/4482C")).toBeInTheDocument();
     expect(map.getByText("32").parentElement).toHaveTextContent("32Lot");
     expect(map.getByText("Phase II")).toBeInTheDocument();
-    expect(screen.getByText(legal.summary)).toBeInTheDocument();
+    expect(document.querySelector(".legal-map-summary")).toBeNull();
   });
 
   it("uses the existing label formatting for each combined identifier", () => {
@@ -132,20 +132,19 @@ describe("LegalMapContent", () => {
     expect(document.querySelector("[data-legal-map-grid]")).not.toBeInTheDocument();
   });
 
-  it("shows the full-width summary and legend without a reference table", () => {
+  it("shows the legend without a summary or reference table", () => {
     render(<LegalMapContent legal={{
       groups: [
         { type: "lot_block", elements: [{ aspect: "subdivision", value: "COUNTRY CLUB MANOR NO. 3" }, { aspect: "block", value: "Block 110" }, { aspect: "lot", value: "Lot 7" }] },
         { type: "plat_reference", elements: [{ aspect: "plat", value: "COUNTRY CLUB MANOR NO. 3, REPLAT NO. 2" }, { aspect: "plat_book", value: "12" }, { aspect: "plat_page", value: "167" }] },
       ],
-      summary: "1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.",
+
     }} onReadyChange={vi.fn()} />);
     const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
 
     const info = document.querySelector(".legal-map");
     expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
-    expect(info).toHaveTextContent("1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.");
-    expect(screen.getByText("1 parcel: Lot 7, Block 110; plat recorded in Book 12, Page 167.")).toHaveStyle({ borderRadius: "var(--radius-card)" });
+    expect(info?.querySelector(".legal-map-summary")).toBeNull();
     const legend = document.querySelector("[data-legal-map-footer] .legal-map-legend") as HTMLElement;
     for (const label of ["Subdivision", "Block", "Lot"]) expect(within(legend).getByText(label, { exact: true })).toBeVisible();
     expect(legend.closest("[data-legal-map-surface]")!.querySelector("[data-legal-map-north]")).toHaveAttribute("data-legal-map-north", "true");
@@ -292,7 +291,7 @@ describe("LegalMapContent", () => {
   });
 
   it("uses the supplied palette for map layers, captions and legend without rendering palette tables", () => {
-    render(<LegalMapContent legal={{ summary: "One parcel.", groups: [{ type: "lot_block", elements: [
+    render(<LegalMapContent legal={{  groups: [{ type: "lot_block", elements: [
       { aspect: "subdivision", value: "SEALE SUBDIVISION" }, { aspect: "unit", value: "1" },
       { aspect: "block", value: "4335A" }, { aspect: "lot", value: "4" },
     ] }] }} onReadyChange={vi.fn()} />);
@@ -319,7 +318,7 @@ describe("LegalMapContent", () => {
       expect(swatch).toHaveStyle({ backgroundColor: fill, borderColor: border });
     }
     expect(screen.queryByRole("heading", { name: "Summary" })).toBeNull();
-    expect(info).toHaveTextContent("One parcel.");
+    expect(info.querySelector(".legal-map-summary")).toBeNull();
     expect(map.queryByRole("table")).not.toBeInTheDocument();
     expect(map.queryByText("Color Palette")).not.toBeInTheDocument();
     expect(map.queryByText("Map Colors")).not.toBeInTheDocument();
@@ -360,7 +359,7 @@ describe("right of way rendering", () => {
   ] }));
 
   it("renders separate square hatched corridors and their legend without creating lots or blocks", () => {
-    render(<LegalMapContent legal={{ groups, summary: "Two drainage rights of way." }} onReadyChange={vi.fn()} />);
+    render(<LegalMapContent legal={{ groups, }} onReadyChange={vi.fn()} />);
     const map = within(document.querySelector<HTMLElement>(".legal-map-column")!);
     const subdivision = document.querySelector("[data-legal-map-subdivision]")!;
     const bands = subdivision.querySelectorAll<HTMLElement>("[data-legal-map-row]");
@@ -380,7 +379,7 @@ describe("right of way rendering", () => {
     const legend = map.getByText("Right Of Way");
     expect(legend.closest("[data-legal-map-footer]")).toBeTruthy();
     expect((legend.previousElementSibling as HTMLElement).style.backgroundImage).toBe(bands[0].style.backgroundImage);
-    expect(screen.getByText("Two drainage rights of way.")).toBeInTheDocument();
+    expect(screen.queryByText("Two drainage rights of way.")).not.toBeInTheDocument();
   });
 
   it.each([1, 2, 4])("distributes %i bands using their count rather than acreage", count => {
@@ -433,20 +432,21 @@ describe("right of way rendering", () => {
 
 describe("reference removal", () => {
   const references = [{ type: "plat_reference", elements: [{ aspect: "plat_book", value: "42" }] }];
-  it.each([{ lots: [] }, { lots: [{ type: "lot_block", elements: [{ aspect: "lot", value: "3" }] }] }])("omits References while preserving summary and available maps %j", ({ lots }) => {
-    render(<LegalMapContent legal={{ summary: "One parcel.", groups: [...lots, ...references] }} />);
-    expect(screen.getByText("One parcel.")).toBeVisible();
+  it.each([{ lots: [] }, { lots: [{ type: "lot_block", elements: [{ aspect: "lot", value: "3" }] }] }])("omits References while preserving available maps %j", ({ lots }) => {
+    render(<LegalMapContent legal={{  groups: [...lots, ...references] }} />);
+    expect(document.querySelector(".legal-map-summary")).toBeNull();
     expect(screen.queryByRole("table", { name: "Reference" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Reference" })).not.toBeInTheDocument();
   });
-  it("preserves source reference data and updates a reference-only view to a summary", () => {
+  it("preserves source reference data and updates a reference-only view to empty data", () => {
     const legal = { groups: references };
     const original = JSON.stringify(legal);
     const { rerender } = render(<LegalMapContent legal={legal} />);
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(JSON.stringify(legal)).toBe(original);
-    rerender(<LegalMapContent legal={{ summary: "Updated summary.", groups: [] }} />);
-    expect(screen.getByText("Updated summary.")).toBeVisible();
+    rerender(<LegalMapContent legal={{  groups: [] }} />);
+    expect(document.querySelector(".legal-map-summary")).toBeNull();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 });

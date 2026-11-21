@@ -19,7 +19,7 @@ const auditClient = vi.hoisted(() => ({ loadReport: vi.fn<AuditWorkerClient["loa
 vi.mock("../../audit/worker/auditWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../audit/worker/auditWorkerClient")>(), createAuditWorkerClient: () => auditClient }));
 vi.mock("../../pagesegments/worker/pageSegmentsWorkerClient", async importOriginal => ({ ...await importOriginal<typeof import("../../pagesegments/worker/pageSegmentsWorkerClient")>(), createPageSegmentsWorkerClient: () => ({ pagesData: async () => ({ data: { num_of_pages: 1 }, path: "pages" }) }) }));
 
-const metadata = { tags: ["auto_class:deed", "parcel:123"], heading: { title: "Deed" } };
+const metadata = { heading: { title: "Deed" } };
 
 beforeEach(() => {
   vi.stubGlobal("indexedDB", indexedDB);

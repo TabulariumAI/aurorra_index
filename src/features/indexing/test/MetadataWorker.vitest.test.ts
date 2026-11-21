@@ -10,6 +10,18 @@ const metadata = {
   secrets: [],
 };
 
+it("sends a single encoded clear request through the reprocess response contract", async () => {
+  const worker = new MetadataWorker();
+  expect(worker.buildRequest({ apiBaseUrl: "https://gateway/", token: "token", session: "session/1", segment: "property", type: "clearSegment" })).toEqual({
+    body: "{}", method: "POST", url: "https://gateway/v1/refine/session%2F1/clear/property",
+  });
+  const fetchMock = vi.fn(async () => jsonResponse({ status: "completed", data: "" }));
+  vi.stubGlobal("fetch", fetchMock);
+  await expect(worker.run({ apiBaseUrl: "https://gateway", token: "token", session: "session", segment: "property", type: "clearSegment" }))
+    .resolves.toEqual({ ok: true, data: { status: "completed", data: "" } });
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
 function jsonResponse(body: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json" },
@@ -23,6 +35,15 @@ function plainResponse(text = "plain", status = 200) {
 }
 
 describe("MetadataWorker", () => {
+  it.each(["Québec", "Texas, Harris County"])("preserves Transaction jurisdiction %s from the metadata response", async jurisdiction => {
+    const path = "https://blob/metadata.json?sig=test";
+    const data = { ...metadata, heading: { title: "Deed", secondary_titles: ["Addendum"] }, indexes: [{ code: "j1", aspect: "jurisdiction", segment: "transaction", label: "jurisdiction", value: jurisdiction }] };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ status: "completed", data: path }))
+      .mockResolvedValueOnce(jsonResponse(data)));
+    expect(await new MetadataWorker().run({ apiBaseUrl: "https://gateway", token: "token", session: "session", type: "indexData" }))
+      .toMatchObject({ ok: true, data: { heading: data.heading, indexes: data.indexes } });
+  });
   it("retrieves the metadata etag with its blob path", async () => {
     const path = "https://blob/metadata.json?sig=test";
     vi.stubGlobal("fetch", vi.fn()

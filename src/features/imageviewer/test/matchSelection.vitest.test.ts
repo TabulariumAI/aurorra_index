@@ -78,7 +78,7 @@ describe("matchSelection", () => {
   });
 
   it("returns the rendered segment for party, confidential, and loan rows", () => {
-    expect(matchSelection(selection, { parties: { summary: null, indexes: [{ code: "party", value: "alpha bravo charlie delta echo" }] } })).toEqual({ code: "party", segment: "party" });
+    expect(matchSelection(selection, { parties: {  indexes: [{ code: "party", value: "alpha bravo charlie delta echo" }] } })).toEqual({ code: "party", segment: "party" });
     expect(matchSelection(selection, { secrets: [{ code: "secret", value: "alpha bravo charlie delta echo" }] })).toEqual({ code: "secret", segment: "secrets" });
     expect(matchSelection(selection, { indexes: [{ code: "loan", segment: "loan", value: "alpha bravo charlie delta echo" }] })).toEqual({ code: "loan", segment: "monetary" });
   });
@@ -105,7 +105,7 @@ describe("matchSelection", () => {
     const original = "alpha bravo charlie delta echo";
     expect(matchSelection(selection, {
       indexes: [{ code: "reference", segment: "reference", original }],
-      parties: { summary: null, indexes: [{ code: "party", original }] },
+      parties: {  indexes: [{ code: "party", original }] },
       secrets: [{ code: "secret", value: original }],
       legals: { groups: [{ code: "legal", original, elements: [{ aspect: "lot", value: "7" }] }] },
     })).toEqual({ code: "reference", segment: "reference" });

@@ -20,12 +20,11 @@ export type QueueRequest = {
   batch: string | null;
   session: string;
   segment: string;
-} & ({ data: string } | { action: "confirm" | "drop"; code: string } | { action: "page"; code: string; segments: string[] } | { action: "reprocess" });
+} & ({ data: string } | { action: "confirm" | "drop"; code: string } | { action: "page"; code: string; segments: string[] } | { action: "reprocess" } | { action: "clear" });
 
 export type QueueTransition = {
   type?: "metadata-updated";
   etag?: string | null;
-  tags?: string[];
   session: string;
   batch: string | null;
   status: "queued" | "processing" | "completed" | "failed" | "retried" | "canceled";
@@ -41,7 +40,7 @@ export type QueueRuntime = {
   client: MetadataClient;
 };
 
-export type QueueChange = { action: "reprocess"; segment: string } | ({
+export type QueueChange = { action: "reprocess" | "clear"; segment: string } | ({
   code: string;
   index: MetadataIndex;
 } & ({ action: "confirm" | "drop" | "patch"; patch: IndexChange | null } | { action: "page"; patch: null; segments: string[] }));

@@ -143,8 +143,8 @@ export class MetadataWorker {
       };
       return { body: JSON.stringify(body), method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/patch/${action === "remove" ? "drop" : action}` };
     }
-    if (command.type === "reprocessSegment") {
-      return { body: JSON.stringify({}), method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/reprocess/${encodeURIComponent(command.segment)}` };
+    if (command.type === "reprocessSegment" || command.type === "clearSegment") {
+      return { body: JSON.stringify({}), method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/${command.type === "clearSegment" ? "clear" : "reprocess"}/${encodeURIComponent(command.segment)}` };
     }
     if (command.type === "confirmIndex") {
       return { body: null, method: "POST", url: `${apiBaseUrl}/v1/refine/${session}/confirm/${encodeURIComponent(command.code)}` };
@@ -169,13 +169,13 @@ export class MetadataWorker {
     if ((command.type === "confirmIndex" || command.type === "dropIndex") && (typeof command.code !== "string" || !command.code.trim())) {
       return { ok: false, code: "invalid_index_code", error: "Index code is missing or invalid." };
     }
-    if ((command.type === "reprocessSegment" || command.type === "patchIndex") && (typeof command.segment !== "string" || !command.segment.trim())) {
+    if ((command.type === "reprocessSegment" || command.type === "clearSegment" || command.type === "patchIndex") && (typeof command.segment !== "string" || !command.segment.trim())) {
       return { ok: false, code: "invalid_segment", error: "Segment is missing or invalid." };
     }
     if (command.type === "patchStatus" && (!Number.isInteger(command.version) || command.version < 0)) {
       return { ok: false, code: "invalid_patch_version", error: "Patch version is missing or invalid." };
     }
-    if (command.type !== "patchIndex" && command.type !== "indexData" && command.type !== "reprocessSegment" && command.type !== "confirmIndex" && command.type !== "dropIndex" && command.type !== "patchStatus") {
+    if (command.type !== "patchIndex" && command.type !== "indexData" && command.type !== "reprocessSegment" && command.type !== "clearSegment" && command.type !== "confirmIndex" && command.type !== "dropIndex" && command.type !== "patchStatus") {
       return { ok: false, code: "invalid_command", error: "Unknown index worker command." };
     }
 
@@ -229,7 +229,7 @@ export class MetadataWorker {
         status: response.status,
       };
     }
-    if (command.type === "reprocessSegment") return resolveReprocess(parsed.data.payload);
+    if (command.type === "reprocessSegment" || command.type === "clearSegment") return resolveReprocess(parsed.data.payload);
     if (command.type === "patchIndex" || command.type === "confirmIndex" || command.type === "dropIndex" || command.type === "patchStatus") return resolvePatch(parsed.data.payload);
     return resolveIndexData(parsed.data.payload);
   }

@@ -13,13 +13,13 @@ describe("parcel count merging", () => {
   const groups = ["1", "4482C"].map(block => plat({ ...ironHorse, block }));
 
   it("merges the supplied one-parcel example and preserves both block identifiers", () => {
-    const legal = { groups, parcels_num: 1, summary: "One parcel.", plat: { county: "Bexar", state: "TX" } };
+    const legal = { groups, parcels_num: 1,  plat: { county: "Bexar", state: "TX" } };
     const view = normalizeLegalData(legal);
     expect(view.subdivisions).toEqual([{
       state: "TEXAS", county: "BEXAR COUNTY", subdivision: "THE RANCH AT IRON HORSE", rightsOfWay: [],
       divisions: [{ unit: "", phase: "II", section: "", blocks: [{ name: "1/4482C", lots: [{ kind: "lot", name: "32" }] }] }],
     }]);
-    expect(view.summary).toBe("One parcel.");
+    expect(view).not.toHaveProperty("summary");
     expect(view.locationLabel).toBe("Texas | Bexar County");
     expect(view.presentLayers).toEqual(new Set(["subdivision", "phase", "block", "lot"]));
     expect(toPlatJSON(legal)).toEqual(view.subdivisions);
@@ -122,14 +122,14 @@ describe("parcel count merging", () => {
   });
 
   it("counts only lot_block groups and preserves non-plat summary data", () => {
-    const legal = { parcels_num: 2, summary: "Two parcels.", groups: [
+    const legal = { parcels_num: 2,  groups: [
       ...groups,
       { type: "metes_bounds", elements: [{ aspect: "lot", value: "99" }] },
       { type: "plat_reference", elements: [{ aspect: "plat_page", value: "32" }] },
     ] };
     const view = normalizeLegalData(legal);
     expect(view.subdivisions[0].divisions[0].blocks.map(block => block.name)).toEqual(["1", "4482C"]);
-    expect(view.summary).toBe("Two parcels.");
+    expect(view).not.toHaveProperty("summary");
   });
 
   it("keeps right-of-way labels and numeric lot gaps when merging blocks", () => {
@@ -309,11 +309,11 @@ describe("legal data normalization", () => {
   it("preserves the summary, location and subdivision matching contract", () => {
     const view = normalizeLegalData({
       groups: [plat({ subdivision: "WILLOW CREEK", phase: "Phase 1", block: "Block 12", lot: "Lot 7" })],
-      plat: { city: "austin", county: "travis county", state: "TX" }, summary: " Property is described. ",
+      plat: { city: "austin", county: "travis county", state: "TX" },
     });
     expect(view.location).toEqual({ city: "Austin", county: "Travis", state: "Texas" });
     expect(view.locationLabel).toBe("Texas | Travis County | Austin");
-    expect(view.summary).toBe("Property is described.");
+    expect(view).not.toHaveProperty("summary");
     expect(view.matchPlatSubdivision).toBe(true);
     expect(view.platName).toBe("Willow Creek");
   });
@@ -352,11 +352,11 @@ describe("right of way normalization", () => {
   it("preserves ordinary hierarchy, summary and location alongside ROWs", () => {
     const view = normalizeLegalData({
       groups: [plat({ ...inwood, right_of_way: labels[0] }), plat({ ...inwood, block: "4", lot: "1, 3" })],
-      summary: "Two drainage rights of way.", plat: { city: "San Antonio", county: "Bexar", state: "TX" },
+       plat: { city: "San Antonio", county: "Bexar", state: "TX" },
     });
     expect(view.subdivisions[0].divisions[0].blocks).toEqual([{ name: "4", lots: [{ kind: "lot", name: "1, 3" }] }]);
     expect(view.presentLayers).toEqual(new Set(["subdivision", "right_of_way", "unit", "block", "lot"]));
-    expect(view.summary).toBe("Two drainage rights of way.");
+    expect(view).not.toHaveProperty("summary");
     expect(view.locationLabel).toBe("Texas | Bexar County | San Antonio");
   });
 
@@ -380,7 +380,7 @@ describe("plat reference normalization", () => {
     { type: "plat_reference", elements: [second] },
   ];
   it.each(["groups", "legalGroups", "LegalGroups", "items"])("retains ordered reference elements from %s without mutation", (key) => {
-    const payload = { [key]: groups, summary: "One parcel." };
+    const payload = { [key]: groups, };
     const before = JSON.stringify(payload);
     expect(normalizeLegalData(payload).references).toEqual([first, second]);
     expect(JSON.stringify(payload)).toBe(before);

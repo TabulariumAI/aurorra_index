@@ -62,6 +62,9 @@ export function createIqWorkerClient(config: IqWorkerConfig): IqWorkerClient {
     ackGate(token, session, code) {
       return runWorkerOnce({ apiBaseUrl, code, session, token, type: "iqAck" });
     },
+    ackCue(token, session, code) {
+      return runWorkerOnce({ apiBaseUrl, code, session, token, type: "iqCueAck" });
+    },
     loadReport(token, session, etag) {
       return retryWorker(() => runWorkerOnce<IqResource>({ apiBaseUrl, session, token, type: "iqData", etag }, onDownload), retryIntervalMs, retryLimit, onRetry);
     },

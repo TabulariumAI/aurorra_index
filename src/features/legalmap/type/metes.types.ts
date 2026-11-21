@@ -31,7 +31,7 @@ export type MetesScene = Omit<ReconstructedBoundary, "courses"> & {
   title: string;
   items: MetesLine[];
   notes: MapNote[];
-  courses: { bearing: string; distance?: string; confirmed: boolean; issue?: string; target?: number; unassigned?: boolean }[];
+  courses: { bearing: string; distance?: string; confirmed: boolean; issue?: string; target?: number; unassigned?: boolean; synthetic?: true }[];
 };
 
 export type BoundaryCourse = {

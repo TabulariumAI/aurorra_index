@@ -59,11 +59,11 @@ it("renders available extracted measurements instead of empty boundary-table hea
   expect(screen.queryAllByRole("table", { name: "Boundary Calls" })).toHaveLength(0);
   expect(screen.getAllByText("40 ft FRONT; 115 ft DEEP")).toHaveLength(2);
   expect(screen.getAllByText("Sorry, this parcel’s boundary couldn’t be drawn from the available details.")).toHaveLength(2);
-  expect(screen.getByRole("heading", { name: "Parcel 10" })).toBeVisible();
-  expect(screen.getByRole("heading", { name: "Parcel 14" })).toBeVisible();
-  expect(document.querySelector(".legal-map-column")).toBeNull();
-  expect(screen.queryByRole("separator")).toBeNull();
-  expect(screen.getByRole("region", { name: "Boundary Calls" })).toHaveStyle({ flex: "1 1 0", height: "auto" });
+  expect(screen.getAllByRole("heading", { name: "Parcel 10" })[0]).toBeVisible();
+  expect(screen.getAllByRole("heading", { name: "Parcel 14" })[0]).toBeVisible();
+  expect(document.querySelector(".legal-map-column")).not.toBeNull();
+  expect(screen.getByRole("separator")).toBeVisible();
+  expect(screen.getByRole("region", { name: "Boundary Calls" })).toHaveStyle({ height: "9.2rem" });
 });
 
 it("retains an unreadable extracted bearing separately from the illustrated outline", () => {

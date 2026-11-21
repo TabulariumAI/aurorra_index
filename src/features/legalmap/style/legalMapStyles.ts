@@ -33,8 +33,6 @@ export const legalMapConstants = {
   lotBaseFontSize: 16,
   labelInset: 32,
   parcelScale: 0.675,
-  plssCenter: 0.4,
-  plssScale: 0.9,
   mapMin: 16,
   platWidth: 30,
   mapMax: 56,
@@ -54,6 +52,7 @@ export const legalMapCss = `
 .legal-map-tabs button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .legal-map-detail-tabs button:focus-visible { outline-color: var(--primary-dark); outline-offset: -2px; }
 .legal-map [role="tabpanel"]:focus-visible, .legal-map [role="region"]:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.legal-map details[open] > summary > svg { transform: rotate(180deg); }
 .legal-map-column:empty { display: none; }
 .legal-map-divider:hover, .legal-map-divider:focus-visible { border-color: var(--primary-dark); }
 .legal-map-divider:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
@@ -114,9 +113,18 @@ export const legalMapStyles = {
     padding: "0.125rem",
     zIndex: 2,
   },
-  incomplete: { display: "flex", flex: "1 1 0", flexDirection: "column", minHeight: "min-content", minWidth: 0 },
-  errorArea: { alignItems: "center", display: "flex", flex: "1 1 0", justifyContent: "center", minWidth: 0, padding: "0.75rem", textAlign: "center" },
-  mapError: { color: "#991b1b", display: "grid", fontSize: "clamp(0.875rem, 1.2vw, 1.125rem)", gap: "0.5rem", gridTemplateColumns: "1.125rem minmax(0, 1fr)", lineHeight: 1.55, margin: 0, overflowWrap: "anywhere" },
+  unavailable: { display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem", minWidth: 0, maxWidth: "30rem", padding: "1.25rem", textAlign: "center", color: "var(--body-ink)", background: "var(--white)", border: "1px solid var(--border-card)", borderRadius: "var(--radius-control)" },
+  surfaceMessages: { display: "flex", flex: "1 1 0", flexDirection: "column", alignItems: "center", justifyContent: "safe center", gap: "0.75rem", padding: "1rem", minWidth: 0, overflowY: "auto" },
+  surfaceNotices: { flex: "0 0 auto", maxHeight: "35%", overflowY: "auto", padding: "0.5rem", minWidth: 0 },
+  plssFooter: { display: "flex", flexDirection: "column", gap: "0.5rem", minWidth: 0 },
+  plssContext: { margin: 0, color: "var(--body-ink)", fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.5, overflowWrap: "anywhere" },
+  messageTitle: { color: "var(--title-ink)", fontSize: "1.125rem", lineHeight: 1.3, margin: 0 },
+  messageContent: { minWidth: 0, maxWidth: "100%" },
+  messageText: { color: "var(--body-ink)", fontSize: "0.875rem", lineHeight: 1.5, margin: "0.5rem 0 0", maxWidth: "28rem" },
+  messageDetails: { marginTop: "0.5rem", minWidth: 0, maxWidth: "100%" },
+  messageSummary: { alignItems: "center", boxSizing: "border-box", color: "var(--primary-dark)", cursor: "pointer", display: "inline-flex", gap: "0.45rem", listStyle: "none", fontSize: "0.875rem", minHeight: "2.75rem", minWidth: "2.75rem", padding: "0.625rem 0", textDecoration: "underline", textUnderlineOffset: "0.2em", maxWidth: "100%" },
+  messageReason: { color: "var(--body-ink)", fontSize: "0.875rem", lineHeight: 1.5, margin: "0.5rem 0 0", overflowWrap: "anywhere", textAlign: "left", whiteSpace: "pre-wrap" },
+  notice: { display: "grid", gridTemplateColumns: "minmax(0, 1fr)", alignItems: "start", gap: "0.5rem", background: "var(--accent-surface)", border: "1px solid var(--primary)", borderRadius: "var(--radius-control)", color: "var(--body-ink)", fontSize: "0.875rem", lineHeight: 1.5, padding: "0.5rem 0.75rem", minWidth: 0 },
   mapDrawing: { display: "flex", flex: "1 1 0", minHeight: `${legalMapConstants.drawingMin}rem`, minWidth: 0, position: "relative" },
   toolbar: { display: "flex", flex: "0 0 auto", justifyContent: "flex-end", minWidth: 0 },
   parcelTitle: { flex: "0 0 auto", fontSize: "1rem", fontWeight: 600, margin: "0 0 0.5rem", overflowWrap: "anywhere", textAlign: "center" },
@@ -291,7 +299,6 @@ export const legalMapStyles = {
   },
   parcelList: { boxSizing: "border-box", display: "flex", flex: "1 1 0", flexDirection: "column", gap: "1rem", minHeight: 0, minWidth: 0, overflow: "auto", overscrollBehavior: "contain", width: "100%" },
   parcelLayout: { boxSizing: "border-box", flex: "0 0 100%" },
-  issueLayout: { flex: "0 0 auto", minHeight: 0 },
   fitViewport: { position: "relative", flex: "1 1 0", minHeight: 0, minWidth: 0, overflow: "hidden", width: "100%" },
   annotatedBlock: { boxSizing: "border-box", paddingLeft: "1.5rem", position: "relative", width: "100%" },
   acreageLabels: { display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem", minWidth: 0 },

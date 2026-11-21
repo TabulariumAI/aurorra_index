@@ -286,11 +286,12 @@ describe("metadata visual surface", () => {
     expect(reprocessButton).toHaveTextContent("Reprocess");
     expect(reprocessButton.querySelector("svg")).toBeNull();
     expect(screen.queryByText("|")).not.toBeInTheDocument();
-    const actionGroup = reprocessButton.parentElement;
-    expect(actionGroup).toBeTruthy();
-    expect(actionGroup?.parentElement).toBe(segmentHeader);
+    const actionGroup = screen.getByRole("group", { name: "Section actions" });
+    expect(actionGroup).toContainElement(reprocessButton);
+    expect(actionGroup).toHaveStyle({ minWidth: "0px", overflowX: "auto" });
+    expect(actionGroup.parentElement?.parentElement).toBe(segmentHeader);
     expect(segmentButton).not.toContainElement(reprocessButton);
-    expect(actionGroup?.nextElementSibling).toBe(segmentCount);
+    expect(actionGroup.parentElement?.nextElementSibling).toBe(segmentCount);
     const footer = document.querySelector<HTMLElement>("[data-metadata-footer]");
     expect(footer).toBeTruthy();
     if (footer) {
@@ -320,6 +321,7 @@ describe("metadata visual surface", () => {
     expect(onEditPage).not.toHaveBeenCalled();
 
     fireEvent.click(reprocessButton);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
     await waitFor(() => expect(onReprocess).toHaveBeenCalledWith("party"));
     expect(setSectionOpen).not.toHaveBeenCalled();
     expect(onEditPage).not.toHaveBeenCalled();
@@ -642,7 +644,7 @@ describe("metadata visual surface", () => {
     expect(screen.queryByRole("button", { name: "Edit index" })).not.toBeInTheDocument();
   });
 
-  it("keeps legal groups read-only and preserves the summary plat action", async () => {
+  it("keeps legal groups read-only and preserves the header map action", async () => {
     const metadata: MetadataPayload = {
       fees: [],
       funds: [],
@@ -693,7 +695,7 @@ describe("metadata visual surface", () => {
     expect(legalCard?.querySelector("button")).toBeNull();
     legalActionButtons.forEach((button) => {
       expect(button).toHaveTextContent("Show Map");
-      expect(button).toHaveStyle({ alignItems: "center", width: "auto", height: "2rem", minHeight: "2rem", padding: "0px" });
+      expect(button).toHaveStyle({ alignItems: "center", width: "auto", height: "2rem", minHeight: "2rem", padding: "0px 0.5rem" });
     });
     expect(screen.getByRole("link", { name: "Lot Block" })).toHaveStyle({ textDecoration: "none" });
     fireEvent.click(screen.getByRole("link", { name: "Lot Block" }));

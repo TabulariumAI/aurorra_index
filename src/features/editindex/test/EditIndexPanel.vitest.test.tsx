@@ -15,7 +15,7 @@ function props(): EditIndexPanelProps {
     onQueueChange: vi.fn(), onClose: vi.fn(), onError: vi.fn(), onReadyChange: vi.fn(),
     onResource: vi.fn((request: ResourceRequest) => request.callback({ ok: true, data: { aspects: { party: ["grantor", "grantee"], property: ["property_id"] } } })),
     workerClient: { patchIndex: vi.fn(() => new Promise<never>(() => {})), patchStatus: vi.fn(),
-      indexData: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() },
+      indexData: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() },
   };
 }
 beforeEach(() => {

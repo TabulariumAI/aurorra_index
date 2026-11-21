@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import type { AuditReport, AuditWorkerClient } from "../../src/features/audit";
 import { AuditPanel } from "../../src/features/audit";
+import { indexStoreApi } from "../../src/features/metdataview/store/metadataStore";
+import { queueStoreApi } from "../../src/features/queue/store/queueStore";
 
 const longMessage =
   "This is a long correction message that exceeds two hundred characters to exercise the full text collapse and expansion behavior used in the audit panel when rendering large explanations in a constrained viewport. ".repeat(
@@ -44,6 +46,8 @@ const workerClient: AuditWorkerClient = {
 };
 
 const stage = document.getElementById("visual-stage");
+queueStoreApi.setState({ session: "session-1" });
+indexStoreApi.setState({ choices: { jurisdiction: "Texas, Harris County", items: [{ service: "Recognition", level: 5 }] } });
 if (!stage) throw new Error("visual-stage is required.");
 
 stage.style.overflow = "auto";

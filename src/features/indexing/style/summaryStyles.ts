@@ -11,9 +11,9 @@ export const summaryCss = `
 export const summaryStyles = {
   root: {
     display: "grid",
-    gap: "1rem",
+    gap: "0.75rem",
     minWidth: 0,
-    marginTop: "1rem",
+    marginTop: "0.75rem",
   },
   counts: {
     display: "grid",
@@ -33,13 +33,12 @@ export const summaryStyles = {
     border: "1px solid var(--border-card)",
     borderRadius: "var(--radius-card)",
     background: "var(--white)",
+    boxShadow: "var(--shadow-card)",
   },
   score: {
     flexDirection: "column",
     alignItems: "stretch",
-    padding: "clamp(0.25rem, 1.25vw, 1.25rem)",
-    background: "linear-gradient(135deg, color-mix(in srgb, var(--primary-dark) 7%, white), white)",
-    borderColor: "color-mix(in srgb, var(--primary-dark) 20%, white)",
+    padding: "0.8rem 1rem",
   },
   label: {
     fontSize: "0.75rem",
@@ -47,6 +46,11 @@ export const summaryStyles = {
     fontWeight: 500,
     color: "var(--body-ink)",
     overflowWrap: "anywhere",
+  },
+  scoreLabel: {
+    fontSize: "1.1rem",
+    fontWeight: 700,
+    color: "var(--title-ink)",
   },
   value: {
     display: "flex",
@@ -63,15 +67,18 @@ export const summaryStyles = {
   percent: {
     flexDirection: "column",
     alignItems: "stretch",
-    gap: "0.75rem",
-    minHeight: "3rem",
-    fontSize: "clamp(1.5rem, 7vw, 3rem)",
+    gap: "0.5rem",
+    minHeight: "2.85rem",
+    fontSize: "clamp(1.75rem, 5.25vw, 2.85rem)",
+    lineHeight: 1,
+    letterSpacing: 0,
     color: "var(--primary-dark)",
   },
   meter: {
     width: "100%",
-    height: "0.375rem",
+    height: "0.625rem",
     marginTop: 0,
-    backgroundColor: "color-mix(in srgb, var(--primary-dark) 12%, white)",
+    backgroundColor: "var(--gray-100)",
+    border: "1px solid var(--border-card)",
   },
 } satisfies Record<string, CSSProperties>;

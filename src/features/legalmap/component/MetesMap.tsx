@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { Icon } from "aurora-core";
 import type { MetesScene } from "../type/metes.types";
 import { legalMapColors, legalMapConstants, legalMapStyles } from "../style/legalMapStyles";
 import { surveyStyles } from "../style/surveyStyles";
@@ -45,7 +44,7 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
       if (matrix) {
         const bounds = drawing.getBoundingClientRect();
         const inverse = matrix.inverse();
-        const occupied = [...drawing.querySelectorAll("[data-survey-point]")].map(point => point.getBoundingClientRect());
+        const occupied = [...drawing.querySelectorAll("[data-survey-point], [data-survey-arrow]")].map(point => point.getBoundingClientRect());
         const segments = [...drawing.querySelectorAll<SVGLineElement>("line[data-survey-line], line[data-survey-reference]")].map(line => ({
           from: new DOMPoint(line.x1.baseVal.value, line.y1.baseVal.value).matrixTransform(matrix),
           to: new DOMPoint(line.x2.baseVal.value, line.y2.baseVal.value).matrixTransform(matrix),
@@ -103,9 +102,7 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
     return () => observer.disconnect();
   }, [frame.width, frame.height, spanX, spanY, fontSize, scenes, activePoint]);
 
-  return <>
-    {scenes.filter(scene => scene.issue).map((scene, index) => <div key={index} role="note" style={surveyStyles.warning}><Icon name="info" /><span>{scene.issue}</span></div>)}
-    <MapSurface style={surveyStyles.viewport} footer={<div aria-label="Map legend" className="legal-map-legend" style={legalMapStyles.legendItems}>
+  return <MapSurface issues={scenes.filter(scene => scene.issue).map(scene => ({ title: scene.title, issue: scene.issue! }))} style={surveyStyles.viewport} footer={<div aria-label="Map legend" className="legal-map-legend" style={legalMapStyles.legendItems}>
       <span style={legalMapStyles.legendItem}><span style={surveyStyles.legendLine} /><span>Parcel boundary</span></span>
       {items.some(item => !item.confirmed) ? <span style={legalMapStyles.legendItem}><span style={surveyStyles.unconfirmedLine} /><span>Unconfirmed</span></span> : null}
       {scenes.some(scene => scene.beginning !== undefined && scene.beginning > 0) ? <span style={legalMapStyles.legendItem}><span style={surveyStyles.tieLegendLine} /><span>Tie line</span></span> : null}
@@ -128,6 +125,13 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
             {origin ? <path data-boundary-fill="true" d={"M " + origin.x + " " + origin.y + " " + edges.map(line => "L " + line.to.x + " " + line.to.y).join(" ") + " Z"} fill={legalMapColors.parcelFill} fillOpacity={scene.schematic ? "0.12" : "0.25"} /> : null}
             {scene.items.map((item, index) => {
               const tie = beginning !== undefined && item.sequence <= beginning;
+              const angle = item.arc
+                ? Math.atan2(item.from.y - item.arc.center.y, item.from.x - item.arc.center.x) + item.arc.turn * item.arc.sweep / 2
+                : Math.atan2(item.to.y - item.from.y, item.to.x - item.from.x);
+              const middle = item.arc
+                ? { x: item.arc.center.x + item.arc.radius * Math.cos(angle), y: item.arc.center.y + item.arc.radius * Math.sin(angle) }
+                : { x: (item.from.x + item.to.x) / 2, y: (item.from.y + item.to.y) / 2 };
+              const arrowSize = Math.min(8 / scale, (item.arc ? item.arc.radius * item.arc.sweep : Math.hypot(item.to.x - item.from.x, item.to.y - item.from.y)) / 4);
               const stroke = {
                 "data-survey-line": "true",
                 "data-survey-tie": tie ? "true" : undefined,
@@ -143,6 +147,10 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
                 <title>{item.detail}</title>
                 {item.arc ? <path {...stroke} data-survey-arc="true" d={`M ${item.from.x} ${item.from.y} A ${item.arc.radius} ${item.arc.radius} 0 ${item.arc.sweep > Math.PI ? 1 : 0} ${item.arc.turn === 1 ? 1 : 0} ${item.to.x} ${item.to.y}`} fill="none" />
                   : <line {...stroke} x1={item.from.x} y1={item.from.y} x2={item.to.x} y2={item.to.y} />}
+                <path data-survey-arrow={item.sequence} d="M -1 -0.6 L 0 0 L -1 0.6" fill="none"
+                  transform={`translate(${middle.x} ${middle.y}) rotate(${(angle + (item.arc ? item.arc.turn * Math.PI / 2 : 0)) * 180 / Math.PI}) scale(${arrowSize})`}
+                  stroke={stroke.stroke} strokeWidth={stroke.strokeWidth} strokeOpacity={stroke.strokeOpacity} strokeLinecap="round" vectorEffect="non-scaling-stroke"
+                  aria-hidden="true" pointerEvents="none" />
               </g>;
             })}
             {vertices.map(({ point, number }, index) => {
@@ -160,6 +168,5 @@ export function MetesMap({ scenes }: { scenes: MetesScene[] }) {
           </g>;
         })}
       </svg>
-    </MapSurface>
-  </>;
+  </MapSurface>;
 }

@@ -19,7 +19,7 @@ export function IqProgress({ intervalMs }: { intervalMs: number }) {
   return (
     <ProgressView autoScroll={true} highlightLast={true}
       fillCompletion={false}
-      intro="I’ll keep you updated as I generate the IQ report."
+      intro={"I’ll keep you updated as I generate the IQ report."}
       jobs={IQ_STEPS.slice(0, step + 1).map((job, index) => ({
         ...job,
         phase: index < step ? "completed" : "started",

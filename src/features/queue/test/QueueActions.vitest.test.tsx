@@ -7,7 +7,7 @@ import { QueueActions } from "../component/QueueActions";
 beforeEach(() => { queueStoreApi.getState().reset(); storeApi.getState().resetJSON(); });
 afterEach(cleanup);
 it("provides recovery only for its item and keeps other changes unchanged", async () => {
-  const client = { confirmIndex: vi.fn(async () => { throw new Error("Confirm failed"); }), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
+  const client = { confirmIndex: vi.fn(async () => { throw new Error("Confirm failed"); }), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
   storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: ["session-1", "session-2"].map(code => ({ code, value: code })) }));
   for (const code of ["session-1", "session-2"]) {
     await queueStoreApi.getState().enqueue({ batch: "batch-1", session: "session", segment: "party", action: "confirm", code }, { formatError: (error: unknown) => (error as Error).message, onChange: vi.fn(), authToken: "token", intervalMs: 0, client });
@@ -31,7 +31,7 @@ it("provides recovery only for its item and keeps other changes unchanged", asyn
 
 it("opens the complete error in a dismissible callout without retrying or canceling", async () => {
   const error = "Internal server error: " + "The service could not complete this change. ".repeat(12);
-  const client = { confirmIndex: vi.fn(async () => { throw new Error(error); }), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
+  const client = { confirmIndex: vi.fn(async () => { throw new Error(error); }), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
   storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [{ code: "item", value: "Value" }] }));
   await queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "party", action: "confirm", code: "item" }, { formatError: (error: unknown) => (error as Error).message, onChange: vi.fn(), authToken: "token", intervalMs: 0, client });
   await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
@@ -55,7 +55,7 @@ it("opens the complete error in a dismissible callout without retrying or cancel
 });
 
 it("retains task retry but offers cancel only for unfinished changes", async () => {
-  const client = { confirmIndex: vi.fn(async () => { throw new Error("Failed"); }), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
+  const client = { confirmIndex: vi.fn(async () => { throw new Error("Failed"); }), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
   storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [{ code: "item", value: "Value" }] }));
   await queueStoreApi.getState().enqueue({ batch: null, session: "session", segment: "party", action: "confirm", code: "item" }, { formatError: (error: unknown) => (error as Error).message, onChange: vi.fn(), authToken: "token", intervalMs: 0, client });
   await waitFor(() => expect(queueStoreApi.getState().tasks[0].status).toBe("failed"));
@@ -71,7 +71,7 @@ it("retains task retry but offers cancel only for unfinished changes", async () 
 });
 
 it("hides recovery for queued and processing items", async () => {
-  const client = { confirmIndex: vi.fn(() => new Promise<never>(() => {})), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
+  const client = { confirmIndex: vi.fn(() => new Promise<never>(() => {})), indexData: vi.fn(), dropIndex: vi.fn(), patchIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn() };
   storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: ["first", "second"].map(code => ({ code, value: code })) }));
   for (const code of ["first", "second"]) {
     await queueStoreApi.getState().enqueue({ batch: "batch", session: "session", segment: "party", action: "confirm", code }, { formatError: (error: unknown) => (error as Error).message, onChange: vi.fn(), authToken: "token", intervalMs: 0, client });

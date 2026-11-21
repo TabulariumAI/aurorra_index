@@ -4,13 +4,12 @@ import type { IqReport } from "../type/iq.types";
 
 const report: IqReport = {
   iq_doc: 90,
-  decision: "Review",
   gates: [
     { code: "gate-1", status: "FAIL", description: "Fail" },
     { code: "gate-2", status: "PASS", description: "Pass" },
   ],
   segments: [],
-  explanation: [],
+  notes: [],
 };
 
 describe("iqStore", () => {
@@ -37,19 +36,16 @@ describe("iqStore", () => {
     expect(iqStoreApi.getState()).toMatchObject({ error: { code: "x", error: "failed", status: 500 }, report, status: "error" });
   });
 
-  it("tracks acking gates and removes acknowledged gates", () => {
+  it("versions displayed reports without locally removing compliance entries", () => {
     iqStoreApi.getState().setLoaded("session-1", report, "");
-    const generation = iqStoreApi.getState().ackStart("session-1", "gate-1")!;
-    expect(iqStoreApi.getState().ackingCodes.has("gate-1")).toBe(true);
-
-    iqStoreApi.getState().ackFinish("session-1", generation, "gate-1", null);
-    expect(iqStoreApi.getState().ackingCodes.has("gate-1")).toBe(false);
-    expect(iqStoreApi.getState().report?.gates.map((gate) => gate.code)).toEqual(["gate-2"]);
+    const generation = iqStoreApi.getState().reportGeneration;
+    iqStoreApi.getState().setLoading("session-1", true);
+    expect(iqStoreApi.getState().reportGeneration).toBeGreaterThan(generation);
+    expect(iqStoreApi.getState().report).toBe(report);
   });
 
   it("resets to initial state", () => {
     iqStoreApi.getState().setLoaded("session-1", report, "");
-    iqStoreApi.getState().ackStart("session-1", "gate-1");
     const generation = iqStoreApi.getState().generation;
     iqStoreApi.getState().resetIq();
     expect(iqStoreApi.getState().generation).toBe(generation + 1);
@@ -59,6 +55,5 @@ describe("iqStore", () => {
       report: null,
       status: "idle",
     });
-    expect(iqStoreApi.getState().ackingCodes.size).toBe(0);
   });
 });

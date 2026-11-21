@@ -53,7 +53,7 @@ export type MetadataWorkerCommand = ({
 } & (
   | { type: "indexData"; path?: string | null }
   | { type: "patchIndex"; segment: string; change: IndexChange }
-  | { segment: string; type: "reprocessSegment" }
+  | { segment: string; type: "reprocessSegment" | "clearSegment" }
   | { code: string; type: "confirmIndex" }
   | { code: string; type: "dropIndex" }
   | { type: "patchStatus"; version: number }
@@ -68,6 +68,7 @@ export type MetadataClient = {
   indexData(token: string, session: string, refresh: boolean): Promise<MetadataPayload>;
   patchStatus(token: string, session: string, version: number): Promise<MetadataPatchResult>;
   reprocessSegment(token: string, session: string, segment: string): Promise<MetadataReprocessResult>;
+  clearSegment(token: string, session: string, segment: string): Promise<MetadataReprocessResult>;
 };
 
 export type MetadataConfig = {

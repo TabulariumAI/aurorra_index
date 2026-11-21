@@ -7,7 +7,7 @@ import type { QueueChange, QueueState, QueueTask } from "../type/queue.types";
 
 function reportChange(task: QueueTask, status: "queued" | "processing" | "completed" | "failed" | "retried" | "canceled", changes: readonly QueueChange[], metadata?: MetadataPayload): void {
   task.runtime.onChange({ session: task.session, batch: task.batch, status, error: task.error, changes: structuredClone(changes),
-    ...(metadata === undefined ? {} : { type: "metadata-updated", etag: queueStoreApi.getState().etag, tags: metadata.tags }),
+    ...(metadata === undefined ? {} : { type: "metadata-updated", etag: queueStoreApi.getState().etag }),
   });
 }
 
@@ -64,8 +64,8 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
           while (task.cursor < task.changes.length) {
             const change = task.changes[task.cursor];
             reportChange(task, "processing", [change]);
-            if (change.action === "reprocess") {
-              await client.reprocessSegment(authToken, task.session, change.segment);
+            if ("segment" in change) {
+              await client[change.action === "clear" ? "clearSegment" : "reprocessSegment"](authToken, task.session, change.segment);
               if (started !== generation) return;
             } else if (change.action === "page") {
               await client.updatePageSegments(authToken, task.session, change.code, change.segments);
@@ -99,9 +99,9 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
             task.result = null;
             notify();
           }
-          const reprocess = task.changes.some(change => change.action === "reprocess");
-          task.status = reprocess ? "processing" : "completed";
-          notify(refreshing || reprocess ? undefined : task);
+          const section = task.changes.some(change => "segment" in change);
+          task.status = section ? "processing" : "completed";
+          notify(refreshing || section ? undefined : task);
           if (!canRefresh(task.session)) {
             continue;
           }
@@ -113,14 +113,14 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
             continue;
           }
           set({ base: data });
-          const reprocessed = get().tasks.filter((item) => item.session === task.session && item.changes.some(change => change.action === "reprocess"));
+          const sections = get().tasks.filter((item) => item.session === task.session && item.changes.some(change => "segment" in change));
           set((state) => ({ tasks: state.tasks.filter((item) => item.session !== task.session) }));
           project(task.session);
           reportChange(task, "completed", [], data);
           if (!get().tasks.some((item) => item.session === task!.session)) set({ base: null });
           if (refreshing) reportChange(task, "completed", []);
           notify();
-          for (const item of reprocessed) notify(item);
+          for (const item of sections) notify(item);
         } catch (error) {
           if (started !== generation) return;
           task.status = "failed";
@@ -192,7 +192,7 @@ export const useQueueStore = create<QueueState>()(persist((set, get) => {
     cancel(id, code) {
       const task = get().tasks.find((item) => item.id === id);
       if (!task || task.status === "processing") throw new Error("A processing change cannot be canceled.");
-      const canceled = task.changes.slice(task.cursor).filter(change => change.action === "reprocess" ? code === undefined : change.code === code);
+      const canceled = task.changes.slice(task.cursor).filter(change => "segment" in change ? code === undefined : change.code === code);
       if (canceled.length === 0) throw new Error("A completed change cannot be canceled.");
       reportChange(task, "canceled", canceled);
       if (canceled.includes(task.changes[task.cursor])) task.result = null;

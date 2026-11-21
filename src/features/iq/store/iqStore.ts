@@ -2,65 +2,56 @@ import { create } from "zustand";
 import type { IqStoreState } from "../type/iq.types";
 
 const initialState = {
+  etag: null,
+  reportEtag: null,
+  removedCodes: new Set<string>(),
   metadataEtag: null,
+  verificationEtag: null,
+  verificationModel: null,
   activeSession: null,
-  ackingCodes: new Set<string>(),
   error: null,
   report: null,
   retryAttempt: 0,
   status: "idle",
-} satisfies Pick<IqStoreState, "metadataEtag" | "activeSession" | "ackingCodes" | "error" | "report" | "retryAttempt" | "status">;
+} satisfies Pick<IqStoreState, "etag" | "reportEtag" | "removedCodes" | "metadataEtag" | "verificationEtag" | "verificationModel" | "activeSession" | "error" | "report" | "retryAttempt" | "status">;
 
 export const useIqStore = create<IqStoreState>()((set, get) => ({
   ...initialState,
   generation: 0,
-  ackGeneration: 0,
-  ackStart(session, code) {
-    const state = get();
-    if (state.activeSession !== session || state.ackingCodes.has(code)) return null;
-    set({ ackingCodes: new Set([...state.ackingCodes, code]) });
-    return state.ackGeneration;
-  },
-  ackFinish(session, generation, code, error) {
-    const current = get();
-    if (current.activeSession !== session || current.ackGeneration !== generation || !current.ackingCodes.has(code)) return false;
-    set((state) => {
-      const ackingCodes = new Set(state.ackingCodes);
-      ackingCodes.delete(code);
-      return {
-        ackingCodes,
-        error,
-        status: error ? "error" : "success",
-        report: !error && state.report
-          ? {
-            ...state.report,
-            gates: state.report.gates.filter((gate) => gate.code !== code),
-          }
-          : state.report,
-      };
-    });
-    return true;
-  },
+  reportGeneration: 0,
   resetIq() {
     set(state => ({
       ...initialState,
-      ackingCodes: new Set<string>(),
       generation: state.generation + 1,
-      ackGeneration: state.ackGeneration + 1,
+      reportGeneration: state.reportGeneration + 1,
     }));
   },
   setError(error) {
     set({ error, retryAttempt: 0, status: "error" });
   },
-  setLoaded(session, report, metadataEtag) {
-    set(state => ({ activeSession: session, error: null, report, metadataEtag, retryAttempt: 0, status: "success",
-      ackGeneration: state.ackGeneration + 1, ackingCodes: new Set<string>() }));
+  setLoaded(session, report, metadataEtag, verificationEtag, verificationModel, source) {
+    set(state => ({ activeSession: session, error: null, report, metadataEtag, verificationEtag, verificationModel,
+      etag: source?.etag, reportEtag: source?.reportEtag, removedCodes: new Set(source?.acknowledgements?.map(ack => ack.code)), retryAttempt: 0, status: "success",
+      reportGeneration: state.reportGeneration + 1 }));
+  },
+  setAcknowledged(code, etag) {
+    set(state => ({ etag, removedCodes: new Set([...state.removedCodes, code]) }));
+  },
+  setVerificationModel(session, model) {
+    const state = get();
+    if (state.activeSession !== session || state.verificationModel?.etag === model.etag) return;
+    set({ verificationModel: model });
   },
   setLoading(session, refresh) {
     set(state => ({ activeSession: session, error: null, retryAttempt: 1,
       report: state.activeSession === session ? state.report : null,
-      ackGeneration: state.ackGeneration + 1, ackingCodes: new Set<string>(),
+      reportGeneration: state.reportGeneration + 1,
+      etag: state.activeSession === session ? state.etag : null,
+      reportEtag: state.activeSession === session ? state.reportEtag : null,
+      removedCodes: state.activeSession === session ? state.removedCodes : new Set<string>(),
       metadataEtag: state.activeSession === session ? state.metadataEtag : null,
+      verificationEtag: state.activeSession === session ? state.verificationEtag : null,
+      verificationModel: state.activeSession === session ? state.verificationModel : null,
       status: refresh ? "refreshing" : "loading" }));
   },
   setRetryAttempt(retryAttempt) {

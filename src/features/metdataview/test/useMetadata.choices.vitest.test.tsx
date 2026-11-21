@@ -14,7 +14,7 @@ const segments = { ACKNOWLEDGMENT: "acknowledgment", JUDGMENT: "judgment", ENDOR
 function input(indexData: MetadataClient["indexData"]): MetadataProps {
   return { formatError: (error: unknown) => (error as Error).message, apiGatewayUrl: "https://api", authToken: "token", batchCode: null, callbacks: {}, deferredState: createDeferredState(),
     intervalMs: 0, retryIntervalMs: 0, retryLimit: 1, onQueueChange: vi.fn(), refresh: null, segments, session: "s",
-    workerClient: { indexData, pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), reprocessSegment: vi.fn() } };
+    workerClient: { indexData, pagesData: vi.fn(), updatePageSegments: vi.fn(), patchIndex: vi.fn(), confirmIndex: vi.fn(), dropIndex: vi.fn(), patchStatus: vi.fn(), clearSegment: vi.fn(), reprocessSegment: vi.fn() } };
 }
 beforeEach(() => { indexStoreApi.getState().resetMetadata(); worker.load.mockReset(); });
 
@@ -30,7 +30,7 @@ it("starts both requests without waiting and publishes metadata while choices ar
   expect(view.result.current.choices).toBeNull();
   await act(async () => finish(choices));
   expect(view.result.current.choices).toEqual(choices.items);
-  expect(view.result.current.jurisdiction).toBe("Texas, Harris County");
+  expect(indexStoreApi.getState().choices?.jurisdiction).toBe("Texas, Harris County");
 });
 
 it.each(["pending", "failed"])("does not block metadata when choices are %s", async outcome => {

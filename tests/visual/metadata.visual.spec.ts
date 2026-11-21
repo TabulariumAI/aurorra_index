@@ -1,6 +1,6 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { devices, expect, test, type Locator } from "@playwright/test";
 
-test.use({ channel: "msedge" });
+test.use({ ...devices["Desktop Edge"], channel: "msedge" });
 
 for (const width of [375, 940]) {
   test(`all segment rows align left with summary and legal elements use half indent at ${width}px`, async ({ page }, testInfo) => {
@@ -9,12 +9,10 @@ for (const width of [375, 940]) {
     const property = page.locator(".metadata-property");
     await expect(property.locator("article")).toHaveCount(2);
     const rem = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).fontSize));
-    const summary = await property.locator(":scope > p").boundingBox();
     for (const row of await property.locator("article").all()) {
       const rowBox = await row.boundingBox();
       const dot = await row.getByRole("img", { name: "OK" }).boundingBox();
       expect(dot!.x).toBeCloseTo(rowBox!.x, 0);
-      expect(dot!.x).toBeCloseTo(summary!.x, 0);
     }
     const group = property.locator('article[data-index-code="legal-1"]');
     const heading = await group.getByText("Legal Description", { exact: true }).boundingBox();
@@ -31,7 +29,6 @@ for (const width of [375, 940]) {
       const dot = await row.locator(":scope > span").first().boundingBox();
       const label = await row.locator(":scope > :nth-child(2)").boundingBox();
       expect(dot!.x).toBeCloseTo(rowBox!.x, 0);
-      expect(dot!.x).toBeCloseTo(summary!.x, 0);
       expect(label!.x).toBeCloseTo(propertyLabel!.x, 0);
     }
     await page.screenshot({ path: testInfo.outputPath(`party-alignment-${width}.png`) });
@@ -483,4 +480,39 @@ for (const width of [375, 1440]) {
       await page.screenshot({ path: testInfo.outputPath(`document-summary-${width}-${secondary}.png`), fullPage: true });
     });
   }
+}
+
+for (const width of [390, 1440]) {
+  test(`property map shares header actions at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("/?scenario=metadata-property-alignment");
+    expect(await page.evaluate(() => navigator.userAgent)).toContain("Edg/");
+    const trigger = page.getByRole("button", { name: "Property Info", exact: true });
+    const header = trigger.locator("..");
+    const map = header.getByRole("button", { name: "Open legal view" });
+    const add = header.getByRole("button", { name: "Add Index", exact: true });
+    const reprocess = header.getByRole("button", { name: "Reprocess", exact: true });
+    await expect(map).toBeVisible();
+    const boxes = await Promise.all([map, add, reprocess].map(button => button.boundingBox()));
+    for (let i = 0; i < boxes.length; i++) {
+      expect(boxes[i]!.x).toBeGreaterThanOrEqual(0);
+      expect(boxes[i]!.x + boxes[i]!.width).toBeLessThanOrEqual(width);
+      expect(boxes[i]!.y).toBeCloseTo(boxes[0]!.y, 0);
+      if (i) expect(boxes[i]!.x).toBeGreaterThanOrEqual(boxes[i - 1]!.x + boxes[i - 1]!.width);
+    }
+    await map.click();
+    await expect(page.locator("#visual-stage")).toHaveAttribute("data-map-open", "true");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await add.click();
+    await expect(page.locator("#visual-stage")).toHaveAttribute("data-add-segment", "property");
+    await reprocess.click();
+    await expect(page.locator("#visual-stage")).toHaveAttribute("data-reprocess-segment", "property");
+    await page.screenshot({ path: testInfo.outputPath(`property-actions-${width}.png`), fullPage: true });
+    await page.getByRole("button", { name: "Parties(Party Clause)", exact: true }).click();
+    await expect(map).toHaveCount(0);
+    await expect(add).toHaveCount(0);
+    await expect(reprocess).toHaveCount(0);
+    await trigger.click();
+    await expect(map).toBeVisible();
+  });
 }

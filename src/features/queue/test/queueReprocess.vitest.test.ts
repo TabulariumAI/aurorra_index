@@ -25,7 +25,7 @@ it("retries acknowledgment reprocessing through the standard choices-owned reque
 
 function runtime(): QueueRuntime {
   return { formatError: (error: unknown) => (error as Error).message, authToken: "token", intervalMs: 0, onChange: vi.fn(), client: {
-    reprocessSegment: vi.fn(async () => ({ status: "completed" as const, data: "" })),
+    clearSegment: vi.fn(), reprocessSegment: vi.fn(async () => ({ status: "completed" as const, data: "" })),
     indexData: vi.fn(async () => ({ indexes: [index] })),
     patchIndex: vi.fn(), patchStatus: vi.fn(), pagesData: vi.fn(), updatePageSegments: vi.fn(),
     confirmIndex: vi.fn(async () => ({ status: "completed" as const, data: "", version: 1 })),
@@ -39,15 +39,16 @@ beforeEach(() => {
   storeApi.getState().setJSON("session", splitMetadataJSON({ indexes: [index] }));
 });
 
-it("emits the refreshed metadata ETag and tags through the Index event callback", async () => {
+it("emits the refreshed metadata ETag without transporting tags", async () => {
   const config = runtime();
   vi.mocked(config.client.indexData).mockImplementation(async () => {
     queueStoreApi.getState().setEtag("session", "refreshed-version");
-    return { indexes: [index], tags: ["refreshed"] };
+    return { indexes: [index] };
   });
   await queueStoreApi.getState().enqueue(request, config);
   await waitFor(() => expect(queueStoreApi.getState().tasks).toHaveLength(0));
-  expect(config.onChange).toHaveBeenCalledWith(expect.objectContaining({ type: "metadata-updated", session: "session", etag: "refreshed-version", tags: ["refreshed"] }));
+  expect(config.onChange).toHaveBeenCalledWith(expect.objectContaining({ type: "metadata-updated", session: "session", etag: "refreshed-version" }));
+  expect(vi.mocked(config.onChange).mock.calls.at(-1)?.[0]).not.toHaveProperty("tags");
 });
 
 it("accepts reprocess behind an index operation and stays pending until metadata refresh completes", async () => {

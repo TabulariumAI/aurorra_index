@@ -21,6 +21,7 @@ it("renders Judgment indexes and routes add, reprocess, edit, confirm and remove
   fireEvent.click(screen.getByRole("button", { name: "Add Index" }));
   expect(add).toHaveBeenCalledExactlyOnceWith("judgment", screen.getByRole("button", { name: "Add Index" }));
   fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
   expect(reprocess).toHaveBeenCalledExactlyOnceWith("judgment");
   fireEvent.click(screen.getByRole("button", { name: "Edit index" }));
   expect(edit).toHaveBeenCalledWith(metadata.indexes[0], "judgment", expect.any(HTMLElement));
@@ -61,10 +62,10 @@ it("counts only valid Judgment indexes", () => {
 });
 
 it("uses the shared segment progress and recovery behavior for Judgment", () => {
-  const view = render(<MetadataPanel {...props} pendingSegments={new Map([["judgment", { busy: true, actions: null }]])} />);
+  const view = render(<MetadataPanel {...props} pendingSegments={new Map([["judgment", { busy: true, actions: null, label: "Reprocessing judgment" }]])} />);
   expect(screen.getByRole("progressbar", { name: "Reprocessing judgment" })).toBeVisible();
   expect(screen.getByRole("article").closest("[inert]")).not.toBeNull();
-  view.rerender(<MetadataPanel {...props} pendingSegments={new Map([["judgment", { busy: false, actions: <button>Retry judgment</button> }]])} />);
+  view.rerender(<MetadataPanel {...props} pendingSegments={new Map([["judgment", { busy: false, actions: <button>Retry judgment</button>, label: "Reprocessing judgment" }]])} />);
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Retry judgment" }).closest("[inert]")).toBeNull();
 });

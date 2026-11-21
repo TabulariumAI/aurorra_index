@@ -15,6 +15,9 @@ function validateReport(value: unknown): IqWorkerResult<IqReport> {
   if (!isObject(value)) {
     return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
   }
+  if (Array.isArray(value.segments) && value.segments.some(segment => isObject(segment) && !("cues" in segment))) {
+    return { ok: false, code: "cue_report_outdated", error: "The IQ report requires regeneration for cue review." };
+  }
   return { ok: true, data: value as IqReport };
 }
 
@@ -29,19 +32,18 @@ async function reportFromPayload(payload: unknown, onDownload?: () => void): Pro
     const report = validateReport(result.data);
     return report.ok ? { ok: true, data: {
       report: report.data,
+      ...(typeof payload.etag === "string" ? { etag: payload.etag } : {}),
+      ...(typeof payload.report_etag === "string" ? { reportEtag: payload.report_etag } : {}),
+      ...(Array.isArray(payload.acknowledgements) ? { acknowledgements: payload.acknowledgements as IqResource["acknowledgements"] } : {}),
       ...(typeof payload.metadata_etag === "string" ? { metadataEtag: payload.metadata_etag } : {}),
+      ...(typeof payload.verification_etag === "string" ? { verificationEtag: payload.verification_etag } : {}),
+      ...(isObject(payload.verification_model) && typeof payload.verification_model.class === "string"
+        && typeof payload.verification_model.etag === "string"
+        && (payload.verification_model.jurisdiction === null || typeof payload.verification_model.jurisdiction === "string")
+        ? { verificationModel: { class: payload.verification_model.class, jurisdiction: payload.verification_model.jurisdiction, etag: payload.verification_model.etag } } : {}),
     } } : report;
   }
   return { ok: false, code: "validation_error", error: "Response is not a valid IQ report." };
-}
-
-function ackFromPayload(payload: unknown): IqAckResult {
-  const source = isObject(payload) ? payload : {};
-  return {
-    status: String(source.status ?? ""),
-    data: source.data,
-    isComplete: true,
-  };
 }
 
 async function parseResponse(response: Response): Promise<IqWorkerResult<ParsedResponse>> {
@@ -86,8 +88,9 @@ export class IqWorker {
   buildRequest(command: IqWorkerCommand): { body: string | null; method: "GET" | "POST"; url: string } {
     const apiBaseUrl = command.apiBaseUrl.replace(/\/+$/, "");
     const session = encodeURIComponent(command.session);
-    if (command.type === "iqAck") {
-      return { body: null, method: "POST", url: `${apiBaseUrl}/v1/iq/${session}/gates/${encodeURIComponent(command.code)}/ack` };
+    if (command.type === "iqAck" || command.type === "iqCueAck") {
+      const kind = command.type === "iqAck" ? "gates" : "cues";
+      return { body: null, method: "POST", url: `${apiBaseUrl}/v1/iq/${session}/${kind}/${encodeURIComponent(command.code)}/ack` };
     }
     return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag !== null ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
   }
@@ -102,10 +105,10 @@ export class IqWorker {
     if (typeof command.session !== "string" || !command.session.trim()) {
       return { ok: false, code: "invalid_session", error: "Session is missing or invalid." };
     }
-    if (command.type === "iqAck" && (typeof command.code !== "string" || !command.code.trim())) {
+    if ((command.type === "iqAck" || command.type === "iqCueAck") && (typeof command.code !== "string" || !command.code.trim())) {
       return { ok: false, code: "invalid_gate_code", error: "Gate code is missing or invalid." };
     }
-    if (command.type !== "iqData" && command.type !== "iqAck") {
+    if (command.type !== "iqData" && command.type !== "iqAck" && command.type !== "iqCueAck") {
       return { ok: false, code: "invalid_command", error: "Unknown IQ worker command." };
     }
 
@@ -128,8 +131,17 @@ export class IqWorker {
     const parsed = await parseResponse(response);
     if (!parsed.ok) return parsed;
     if (!response.ok) return httpError(parsed.data);
-    if (command.type === "iqAck") return { ok: true, data: ackFromPayload(parsed.data.payload) };
-    return reportFromPayload(parsed.data.payload, onDownload);
+    if (command.type === "iqAck" || command.type === "iqCueAck") {
+      if (!isObject(parsed.data.payload) || parsed.data.payload.status !== "completed" || typeof parsed.data.payload.etag !== "string") {
+        return { ok: false, code: "iq_ack_incomplete", error: "Acknowledgment did not complete." };
+      }
+      return { ok: true, data: { status: parsed.data.payload.status, data: parsed.data.payload.data, etag: parsed.data.payload.etag, isComplete: true } };
+    }
+    const report = await reportFromPayload(parsed.data.payload, onDownload);
+    if (!report.ok && report.code === "cue_report_outdated" && command.etag !== null) {
+      return this.run({ ...command, etag: null }, onDownload);
+    }
+    return report;
   }
 }
 

@@ -16,9 +16,10 @@ export function IndexContainer(props: MetadataProps): JSX.Element {
   const { callbacks, children, segments, session } = props;
   const metadata = useMetadata(props);
   const tasks = useQueueStore((state) => state.tasks);
-  const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.filter(change => change.action !== "reprocess").map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
-  const pendingSegments = new Map(tasks.filter(task => task.session === session && task.changes.some(change => change.action === "reprocess"))
-    .map(task => [task.segment, { busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} /> : null }] as const));
+  const pendingChanges = new Map(tasks.filter((task) => task.session === session).flatMap((task) => task.changes.filter(change => "code" in change).map((change) => [change.code, { kind: change.action === "drop" || change.patch?.action === "remove" ? "delete" as const : "update" as const, busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} code={change.code} /> : null }] as const)));
+  const pendingSegments = new Map(tasks.filter(task => task.session === session && task.changes.some(change => "segment" in change))
+    .map(task => [task.segment, { busy: task.status !== "failed", actions: task.status === "failed" ? <QueueActions id={task.id} /> : null,
+      label: `${task.changes[0].action === "clear" ? "Clearing" : "Reprocessing"} ${task.segment}` }] as const));
   const panelCallbacks = {
     ...callbacks,
     onPageClick: callbacks.onPageClick

@@ -47,7 +47,7 @@ describe("imageViewerData", () => {
   it("resolves selected metadata index in defined order", () => {
     const metadata: MetadataPayload = {
       indexes: [{ code: "idx-1", label: "Grantor", page_number: 1, source: "quote", value: "Alice" }],
-      parties: { summary: null, indexes: [{ code: "idx-1", label: "Party", page_number: 2, value: "Bob" }] },
+      parties: {  indexes: [{ code: "idx-1", label: "Party", page_number: 2, value: "Bob" }] },
     };
     expect(resolveSelectedIndex(metadata, { code: "idx-1", segment: "party" })).toEqual({
       ambiguous: "",
@@ -85,7 +85,7 @@ it("preserves structured page-size failures through the existing viewer error co
 });
 
 it("resolves party indexes from the summary-bearing node", () => {
-  expect(resolveSelectedIndex({ parties: { summary: "Not an index", indexes: [
+  expect(resolveSelectedIndex({ parties: {  indexes: [
     { code: "party", value: "ACME LLC", label: "Grantee", page_number: "2", source: "ACME LLC receives" },
   ] } }, { code: "party", segment: "party" })).toMatchObject({ value: "ACME LLC", pageNumber: "2" });
 });

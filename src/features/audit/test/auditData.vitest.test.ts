@@ -35,6 +35,49 @@ it("prepares gap counts without reading the independent service-usage section", 
 });
 
 describe("auditData", () => {
+  it.each([
+    ["Correction", "CORRECTION", "Correction"],
+    [" correction ", "CORRECTION", "Correction"],
+    ["CORRECTION", "CORRECTION", "Correction"],
+    ["Enrichment", PROCESS_ENRICHMENT, "Enrichment"],
+    ["Formatting", PROCESS_ENRICHMENT, "Enrichment"],
+    ["Indexing", PROCESS_VERIFICATION, "Verification"],
+    ["Verification", PROCESS_VERIFICATION, "Verification"],
+    ["Refinement", PROCESS_REPROCESS, "Reprocess"],
+    ["User", PROCESS_USER, "User change"],
+    ["Unknown", PROCESS_OTHER, "Other"],
+  ])("preserves the process identity of %s through repeated normalization", (owner, process, processLabel) => {
+    const raw = { gaps: [{ ...auditGap, owner }] };
+    const report = normalizeAuditReport(raw);
+    expect(report.gaps[0].owner).toBe(process);
+    expect(normalizeAuditReport(report)).toEqual(report);
+    const view = prepareAuditReport(report, { changeType: "", process, segment: "" }, ["transaction"]);
+    expect(view.filtered).toBe(1);
+    expect(view.gaps[0]).toMatchObject({ process, processLabel, patch: auditPatch });
+  });
+
+  it.each(["", "REMOVE", "UPDATE"])("separates Correction and Enrichment counts and filters for change type '%s'", changeType => {
+    const raw = { gaps: [
+      { ...auditGap, owner: "Correction", solution: "remove", segment: "transaction", explanation: "Picked date" },
+      { ...auditGap, owner: "Correction", solution: "update", segment: "party", explanation: "Normalized party" },
+      { ...auditGap, owner: "Enrichment", solution: "remove", segment: "transaction", explanation: "Enriched source" },
+    ] };
+    const report = normalizeAuditReport(raw);
+    const view = prepareAuditReport(report, { changeType, process: "", segment: "" }, ["transaction", "party"]);
+    expect(view.processCounts).toEqual({
+      correction: changeType === "" ? 2 : 1,
+      enrichment: changeType === "UPDATE" ? 0 : 1,
+      verification: 0, reprocess: 0, user: 0, other: 0,
+    });
+    const correction = prepareAuditReport(report, { changeType, process: "CORRECTION", segment: "transaction" }, ["transaction", "party"]);
+    expect(correction.gaps.map(gap => gap.message)).toEqual(changeType === "UPDATE" ? [] : ["Picked date"]);
+    expect(correction.processCounts).toMatchObject({ correction: changeType === "UPDATE" ? 0 : 1, enrichment: changeType === "UPDATE" ? 0 : 1 });
+    expect(correction.changeCounts).toEqual({ add: 0, correction: 0, remove: 1, other: 0 });
+    expect(correction.segmentCounts).toEqual({ transaction: changeType === "UPDATE" ? 0 : 1, party: changeType === "REMOVE" ? 0 : 1 });
+    const enrichment = prepareAuditReport(report, { changeType, process: PROCESS_ENRICHMENT, segment: "transaction" }, ["transaction", "party"]);
+    expect(enrichment.gaps.map(gap => gap.message)).toEqual(changeType === "UPDATE" ? [] : ["Enriched source"]);
+  });
+
   it.each(["add", "update", "remove", "confirm"])("preserves %s patch details through normalization and view mapping", (solution) => {
     const patch = { ...auditPatch, solution, code: "index-1", field: "value",
       identifier: { value: "2025-999", label: "Old label", aspect: "instrument_number" } };
@@ -66,7 +109,7 @@ describe("auditData", () => {
           solution: CHANGE_CORRECTION,
           explanation: "raw object",
           page: "010",
-          owner: PROCESS_ENRICHMENT,
+          owner: "CORRECTION",
           timestamp: "2026-01-04T09:00:00Z",
           segment: null,
         },
@@ -127,6 +170,7 @@ describe("auditData", () => {
       remove: 1,
     });
     expect(view.processCounts).toEqual({
+      correction: 0,
       enrichment: 0,
       other: 0,
       reprocess: 0,
@@ -147,10 +191,10 @@ describe("auditData", () => {
     expect(view.total).toBe(5);
     expect(view.filtered).toBe(1);
     expect(view.changeCounts).toEqual({ add: 0, correction: 1, other: 0, remove: 1 });
-    expect(view.processCounts).toEqual({ enrichment: 0, other: 0, reprocess: 1, user: 0, verification: 0 });
+    expect(view.processCounts).toEqual({ correction: 0, enrichment: 0, other: 0, reprocess: 1, user: 0, verification: 0 });
     expect(view.segmentCounts).toEqual({ party: 1, reference: 0, transaction: 0 });
     expect(view.segmentTotal).toBe(2);
-    const combined = prepareAuditReport(rawReport, { changeType: CHANGE_CORRECTION, process: PROCESS_ENRICHMENT, segment: "party" }, ["party", "reference"]);
+    const combined = prepareAuditReport(rawReport, { changeType: CHANGE_CORRECTION, process: "CORRECTION", segment: "party" }, ["party", "reference"]);
     expect(combined.gaps).toEqual([]);
     expect(combined.segmentTotal).toBe(1);
     expect(combined.segmentCounts).toEqual({ party: 0, reference: 0 });

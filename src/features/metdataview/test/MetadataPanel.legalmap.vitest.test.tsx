@@ -59,7 +59,7 @@ const metadata: MetadataPayload = {
         type: "lot_block",
       },
     ],
-    summary: "Metadata legal summary.",
+
   },
   pages: { num_of_pages: 1, recordables: [{ code: "page-1", name: "1" }] },
   secrets: [],
@@ -70,12 +70,12 @@ describe("MetadataPanel legal map trigger", () => {
     storeApi.getState().resetJSON();
   });
 
-  it("opens one summary plat for all matching groups and keeps legal rows separate", async () => {
+  it("opens one map for all matching groups and keeps legal rows separate", async () => {
     const onLegalView = vi.fn();
     const legals: MetadataPayload = {
       ...metadata,
       legals: {
-        summary: "Metadata legal summary.",
+
         groups: [
           ...metadata.legals!.groups!,
           { code: "legal-2", elements: [{ aspect: "lot", value: "Lot 2" }], page: "4", type: "lot_block" },
@@ -104,13 +104,12 @@ describe("MetadataPanel legal map trigger", () => {
     );
 
     const openButton = screen.getByRole("button", { name: "Open legal view" });
-    const summary = screen.getByText("Metadata legal summary.");
-    expect(summary).toContainElement(openButton);
+    expect(screen.queryByText("Metadata legal summary.")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Open legal view" })).toHaveLength(1);
     expect(screen.getAllByText("Lot Block")).toHaveLength(2);
     expect(screen.getByText("Metes Bounds")).toBeInTheDocument();
     expect(screen.getAllByRole("article")).toHaveLength(3);
-    expect(openButton).toHaveStyle({ padding: "0px" });
+    expect(openButton).toHaveStyle({ padding: "0px 0.5rem" });
     expect(openButton).toHaveTextContent("Show Map");
     expect(openButton).toHaveStyle({ alignItems: "center", height: "2rem", minHeight: "2rem", width: "auto" });
     fireEvent.click(openButton);
@@ -121,7 +120,7 @@ describe("MetadataPanel legal map trigger", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("shows the summary plat action when matching groups have no summary text", () => {
+  it("shows the map action for matching groups", () => {
     render(
       <MetadataPanel
         {...panelDefaults}
@@ -144,7 +143,7 @@ describe("MetadataPanel legal map trigger", () => {
   it("offers the map for metes and bounds without a lot/block group", () => {
     const legals: MetadataPayload = {
       ...metadata,
-      legals: { summary: "Boundary description.", groups: [{ code: "legal-3", elements: [{ aspect: "bearings", value: "N" }, { aspect: "distances", value: "100 ft" }], type: "metes_bounds" }] },
+      legals: {  groups: [{ code: "legal-3", elements: [{ aspect: "bearings", value: "N" }, { aspect: "distances", value: "100 ft" }], type: "metes_bounds" }] },
     };
     render(
       <MetadataPanel
@@ -162,7 +161,7 @@ describe("MetadataPanel legal map trigger", () => {
         panelData={getPanelData(legals)}
       />,
     );
-    expect(screen.getByText("Boundary description.")).toBeInTheDocument();
+    expect(screen.queryByText("Boundary description.")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open legal view" })).toHaveTextContent("Show Map");
   });
 
