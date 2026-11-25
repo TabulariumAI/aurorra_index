@@ -153,6 +153,24 @@ it("opens merged content for legal selection with page and plat actions and no l
   expect(onLegalView).toHaveBeenCalledExactlyOnceWith();
 });
 
+it.each(["legal-1", "legal-2"])("opens %s from its full header without activating from its elements", code => {
+  const onPageClick = vi.fn();
+  const view = render(<MetadataPanel {...props} callbacks={{ onPageClick }} />);
+  const group = view.container.querySelector<HTMLElement>(`[data-index-code="${code}"]`)!;
+  const name = within(group).getByRole("link");
+  const header = name.closest<HTMLElement>(".metadata-legal-header")!;
+  expect(header).not.toBeNull();
+  expect(header).toHaveStyle({ gridColumn: "1 / -1", gridTemplateColumns: "subgrid" });
+  for (const target of [header, within(group).getByText("Legal Description"), name.parentElement!.parentElement!, name]) {
+    onPageClick.mockClear();
+    fireEvent.click(target);
+    expect(onPageClick).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code, segment: "legal" }));
+  }
+  onPageClick.mockClear();
+  fireEvent.click(within(group).getByText(code === "legal-1" ? "12" : "Boundary description", { exact: false }));
+  expect(onPageClick).not.toHaveBeenCalled();
+});
+
 it("adds and reprocesses only property from the merged header", () => {
   const onAddIndex = vi.fn();
   const onReprocess = vi.fn();

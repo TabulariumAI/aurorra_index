@@ -449,12 +449,19 @@ export function MetadataPanel(props: MetadataPanelProps): JSX.Element | null {
                       style={{ ...rowStyles.row(isLegalRowSelected), ...rowStyles.indexRow }}
                       key={`${code}-${index}`}
                     >
-                      <span aria-label="OK" role="img" title="OK" style={rowStyles.statusIcon}><SuccessIcon /></span>
-                      <div inert={props.pendingChanges?.has(code)} style={{ ...rowStyles.aspects, ...rowStyles.body }}>
-                        Legal Description
-                      </div>
-                      <div className="metadata-row-value" inert={props.pendingChanges?.has(code)} style={{ ...rowStyles.valueWithViewer, ...rowStyles.indexValueWithViewer }}>
-                        <IndexValue plain value={payload.value} onClick={onPageClick ? () => onPageClick(payload) : undefined} />
+                      <div
+                        className="metadata-legal-header"
+                        inert={props.pendingChanges?.has(code)}
+                        onClick={onPageClick && !props.pendingChanges?.has(code) ? () => onPageClick(payload) : undefined}
+                        style={{ display: "grid", gridColumn: "1 / -1", gridRow: "1", gridTemplateColumns: "subgrid", alignItems: "start", cursor: onPageClick ? "pointer" : undefined }}
+                      >
+                        <span aria-label="OK" role="img" title="OK" style={rowStyles.statusIcon}><SuccessIcon /></span>
+                        <div inert={props.pendingChanges?.has(code)} style={{ ...rowStyles.aspects, ...rowStyles.body }}>
+                          Legal Description
+                        </div>
+                        <div className="metadata-row-value" inert={props.pendingChanges?.has(code)} style={{ ...rowStyles.valueWithViewer, ...rowStyles.indexValueWithViewer }}>
+                          <IndexValue plain value={payload.value} onClick={onPageClick ? () => onPageClick(payload) : undefined} />
+                        </div>
                       </div>
                       {(group.elements || []).map((element, elementIndex) => (
                         <div inert={props.pendingChanges?.has(code)} key={`${element.aspect}-${elementIndex}`} style={metadataStyles.legalElement}>
