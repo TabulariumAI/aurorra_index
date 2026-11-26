@@ -6,6 +6,20 @@ import { prepareIqReport } from "../data/iqData";
 
 afterEach(cleanup);
 
+it("preserves warning styling, status, and segment through disclosure", () => {
+  const message = Array.from({ length: 31 }, (_, index) => `word${index + 1}`).join(" ");
+  render(<IqNote note={{ segment: "Party", message: `WARNING: ${message}`, status: "warning" }} />);
+  expect(screen.getByText("WARNING:")).toHaveStyle({ color: "#92400e", fontWeight: 700 });
+  expect(screen.getByText("Party").closest("p")).toHaveAttribute("data-status", "warning");
+  fireEvent.click(screen.getByRole("button", { name: "Expand note" }));
+  expect(screen.getByText(message)).toBeVisible();
+  expect(screen.getByText("WARNING:")).toHaveStyle({ color: "#92400e", fontWeight: 700 });
+  expect(screen.getByText("Party").closest("p")).toHaveAttribute("data-status", "warning");
+  fireEvent.click(screen.getByRole("button", { name: "Collapse note" }));
+  expect(screen.getByText("Party")).toBeVisible();
+  expect(screen.getByText("WARNING:")).toBeVisible();
+});
+
 it("preserves segment ownership and prepares the existing segment display convention", () => {
   const notes = [
     { segment: "sides", message: "Party assessment." },

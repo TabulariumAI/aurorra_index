@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { iconButtonStyle } from "aurora-core";
 import type { IqBucket, IqUiStatus } from "../type/iq.types";
 
 export const iqColors = {
@@ -254,10 +253,6 @@ export const iqStyles = {
     gridTemplateColumns: "2.25rem minmax(0, 1fr)",
     padding: "1.25rem 0",
     minWidth: 0,
-  },
-  noteButton: {
-    ...iconButtonStyle,
-    justifySelf: "center",
   },
   noteText: {
     color: "var(--title-ink)",
