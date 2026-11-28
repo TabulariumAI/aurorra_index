@@ -1,3 +1,4 @@
+import { retryInfo } from "aurora-core/retry-info";
 import type { IqAckResult, IqReport, IqResource, IqWorkerCommand, IqWorkerEvent, IqWorkerResult } from "../type/iq.types";
 import { fetchJson } from "../../../shared/worker/fetchJson";
 
@@ -55,7 +56,7 @@ async function parseResponse(response: Response): Promise<IqWorkerResult<ParsedR
     try {
       payload = JSON.parse(responseText);
     } catch {
-      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
+      return { ok: false, code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), status: response.status };
     }
   } else if (responseText) {
     payload = responseText;
@@ -81,7 +82,7 @@ function httpError(parsed: ParsedResponse): IqWorkerResult<never> {
   } else if (typeof payload === "string" && payload.trim()) {
     error = payload.trim();
   }
-  return { ok: false, code, details, error, status: response.status };
+  return { ok: false, code, details, ...retryInfo(response, error), status: response.status };
 }
 
 export class IqWorker {
@@ -92,7 +93,7 @@ export class IqWorker {
       const kind = command.type === "iqAck" ? "gates" : "cues";
       return { body: null, method: "POST", url: `${apiBaseUrl}/v1/iq/${session}/${kind}/${encodeURIComponent(command.code)}/ack` };
     }
-    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data${command.etag !== null ? `?etag=${encodeURIComponent(command.etag)}` : ""}` };
+    return { body: null, method: "GET", url: `${apiBaseUrl}/v1/iq/${session}/data` };
   }
 
   async run(command: IqWorkerCommand, onDownload?: () => void): Promise<IqWorkerResult<IqResource | IqAckResult>> {
@@ -121,6 +122,7 @@ export class IqWorker {
         headers: {
           Authorization: `Bearer ${command.token}`,
           ...(request.body ? { "Content-Type": "application/json" } : {}),
+          ...(command.type === "iqData" && command.etag !== null ? { "If-None-Match": JSON.stringify(command.etag) } : {}),
         },
         method: request.method,
       });

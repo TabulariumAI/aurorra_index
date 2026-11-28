@@ -11,14 +11,18 @@ type WorkerError = Error & {
   code?: string;
   details?: unknown;
   status?: number;
+  retryAfter?: string;
+  retryAt?: number;
 };
 
 function resolveError(message: string, payload: unknown): WorkerError {
   const error = new Error(message) as WorkerError;
   if (payload && typeof payload === "object") {
-    const candidate = payload as { code?: unknown; details?: unknown; status?: unknown };
+    const candidate = payload as { code?: unknown; details?: unknown; retryAfter?: unknown; retryAt?: unknown; status?: unknown };
     if (typeof candidate.code === "string") error.code = candidate.code;
     if (typeof candidate.status === "number") error.status = candidate.status;
+    if (typeof candidate.retryAfter === "string") error.retryAfter = candidate.retryAfter;
+    if (typeof candidate.retryAt === "number") error.retryAt = candidate.retryAt;
     if (Object.prototype.hasOwnProperty.call(candidate, "details")) error.details = candidate.details;
   }
   return error;

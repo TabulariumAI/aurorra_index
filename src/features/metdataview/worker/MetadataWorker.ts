@@ -1,3 +1,4 @@
+import { retryInfo } from "aurora-core/retry-info";
 import { validateChange } from "../../queue/data/indexChange";
 import type { MetadataPatchResult, MetadataReprocessResult, MetadataWorkerCommand, MetadataWorkerResult } from "../type/metadataView.types";
 import type { MetadataPayload } from "aurora-core";
@@ -103,7 +104,7 @@ async function parseResponse(response: Response): Promise<MetadataWorkerResult<P
     try {
       payload = JSON.parse(responseText);
     } catch {
-      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
+      return { ok: false, code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), status: response.status };
     }
   } else if (responseText) {
     payload = responseText;
@@ -126,7 +127,7 @@ function httpError(parsed: ParsedResponse): MetadataWorkerResult<never> {
     error = payload.trim();
   }
 
-  return { ok: false, code, details, error, status: response.status };
+  return { ok: false, code, details, ...retryInfo(response, error), status: response.status };
 }
 
 export class MetadataWorker {

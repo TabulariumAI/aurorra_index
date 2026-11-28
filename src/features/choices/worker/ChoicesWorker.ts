@@ -1,3 +1,4 @@
+import { retryInfo } from "aurora-core/retry-info";
 import type { ChoicesBackendData, ChoicesWorkerCommand, ChoicesWorkerResult } from "../type/choices.types";
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -98,7 +99,7 @@ export class ChoicesWorker {
     return {
       ok: false,
       status: response.status,
-      error,
+      ...retryInfo(response, error),
       code,
       details,
     };

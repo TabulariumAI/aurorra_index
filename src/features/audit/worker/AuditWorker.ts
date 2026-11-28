@@ -1,3 +1,4 @@
+import { retryInfo } from "aurora-core/retry-info";
 import { normalizeAuditReport } from "../data/auditData";
 import type { AuditReport, AuditWorkerCommand, AuditWorkerResult } from "../type/audit.types";
 import { fetchJson } from "../../../shared/worker/fetchJson";
@@ -48,7 +49,7 @@ async function parseResponse(response: Response): Promise<AuditWorkerResult<Pars
     try {
       payload = JSON.parse(responseText);
     } catch {
-      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
+      return { ok: false, code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), status: response.status };
     }
   } else if (responseText) {
     payload = responseText;
@@ -76,7 +77,7 @@ function parseError(parsed: ParsedResponse): AuditWorkerResult<never> {
     error = payload.trim();
   }
 
-  return { ok: false, code, details, error, status: response.status };
+  return { ok: false, code, details, ...retryInfo(response, error), status: response.status };
 }
 
 export class AuditWorker {

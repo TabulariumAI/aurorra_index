@@ -33,7 +33,7 @@ export function toPageRequest(
 
 export function toViewerError(error: unknown, fallback: string): ViewerError {
   if (isObject(error)) {
-    const candidate = error as { cause?: unknown; code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
+    const candidate = error as { cause?: unknown; code?: unknown; details?: unknown; error?: unknown; message?: unknown; retryAfter?: unknown; retryAt?: unknown; status?: unknown };
     return {
       ...(error instanceof ErrorEvent ? { cause: error } : candidate.cause instanceof ErrorEvent ? { cause: candidate.cause } : {}),
       code: typeof candidate.code === "string" ? candidate.code : undefined,
@@ -43,6 +43,8 @@ export function toViewerError(error: unknown, fallback: string): ViewerError {
         : typeof candidate.message === "string"
           ? candidate.message
           : fallback,
+      retryAfter: typeof candidate.retryAfter === "string" ? candidate.retryAfter : undefined,
+      retryAt: typeof candidate.retryAt === "number" ? candidate.retryAt : undefined,
       status: typeof candidate.status === "number" ? candidate.status : undefined,
     };
   }

@@ -3,19 +3,23 @@ import type { ChoicesBackendData, ChoicesWorkerClient, ChoicesWorkerConfig, Choi
 type ChoicesWorkerError = Error & {
   code?: string;
   status?: number;
+  retryAfter?: string;
+  retryAt?: number;
   details?: unknown;
 };
 
 function resolveError(message: string, error: unknown): ChoicesWorkerError {
   const err = new Error(message) as ChoicesWorkerError;
   if (typeof error === "object" && error !== null) {
-    const candidate = error as { code?: unknown; status?: unknown; details?: unknown };
+    const candidate = error as { code?: unknown; retryAfter?: unknown; retryAt?: unknown; status?: unknown; details?: unknown };
     if (typeof candidate.code === "string") {
       err.code = candidate.code;
     }
     if (typeof candidate.status === "number") {
       err.status = candidate.status;
     }
+    if (typeof candidate.retryAfter === "string") err.retryAfter = candidate.retryAfter;
+    if (typeof candidate.retryAt === "number") err.retryAt = candidate.retryAt;
     if (Object.prototype.hasOwnProperty.call(candidate, "details")) {
       err.details = candidate.details;
     }

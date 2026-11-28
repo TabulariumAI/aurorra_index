@@ -6,6 +6,8 @@ export type PageSegmentsWorkerError = {
   details?: unknown;
   error: string;
   status?: number;
+  retryAfter?: string;
+  retryAt?: number;
 };
 
 export type PageSegmentsWorkerResult<T> =

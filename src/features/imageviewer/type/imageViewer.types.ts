@@ -20,6 +20,8 @@ export type ViewerError = {
   details?: unknown;
   error: string;
   status?: number;
+  retryAfter?: string;
+  retryAt?: number;
 };
 
 export type PackageData = {

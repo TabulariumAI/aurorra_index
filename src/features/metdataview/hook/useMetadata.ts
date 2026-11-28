@@ -17,12 +17,14 @@ import { createAuditWorkerClient } from "../../audit/worker/auditWorkerClient";
 import { loadChoices } from "../../choices/data/loadChoices";
 
 function toWorkerError(error: unknown): MetadataError {
-  const candidate = error as { code?: string; details?: unknown; error?: unknown; message?: string; status?: number };
+  const candidate = error as { code?: string; details?: unknown; error?: unknown; message?: string; retryAfter?: string; retryAt?: number; status?: number };
   return {
     ...(error instanceof ErrorEvent ? { cause: error } : {}),
     code: candidate.code,
     details: candidate.details,
     error: typeof candidate.error === "string" ? candidate.error : candidate.message || "Metadata request failed.",
+    retryAfter: candidate.retryAfter,
+    retryAt: candidate.retryAt,
     status: candidate.status,
   };
 }

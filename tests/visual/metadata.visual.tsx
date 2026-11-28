@@ -83,9 +83,9 @@ const shortPanelData = getPanelData(shortMetadata);
 const rowMetadata: MetadataPayload = {
   ...shortMetadata,
   indexes: [{
-    aspect: "recording_instrument_number",
+    aspect: "recording_number",
     code: "endorsement-1",
-    label: "recording_instrument_number",
+    label: "recording_number",
     page: "1",
     page_number: "1",
     segment: "endorsement",

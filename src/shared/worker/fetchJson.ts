@@ -1,6 +1,7 @@
+import { retryInfo } from "aurora-core/retry-info";
 export type JsonResult =
   | { data: unknown; ok: true }
-  | { code?: string; details?: unknown; error: string; ok: false; status?: number };
+  | { code?: string; details?: unknown; error: string; ok: false; status?: number; retryAfter?: string; retryAt?: number };
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -18,7 +19,7 @@ export async function fetchJson(url: string): Promise<JsonResult> {
     try {
       return { data: await response.json(), ok: true };
     } catch {
-      return { code: "invalid_json", error: "Response JSON could not be parsed.", ok: false, status: response.status };
+      return { code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), ok: false, status: response.status };
     }
   }
 
@@ -29,7 +30,7 @@ export async function fetchJson(url: string): Promise<JsonResult> {
     try {
       payload = JSON.parse(text);
     } catch {
-      return { code: "invalid_json", error: "Response JSON could not be parsed.", ok: false, status: response.status };
+      return { code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), ok: false, status: response.status };
     }
   }
 
@@ -45,5 +46,5 @@ export async function fetchJson(url: string): Promise<JsonResult> {
     error = payload.trim();
   }
 
-  return { code, details, error, ok: false, status: response.status };
+  return { code, details, ...retryInfo(response, error), ok: false, status: response.status };
 }

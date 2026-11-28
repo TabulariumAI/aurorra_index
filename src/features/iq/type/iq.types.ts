@@ -87,6 +87,8 @@ export type IqWorkerError = {
   details?: unknown;
   error: string;
   status?: number;
+  retryAfter?: string;
+  retryAt?: number;
 };
 
 export type IqWorkerResult<T> = { ok: true; data: T } | ({ ok: false } & IqWorkerError);

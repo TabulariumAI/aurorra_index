@@ -6,7 +6,7 @@ export function resolveIqModel(previous: IqModel | null | undefined, current: Iq
 }
 
 export function toIqError(error: unknown): IqWorkerError {
-  const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; status?: unknown };
+  const candidate = error as { code?: unknown; details?: unknown; error?: unknown; message?: unknown; retryAfter?: unknown; retryAt?: unknown; status?: unknown };
   return {
     ...(error instanceof ErrorEvent ? { cause: error } : {}),
     code: typeof candidate?.code === "string" ? candidate.code : undefined,
@@ -16,6 +16,8 @@ export function toIqError(error: unknown): IqWorkerError {
       : typeof candidate?.message === "string"
         ? candidate.message
         : "IQ request failed.",
+    retryAfter: typeof candidate?.retryAfter === "string" ? candidate.retryAfter : undefined,
+    retryAt: typeof candidate?.retryAt === "number" ? candidate.retryAt : undefined,
     status: typeof candidate?.status === "number" ? candidate.status : undefined,
   };
 }

@@ -1,3 +1,4 @@
+import { retryInfo } from "aurora-core/retry-info";
 import { parsePackageMetadata } from "../data/imageViewerData";
 import type {
   DataResponse,
@@ -58,7 +59,7 @@ async function parseResponse(response: Response): Promise<WorkerResult<ParsedRes
     try {
       return { ok: true, data: { payload: JSON.parse(responseText), response } };
     } catch {
-      return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
+      return { ok: false, code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), status: response.status };
     }
   }
   if (response.ok) {
@@ -80,7 +81,7 @@ function readHttpError(parsed: ParsedResponse): WorkerResult<never> {
   } else if (typeof payload === "string" && payload.trim()) {
     error = payload.trim();
   }
-  return { ok: false, code, details, error, status: response.status };
+  return { ok: false, code, details, ...retryInfo(response, error), status: response.status };
 }
 
 async function fetchApi(

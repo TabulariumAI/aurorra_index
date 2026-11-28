@@ -15,6 +15,7 @@ export default defineConfig({
       "react-dom": path.resolve(rootDir, "node_modules/react-dom"),
       zustand: path.resolve(rootDir, "node_modules/zustand"),
       "@radix-ui/react-popover": path.resolve(rootDir, "node_modules/@radix-ui/react-popover"),
+      "aurora-core/retry-info": path.resolve(rootDir, "../aurora_core/src/retryInfo.ts"),
       "aurora-core": path.resolve(rootDir, "../aurora_core/src/public-api.ts"),
     },
     dedupe: ["react", "react-dom", "zustand", "@radix-ui/react-popover", "@radix-ui/react-collapsible", "@radix-ui/react-tooltip"],

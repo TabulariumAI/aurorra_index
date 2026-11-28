@@ -116,19 +116,15 @@ describe("IqWorker", () => {
     vi.restoreAllMocks();
   });
 
-  it("uses GET with encoded metadata etag, and no etag for forced generation", async () => {
-    const worker = new IqWorker();
-    expect(worker.buildRequest({ apiBaseUrl: "https://gateway/", session: "session 1", token: "token", type: "iqData", etag: 'tag /+&' })).toEqual({
-      body: null, method: "GET", url: "https://gateway/v1/iq/session%201/data?etag=tag%20%2F%2B%26",
-    });
-    expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: "" })).toEqual({ body: null, method: "GET", url: "https://gateway/v1/iq/s/data?etag=" });
-    expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: null })).toEqual({ body: null, method: "GET", url: "https://gateway/v1/iq/s/data" });
-    expect(worker.buildRequest({ apiBaseUrl: "https://gateway", session: "s", code: "gate 1", token: "t", type: "iqAck" }).url).toBe("https://gateway/v1/iq/s/gates/gate%201/ack");
-    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: "" })).mockResolvedValueOnce(jsonResponse({ iq_doc: 98 }));
-    vi.stubGlobal("fetch", fetchMock);
-    expect(await worker.run({ apiBaseUrl: "https://gateway", session: "s", token: "t", type: "iqData", etag: null })).toEqual({ ok: true, data: { report: { iq_doc: 98 }, metadataEtag: "" } });
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://gateway/v1/iq/s/data", { body: null, method: "GET", cache: "no-store", headers: { Authorization: "Bearer t" } });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://blob/report.json");
+  it.each([null, "", "metadata-version"])("uses If-None-Match for optional metadata version %s without changing the report response", async etag => {
+    const fetcher = vi.fn().mockResolvedValueOnce(jsonResponse({ status: "completed", data: "https://blob/report.json", metadata_etag: "source" }))
+      .mockResolvedValueOnce(jsonResponse({ iq_doc: 98 }));
+    vi.stubGlobal("fetch", fetcher);
+    expect(await new IqWorker().run({ apiBaseUrl: "https://gateway", session: "session 1", token: "token", type: "iqData", etag }))
+      .toEqual({ ok: true, data: { report: { iq_doc: 98 }, metadataEtag: "source" } });
+    expect(fetcher.mock.calls[0][0]).toBe("https://gateway/v1/iq/session%201/data");
+    expect(new Headers(fetcher.mock.calls[0][1]?.headers).get("If-None-Match")).toBe(etag === null ? null : JSON.stringify(etag));
+    expect(fetcher.mock.calls[0][1]?.body).toBeNull();
   });
 
   it("validates inputs and commands", async () => {

@@ -1,3 +1,4 @@
+import { retryInfo } from "aurora-core/retry-info";
 import { fetchJson } from "../../../shared/worker/fetchJson";
 import type { PagesData, PageSegmentsWorkerCommand, PageSegmentsWorkerResult } from "../type/pageSegments.types";
 
@@ -44,7 +45,7 @@ function httpError(parsed: ParsedResponse): PageSegmentsWorkerResult<never> {
   } else if (typeof payload === "string" && payload.trim()) {
     error = payload.trim();
   }
-  return { ok: false, code, details, error, status: response.status };
+  return { ok: false, code, details, ...retryInfo(response, error), status: response.status };
 }
 
 export class PageSegmentsWorker {
@@ -129,7 +130,7 @@ export class PageSegmentsWorker {
     }
     if (!response.ok) {
       if (parsed.invalidJson) {
-        return { ok: false, code: "invalid_json", error: "Response JSON could not be parsed.", status: response.status };
+        return { ok: false, code: "invalid_json", ...retryInfo(response, "Response JSON could not be parsed."), status: response.status };
       }
       return httpError(parsed);
     }

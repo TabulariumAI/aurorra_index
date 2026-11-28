@@ -1,6 +1,5 @@
 import { ErrorBadge, ErrorBoundary, LoadPlaceholder, getPanelData, isAmbiguous, progressStyles, skeletonStyle } from "aurora-core";
 import type { MetadataPayload } from "aurora-core";
-import { prepareAuditReport } from "../../audit/data/auditData";
 import { prepareIqReport } from "../../iq/data/iqData";
 import { iqColors } from "../../iq/style/iqStyles";
 import type { IqBucket } from "../../iq/type/iq.types";
@@ -8,10 +7,10 @@ import { uniqueIndexes } from "../../metdataview/data/uniqueIndexes";
 import { summaryCss, summaryStyles } from "../style/summaryStyles";
 
 type SummaryValue = { data: unknown; error: string | null };
-export type IndexSummaryProps = Record<"metadata" | "audit" | "iq", SummaryValue>;
+export type IndexSummaryProps = Record<"metadata" | "iq", SummaryValue>;
 
 function SummaryMetric({ label, value, error, score, bucket }: { label: string; value: number | null; error: string | null; score?: boolean; bucket?: IqBucket }) {
-  return <div className="index-summary-metric" style={{ ...summaryStyles.metric, ...(score ? summaryStyles.score : {}) }}>
+  return <div className={`index-summary-metric${score ? " index-summary-score" : ""}`} style={{ ...summaryStyles.metric, ...(score ? summaryStyles.score : {}) }}>
     <dt style={{ ...summaryStyles.label, ...(score ? summaryStyles.scoreLabel : {}) }}>{label}</dt>
     <dd style={{ ...summaryStyles.value, ...(score ? summaryStyles.percent : {}), ...(bucket ? { color: iqColors[bucket].fg } : {}) }}>
       {error !== null ? <ErrorBadge label={label} error={error} /> : value === null ? <LoadPlaceholder label={`Loading ${label}`}><span aria-hidden="true" style={{ ...skeletonStyle, height: "1em", width: "3ch" }} /></LoadPlaceholder> : <>
@@ -44,20 +43,12 @@ function IqScores({ data, error }: SummaryValue) {
   </>;
 }
 
-function AuditChanges({ data, error }: SummaryValue) {
-  const view = data ? prepareAuditReport(data, { changeType: "", process: "", segment: "" }, []) : null;
-  return <SummaryMetric label="Audit changes" value={view ? view.total : null} error={error} />;
-}
-
-export function IndexSummary({ metadata, audit, iq }: IndexSummaryProps) {
+export function IndexSummary({ metadata, iq }: IndexSummaryProps) {
   return <section aria-label="Indexing results" style={summaryStyles.root}>
     <style>{summaryCss}</style>
     <dl className="index-summary-counts" style={summaryStyles.counts}>
       <ErrorBoundary title="Index counts" resetKey={metadata.data} fallback={error => <MetadataCounts data={null} error={error.message} />}>
         <MetadataCounts {...metadata} />
-      </ErrorBoundary>
-      <ErrorBoundary title="Audit changes" resetKey={audit.data} fallback={error => <AuditChanges data={null} error={error.message} />}>
-        <AuditChanges {...audit} />
       </ErrorBoundary>
     </dl>
     <dl style={summaryStyles.scores}>

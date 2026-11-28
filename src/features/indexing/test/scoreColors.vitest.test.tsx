@@ -25,7 +25,7 @@ it.each([
   const data = { iq_doc: score, gates: Array.from({ length: total }, (_, index) => ({ code: String(index), status: index < passed ? "PASS" : "FAIL", description: `Gate ${index}` })) };
   const view = prepareIqReport(data);
   render(<>
-    <IndexSummary metadata={waiting} audit={waiting} iq={{ data, error: null }} />
+    <IndexSummary metadata={waiting} iq={{ data, error: null }} />
     <section aria-label="IQ report"><IqView view={view} pendingChanges={new Map()} onAck={vi.fn()}  onAckCue={vi.fn()} /></section>
   </>);
 
@@ -44,7 +44,7 @@ it.each([
 
 it("colors IQ and compliance independently and preserves mixed gate calculations", () => {
   const data = { iq_doc: 100, gates: ["PASS", "FAIL", "WARNING", "INFO", "OTHER"].map(status => ({ code: status, status })) };
-  render(<IndexSummary metadata={waiting} audit={waiting} iq={{ data, error: null }} />);
+  render(<IndexSummary metadata={waiting} iq={{ data, error: null }} />);
   const iq = screen.getByRole("meter", { name: "IQ" });
   const gates = screen.getByRole("meter", { name: "Compliance" });
   expect(iq.parentElement).toHaveStyle({ color: "#065f46" });
@@ -56,10 +56,10 @@ it("colors IQ and compliance independently and preserves mixed gate calculations
 
 it("updates colors on new results and removes meters for pending and failed reports", () => {
   const result = (score: number) => ({ data: { iq_doc: score, gates: [] }, error: null });
-  const view = render(<IndexSummary metadata={waiting} audit={waiting} iq={waiting} />);
+  const view = render(<IndexSummary metadata={waiting} iq={waiting} />);
   expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   for (const [score, color, backgroundColor] of [[100, "#065f46", "#16a34a"], [88, "#92400e", "#f59e0b"], [50, "#991b1b", "#ef4444"]] as const) {
-    view.rerender(<IndexSummary metadata={waiting} audit={waiting} iq={result(score)} />);
+    view.rerender(<IndexSummary metadata={waiting} iq={result(score)} />);
     const meter = screen.getByRole("meter", { name: "IQ" });
     expect(meter.parentElement).toHaveStyle({ color });
     expect(meter.firstElementChild).toHaveStyle({ backgroundColor });
@@ -68,11 +68,11 @@ it("updates colors on new results and removes meters for pending and failed repo
     expect(gates.parentElement).toHaveStyle({ color: "#991b1b" });
     expect(gates.firstElementChild).toHaveStyle({ backgroundColor: "#ef4444", width: "0%" });
   }
-  view.rerender(<IndexSummary metadata={waiting} audit={waiting} iq={{ ...result(100), error: "Report unavailable" }} />);
+  view.rerender(<IndexSummary metadata={waiting} iq={{ ...result(100), error: "Report unavailable" }} />);
   expect(screen.queryByRole("meter")).not.toBeInTheDocument();
   for (const label of ["IQ", "Compliance"]) expect(screen.getByRole("button", { name: `${label} error` })).toBeVisible();
-  view.rerender(<IndexSummary metadata={waiting} audit={waiting} iq={waiting} />);
+  view.rerender(<IndexSummary metadata={waiting} iq={waiting} />);
   expect(screen.queryByRole("meter")).not.toBeInTheDocument();
-  view.rerender(<IndexSummary metadata={waiting} audit={waiting} iq={result(100)} />);
+  view.rerender(<IndexSummary metadata={waiting} iq={result(100)} />);
   expect(screen.getByRole("meter", { name: "IQ" }).firstElementChild).toHaveStyle({ backgroundColor: "#16a34a" });
 });

@@ -1,15 +1,21 @@
 import type { CSSProperties } from "react";
 
 export const summaryCss = `
-.index-summary-counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.index-summary-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .index-summary-metric { flex-direction: row; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; }
+.index-summary-score { padding: 0.8rem 1rem; }
 @media (max-width: 36rem) {
   .index-summary-counts { grid-template-columns: minmax(0, 1fr); }
+}
+@container summary (max-width: 22rem) {
+  .index-summary-score { padding: 0.6rem 0.375rem; }
 }
 `;
 
 export const summaryStyles = {
   root: {
+    containerName: "summary",
+    containerType: "inline-size",
     display: "grid",
     gap: "0.75rem",
     minWidth: 0,
@@ -36,9 +42,9 @@ export const summaryStyles = {
     boxShadow: "var(--shadow-card)",
   },
   score: {
+    containerType: "inline-size",
     flexDirection: "column",
     alignItems: "stretch",
-    padding: "0.8rem 1rem",
   },
   label: {
     fontSize: "0.75rem",
@@ -48,7 +54,7 @@ export const summaryStyles = {
     overflowWrap: "anywhere",
   },
   scoreLabel: {
-    fontSize: "1.1rem",
+    fontSize: "clamp(0.75rem, 13cqi, 1.1rem)",
     fontWeight: 700,
     color: "var(--title-ink)",
   },
@@ -69,7 +75,7 @@ export const summaryStyles = {
     alignItems: "stretch",
     gap: "0.5rem",
     minHeight: "2.85rem",
-    fontSize: "clamp(1.75rem, 5.25vw, 2.85rem)",
+    fontSize: "clamp(1.25rem, 16cqi, 2.85rem)",
     lineHeight: 1,
     letterSpacing: 0,
     color: "var(--primary-dark)",

@@ -18,6 +18,7 @@ export default defineConfig({
       "@radix-ui/react-popover": path.resolve(rootDir, "node_modules/@radix-ui/react-popover"),
       "@radix-ui/react-tooltip": path.resolve(rootDir, "node_modules/@radix-ui/react-tooltip"),
       "@tabulariumai/aurora-lens": path.resolve(rootDir, process.env.AURORA_REAL_LENS === "1" ? "../aurora-lens/src/index.ts" : "tests/visual/mockAuroraLens.ts"),
+      "aurora-core/retry-info": path.resolve(rootDir, "../aurora_core/src/retryInfo.ts"),
       "aurora-core": path.resolve(rootDir, "../aurora_core/src/public-api.ts"),
     },
     dedupe: ["react", "react-dom", "zustand", "@radix-ui/react-popover", "@radix-ui/react-tooltip", "@radix-ui/react-collapsible"],

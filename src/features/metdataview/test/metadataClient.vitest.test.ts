@@ -221,7 +221,7 @@ it("keeps the newer audit when an earlier download finishes last", async () => {
 
 describe("Pages failure isolation", () => {
   const pageError = Object.assign(new Error("The pages export result could not be decoded: the JSON is incomplete."), {
-    code: "content_result_invalid", status: 500, details: { segment: "pages" },
+    code: "content_result_invalid", status: 429, retryAfter: "30", retryAt: 123456, details: { segment: "pages" },
   });
   const metadata = { heading: { title: "Warranty Deed" }, indexes: [{ code: "party-1", segment: "party", value: "Alice" }] };
   const config = { apiBaseUrl: "https://gateway", retryIntervalMs: 0, retryLimit: 1 };
@@ -242,7 +242,7 @@ describe("Pages failure isolation", () => {
     expect(indexStoreApi.getState().pageError).toMatchObject({ error: error.message });
     expect(indexStoreApi.getState().error).toBeNull();
     expect(auditClient.loadReport).toHaveBeenCalledExactlyOnceWith("token", "first");
-    if (error === pageError) expect(indexStoreApi.getState().pageError).toEqual({ error: error.message, code: "content_result_invalid", details: { segment: "pages" }, status: 500 });
+    if (error === pageError) expect(indexStoreApi.getState().pageError).toEqual({ error: error.message, code: "content_result_invalid", details: { segment: "pages" }, status: 429, retryAfter: "30", retryAt: 123456 });
   });
 
   it("preserves direct Pages rejection and clears only the recovered session error", async () => {

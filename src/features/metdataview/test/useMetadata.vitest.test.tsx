@@ -73,6 +73,24 @@ const rowPayload: MetadataActionPayload = {
 };
 
 describe("useMetadata", () => {
+  it.each([429, 503])("retains %s retry metadata in the metadata store and callback", async status => {
+    const client = createClient();
+    const failure = { code: "document_busy", status, retryAfter: "30", retryAt: 123456, error: "Unavailable. Retry after 12:00." };
+    vi.mocked(client.indexData).mockRejectedValueOnce(failure);
+    const onMetadataError = vi.fn();
+    const props: MetadataProps = { formatError: (error: unknown) => (error as Error).message,
+      apiGatewayUrl: "https://gateway", authToken: "token", batchCode: null,
+      callbacks: { onMetadataError }, deferredState: createDeferredState(), intervalMs: 0,
+      onQueueChange: vi.fn(), refresh: null, retryIntervalMs: 0, retryLimit: 1,
+      segments, session: "session-1", workerClient: client,
+    };
+    const view = renderHook(() => useMetadata(props));
+    await waitFor(() => expect(onMetadataError).toHaveBeenCalledWith(failure));
+    expect(indexStoreApi.getState().error).toMatchObject(failure);
+    expect(client.indexData).toHaveBeenCalledOnce();
+    view.unmount();
+  });
+
   beforeEach(() => {
     choicesWorker.load.mockReset().mockResolvedValue({ items: choices, jurisdiction: null });
     auditClient.loadReport.mockReset().mockResolvedValue({ gaps: [] });

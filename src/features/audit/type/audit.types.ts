@@ -96,6 +96,8 @@ export type AuditWorkerError = {
   details?: unknown;
   error: string;
   status?: number;
+  retryAfter?: string;
+  retryAt?: number;
 };
 
 export type AuditWorkerResult<T> =
